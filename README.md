@@ -7,7 +7,7 @@ All code chunks I have worked on can be found by "grep -irn "saumik" ./"
 
 ---------------------------------- Comments on code contributions from Saumik -----------------------------------
 
---------- /comp_mfmfe is the folder pertaining to compositional flow model with multipoint flux mixed finite element method
+--------- /comp_mfmfe is the folder pertaining to compositional flow model
 
 xarray.df has all memory allocation for extra parameters introduced for the two grid framework 
 
@@ -55,5 +55,5 @@ added flag mbporoe in evisual.df wherever necessary
 
 changes to bc0.f90 and post_prcss0.f90 for error indicators 
 
-
+---------- /singlei_mfmfe is the folder pertaining to single phase flow model
 
