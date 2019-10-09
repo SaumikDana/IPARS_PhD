@@ -73,3 +73,7 @@ We typically use one size file for one particular kind of problem
 
 Added metis.siz for METIS and tetgen.siz for TETGEN
 
+---------- /visual is the folder pertaining to visualization
+
+
+
