@@ -1,0 +1,116 @@
+TITLE(2)="CMAME RUN"
+
+DESCRIPTION()=""
+
+BLOCKMODEL(1) = "POROELASTIC"
+BLOCKMODEL(2) = "SINGLE_PHASE_MFMFE"
+
+MBPOROE
+EV_PRCBLK = 1
+NONMATCHING
+HETEROGENEOUS
+TIMEEND = 200.0
+CR_TYPE = 2
+
+PEPVTOL = 1.0E-6 $ fixed stress convergence tolerance
+
+MAXNEWT = 20    $ MAX PRES NEWT STEP (DEFAULT 20)
+OUTLEVEL = 2
+
+$ Convergence Tolerance for flow
+CVTOL = 1.0E-8
+
+$$$ FAULT BLOCK AND MESH DATA
+BLOCKNAME(1) = "BLOCK1"
+DOWN(1 TO 3,1) =0. 0. 0.
+BLOCKNAME(2) = "BLOCK2"
+DOWN(1 TO 3,2) =0. 0. 0.
+
+Include mesh1.dat
+Include mesh2.dat
+Include heterogeneous.dat
+
+$ INITIAL CONDITIONS
+PINIT = 500.0
+FLVIS = 1.
+STFLDEN = 62.34
+FLCOMP = 2.089E-06
+POROSITY2() = 0.2
+POISSONFLOW2() = 0.2
+
+$ PERMEABILITIES
+XPERM2() = 100.0 YPERM2() = 100. ZPERM2() = 100.
+
+$ WELLS
+NUMWELL=2
+
+WELLNAME(1) = "WELL 1, BLOCK 1"
+KINDWELL(1) = 1
+WELLTOP(1 TO 3,1,1) =     0.   502.    502.
+WELLBOTTOM(1 TO 3,1,1) =  100.  502.    502.
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant 
+  Data  1000.  1000.
+EndBlock
+
+WELLNAME(2) = "WELL 1, BLOCK 1"
+KINDWELL(2) = 31
+WELLTOP(1 TO 3,1,2) =     0.   4502.    4502.
+WELLBOTTOM(1 TO 3,1,2) =  100.  4502.    4502.
+WELLPQ(2) Block
+  Interpolation Linear
+  Extrapolation Constant 
+  Data  100.  100.
+EndBlock
+
+$ Elastic Properties
+GRAVITY_FLAG = 0
+POISSON1() = 0.2 $ poisson's ratio
+ROCKD1() = 2.65  $ rock density  (in Kg\Liter)
+NO_ELASTIC_NEWTON
+
+EBCXX1() = 1
+XXST1() = 0.0
+
+EBCXXN1() = 2
+XXDIN1() = 0.0
+
+EBCXYN1() = 2
+XYDIN1() = 0.0
+EBCXZN1() = 2
+XZDIN1() = 0.0
+
+EBCYY1() = 2
+YYDI1() = 0.0
+
+EBCYYN1() = 2
+YYDIN1() = 0.0
+
+EBCZZ1() = 2
+ZZDI1() = 0.0
+
+EBCZZN1() = 2
+ZZDIN1() = 0.0
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+
+DELTIM = 1.0  
+DTIMMUL = 1.0  DTIMMIN = 0.01  DTIMMAX = 3.0  TIMOUT = 1.0  DTIMOUT = 199.0
+
+VISOUT = 1.0
+DVISOUT = 199.0
+
+VIS_SCL = 4
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "TDISPX"
+VIS_SCL_NAMES(3) = "TDISPY"
+VIS_SCL_NAMES(4) = "TDISPZ"
+VIS_FNAME = "saumik"
+VISFLAG = 8
+EndTime
+

@@ -1,0 +1,104 @@
+TITLE(2)="SINGLE PHASE TEST SMALL"
+
+DESCRIPTION()=""
+
+BLOCKMODEL(1) = "POROELASTIC"
+BLOCKMODEL(2) = "SINGLE_PHASE_MFMFE"
+
+MBPOROE
+EV_PRCBLK = 1
+TIMEEND = 0.025
+CR_TYPE = 2
+
+PEPVTOL = 1.0E-2 $ fixed stress convergence tolerance
+
+MAXNEWT = 20    $ MAX PRES NEWT STEP (DEFAULT 20)
+PROCOUT
+OUTLEVEL = 2
+
+$ Convergence Tolerance for flow
+CVTOL = 1.0E-8
+
+$$$ FAULT BLOCK AND MESH DATA
+BLOCKNAME(1) = "BLOCK1"
+DOWN(1 TO 3,1) =0. 0. 0.
+BLOCKNAME(2) = "BLOCK2"
+DOWN(1 TO 3,2) =0. 0. 0.
+
+$corner point geometry
+Include bigmesh60.dat
+Include mesh60.dat
+
+$ INITIAL CONDITIONS
+PINIT = 0.0
+FLVIS = 1.
+STFLDEN = 62.34
+FLCOMP = 2.089E-6
+POROSITY2() = .2
+MODULUSFLOW2() = 5.E5  $ Young's modulus
+POISSONFLOW2() = 0.2 $ poisson's ratio
+BIOTAFLOW2() = 0.8   $ flow mechanics coupling term
+
+$ PERMEABILITIES
+XPERM2() = 100.  YPERM2() = 100. ZPERM2() = 100.
+
+$ WELLS
+NUMWELL = 1
+WELLNAME(1) = "WELL 1, BLOCK 1"
+KINDWELL(1) = 2
+WELLTOP(1 TO 3,1,1) =     802.  1502.  1502.
+WELLBOTTOM(1 TO 3,1,1) =  998.  1502.  1502.
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant 
+  Data    0.  10.
+EndBlock
+
+$ Elastic Properties
+POROSITY1() = 0.0
+GRAVITY_FLAG = 0
+MODULUS1() = 5.E5  $ Young's modulus
+POISSON1() = 0.2 $ poisson's ratio
+BIOTA1() = 0.8   $ flow mechanics coupling term
+ROCKD1() = 2.65  $ rock density  (in Kg\Liter)
+ 
+EBCXX1() = 2
+XXDI1() = 0.0
+
+EBCXXN1() = 2
+XXDIN1() = 0.0
+
+EBCYY1() = 2
+YYDI1() = 0.0
+
+EBCYYN1() = 2
+YYDIN1() = 0.0
+
+$ traction-free top surface
+EBCZZ1() = 1
+ZZST1() = 0.0 
+
+EBCZZN1() = 2
+ZZDIN1() = 0.0
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+
+DELTIM = 0.005  
+DTIMMUL = 1.0  DTIMMIN = 0.001  DTIMMAX = 1.0  TIMOUT = 0.005  DTIMOUT = 0.005
+
+VISOUT = 50.0
+DVISOUT = 50.0
+
+VIS_SCL = 4
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "DISPX"
+VIS_SCL_NAMES(3) = "DISPY"
+VIS_SCL_NAMES(4) = "DISPZ"
+VIS_FNAME = "saumik"
+VISFLAG = 8
+EndTime
+

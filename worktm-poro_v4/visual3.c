@@ -1,0 +1,555 @@
+// -----------------------------------------------------------------
+// file: visual3.c
+//
+// (fully unstructured) visualization output in the Tecplot format for
+// IPARS framework
+//
+// MPeszynska, 3/19/98
+// last mod. (mpesz) 11/20/98, see CVS log files for description of updates
+// moved routines  from visual.dc to sveral smaller files on 11/20/98
+//
+// XGAI, 08/13/03
+// Add in flags indicating corner point variables so that interpolation
+// is not necessary for such variables.
+//-----------------------------------------------------------------
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <math.h>
+
+#include "cfsimple.h"
+#include "visualc.h"
+
+// ----------------------------------------------------------------
+// the actual unstructured grid routine
+//
+
+void _vis_full_unstruct
+(
+ const _F_INTEGER * const IDIM,
+  const _F_INTEGER * const JDIM,
+  const _F_INTEGER * const KDIM,
+  const _F_INTEGER * const LDIM,
+  const _F_INTEGER * const IL1,
+  const _F_INTEGER * const IL2,
+  const _F_INTEGER * const JLV1,
+  const _F_INTEGER * const JLV2,
+  const _F_INTEGER * const KL1,
+  const _F_INTEGER * const KL2,
+  const _F_INTEGER * const KEYOUT,
+  const _F_INTEGER * const NBLK,
+ // fixed parameters
+ const int flag,
+ const _F_REAL_8  * const vis_xrec,
+ const _F_REAL_8 * const vis_yrec,
+ const _F_REAL_8 * const vis_zrec,
+ const _F_REAL_4  * const vis_dxrec,
+ const _F_REAL_4 * const vis_dyrec,
+ const _F_REAL_4 * const vis_dzrec,
+ const int nscl, const int nvec,
+ _F_REAL_8 * * r8_scl_list,
+ _F_REAL_8 * * r8_vec_list
+ )
+{
+  const int narg=nscl+nvec;
+  const int maxblk = (*IDIM)*(*JDIM)*(*KDIM);
+  const int maxpls = (*IDIM +1)*(*JDIM +1)*(*KDIM +1);
+  const int   kinc = (*IDIM) * (*JDIM) ;
+  const int   jinc = (*IDIM) ;
+  const int   kbeg = (*KL1) ;
+  const int   kend = (*KL2) ;
+  const int   ibeg =  *IL1 ;
+  const int   iend =  *IL2 ;
+  const int   nblk = *NBLK-1;
+//  const int _Myblk = nblk;
+
+  //
+  FILE *fp; // general file handle, first used for INITfile, next for ZONEfile
+
+  if(flag != 3) return ;
+
+  // -------------------------------- unstructured grid setup or output
+
+  if (_Vis_cnt[nblk]++ ==0) {
+
+    char INITfilename[50];
+    _cr_INIT_fname(INITfilename,flag,nblk);
+
+    fp=fopen(INITfilename,"w");
+
+#ifdef DEBUG
+    {
+      char s[100]; sprintf(s,"vis-%d.%d",nblk,_Myprc);
+      fvdebug= fopen(s,"w");
+      if(fvdebug==NULL) return;
+      else {
+	//printf("\nFile %s open\n",s);
+	fprintf(fvdebug, "\n DEBUG output for block=%d proc=%d\n",
+		nblk, _Myprc);
+      }
+    }
+#endif
+
+    if (fp != NULL) {
+      int * nnodes;
+
+      _INFO_print(0,INITfilename,nblk);
+
+      //
+      // print the header to the file
+      //
+      {
+	int iarg;
+	
+	fprintf(fp,"title=init.%d\n",flag);
+	fprintf(fp,"variables=x,y,z");
+	for(iarg=0;iarg<narg;iarg++) {
+	  if(_Vis_pars[iarg].name!=NULL)
+	    fprintf(fp,", %s",_Vis_pars[iarg].name);
+	  else
+	    fprintf(fp,", v%d",iarg+1);
+	}
+      }
+
+      //
+      // reset all structures and
+      // allocate auxiliary and permanent structures
+      //
+
+      _Nodes[nblk]= (NODE *) malloc((maxpls+1)*sizeof(NODE));
+      nnodes = (int *) malloc(maxpls*sizeof(int));
+      // initialize the array to zero
+      if (nnodes !=NULL)
+	memset((void *)nnodes, (int) 0, maxpls*sizeof(int));
+
+      if ( (nnodes!=NULL) && (_Nodes[nblk] != NULL) ) {
+	int k,j,i,inode=0,igblk=0;
+	int ogblk=0;
+	_F_INTEGER igoff,jgoff,kgoff,nofferr;
+	_F_INTEGER idgoff,jdgoff,kdgoff;
+	
+	//
+	// count the nodes and blocks, set the nnodes and _Nodes
+	//
+	
+	for(k=kbeg;k<=kend;k++) {
+	  const int jbeg =  ( JLV1[k-1] );
+	  const int jend =  ( JLV2[k-1] );	   	
+	
+	  for ( j = jbeg ; j <= jend ;j++ ) {
+	    for ( i= ibeg; i <= iend ; i++) {	
+	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+	
+	      const int index = gindex(i,j,k);	
+#ifdef DEBUG	
+//	      fprintf(fvdebug,"\n %d %d %d  %d",i,j,k,KEYOUT[index]);
+#endif
+	      ogblk++;
+	
+	      if ( KEYOUT[index] == 1 ) {	
+		//	      touch each of the 8 vertices
+		int gi;NODE *curr_node;
+		
+		igblk++;		
+
+		gi=gindex(i,j,k); // same as index of the gridblock below
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j,k);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i,j+1,k);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j+1;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j+1,k);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j+1;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i,j,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j;curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j;curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i,j+1,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j+1;curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j+1,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j+1;
+		  curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+
+#undef gindex		
+	      } // end if KEYOUT
+	    } // end loop i
+	  } // end loop j
+	} // end loop k 	
+	
+	// DEBUG
+	
+	//
+	// printf("\n Counted nodes %d and gridblocks %d and ? %d\n",
+	//  inode,igblk,ogblk);
+	
+	_Nnod[nblk]=inode;_Ngblk[nblk]=igblk;
+	
+// bag8, gp : added strandid, solutiontime	
+      fprintf(fp,"\nzone t=init, n=%d, e=%d, et=brick, F=fepoint, ",
+		_Nnod[nblk],_Ngblk[nblk]);
+// gp: note that init zone has to be deactivated in Tecplot before extraction
+      fprintf(fp,"strandid=0, solutiontime=0.0\n");
+	
+	// get the global offsets for vis_xrec,vis_yrec,vis_zrec
+	
+	myblkoff(NBLK,&igoff,&jgoff,&kgoff,&nofferr);
+	idgoff=igoff;jdgoff=jgoff;kdgoff=kgoff;
+
+	// modify offsets to include offset of (0,0,0) block
+	// igoff etc. are offsets for xrec, idgoff are for dxrec
+	igoff+=_Mxrecxp*nblk;jgoff+=_Myrecyp*nblk;kgoff+=_Mzreczp*nblk;
+	idgoff+=(_Mxrecxp-1)*nblk;jdgoff+=(_Myrecyp-1)*nblk;
+	kdgoff+=(_Mzreczp-1)*nblk;
+	
+	//
+	// print x,y,z information, and dummy values for the variables
+	//
+	for (inode=1;inode <=_Nnod[nblk];inode++) {
+	
+	  const int i=_Nodes[nblk][inode].i,
+	    j=_Nodes[nblk][inode].j,
+	    k=_Nodes[nblk][inode].k;
+	  int iarg;
+	
+	  fprintf(fp,"\n%g %g %g\n",
+		  vis_xrec[i+igoff-1],
+		  vis_yrec[j+jgoff-1],vis_zrec[k+kgoff-1]
+		  );
+
+	  // print dummy=0.0 values of the vis variables
+	  for(iarg=0;iarg<narg;iarg++)
+	    fprintf(fp,"%g ",0.0);
+	
+	} // end inode
+	fprintf(fp,"\n");
+	
+	//
+	// print the connectivity data
+	//
+	
+	for(k=kbeg;k<=kend;k++) {
+	  const int jbeg =  ( JLV1[k-1] );
+	  const int jend =  ( JLV2[k-1] );
+	
+	  for ( j = jbeg ; j <= jend ;j++ ) {	
+	    for ( i= ibeg; i <= iend ; i++) {	
+
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+
+	      const int gi=gindex(i,j,k);
+	
+	      if ( KEYOUT[gi] == 1 ) {	
+		
+		fprintf(fp,"%d %d %d %d %d %d %d %d\n",
+			nnodes[gindex(i,j,k)], nnodes[gindex(i+1,j,k)],
+			nnodes[gindex(i+1,j+1,k)], nnodes[gindex(i,j+1,k)],
+			nnodes[gindex(i,j,k+1)], nnodes[gindex(i+1,j,k+1)],
+			nnodes[gindex(i+1,j+1,k+1)],
+			nnodes[gindex(i,j+1,k+1)]
+			);
+		
+	      } // end if KEYOUT
+	    } // end loop i
+	  } // end loop j
+	} // end loop k 	
+#undef gindex
+	
+	// free the nnodes as well as unused _Nodes space
+	free ((void *)nnodes);
+
+	// the freeing below is not possible on Linux or SGI
+
+// bag8 : for mac os x
+#if defined(__APPLE__)
+#define _linux
+#endif
+
+#if defined(_linux) || defined(__linux) || defined(mips) || defined(__mips)
+
+	// do not free
+	// printf("\nskipped freeing memory here ... ");
+
+#else  // for SP2 it is possible
+	// free the unused _Nodes structure
+	// printf("\nfreeing unused _Nodes memory here ... ");
+
+	if( _Nnod[nblk] < maxpls )
+	{
+	  NODE *freeptr= &( _Nodes[nblk][_Nnod[nblk]+1+1] );
+	  free((void *)freeptr);	
+	} else ;
+#endif
+
+      }
+      // done with the INIT file
+      fclose(fp);
+
+    } // end test on file existence
+
+  } // end Vis_cnt
+
+  {
+    char ZONEfilename[50];
+    _cr_ZONE_fname(ZONEfilename,flag,nblk);
+
+    fp=fopen(ZONEfilename,"w");
+    if(fp !=NULL) _INFO_print(1,ZONEfilename,nblk);
+    else
+      {
+	printf("\n Problems with file: %s\n",ZONEfilename);exit(-1);
+      }
+  }
+
+  if (fp != NULL) {
+    int lvar;
+    _F_INTEGER igoff,jgoff,kgoff,nofferr;
+    _F_INTEGER idgoff,jdgoff,kdgoff;
+
+    static char ZONEname [50];
+    sprintf(ZONEname,"%d.%d.%d",nblk,_Myprc,_Nstep);
+
+    // give info about the zone data
+
+// bag8, gp : added strandid, solutiontime
+    fprintf(fp,"\nzone t=%c%s day=%g%c, n=%d, e=%d, ",
+	    '"',ZONEname,_Time,'"',_Nnod[nblk],_Ngblk[nblk]);
+    fprintf(fp,"et=brick, F=feblock,d=(1,2,3,FECONNECT), ");
+// gp : modify strandid to allow for time series plot extraction
+//    fprintf(fp,"strandid=%d, solutiontime=%g\n",_Nstep+1,_Time);
+    fprintf(fp,"strandid=%d, solutiontime=%g\n",nblk+1,_Time);
+
+    // get the global offsets for vis_xrec,vis_yrec,vis_zrec
+	
+    myblkoff(NBLK,&igoff,&jgoff,&kgoff,&nofferr);
+    idgoff=igoff;jdgoff=jgoff;kdgoff=kgoff;
+
+    // modify offsets to include offset of (0,0,0) block
+    // igoff etc. are offsets for xrec, idgoff are for dxrec
+    igoff+=_Mxrecxp*nblk;jgoff+=_Myrecyp*nblk;kgoff+=_Mzreczp*nblk;
+    idgoff+=(_Mxrecxp-1)*nblk;jdgoff+=(_Myrecyp-1)*nblk;
+    kdgoff+=(_Mzreczp-1)*nblk;
+
+    //
+    // print the values of the scalar variables (interpolated
+    // from cell-centered data)
+    //
+
+    for(lvar=0;lvar< (nscl);lvar++) {
+      const int ldimoff=(_Vis_pars[lvar].ldim-1)*maxblk;
+      int inode;
+
+      //	  printf("\nprinting for scalar variable %d\n",lvar);
+
+      fprintf(fp,"\n\n");
+      for(inode=1;inode<=_Nnod[nblk];inode++) {
+
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+
+	const int i2=_Nodes[nblk][inode].i,
+	  j2=_Nodes[nblk][inode].j,
+	  k2=_Nodes[nblk][inode].k;
+	const int i1=i2-1,j1=j2-1,k1=k2-1;
+	int i111=gindex(i1,j1,k1),i211=gindex(i2,j1,k1),
+	  i121=gindex(i1,j2,k1),i221=gindex(i2,j2,k1),
+	  i112=gindex(i1,j1,k2),i212=gindex(i2,j1,k2),
+	  i122=gindex(i1,j2,k2),i222=gindex(i2,j2,k2);	
+#undef gindex
+#define gcheck(ind)  ( ( (*ind)>=0 ) && ((*ind) <maxblk) ? 1 : (*ind=0) )
+	
+	const int s111=gcheck(&i111),s121=gcheck(&i121),
+	  s211=gcheck(&i211),s221=gcheck(&i221),
+	  s112=gcheck(&i112),s122=gcheck(&i122),
+	  s212=gcheck(&i212),s222=gcheck(&i222);
+
+#undef gcheck
+
+	const int newline=inode % 5;
+	int count;
+	
+	_F_REAL_8 scalval;
+	_F_REAL_8 *ptr=& ( r8_scl_list[lvar][ldimoff] );
+
+        if (_Vis_pars[lvar].vnodal == 0)
+	{
+	// -------------------------
+	// interpolation for nonuniform grid, cell centered variables
+	//
+#define icheck(ind)  ( (ind)>=0  ? (ind) : 0 )
+	int di1= icheck(i1+idgoff-1) ;
+	int di2=i2+idgoff-1;
+	int dj1= icheck(j1+jdgoff-1) ;
+	int dj2=j2+jdgoff-1;
+	int dk1= icheck(k1+kdgoff-1) ;
+	int dk2=k2+kdgoff-1;
+#undef icheck
+
+	_F_REAL_8
+	  dx1=(_F_REAL_8) vis_dxrec[di1],dx2=(_F_REAL_8) vis_dxrec[di2],
+	  dy1=(_F_REAL_8) vis_dyrec[dj1],dy2=(_F_REAL_8) vis_dyrec[dj2],
+	  dz1=(_F_REAL_8) vis_dzrec[dk1],dz2=(_F_REAL_8) vis_dzrec[dk2];
+	
+	scalval=sint3Dnonuniform_with_ghosts
+	    (
+	   s111,s211,s121,s221,s112,s212,s122,s222,
+	   KEYOUT[i111],KEYOUT[i211],KEYOUT[i121],KEYOUT[i221],
+	   KEYOUT[i112],KEYOUT[i212],KEYOUT[i122],KEYOUT[i222],
+	   ptr[i111],ptr[i211],ptr[i121],ptr[i221],
+	   ptr[i112],ptr[i212],ptr[i122],ptr[i222],
+	   dx1,dx2,dy1,dy2,dz1,dz2,
+	   &count);
+
+	}
+        else
+        {
+        // -------------------------
+        // no interpolation for corner point variables
+        //
+        scalval=ptr[i222];
+        }
+	fprintf(fp,"%g ",scalval);
+	if(newline==0) fprintf(fp,"\n");
+	
+      }// inode	
+    } // lvar
+
+    for(lvar=0;lvar< (nvec);lvar++) {
+      const int ldimoff=(_Vis_pars[lvar+nscl].ldim-1)*maxblk;
+      int inode;
+
+      // printf("\nprinting for vector variable %d with \n",lvar);
+
+      fprintf(fp,"\n\n");
+      for(inode=1;inode<=_Nnod[nblk];inode++) {
+
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+
+	const int i2=_Nodes[nblk][inode].i,
+	  j2=_Nodes[nblk][inode].j,
+	  k2=_Nodes[nblk][inode].k;
+	const int i1=i2-1,j1=j2-1,k1=k2-1;
+	int i111=gindex(i1,j1,k1),i211=gindex(i2,j1,k1),
+	  i121=gindex(i1,j2,k1),i221=gindex(i2,j2,k1),
+	  i112=gindex(i1,j1,k2),i212=gindex(i2,j1,k2),
+	  i122=gindex(i1,j2,k2),i222=gindex(i2,j2,k2);	
+#undef gindex
+#define gcheck(ind)  ( ( (*ind)>=0 ) && ((*ind) <maxblk) ? 1 : (*ind=0) )
+	
+	const int s121=gcheck(&i121),
+	  s211=gcheck(&i211),s221=gcheck(&i221),
+	  s112=gcheck(&i112),s122=gcheck(&i122),
+	  s212=gcheck(&i212),s222=gcheck(&i222);
+
+#undef gcheck
+
+	const int newline=inode % 5; // switch for newline
+	const int iface=(lvar) % 3; // recognize faces : assume they come
+	// in x,y,z triples
+	
+	_F_REAL_8 vecval;
+	_F_REAL_8 *ptr=& ( r8_vec_list[lvar][ldimoff] );
+
+#define icheck(ind)  ( (ind)>=0  ? (ind) : 0 )
+	int di1= icheck(i1+idgoff-1) ;
+	int di2=i2+idgoff-1;
+	int dj1= icheck(j1+jdgoff-1) ;
+	int dj2=j2+jdgoff-1;
+	int dk1= icheck(k1+kdgoff-1) ;
+	int dk2=k2+kdgoff-1;
+#undef icheck
+
+	_F_REAL_8
+	  dx1=(_F_REAL_8) vis_dxrec[di1],dx2=(_F_REAL_8) vis_dxrec[di2],
+	  dy1=(_F_REAL_8) vis_dyrec[dj1],dy2=(_F_REAL_8) vis_dyrec[dj2],
+	  dz1=(_F_REAL_8) vis_dzrec[dk1],dz2=(_F_REAL_8) vis_dzrec[dk2];
+	int flag;
+
+	switch(iface) {
+	case 0: // assume this is x-face
+	  vecval=vint3D_nonuniform(	
+			s211,s221,s212,s222,
+			KEYOUT[i111],KEYOUT[i211],
+			KEYOUT[i121],KEYOUT[i221],
+			KEYOUT[i112],KEYOUT[i212],
+			KEYOUT[i122],KEYOUT[i222],
+			ptr[i211],ptr[i221],ptr[i212],ptr[i222],
+			dy1,dy2,dz1,dz2,&flag);
+
+	  break;
+
+// gp: Observation: order of arguments in v3.1 does NOT macth waht is in v2.1
+	case 1:  // assume this is y-face
+	  vecval= vint3D_nonuniform(				
+			 s121,s221,s122,s222,
+			 KEYOUT[i111],KEYOUT[i121],
+			 KEYOUT[i211],KEYOUT[i221],
+			 KEYOUT[i112],KEYOUT[i122],
+			 KEYOUT[i212],KEYOUT[i222],
+			 ptr[i121],ptr[i221],ptr[i122],ptr[i222],
+			 dx1,dx2,dz1,dz2,&flag);
+	  break;
+
+// gp: Observation: order of arguments in v3.1 does NOT macth waht is in v2.1
+	case 2: // assume this is z-face
+	  vecval= vint3D_nonuniform(				
+			 s112,s212,s122,s222,
+			 KEYOUT[i111],KEYOUT[i112],
+			 KEYOUT[i211],KEYOUT[i212],
+			 KEYOUT[i121],KEYOUT[i122],
+			 KEYOUT[i221],KEYOUT[i222],
+			 ptr[i112],ptr[i212],ptr[i122],ptr[i222],
+			 dx1,dx2,dy1,dy2,&flag);
+	  break;
+	}
+	fprintf(fp,"%g ",vecval);
+	if(newline==0) fprintf(fp,"\n");
+	
+      }// inode
+
+    } // lvar
+
+#undef gindex
+
+    fclose(fp);
+#ifdef DEBUG
+    fclose(fvdebug);
+#endif
+
+  } // ZONEfile open
+
+}
+

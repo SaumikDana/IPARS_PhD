@@ -1,0 +1,322 @@
+C  TISDAT.F - INPUT IMPLICIT SINGLE PHASE FLOW MODEL INITIAL SCALAR DATA
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE TISDAT (NERR)
+C  SUBROUTINE TIADAT (NERR)
+
+C  CODE HISTORY:
+
+C  BAHAREH MOMKEN 02/02/99  Hydrology-IMPES gisdat.df is used as template
+C  JOHN WHEELER   04/03/99  IMPLICIT SINGLE PHASE MODEL
+
+C*********************************************************************
+      SUBROUTINE TISDAT (NERR)
+C*********************************************************************
+
+C  Inputs implicit single phase flow model initial scalar data
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'unitsex.h'
+      INCLUDE 'tfluidsc.h'
+      INCLUDE 'tbaldat.h'
+      INCLUDE 'terrcalc.h'
+      INTEGER NERR, NDUM
+
+      IF (LEVELC) WRITE(NFOUT,10)
+   10 FORMAT(/' ********** IMPLICIT SINGLE-PHASE MODEL ***********'/)
+
+C  INPUT NEWTON ITERATION TOLERANCE
+
+      CVTOL = 5.0E-05
+      CALL GETVAL('CVTOL ',CVTOL,'R8',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('S_CVTOL ',CVTOL,'R8',0,0,0,0,NDUM,NERR)
+      IF (LEVELC) WRITE (NFOUT,2) CVTOL
+    2 FORMAT(' CONVERGENCE TOLERANCE (CVTOL)',T49,G11.4)
+
+ctm   TAMEEM
+      F_TOLERANCE = 1.E-5
+      CALL GETVAL('F_TOLERANCE ',F_TOLERANCE,'R8',0,0,0,0,NDUM,NERR)
+
+C     COMPUTE_NORM = 0 (DO NOT COMPUTE CONVERGENCE NORMS)
+C                  = 1 (COMPUTE CONVERGENCE NORMS)
+
+      COMPUTE_NORM = 0
+      CALL GETVAL('COMPUTE_NORM ',COMPUTE_NORM,'I4',0,0,0,0,NDUM,NERR)
+
+ctm   TAMEEM
+
+C bag8 - SWITCH FOR DIFFERENT SINGLE PHASE MODELS
+C        e.g., for Mandel problem or Parabolic problem
+      TMODEL = 0
+      CALL GETVAL('TMODEL ',TMODEL,'I4',0,0,0,0,NDUM,NERR)
+      IF (LEVELC) WRITE (NFOUT,*) 'TMODEL=',TMODEL
+
+C bag8 - TEST NUMBER FOR A MANUFACTURED SOLUTION
+
+      ITEST = -1
+      CALL GETVAL('ITEST ',ITEST,'I4',0,0,0,0,NDUM,NERR)
+
+C  INPUT FLUID STANDARD DENSITY, COMPRESSIBILITY, AND VISCOSITY
+
+      STFLDEN=56.
+      CALL DEFAULT(EXTDENS)
+      CALL GETVAL('STFLDEN[lb/cu-ft] ',STFLDEN,'R4',0,0,0,0,NDUM,NERR)
+      CALL DEFAULT(EXTDENS)
+      CALL GETVAL('S_STFLDEN[lb/cu-ft] ',STFLDEN,'R4',0,0,0,0,NDUM,NERR)
+
+      FLCMP=4.E-5
+      CALL DEFAULT(EXTCOMP)
+      CALL GETVAL('FLCOMP[/psi] ',FLCMP,'R4',0,0,0,0,NDUM,NERR)
+      CALL DEFAULT(EXTCOMP)
+      CALL GETVAL('S_FLCOMP[/psi] ',FLCMP,'R4',0,0,0,0,NDUM,NERR)
+
+      FLVIS=2.
+      CALL DEFAULT(EXTVISC)
+      CALL GETVAL('FLVIS[cp] ',FLVIS,'R4',0,0,0,0,NDUM,NERR)
+      CALL DEFAULT(EXTVISC)
+      CALL GETVAL('S_FLVIS[cp] ',FLVIS,'R4',0,0,0,0,NDUM,NERR)
+
+      IF (LEVELC) WRITE (NFOUT,1) STFLDEN*CVMDENS,EXTDENS,
+     & FLCMP*CVMCOMP,EXTCOMP,FLVIS*CVMVISC,EXTVISC
+    1 FORMAT(' FLUID STANDARD DENSITY (STFLDEN)',T50,F10.3,1X,A20/
+     &       ' FLUID COMPRESSABILITY (FLCOMP)',T49,G11.4,1X,A20/
+     &       ' FLUID VISCOSITY (FLVIS)',T50,F10.4,1X,A20)
+
+C  INPUT INITIAL FLUID PRESSURE
+
+      PINIT = 100.
+      CALL DEFAULT(EXTPRES)
+      CALL GETVAL('PINIT[psi] ',PINIT,'R4',0,0,0,0,NDUM,NERR)
+      CALL DEFAULT(EXTPRES)
+      CALL GETVAL('S_PINIT[psi] ',PINIT,'R4',0,0,0,0,NDUM,NERR)
+
+C  INPUT INITIAL REFERENCE DEPTH
+
+      DINIT=0.
+      CALL DEFAULT(EXTDIST)
+      CALL GETVAL('DINIT[ft] ',DINIT,'R4',0,0,0,0,NDUM,NERR)
+      CALL DEFAULT(EXTDIST)
+      CALL GETVAL('S_DINIT[ft] ',DINIT,'R4',0,0,0,0,NDUM,NERR)
+
+      IF (LEVELC) WRITE(NFOUT,3) PINIT*CVMPRES,EXTPRES,
+     & DINIT*CVMDIST,EXTDIST
+    3 FORMAT(' INITIAL FLUID PRESSURE (PINIT)',T50,F10.3,1X,A20/
+     &       ' INITIAL REFERENCE DEPTH (DINIT)',T50,F10.2,1X,A20)
+
+C   FLAG TO READ INITIAL CONDITIONS FROM FILE
+
+      TREADIN=.FALSE.
+      CALL GETVAL('TREADIN ',TREADIN,'FG',0,0,0,0,NDUM,NERR)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE TIADAT (NERR)
+C*********************************************************************
+
+C  Inputs single phase flow model grid-element array data
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'mpfaary.h'
+      INCLUDE 'unitsex.h'
+      INCLUDE 'tarydat.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'tbaldat.h'
+
+      INTEGER IARG(3),NERR,KERR,NDUM
+      EXTERNAL SETARYR4,SETARYI4,SETARYR8
+
+C READ IN PRESSURE WHEN TREADIN IS TRUE
+
+      IF (TREADIN) THEN
+         KERR=0
+         CALL GETGRDA('PRES ',1,NDUM,KERR)
+         IF (KERR.GT.0) THEN
+            IF (LEVELC) WRITE (NFOUT,11)
+   11        FORMAT (/' ERROR TIADAT: INVALID INITIAL PRESSURE')
+            NERR=NERR+1
+            RETURN
+         ELSE
+            IF (NDUM.GT.0) THEN
+               TITU='INITIAL PRESSURE FOR FAULT BLOCK'
+               CALL GEAOUT(N_PRES,1,1)
+            ENDIF
+         ENDIF
+      ENDIF
+
+C INITIALIZE PERMEABILITY TO ZERO
+
+      IARG(1) = 2
+      IARG(2) = N_XYPERM
+      IARG(3) = N_R4U
+      R4UTIL = 0.0
+      CALL CALLWORK(SETARYR4,IARG)
+      IARG(2) = N_YZPERM
+      CALL CALLWORK(SETARYR4,IARG)
+      IARG(2) = N_XZPERM
+      CALL CALLWORK(SETARYR4,IARG)
+
+C EXTRACT OFF-DIAGONAL PERMEABILITY
+
+      KERR = 0
+      CALL DEFAULT(EXTPERM)
+      CALL GETGRDA ('XYPERM[md] ',1,NDUM,KERR)
+
+      IF (KERR.GT.0) THEN
+         IF (LEVELC) WRITE (NFOUT,1)
+   1     FORMAT (/' ERROR TIADAT: INVALID XY PERMEABILITY')
+         NERR=NERR+1
+         RETURN
+      ELSE
+         IF (NDUM.GT.0) THEN
+            TITU='XY PERMEABILITIES FOR FAULT BLOCK'
+            CALL GEAOUT(N_XYPERM,1,1)
+         ENDIF
+      ENDIF
+
+      KERR = 0
+      CALL DEFAULT(EXTPERM)
+      CALL GETGRDA ('YZPERM[md] ',1,NDUM,KERR)
+      IF (KERR.GT.0) THEN
+         IF (LEVELC) WRITE (NFOUT,2)
+   2     FORMAT (/' ERROR TIADAT: INVALID YZ PERMEABILITY')
+         NERR=NERR+1
+         RETURN
+      ELSE
+         IF (NDUM.GT.0) THEN
+            TITU='YZ PERMEABILITIES FOR FAULT BLOCK'
+            CALL GEAOUT(N_YZPERM,1,1)
+         ENDIF
+      ENDIF
+
+      KERR = 0
+      CALL DEFAULT(EXTPERM)
+      CALL GETGRDA ('XZPERM[md] ',1,NDUM,KERR)
+
+      IF (KERR.GT.0) THEN
+         IF (LEVELC) WRITE (NFOUT,3)
+   3     FORMAT (/' ERROR TIADAT: INVALID XZ PERMEABILITY')
+         NERR=NERR+1
+         RETURN
+      ELSE
+         IF (NDUM.GT.0) THEN
+            TITU='XZ PERMEABILITIES FOR FAULT BLOCK'
+            CALL GEAOUT(N_XZPERM,1,1)
+         ENDIF
+      ENDIF
+
+C-------extract mpfa quadrature rules
+C       default = 1 (symmetric)
+C               = 2 (non-symmetric)
+
+      IARG(1) = 2
+      IARG(2) = N_MPFAQU
+      IARG(3) = N_I4U
+      I4UTIL = 1
+      CALL CALLWORK(SETARYI4,IARG)
+      KERR=0
+      CALL GETGRDA('MPFAQU ',1,NDUM,KERR)
+
+      IF (KERR.GT.0) THEN
+         IF (LEVELC) WRITE (NFOUT,4)
+   4    FORMAT (/' ERROR: INVALID MPFA QUAD TYPES')
+         NERR=NERR+1
+      ELSE
+         TITU='ELEMENT MPFA QUAD TYPES FOR FAULT BLOCK'
+         CALL GEAOUT(N_MPFAQU,1,1)
+      ENDIF
+
+      IARG(1) = 2
+      IARG(2) = N_CR
+      IARG(3) = N_R8U
+      R8UTIL = 0.0
+      CALL CALLWORK(SETARYR8,IARG)
+
+      KERR = 0
+      CALL DEFAULT(EXTCOMP)
+      CALL GETGRDA ('CR[/psi] ',1,NDUM,KERR)
+
+      IF (KERR.GT.0) THEN
+         IF (LEVELC) WRITE (NFOUT,5)
+   5     FORMAT (/' ERROR TIADAT: INVALID ROCK COMPRESSIBILITY')
+         NERR=NERR+1
+         RETURN
+      ELSE
+         IF (NDUM.GT.0) THEN
+            TITU='ROCK COMPRESIBILITIES FOR FAULT BLOCK'
+            CALL GEAOUT(N_CR,1,1)
+         ENDIF
+      ENDIF
+
+C --- SAUMIK,BGANIS
+
+C-------INPUT MODULUS
+
+      IF(MBPOROE) THEN ! SAUMIK,BGANIS
+         KERR=0
+         CALL GETGRDA ('MODULUSFLOW ',1,NDUM,KERR)
+
+         IF (KERR.GT.0) THEN
+            IF (LEVELC) WRITE (NFOUT,6)
+   6        FORMAT (/' ERROR TIADAT: INVALID MODULUS')
+            NERR=NERR+1
+            RETURN
+         ELSE
+            IF (NDUM.GT.0) THEN
+               TITU='MODULUS FOR FAULT BLOCK'
+               CALL GEAOUT(N_MODULFLOW,1,1)
+            ENDIF
+         ENDIF
+
+C-------INPUT POISSON RATIO
+
+         KERR=0
+         CALL GETGRDA ('POISSONFLOW ',1,NDUM,KERR)
+
+         IF (KERR.GT.0) THEN
+            IF (LEVELC) WRITE (NFOUT,7)
+   7        FORMAT (/' ERROR TIADAT: INVALID POISSON')
+            NERR=NERR+1
+            RETURN
+         ELSE
+            IF (NDUM.GT.0) THEN
+               TITU='POISSON FOR FAULT BLOCK'
+               CALL GEAOUT(N_POISSFLOW,1,1)
+            ENDIF
+         ENDIF
+
+C-------INPUT BIOT CONSTANT
+
+         KERR=0
+         CALL GETGRDA ('BIOTAFLOW ',1,NDUM,KERR)
+
+         IF (KERR.GT.0) THEN
+            IF (LEVELC) WRITE (NFOUT,8)
+   8        FORMAT (/' ERROR TIADAT: INVALID BIOT')
+            NERR=NERR+1
+            RETURN
+         ELSE
+            IF (NDUM.GT.0) THEN
+               TITU='BIOT FOR FAULT BLOCK'
+               CALL GEAOUT(N_BIOTAFLOW,1,1)
+            ENDIF
+         ENDIF
+      ENDIF
+
+C --- SAUMIK,BGANIS
+
+      RETURN
+
+      END

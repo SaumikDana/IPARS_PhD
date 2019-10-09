@@ -1,0 +1,310 @@
+// -----------------------------------------------------------------
+// file: visual2.c
+//
+// (const unstructured) visualization output in the Tecplot format for
+// IPARS framework
+//
+// MPeszynska, 3/19/98
+// last mod. (mpesz) 11/20/98, see CVS log files for description of updates
+// moved routines  from visual.dc to sveral smaller files on 11/20/98
+//-----------------------------------------------------------------
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <math.h>
+
+#include "cfsimple.h"
+#include "visualc.h"
+
+// ----------------------------------------------------------
+
+void _vis_const_unstruct
+(
+ const _F_INTEGER * const IDIM,
+ const _F_INTEGER * const JDIM,
+ const _F_INTEGER * const KDIM,
+ const _F_INTEGER * const LDIM,
+ const _F_INTEGER * const IL1,
+ const _F_INTEGER * const IL2,
+ const _F_INTEGER * const JLV1,
+ const _F_INTEGER * const JLV2,
+ const _F_INTEGER * const KL1,
+ const _F_INTEGER * const KL2,
+ const _F_INTEGER * const KEYOUT,
+ const _F_INTEGER * const NBLK,
+ // fixed parameters
+ const int flag,
+ const _F_REAL_8  * const vis_xrec,
+ const _F_REAL_8 * const vis_yrec,
+ const _F_REAL_8 * const vis_zrec,
+ const _F_REAL_4  * const vis_dxrec,
+ const _F_REAL_4 * const vis_dyrec,
+ const _F_REAL_4 * const vis_dzrec,
+ const int nscl, const int nvec,
+ _F_REAL_8 * * r8_scl_list,
+ _F_REAL_8 * * r8_vec_list
+ )
+{
+  const int maxblk = (*IDIM)*(*JDIM)*(*KDIM);
+  const int   kinc = (*IDIM) * (*JDIM) ;
+  const int   jinc = (*IDIM) ;
+  const int   kbeg = (*KL1) ;
+  const int   kend = (*KL2) ;
+  const int   ibeg =  *IL1 ;
+  const int   iend =  *IL2 ;
+  const int   nblk = *NBLK-1;
+
+  FILE *fp; // general file handle, first used for INITfile, next for ZONEfile
+
+  if(flag !=2) return;
+
+  // DEBUG
+  // printf("\n Unstruct routine with visflag=%d narg=%d\n",flag,narg);
+
+  if (_Vis_cnt[nblk]++ ==0) {
+
+    char INITfilename[50];
+    _cr_INIT_fname(INITfilename,flag,nblk);
+
+    fp=fopen(INITfilename,"w");
+    if (fp != NULL) {
+      int k,j,i,iarg,iblk=0,ic=0;
+      _F_INTEGER igoff,jgoff,kgoff,nofferr;
+      _F_INTEGER idgoff,jdgoff,kdgoff;
+
+      _INFO_print(0,INITfilename,nblk);
+
+      //
+      // first count the gridblocks : necessary to determine
+      // everything else
+      //
+
+      for(k=kbeg;k<=kend;k++) {
+	const int jbeg =  ( JLV1[k-1] );
+	const int jend =  ( JLV2[k-1] );	   	    	
+	for ( j = jbeg ; j <= jend ;j++ ) {
+	  for ( i= ibeg; i <= iend ; i++) {	      	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+	    const int index = gindex(i,j,k);	
+#undef gindex	
+	    if ( KEYOUT[index] == 1 ) 	
+	      iblk++;	
+	  } // end i
+	} // end j
+      } // end k
+      _Ngblk[nblk]=iblk;
+
+      //
+      // print the header to the file
+      //
+      {
+	int iarg;
+	
+	fprintf(fp,"title=init.%d\n",flag);
+	fprintf(fp,"variables=x,y,z");
+
+	// ignore the vector variables
+
+	for(iarg=0;iarg<nscl;iarg++) {
+	  if(_Vis_pars[iarg].name!=NULL)
+	    fprintf(fp,", %s",_Vis_pars[iarg].name);
+	  else
+	    fprintf(fp,", v%d",iarg+1);
+	}
+      }
+
+      //
+      // print the xyz information
+      //
+
+      myblkoff(NBLK,&igoff,&jgoff,&kgoff,&nofferr);
+      idgoff=igoff;jdgoff=jgoff;kdgoff=kgoff;
+
+      // modify offsets to include offset of (0,0,0) block
+      igoff+=_Mxrecxp*nblk;jgoff+=_Myrecyp*nblk;kgoff+=_Mzreczp*nblk;
+      idgoff+=(_Mxrecxp-1)*nblk;jdgoff+=(_Myrecyp-1)*nblk;
+      kdgoff+=(_Mzreczp-1)*nblk;
+
+      // DEBUG
+      /** printf("\n Offsets are :%d %d %d err=%d\n",
+	     igoff,jgoff,kgoff,nofferr);
+	     **/
+// bag8, gp : added strandid, solutiontime
+      fprintf(fp,
+	      "\nzone t=init, n=%d, e=%d, et=brick F=fepoint, ",
+	      8*_Ngblk[nblk],_Ngblk[nblk]);
+      fprintf(fp,"strandid=0, solutiontime=0.0\n");
+
+      for(k=kbeg;k<=kend;k++) {
+	const int jbeg =  ( JLV1[k-1] );
+	const int jend =  ( JLV2[k-1] );	   	    	
+	for ( j = jbeg ; j <= jend ;j++ ) {
+	  for ( i= ibeg; i <= iend ; i++) {	      	
+	    //
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+	    // could be done more efficiently
+	    // but this way it is readable
+	
+	    const int index = gindex(i,j,k);	
+	
+	    if ( KEYOUT[index] == 1 ) {	
+	      const _F_REAL_8 x=vis_xrec[i-1+igoff];
+	      const _F_REAL_8 dx=(_F_REAL_8) vis_dxrec[i-1+idgoff];
+	      const _F_REAL_8 y=vis_yrec[j-1+jgoff];
+	      const _F_REAL_8 dy=(_F_REAL_8) vis_dyrec[j-1+jdgoff];
+	      const _F_REAL_8 z=vis_zrec[k-1+kgoff];
+	      const _F_REAL_8 dz=(_F_REAL_8) vis_dzrec[k-1+kdgoff];
+	
+	      // printf x,y,z coordinates of the 8 nodes and
+	      // print dummy=0.0 values of the vis variables
+
+	      fprintf(fp,"%g %g %g\n",x,y,z);	     	
+	      for(iarg=0;iarg<nscl;iarg++)fprintf(fp,"%g ",0.0);
+	      fprintf(fp,"\n");
+
+	      fprintf(fp,"%g %g %g\n",x+dx,y,z);	     	
+	      for(iarg=0;iarg<nscl;iarg++)fprintf(fp,"%g ",0.0);
+	      fprintf(fp,"\n");
+
+	      fprintf(fp,"%g %g %g\n",x,y+dy,z);	     	
+	      for(iarg=0;iarg<nscl;iarg++)fprintf(fp,"%g ",0.0);
+	      fprintf(fp,"\n");
+
+	      fprintf(fp,"%g %g %g\n",x+dx,y+dy,z);	     	
+	      for(iarg=0;iarg<nscl;iarg++)fprintf(fp,"%g ",0.0);
+	      fprintf(fp,"\n");
+
+	      fprintf(fp,"%g %g %g\n",x,y,z+dz);	     	
+	      for(iarg=0;iarg<nscl;iarg++)fprintf(fp,"%g ",0.0);
+	      fprintf(fp,"\n");
+
+	      fprintf(fp,"%g %g %g\n",x+dx,y,z+dz);	     	
+	      for(iarg=0;iarg<nscl;iarg++)fprintf(fp,"%g ",0.0);
+	      fprintf(fp,"\n");
+
+	      fprintf(fp,"%g %g %g\n",x,y+dy,z+dz);	     	
+	      for(iarg=0;iarg<nscl;iarg++)fprintf(fp,"%g ",0.0);
+	      fprintf(fp,"\n");
+
+	      fprintf(fp,"%g %g %g\n",x+dx,y+dy,z+dz);	     	
+	      for(iarg=0;iarg<nscl;iarg++)fprintf(fp,"%g ",0.0);
+	      fprintf(fp,"\n");
+
+	    } // end if KEYOUT
+	  } // end i
+	} // end j
+      } // end k
+
+      //
+      // write the "fake" connectivity data
+      //
+
+      ic=0;
+      for(k=kbeg;k<=kend;k++) {
+	const int jbeg =  ( JLV1[k-1] );
+	const int jend =  ( JLV2[k-1] );	   	    	
+	for ( j = jbeg ; j <= jend ;j++ ) {
+	  for ( i= ibeg; i <= iend ; i++) {	      	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+	    const int index = gindex(i,j,k);	
+	
+	    if ( KEYOUT[index] == 1 ) {
+	      fprintf(fp,"%d %d %d %d %d %d %d %d\n",
+		      ic+1,ic+2,ic+4,ic+3,ic+5,ic+6,ic+8,ic+7);
+	      ic+=8;
+	    } // end if keyout
+#undef gindex
+	  } // end i
+	} // end j
+      } // end k
+
+      fclose(fp);
+
+      // DEBUG
+      //printf("\nVIS_CONST_UNSTRUCT info: %d gridblocks\n",
+      //iblk);
+
+    } // if file existed
+
+  } // end if first time : Vis_cnt=0
+
+  // ----------------------------------------------
+  // print the values of variables to the ZONE file
+  //
+  {
+    char ZONEfilename[50];
+    _cr_ZONE_fname(ZONEfilename,flag,nblk);
+
+    fp=fopen(ZONEfilename,"w");
+    if(fp !=NULL) _INFO_print(1,ZONEfilename,nblk);
+  }
+
+  if (fp != NULL) {
+    int lvar,i,j,k;
+
+    static char ZONEname [50];
+    sprintf(ZONEname,"zone%d.%d.%d",nblk,_Myprc,_Nstep);
+
+    // give info about the zone data
+
+// bag8, gp : added strandid, solutiontime
+//    fprintf(fp,
+//     "\nzone t=%s, n=%d, e=%d, et=brick, F=feblock,d=(1,2,3,FECONNECT)\n",
+//	    ZONEname,8*_Ngblk[nblk],_Ngblk[nblk]);
+    fprintf(fp,
+     "\nzone t=%s, n=%d, e=%d, et=brick, F=feblock,d=(1,2,3,FECONNECT), ",
+	    ZONEname,8*_Ngblk[nblk],_Ngblk[nblk]);
+// gp : modify strandid to allow for time series plot extraction
+    //fprintf(fp,"strandid=%d, solutiontime=%g\n",_Nstep+1,_Time);
+    fprintf(fp,"strandid=%d, solutiontime=%g\n",nblk+1,_Time);
+
+    //
+    // print the values ONLY of the scalar variables
+    // as cell-centered data projected onto the nodes
+    // this way 8 equal values for a block will
+    // create a piecewise cosnatnt field
+    //
+
+    for(lvar=0;lvar< (nscl);lvar++) {
+      const int ldimoff=(_Vis_pars[lvar].ldim-1)*maxblk;
+
+      //	  printf("\nprinting for scalar variable %d\n",lvar);
+
+      fprintf(fp,"\n\n");
+
+      for(k=kbeg;k<=kend;k++) {
+	const int jbeg =  ( JLV1[k-1] );
+	const int jend =  ( JLV2[k-1] );	   	    	
+	for ( j = jbeg ; j <= jend ;j++ ) {
+	  for ( i= ibeg; i <= iend ; i++) {	      	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+	    const int index = gindex(i,j,k);	
+#undef gindex	    	
+	    if ( KEYOUT[index] == 1 ) {	
+	      _F_REAL_8 *ptr=& ( r8_scl_list[lvar][ldimoff] );
+	      _F_REAL_8 scalval=ptr[index];	
+	      int repeat;
+
+	      for(repeat=0;repeat<8;repeat++)
+		fprintf(fp,"%g ",scalval);
+	      fprintf(fp,"\n");
+
+	    } // if keyout
+	  } // if i
+	} // if j
+      } // if k
+    } // lvar
+	
+
+    //
+    // NOTE : the vector variables are IGNORED here
+    //
+
+    fprintf(fp,"\n");
+    fclose(fp);
+
+  } // ZONEfile open
+}
+

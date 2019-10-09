@@ -1,0 +1,90 @@
+C MFARRAY.F - CREATE MPFA GRID-ELEMENT AND FAULT ARRAYS
+C
+C ROUTINES IN THIS MODULE:
+
+C      SUBROUTINE MFARRAY (KERR)
+
+C CODE HISTORY:
+
+C GURPREET SINGH 02/29/15 INITAL CODE
+
+C*********************************************************************
+      SUBROUTINE MFARRAY (KERR)
+C*********************************************************************
+
+C  Creates multi-point flux mixed finite element grid-element arrays
+
+C  KERR = ERROR NUMBER (OUTPUT, INTEGER)
+
+C  NOTE: See mpfaary.h for array descriptions
+
+C*********************************************************************
+      IMPLICIT NONE
+
+C        INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'mpfaary.h'
+
+      INTEGER KERR,MODACT_IN
+
+      MODACT_IN = MODACT
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &                         ' ENTERING SUBROUTINE MFARRAY'
+      KERR=0
+
+C-------- CELL-CENTERED ARRAYS FOR MPFA MODELS
+
+      CALL ALCGEA('MPFAQU ',4,0,N_MPFAQU,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+!--- saumik - evol array creation moved to routine create
+
+      CALL ALCGEA('XYPERM ',1,0,N_XYPERM,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCGEA('YZPERM ',1,0,N_YZPERM,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCGEA('XZPERM ',1,0,N_XZPERM,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+! Need to allocate PERMINV for all blocks to update XC,YC,ZC in
+! UPDATE_MPFA_FRAMEWORK
+      MODACT=0
+      CALL ALCGEA('PERMINV ',2,72,N_PERMINV,KERR)
+      IF (KERR.GT.0) GO TO 99
+      MODACT=MODACT_IN
+
+C-------- MPFA RELATED ARRAYS OF LARGER SIZE
+
+      CALL ALCMPFAGEA ('KEYOUTCR ',4,0,N_KCR,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCMPFAGEA ('VOLPROP ',4,12,N_VPROP,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCMPFAGEA ('VOLDIM ',4,0,N_VDIM,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCMPFAGEA ('FACEPROP ',4,12,N_FPROP,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCMPFAGEA ('FACEDIM ',4,0,N_FDIM,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCMPFAGEA ('FACEAREA ',2,12,N_FAREA,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCMPFAGEA ('TRAN ',2,96,N_TRAN,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCMPFAGEA ('AINV ',2,144,N_AINV,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+C-------MPFA RELATED ARRAYS.
+
+   99 RETURN
+      END
+

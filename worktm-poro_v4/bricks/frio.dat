@@ -1,0 +1,141 @@
+TITLE(2)="SINGLE PHASE TEST SMALL"
+
+DESCRIPTION()=""
+
+BLOCKMODEL(1) = "POROELASTIC"
+FLOW_MODEL = "SINGLE_PHASE_MFMFE"
+
+TIMEEND = 200.0
+CR_TYPE = 2
+
+PEPVTOL = 1.0E-2 $ fixed stress convergence tolerance
+
+MAXNEWT = 20    $ MAX PRES NEWT STEP (DEFAULT 20)
+OUTLEVEL = 2
+
+$ Convergence Tolerance for flow
+CVTOL = 1.0E-8
+
+$$$ FAULT BLOCK AND MESH DATA
+BLOCKNAME(1) = "BLOCK1"
+DOWN(1 TO 3,1) =1. 0. 0.
+
+MFMFE_BRICKS
+
+$ 200 by 10000 by 1000
+NX(1) = 5      NY(1) = 100      NZ(1) = 100
+XYZ111(,1) = 1400. 0. 0.
+DX(,1) = 40.0
+DY(,1) = 100.0
+DZ(,1) = 10.0
+
+$ INITIAL CONDITIONS
+PINIT = 0.0
+FLVIS = 1.
+STFLDEN = 62.34
+FLCOMP = 1.E-6
+POROSITY1() = .2
+
+$ PERMEABILITIES $$$$$$$$$$
+XPERM1() = 0.01  YPERM1() = 100. ZPERM1() = 0.01
+
+$ WELLS
+NUMWELL=5
+
+WELLNAME(1) = "WELL 1, BLOCK 1"
+KINDWELL(1) = 2
+WELLTOP(1 TO 3,1,1) =     1470.   5000.    100.
+WELLBOTTOM(1 TO 3,1,1) =  1530.   5000.    100.
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant 
+  Data    0.  10.
+EndBlock
+
+WELLNAME(2) = "WELL 1, BLOCK 1"
+KINDWELL(2) = 2
+WELLTOP(1 TO 3,1,2) =     1470.   5000.    300.
+WELLBOTTOM(1 TO 3,1,2) =  1530.   5000.    300.
+WELLPQ(2) Block
+  Interpolation Linear
+  Extrapolation Constant 
+  Data    0.  10.
+EndBlock
+
+WELLNAME(3) = "WELL 1, BLOCK 1"
+KINDWELL(3) = 2
+WELLTOP(1 TO 3,1,3) =     1470.   5000.    500.
+WELLBOTTOM(1 TO 3,1,3) =  1530.   5000.    500.
+WELLPQ(3) Block
+  Interpolation Linear
+  Extrapolation Constant 
+  Data    0.  10.
+EndBlock
+
+WELLNAME(4) = "WELL 1, BLOCK 1"
+KINDWELL(4) = 2
+WELLTOP(1 TO 3,1,4) =     1470.   5000.    700.
+WELLBOTTOM(1 TO 3,1,4) =  1530.   5000.    700.
+WELLPQ(4) Block
+  Interpolation Linear
+  Extrapolation Constant 
+  Data    0.  10.
+EndBlock
+
+WELLNAME(5) = "WELL 1, BLOCK 1"
+KINDWELL(5) = 2
+WELLTOP(1 TO 3,1,5) =     1470.   5000.    900.
+WELLBOTTOM(1 TO 3,1,5) =  1530.   5000.    900.
+WELLPQ(5) Block
+  Interpolation Linear
+  Extrapolation Constant 
+  Data    0.  10.
+EndBlock
+
+$ Elastic Properties
+GRAVITY_FLAG = 1
+MODULUS1() = 5.E5  $ Young's modulus
+POISSON1() = 0.2 $ poisson's ratio
+BIOTA1() = 0.8   $ flow mechanics coupling term
+ROCKD1() = 2.65  $ rock density  (in Kg\Liter)
+NO_ELASTIC_NEWTON
+
+EBCXX1() = 1
+PRESX1() = 1400.0
+
+EBCXXN1() = 2
+XXDIN1() = 0.0
+
+EBCYY1() = 2
+YYDI1() = 0.0
+
+EBCYYN1() = 2
+YYDIN1() = 0.0
+
+EBCZZ1() = 2
+ZZDI1() = 0.0
+
+EBCZZN1() = 2
+ZZDIN1() = 0.0
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+
+DELTIM = 1.0  
+DTIMMUL = 1.0  DTIMMIN = 0.01  DTIMMAX = 3.  TIMOUT = 1.  DTIMOUT = 9.
+
+VISOUT = 1.0
+DVISOUT = 19.0
+
+VIS_SCL = 4
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "TDISPX"
+VIS_SCL_NAMES(3) = "TDISPY"
+VIS_SCL_NAMES(4) = "TDISPZ"
+VIS_FNAME = "saumik"
+VISFLAG = 8
+EndTime
+

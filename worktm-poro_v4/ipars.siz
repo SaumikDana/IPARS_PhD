@@ -1,0 +1,109 @@
+$      ipars.siz - Size Data Executive for all Machines and Models
+
+$  Keep this file as simple as possible.  Most size variable and file names
+$  should be set in include files.
+
+$  INCLUDE FILES MARKED WITH AN * DO NOT CURRENTLY EXIST
+
+Target_Directory
+./
+
+$ ################## Unix/Dos control (select one) ###################
+
+Replace_Symbols
+
+$ PCSLASH YES          $ Convert file names to PC format
+ PCSLASH NO           $ Do not convert file names to PC format
+
+$ ################## Default parameters ##############################
+
+$ Note:  in case of undefined symbols, add them to defaults.siz
+
+Include_File
+
+../size/defaults.siz
+
+$ ############# Machine and message system (select one) ##############
+
+Include_File
+
+$../size/ibmpc.siz   $ IBM PC with Microsoft compilers
+$../size/sp2.siz     $ IBM SP2 with MPI messages
+$../size/lnx.siz     $ Linux 
+../size/beo.siz     $ Linux with MPI messages
+$../size/sgi.siz    $ SGI single processor                    *
+$../size/t3e.siz    $ Cray T3E with MPI messages
+$../size/rs6k.siz   $ IBM RS600              
+$../size/net.siz    $ Workstation network with MPI messages   *
+
+$ #################### Framework (select one) ########################
+
+Include_File
+
+$../size/frame.siz
+$../size/frame1c.siz $ Compositional version of frame1.siz, 13 Eq
+$../size/frame1b.siz $ 35x200x200, 1 Processor, 30 Wells, 9 Blocks, 3 Eq
+$../size/frame36.siz $ 40x200x200, 36 Processors, 40 Wells, 10 Blocks, 3 Eq
+$../size/frame36c.siz $ Compositional version of frame36.siz, 13 EQ
+$../size/frame36_porohex.siz $ 40x200x200, 36 Processors, 40 Wells, 10 Blocks, 3 Eq
+../size/frame_cranfield.siz 
+
+$ ################## Physical Model ##################################
+
+Include_File
+
+$../size/hydroi.siz   $ Hydrology Implicit Model
+$../size/hydroe.siz   $ Hydrology Impes Model              
+$../size/blacki.siz   $ Black Oil Implicit Model
+$../size/blackp.siz   $ Black Oil Impes Model              
+$../size/comp.siz     $ Compositional Model              
+$../size/chem.siz     $ Chemical Flood Model               
+$../size/singlee.siz  $ Single Phase Explicit Model
+$../size/singlei.siz  $ Single Phase Implicit Model
+../size/single_mfmfe.siz  $ Single Phase Implicit Model
+../size/porohex.siz   $ Poroelasticity
+
+$ ######################## Graphics ##################################
+
+Include_File
+
+../size/visual.siz   $ TECPLOT visualization
+../size/visvtk.siz   $ VTK visualization 
+../size/vistecbin.siz   $ Tecplot binary
+
+$ ###################### Multi-block Capability ######################
+
+Include_File
+
+$../size/mortar.siz   $ Mortar space size file               
+$../size/dual.siz     $ Dual approximation size file
+$../size/dualmpfa.siz     $ Dual approximation size file for mpfa
+
+$ ##################### Metis Grid-Partitioning ######################
+
+Include_File
+
+$../size/metis.siz     $ Metis size file
+../size/tetgen.siz     $ Metis size file
+
+$ ################## Linear solver ###################################
+
+Include_File
+
+$../size/lsor.siz     $ Line sor linear solver               
+$../size/mulgrd.siz   $ Miltigrid linear solver
+$../size/bcgs.siz     $ BCGs linear solver
+$../size/gmres.siz     $ BCGs linear solver
+$../size/ygmres.siz     $ BCGs linear solver
+$../size/pcg.siz     $ BCGs linear solver
+../size/hypre.siz     $ Hypre linear solver
+$../size/superlu.siz   $ SuperLU linear solver
+
+Replace_Symbols
+
+MSOLB   C               $ Model solver as BCGS (if more than one included)
+MSOLMG  C               $ Model solver as MG (if more than one included)
+MSOLL   C               $ Model solver as LSOR (if more than one included)
+MSOLG   C               $ Model solver as (Y)GMRES (if more than one included)
+MSOLP   C               $ Model solver as PCG (if more than one included)
+

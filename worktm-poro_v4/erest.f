@@ -1,0 +1,292 @@
+C  EREST.F - ELASTIC MDOEL RESTART AND TERMINATION ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+C      SUBROUTINE ERESTO (NERR)
+C      SUBROUTINE ERESTI (NERR)
+C      SUBROUTINE ERGEAOUT (NARR,NEXTRA,NERR)
+C      SUBROUTINE EQUIT  (NERR)
+C CODE HISTORY:
+C    TAMEEM ALMANI   07/27/2016 INCLUDE NECESSARY CHANGES FOR
+C                               COUPLING WITH MECHANICS
+C*********************************************************************
+      SUBROUTINE ERESTO (NERR)
+C*********************************************************************
+
+C  Directs output of poroelastic model specific restart data
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER )
+C*********************************************************************
+C      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'restc.h'
+
+      INCLUDE 'earydat.h'
+      INCLUDE 'emodel.h'
+
+
+C OUTPUT ELASTIC MODEL GRID ELEMENT ARRAYS
+
+      DO NDIM=1,NDIM_ELASTIC
+         CALL ERGEAOUT(N_EDISP,NDIM,NERR)
+      ENDDO
+
+cbw      CALL RGEAOUT(N_EPV,1,NERR)
+
+C     DO I = 1,19
+C        IF(I.EQ.MODEL) THEN
+C           MODACT = I
+C           CALL RGEAOUT(N_DISP_COMP(I),1,NERR)
+C           MODACT = 0
+C        ENDIF
+C     ENDDO
+
+      END
+C*********************************************************************
+      SUBROUTINE ERESTI(IU,NERR)
+C*********************************************************************
+
+C  Directs intput of poroelastic model specific restart data
+
+C  A = INPUT STRING (INPUT, CHARACTER*120)
+
+C  IU = RESTART UTILITY INTEGERS (6) (INPUT, INTEGER)
+C       IU(1) IS RESERVED FOR RECORD SET ID
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER )
+
+C  Note:  All grid-element arrays are automatically input by the
+C         framework.
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'emodel.h'
+
+      NERR = NERR
+
+      MODACT = 17
+      IF(PEFLOW.EQ.17.OR.MBPOROE) CALL TRESTI(IU,NERR)
+              ! SAUMIK,BGANIS
+C      MODACT = 16
+C      IF(PEFLOW.EQ.16.OR.MBPOROE) CALL XRESTI(IU,NERR)
+             ! SAUMIK,BGANIS
+
+ctm
+C      MODACT = 18
+C      IF(PEFLOW.EQ.18.OR.MBPOROE) CALL HRESTI(IU,NERR)
+              ! SAUMIK,BGANIS
+ctm
+      MODACT=15
+
+      END
+C*********************************************************************
+      SUBROUTINE ERGEAOUT (NARR,NEXTRA,NERR)
+C*********************************************************************
+
+C  DIRECTS WRITING OF A GRID-ELEMENT (CORNER POINT) ARRAY TO A RESTART FILE
+
+C  NARR = GRID-ELEMENT ARRAY NUMBER OF ARRAY TO BE OUTPUT (INPUT, INTEGER)
+
+C  NEXTRA = PRODUCT OF 4TH AND HIGHER DIMENSIONS TO BE OUTPUT (INPUT, INTEGER)
+C           (SET TO 1 IF THERE IS NO FORTH DIMENSION)
+C           NOTE THAT ONLY 1 VALUE OF THE 4TH DIMENSION IS OUTPUT FOR EACH
+C           CALL TO RGEAOUT
+
+C  NERR = ERROR COUNT STEPPED BY ONE ON ERROR (INPUT AND OUTPUT, INTEGER)
+
+C*********************************************************************
+C      INCLUDE 'msjunk.h'
+
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'output.h'
+      INCLUDE 'restc.h'
+
+      INTEGER NARG(2)
+      CHARACTER*20 ANAM(2)
+      EXTERNAL ERSR8
+      INTEGER PEMOD
+
+      MSGTAG(15+1)=MSGTAG(15+1)+1
+      IF (MSGTAG(15+1).GT.MSGTAG2(15+1)) THEN
+         MSGTAG(15+1)=MSGTAG1(15+1)
+      ENDIF
+
+      CALL ARYTYPE(NARR,KIND,NDIM4,PEMOD,KERR)
+      IF (KERR.GT.0.OR.KIND.NE.2) GO TO 13
+
+      IF (MYPRC.EQ.0) THEN
+         CALL GETANAM(NARR,ANAM(1),KERR)
+         IF (KERR.GT.0) GO TO 13
+         L=3
+         IF (FORMOUT) THEN
+            WRITE (NFROUT,11) L,NARR,L,L,L,L
+   11       FORMAT(6I9)
+            WRITE (NFROUT,12) ANAM(1)
+   12       FORMAT(A20)
+         ELSE
+            WRITE (NFROUT) L,NARR,L,L,L,L
+            WRITE (NFROUT) ANAM(1)
+         ENDIF
+      ENDIF
+
+      NARG(1)=1
+      NARG(2)=NARR
+      NARS=NARR
+      NEORS=0
+      I4UTIL=NEXTRA
+      IF (I4UTIL.LT.1) I4UTIL=1
+      IF (I4UTIL.GT.NDIM4) I4UTIL=NDIM4
+      NERRP=NERR
+
+      CALL CALLWORK(ERSR8,NARG)
+      IF (MYPRC.EQ.0) CALL RRR8(NERR)
+
+      NERR=NERRP
+
+      L=0
+      IF (MYPRC.EQ.0) THEN
+         IF (FORMOUT) THEN
+            WRITE (NFROUT,15) L,L,L,L,L,L
+   15       FORMAT(6I8)
+         ELSE
+            WRITE (NFROUT) L,L,L,L,L,L
+         ENDIF
+      ENDIF
+
+      CALL WAITALL()
+
+      RETURN
+
+   13 WRITE (NFOUT,14)
+   14 FORMAT (/' ERROR # 434; INVALID ARRAY NUMBER IN RGEAOUT()')
+      NERR=NERR+1
+
+      END
+C*********************************************************************
+      SUBROUTINE ERSR8 (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                 KEYOUT,NBLK,ARY)
+C*********************************************************************
+
+C  WRITES A REAL*8 GRID-ELEMENT (CORNER POINT) ARRAY TO A RESTART FILE
+
+C  ARY = GRID-ELEMENT ARRAY TO BE OUTPUT (INPUT, REAL*8)
+
+C*********************************************************************
+      PARAMETER (NMX=3*480)
+C      INCLUDE 'msjunk.h'
+
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'output.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'restc.h'
+
+      REAL*8   ARY(IDIM,JDIM,KDIM,*)
+      INTEGER  JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM)
+      LOGICAL  OUTA
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+      JG1=0
+      N=6
+      RBUFR8(1)=NBLK
+      RBUFR8(5)=I4UTIL
+
+      DO 2 K=KL1,KL2+1
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      KG=K+KOFF
+      RBUFR8(4)=KG
+      NK=N0MAP(NBLK)+KG*NYMAP(NBLK)+JOFF
+      DO 2 J=JL1,JL2+1
+      OUTA=.FALSE.
+
+      IF (PRCMAP(NK+J).EQ.MYPRC) THEN
+         JG2=J+JOFF
+         IF (JG1.EQ.0) JG1=JG2
+         DO 3 I=IL1,IL2+1
+         N=N+1
+    3    RBUFR8(N)=ARY(I,J,K,I4UTIL)
+      ELSE
+         OUTA=.TRUE.
+      ENDIF
+
+      IF (N+IDIM.GT.NMX) OUTA=.TRUE.
+      IF (J.EQ.JL2) OUTA=.TRUE.
+      IF (OUTA.AND.(N.GT.6)) THEN
+         RBUFR8(2)=JG1
+         RBUFR8(3)=JG2
+         RBUFR8(6)=N
+
+         IF (MYPRC.EQ.0) THEN
+
+            NB=RBUFR8(1)+.1
+            JA=RBUFR8(2)+.1
+            JB=RBUFR8(3)+.1
+            KK=RBUFR8(4)+.1
+            ME=RBUFR8(5)+.1
+            MM=RBUFR8(6)+.1
+            NEORS=NEORS+MM-6
+            IF (FORMOUT) THEN
+               WRITE (NFROUT,4) NB,JA,JB,KK,ME,MM-6
+    4          FORMAT(6I8)
+               WRITE (NFROUT,5) (RBUFR8(NN),NN=7,MM)
+    5          FORMAT(5G23.16)
+            ELSE
+               WRITE (NFROUT) NB,JA,JB,KK,ME,MM-6
+               WRITE (NFROUT) (RBUFR8(NN),NN=7,MM)
+            ENDIF
+
+         ELSE
+
+      CALL RSSR8(N,RBUFR8,NERR)
+
+         ENDIF
+         N=6
+         JG1=0
+      ENDIF
+
+    2 CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE EQUIT (NERR)
+C*********************************************************************
+
+C  Terminate elastic model
+
+C*********************************************************************
+
+      INCLUDE 'control.h'
+      INCLUDE 'emodel.h'
+
+      NERR=NERR
+
+      MODACT = 17
+      IF(PEFLOW.EQ.17.OR.MBPOROE) CALL TQUIT(NERR)
+              ! SAUMIK,BGANIS
+      MODACT=15
+
+C      MODACT = 16
+C      IF(PEFLOW.EQ.16.OR.MBPOROE) CALL XQUIT(NERR)
+             ! SAUMIK,BGANIS
+C      MODACT=15
+
+ctm
+C      MODACT = 18
+C      IF(PEFLOW.EQ.18.OR.MBPOROE) CALL HQUIT(NERR)
+              ! SAUMIK,BGANIS
+C      MODACT=15
+ctm
+
+cHYDROE_MPFA      MODACT = MGMODEL
+cHYDROE_MPFA      IF(PEFLOW.EQ.MGMODEL) CALL GQUIT(NERR)
+cHYDROE_MPFA      MODACT=15
+
+      CALL ESETUP_POROHEX(2,KERR)
+      CALL POROHEX_POST_PRCSS(2,KERR)
+
+      END
+

@@ -1,0 +1,564 @@
+// -----------------------------------------------------------------
+// file: visual7.cpp
+// SGT, 09/18/09 (based on tecoutput converter by J. Insley, ANL
+// debugged for vector visualization, and implemented for run-time
+// visualization for most general problems - parallel, multi-block)
+// (fully unstructured) visualization output in the vtk format for
+// visualization in paraview, visit, etc.
+// Gergina Pencheva 10/14/15   Added flag for binary vs ascii vis vtk output
+//-----------------------------------------------------------------
+
+// C++ std includes
+#include <iostream>
+#include <fstream>
+#include <iterator>
+#include <string>
+#include <utility>
+#include <cmath>
+#include <cstdarg>
+
+// IPARS includes
+extern "C" {
+#include "cfsimple.h"
+#include "visualc.h"
+}
+
+// VTK includes
+#include "visvtk.h"
+#include <vtkVersion.h>
+
+static vtkUnstructuredGrid* ugrid[10]={};
+
+// ----------------------------------------------------------------
+// the actual unstructured grid routine
+//
+
+void _vis_vtk_unstruct
+(
+  const _F_INTEGER* const IDIM,
+  const _F_INTEGER* const JDIM,
+  const _F_INTEGER* const KDIM,
+  const _F_INTEGER* const LDIM,
+  const _F_INTEGER* const IL1,
+  const _F_INTEGER* const IL2,
+  const _F_INTEGER* const JLV1,
+  const _F_INTEGER* const JLV2,
+  const _F_INTEGER* const KL1,
+  const _F_INTEGER* const KL2,
+  const _F_INTEGER* const KEYOUT,
+  const _F_INTEGER* const NBLK,
+ // fixed parameters
+ const int flag,
+// gp: added flag for vtk binary/ascii output
+ const int vis_binary,
+ const _F_REAL_8* const vis_xrec,
+ const _F_REAL_8* const vis_yrec,
+ const _F_REAL_8* const vis_zrec,
+ const _F_REAL_4* const vis_dxrec,
+ const _F_REAL_4* const vis_dyrec,
+ const _F_REAL_4* const vis_dzrec,
+ const int nscl, const int nvec,
+ _F_REAL_8** r8_scl_list,
+ _F_REAL_8** r8_vec_list
+ )
+{
+  const int                            narg=nscl+nvec;
+  const int          maxblk = (*IDIM)*(*JDIM)*(*KDIM);
+  const int maxpls = (*IDIM +1)*(*JDIM +1)*(*KDIM +1);
+  const int                 kinc = (*IDIM) * (*JDIM) ;
+  const int                           jinc = (*IDIM) ;
+  const int                            kbeg = (*KL1) ;
+  const int                            kend = (*KL2) ;
+  const int                             ibeg =  *IL1 ;
+  const int                             iend =  *IL2 ;
+  const int                            nblk = *NBLK-1;
+        int                                      iarg;
+
+  char       sclnam[MAXSTRLEN];
+  char       vecnam[MAXSTRLEN];
+  char  vtufilename[MAXSTRLEN];
+  char pvtufilename[MAXSTRLEN];
+  _F_REAL_8*      vecvalx=NULL;
+  _F_REAL_8*      vecvaly=NULL;
+  _F_REAL_8*      vecvalz=NULL;
+
+       vtkPoints*  points=NULL;
+
+  // general file handle, first used for INITfile, next for ZONEfile
+  FILE* pvtuPtr = NULL;
+
+
+  // -------------------------------- unstructured grid setup or output
+
+  if (_Vis_cnt[nblk]++ ==0) {
+
+      // create vtk objects
+      points = vtkPoints::New();
+      ugrid[nblk] = vtkUnstructuredGrid::New();
+
+      int * nnodes;
+
+      // reset all structures and
+      // allocate auxiliary and permanent structures
+      _Nodes[nblk]= (NODE *) malloc((maxpls+1)*sizeof(NODE));
+      nnodes = (int *) malloc(maxpls*sizeof(int));
+
+      // initialize the array to zero
+      if (nnodes !=NULL)
+	memset((void *)nnodes, (int) 0, maxpls*sizeof(int));
+
+      if ( (nnodes!=NULL) && (_Nodes[nblk] != NULL) ) {
+
+	int k,j,i,inode=0,igblk=0;
+	int ogblk=0;
+	_F_INTEGER igoff,jgoff,kgoff,nofferr;
+	_F_INTEGER idgoff,jdgoff,kdgoff;
+	
+	//
+	// count the nodes and blocks, set the nnodes and _Nodes
+	//
+	
+	for(k=kbeg;k<=kend;k++) {
+	  const int jbeg =  ( JLV1[k-1] );
+	  const int jend =  ( JLV2[k-1] );	   	
+	
+	  for ( j = jbeg ; j <= jend ;j++ ) {
+	    for ( i= ibeg; i <= iend ; i++) {	
+	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+	
+	      const int index = gindex(i,j,k);	
+#ifdef DEBUG	
+//	      fprintf(fvdebug,"\n %d %d %d  %d",i,j,k,KEYOUT[index]);
+#endif
+	      ogblk++;
+	
+	      if ( KEYOUT[index] == 1 ) {	
+		//	      touch each of the 8 vertices
+		int gi;NODE *curr_node;
+		
+		igblk++;		
+
+		gi=gindex(i,j,k); // same as index of the gridblock below
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j,k);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i,j+1,k);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j+1;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j+1,k);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j+1;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i,j,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j;curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j;curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i,j+1,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j+1;curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j+1,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j+1;
+		  curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+#undef gindex		
+	      } // end if KEYOUT
+	    } // end loop i
+	  } // end loop j
+	} // end loop k
+	
+	// DEBUG
+	// printf("\n Counted nodes %d and gridblocks %d and %d\n",
+	//        inode,igblk,ogblk);
+	_Nnod[nblk]=inode;_Ngblk[nblk]=igblk;
+	
+        points->SetNumberOfPoints(_Nnod[nblk]);
+
+	// get the global offsets for vis_xrec,vis_yrec,vis_zrec
+	myblkoff(NBLK,&igoff,&jgoff,&kgoff,&nofferr);
+	idgoff=igoff;jdgoff=jgoff;kdgoff=kgoff;
+
+	// modify offsets to include offset of (0,0,0) block
+	// igoff etc. are offsets for xrec, idgoff are for dxrec
+	igoff+=_Mxrecxp*nblk;jgoff+=_Myrecyp*nblk;kgoff+=_Mzreczp*nblk;
+	idgoff+=(_Mxrecxp-1)*nblk;jdgoff+=(_Myrecyp-1)*nblk;
+	kdgoff+=(_Mzreczp-1)*nblk;
+	
+	// print x,y,z information skip init values for the variables
+	for (inode=1;inode <=_Nnod[nblk];inode++) {
+	
+	  const int i=_Nodes[nblk][inode].i,j=_Nodes[nblk][inode].j,
+                    k=_Nodes[nblk][inode].k;
+          points->InsertPoint(inode-1,vis_xrec[i+igoff-1],vis_yrec[j+jgoff-1],
+                  vis_zrec[k+kgoff-1]);
+
+	} // end inode
+	
+	// vtk connectivity data
+	vtkIdType pts[8];
+        ugrid[nblk]->Allocate(_Ngblk[nblk]);
+	
+	for(k=kbeg;k<=kend;k++) {
+	  const int jbeg =  ( JLV1[k-1] );
+	  const int jend =  ( JLV2[k-1] );
+	
+	  for ( j = jbeg ; j <= jend ;j++ ) {	
+	    for ( i= ibeg; i <= iend ; i++) {	
+
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+
+	      const int gi=gindex(i,j,k);
+	
+	      if ( KEYOUT[gi] == 1 ) {	
+		
+                pts[0]=nnodes[gindex(i,j,k)]-1;
+                pts[1]=nnodes[gindex(i+1,j,k)]-1;
+                pts[2]=nnodes[gindex(i+1,j,k+1)]-1;
+                pts[3]=nnodes[gindex(i,j,k+1)]-1;
+                pts[4]=nnodes[gindex(i,j+1,k)]-1;
+                pts[5]=nnodes[gindex(i+1,j+1,k)]-1;
+                pts[6]=nnodes[gindex(i+1,j+1,k+1)]-1;
+                pts[7]=nnodes[gindex(i,j+1,k+1)]-1;
+
+                ugrid[nblk]->InsertNextCell(VTK_HEXAHEDRON, 8, pts);
+		
+	      } // end if KEYOUT
+	    } // end loop i
+	  } // end loop j
+	} // end loop k 	
+#undef gindex
+
+        // vtk connectivity
+        ugrid[nblk]->SetPoints(points);
+        points->Delete();
+
+        // add scalars to the ugrid
+        for(iarg=0; iarg<nscl; iarg++)
+        {
+           vtkFloatArray* scalars;
+           scalars = vtkFloatArray::New();
+           scalars->SetNumberOfComponents(1);
+           scalars->SetNumberOfValues(_Nnod[nblk]);
+           if(_Vis_pars[iarg].name!=NULL)
+              scalars->SetName(_Vis_pars[iarg].name);
+           else
+           {
+              sprintf(sclnam,"v%d",iarg+1);
+              scalars->SetName(sclnam);
+           }
+           ugrid[nblk]->GetPointData()->AddArray(scalars);
+           scalars->Delete();
+        }
+
+        // add vectors to the ugrid
+        for(iarg=0; iarg<(nvec/3); iarg++)
+        {
+           vtkFloatArray* vectors;
+           vectors = vtkFloatArray::New();
+           vectors->SetNumberOfComponents(3);
+           vectors->SetNumberOfTuples(_Nnod[nblk]);
+           if(_Vis_vecnam[iarg]!=NULL)
+              vectors->SetName(_Vis_vecnam[iarg]);
+           else
+           {
+              sprintf(vecnam,"v%d",iarg+1);
+              vectors->SetName(vecnam);
+           }
+           ugrid[nblk]->GetPointData()->AddArray(vectors);
+           vectors->Delete();
+        }
+
+	// free the nnodes as well as unused _Nodes space
+	free ((void *)nnodes);
+
+	// the freeing below is not possible on Linux or SGI
+
+//gus: adapting bag8's changes for mac osx
+#if defined(__APPLE__)
+#define _linux
+#endif
+
+#if defined(_linux) || defined(__linux) || defined(mips) || defined(__mips)
+
+	// do not free
+	// printf("\nskipped freeing memory here ... ");
+
+#else  // for SP2 it is possible free the unused _Nodes structure
+       // printf("\nfreeing unused _Nodes memory here ... ");
+
+	if( _Nnod[nblk] < maxpls )
+	{
+	  NODE *freeptr= &( _Nodes[nblk][_Nnod[nblk]+1+1] );
+	  free((void *)freeptr);	
+	} else ;
+#endif
+
+      }
+
+  } // end Vis_cnt
+
+  // process time steps
+  {
+    int lvar;
+    _F_INTEGER igoff,jgoff,kgoff,nofferr;
+    _F_INTEGER idgoff,jdgoff,kdgoff;
+
+    // get the global offsets for vis_xrec,vis_yrec,vis_zrec
+    myblkoff(NBLK,&igoff,&jgoff,&kgoff,&nofferr);
+    idgoff=igoff;jdgoff=jgoff;kdgoff=kgoff;
+
+    // modify offsets to include offset of (0,0,0) block
+    // igoff etc. are offsets for xrec, idgoff are for dxrec
+    igoff+=_Mxrecxp*nblk;jgoff+=_Myrecyp*nblk;kgoff+=_Mzreczp*nblk;
+    idgoff+=(_Mxrecxp-1)*nblk;jdgoff+=(_Myrecyp-1)*nblk;
+    kdgoff+=(_Mzreczp-1)*nblk;
+
+    // scalar variables (interpolated from cell-centered data)
+    vtkFloatArray* scalars;
+    for(lvar=0;lvar<nscl;lvar++) {
+      if(_Vis_pars[lvar].name!=NULL)
+         scalars = (vtkFloatArray*)
+               ugrid[nblk]->GetPointData()->GetScalars(_Vis_pars[lvar].name);
+      else
+      {
+         sprintf(sclnam,"v%d",lvar+1);
+         scalars = (vtkFloatArray*)
+                   ugrid[nblk]->GetPointData()->GetScalars(sclnam);
+      }
+      // get scalars for this variable from ugrid and update values
+      const int ldimoff=(_Vis_pars[lvar].ldim-1)*maxblk;
+      int inode;
+
+      //printf("\nprinting for scalar variable %d\n",lvar);
+      for(inode=1;inode<=_Nnod[nblk];inode++) {
+
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+
+	const int i2=_Nodes[nblk][inode].i,
+	  j2=_Nodes[nblk][inode].j,
+	  k2=_Nodes[nblk][inode].k;
+	const int i1=i2-1,j1=j2-1,k1=k2-1;
+	int i111=gindex(i1,j1,k1),i211=gindex(i2,j1,k1),
+	  i121=gindex(i1,j2,k1),i221=gindex(i2,j2,k1),
+	  i112=gindex(i1,j1,k2),i212=gindex(i2,j1,k2),
+	  i122=gindex(i1,j2,k2),i222=gindex(i2,j2,k2);	
+#undef gindex
+#define gcheck(ind)  ( ( (*ind)>=0 ) && ((*ind) <maxblk) ? 1 : (*ind=0) )
+	
+	const int s111=gcheck(&i111),s121=gcheck(&i121),
+	  s211=gcheck(&i211),s221=gcheck(&i221),
+	  s112=gcheck(&i112),s122=gcheck(&i122),
+	  s212=gcheck(&i212),s222=gcheck(&i222);
+
+#undef gcheck
+
+	int count;
+	_F_REAL_8 scalval;
+	_F_REAL_8 *ptr=& ( r8_scl_list[lvar][ldimoff] );
+
+        if (_Vis_pars[lvar].vnodal == 0)
+	{
+	// interpolation for nonuniform grid, cell centered variables
+#define icheck(ind)  ( (ind)>=0  ? (ind) : 0 )
+	   int di1= icheck(i1+idgoff-1) ;
+           int di2=i2+idgoff-1;
+           int dj1= icheck(j1+jdgoff-1) ;
+           int dj2=j2+jdgoff-1;
+           int dk1= icheck(k1+kdgoff-1) ;
+           int dk2=k2+kdgoff-1;
+#undef icheck
+
+           _F_REAL_8
+           dx1=(_F_REAL_8) vis_dxrec[di1],dx2=(_F_REAL_8) vis_dxrec[di2],
+	   dy1=(_F_REAL_8) vis_dyrec[dj1],dy2=(_F_REAL_8) vis_dyrec[dj2],
+           dz1=(_F_REAL_8) vis_dzrec[dk1],dz2=(_F_REAL_8) vis_dzrec[dk2];
+	
+           scalval=sint3Dnonuniform_with_ghosts
+	     (s111,s211,s121,s221,s112,s212,s122,s222,
+	      KEYOUT[i111],KEYOUT[i211],KEYOUT[i121],KEYOUT[i221],
+	      KEYOUT[i112],KEYOUT[i212],KEYOUT[i122],KEYOUT[i222],
+	      ptr[i111],ptr[i211],ptr[i121],ptr[i221],
+	      ptr[i112],ptr[i212],ptr[i122],ptr[i222],
+	      dx1,dx2,dy1,dy2,dz1,dz2,
+	      &count);
+	}
+        else
+        {
+        // no interpolation for corner point variables
+           scalval=ptr[i222];
+        }
+        scalars->SetValue(inode-1,scalval);
+      }// inode	
+    } // lvar
+
+    vtkFloatArray* vectors;
+    if((nvec > 0) && (_Nnod[nblk] > 0))
+    {
+       vecvalx = new _F_REAL_8[_Nnod[nblk]];
+       vecvaly = new _F_REAL_8[_Nnod[nblk]];
+       vecvalz = new _F_REAL_8[_Nnod[nblk]];
+    }
+    for(lvar=0;lvar<nvec;lvar++) {
+      const int ldimoff=(_Vis_pars[lvar+nscl].ldim-1)*maxblk;
+      const int iface=(lvar)%3; // recognize faces : assume they come
+                                // in x,y,z triples
+      const int ivec=lvar/3; // vector field index from component index
+      if(iface==0)
+      {
+         if(_Vis_vecnam[ivec]!=NULL)
+            vectors = (vtkFloatArray*)
+                   ugrid[nblk]->GetPointData()->GetVectors(_Vis_vecnam[ivec]);
+         else
+         {
+            sprintf(vecnam,"v%d",ivec+1);
+            vectors = (vtkFloatArray*)
+                      ugrid[nblk]->GetPointData()->GetVectors(vecnam);
+         }
+      }
+      int inode;
+
+      // printf("\nprinting for vector variable %d with \n",lvar);
+      for(inode=1;inode<=_Nnod[nblk];inode++) {
+
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+
+	const int i2=_Nodes[nblk][inode].i,
+	  j2=_Nodes[nblk][inode].j,
+	  k2=_Nodes[nblk][inode].k;
+	const int i1=i2-1,j1=j2-1,k1=k2-1;
+	int i111=gindex(i1,j1,k1),i211=gindex(i2,j1,k1),
+	  i121=gindex(i1,j2,k1),i221=gindex(i2,j2,k1),
+	  i112=gindex(i1,j1,k2),i212=gindex(i2,j1,k2),
+	  i122=gindex(i1,j2,k2),i222=gindex(i2,j2,k2);	
+#undef gindex
+#define gcheck(ind)  ( ( (*ind)>=0 ) && ((*ind) <maxblk) ? 1 : (*ind=0) )
+	
+	const int s121=gcheck(&i121),
+	  s211=gcheck(&i211),s221=gcheck(&i221),
+	  s112=gcheck(&i112),s122=gcheck(&i122),
+	  s212=gcheck(&i212),s222=gcheck(&i222);
+
+#undef gcheck
+
+	_F_REAL_8 *ptr=& ( r8_vec_list[lvar][ldimoff] );
+
+#define icheck(ind)  ( (ind)>=0  ? (ind) : 0 )
+	int di1= icheck(i1+idgoff-1) ;
+	int di2=i2+idgoff-1;
+	int dj1= icheck(j1+jdgoff-1) ;
+	int dj2=j2+jdgoff-1;
+	int dk1= icheck(k1+kdgoff-1) ;
+	int dk2=k2+kdgoff-1;
+#undef icheck
+
+	_F_REAL_8
+	  dx1=(_F_REAL_8) vis_dxrec[di1],dx2=(_F_REAL_8) vis_dxrec[di2],
+	  dy1=(_F_REAL_8) vis_dyrec[dj1],dy2=(_F_REAL_8) vis_dyrec[dj2],
+	  dz1=(_F_REAL_8) vis_dzrec[dk1],dz2=(_F_REAL_8) vis_dzrec[dk2];
+	int vflag;
+
+	switch(iface) {
+	case 0: // assume this is x-face
+	  vecvalx[inode-1]=vint3D_nonuniform(
+                             s211,s221,s212,s222,
+                             KEYOUT[i111],KEYOUT[i211],
+                             KEYOUT[i121],KEYOUT[i221],
+                             KEYOUT[i112],KEYOUT[i212],
+                             KEYOUT[i122],KEYOUT[i222],
+                             ptr[i211],ptr[i221],ptr[i212],ptr[i222],
+                             dy1,dy2,dz1,dz2,&vflag);
+	  break;
+	case 1:  // assume this is y-face
+	  vecvaly[inode-1]=vint3D_nonuniform(				
+                             s121,s221,s122,s222,
+                             KEYOUT[i111],KEYOUT[i121],
+                             KEYOUT[i211],KEYOUT[i221],
+                             KEYOUT[i112],KEYOUT[i122],
+                             KEYOUT[i212],KEYOUT[i222],
+                             ptr[i121],ptr[i221],ptr[i122],ptr[i222],
+                             dx1,dx2,dz1,dz2,&vflag);
+	  break;
+	case 2: // assume this is z-face
+	  vecvalz[inode-1]=vint3D_nonuniform(				
+                             s112,s212,s122,s222,
+                             KEYOUT[i111],KEYOUT[i112],
+                             KEYOUT[i211],KEYOUT[i212],
+                             KEYOUT[i121],KEYOUT[i122],
+                             KEYOUT[i221],KEYOUT[i222],
+                             ptr[i112],ptr[i212],ptr[i122],ptr[i222],
+                             dx1,dx2,dy1,dy2,&vflag);
+	  break;
+	}
+	
+      }// inode
+      if(iface==2)
+      {
+         for(inode=0;inode<_Nnod[nblk];inode++)
+            vectors->SetTuple3(inode,vecvalx[inode],vecvaly[inode],
+                               vecvalz[inode]);
+      }
+
+    } // lvar
+
+    if(vecvalx) {delete [] vecvalx; vecvalx=NULL;}
+    if(vecvaly) {delete [] vecvaly; vecvaly=NULL;}
+    if(vecvalz) {delete [] vecvalz; vecvalz=NULL;}
+
+// gus: for vtk-6, comment this update
+    //ugrid[nblk]->Update();
+
+    // gp  - extend support for dirname to vtk output
+    sprintf(vtufilename,"%s%s_ZONE.%d.%d.%d.%d.vtu",
+            DIRname,ROOTname,nblk,_Myprc,flag,_Nstep);
+
+    // write the unstructured grid to disk
+    vtkXMLUnstructuredGridWriter *vtu_writer=
+               vtkXMLUnstructuredGridWriter::New();
+
+// gus: for vtk-6, change SetInput to SetInputData
+#if VTK_MAJOR_VERSION <= 5
+    vtu_writer->SetInput(ugrid[nblk]);
+#else
+    vtu_writer->SetInputData(ugrid[nblk]);
+#endif
+
+    vtu_writer->SetFileName(vtufilename);
+    if (vis_binary)
+       vtu_writer->SetDataModeToBinary();
+    else
+       vtu_writer->SetDataModeToAscii();
+
+    vtu_writer->Write();
+    vtu_writer->Delete();
+#ifdef DEBUG
+    fclose(fvdebug);
+#endif
+  }
+}

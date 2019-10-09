@@ -1,0 +1,957 @@
+
+C======================================================================
+      SUBROUTINE GETMATRHS(COF,RESID,LTRAN,AINV,
+     &                     AINVF,I,J,K,PN,PCN,RHON,
+     &                     PERMINV,VDIM,VPROP,FDIM,FPROP,
+     &                     IDIM,JDIM,KDIM,XC,YC,ZC,NBLK,
+     &                     UPMOBPROD,NC,NPH,NCINPH,ICINPH)
+C======================================================================
+      IMPLICIT NONE
+      include 'control.h'
+C
+C  GETMATRICES UPDATE LOCAL CONTRIBUTION OF (I,J,K) TO
+C  TRANSMISSIBILITY AND PRESSURE MATRIX
+C     COF = B^{T} * AINV * B.
+C
+      INTEGER IDIM,JDIM,KDIM,I,J,K,VDIM,FDIM,VINDEX(VDIM),
+     &     FINDEX(FDIM),NBLK,IC,IPH,NC,NPH,NCINPH,
+     &     ICINPH(12+1,3)
+      INTEGER VPROP(8),FPROP(12)
+      REAL*8  LTRAN(12,8),AINV(12,12),
+     &     PERMINV(3,3,8,IDIM,JDIM,KDIM),
+     &     RESID(IDIM,JDIM,KDIM,NC),B(FDIM,VDIM),
+     &     COF(IDIM,JDIM,KDIM,-13:13,NC),
+     &     XC(IDIM+1,JDIM+1,KDIM+1),YC(IDIM+1,JDIM+1,KDIM+1),
+     &     ZC(IDIM+1,JDIM+1,KDIM+1),
+     &     LCOF(VDIM,VDIM,NC),LRHS(VDIM,NC),PN(8),
+     &     UPMOBPROD(IDIM,JDIM,KDIM,3,NCINPH),
+     &     PCN(8,NPH),RHON(8,NPH),
+     &     AINVF(12,NPH),LAINVF(FDIM,NPH)
+      REAL*8 PERMINVPROD
+
+      IF (FDIM.EQ.0) RETURN
+
+C GET VINDEX AND FINDEX FROM VPROP AND FPROP
+      CALL GETDOFINDEX(I,J,K,VPROP,FPROP,VDIM,FDIM,VINDEX,FINDEX)
+C LCOF  = B^{T}*AINV*B WITH MOBILITY
+      CALL GETLOCALCOF(LCOF,B,LTRAN,I,J,K,PERMINV,FINDEX,
+     &               VINDEX,VPROP,IDIM,JDIM,KDIM,FDIM,VDIM,
+     &               UPMOBPROD,NC,NPH,NCINPH,ICINPH)
+
+C LRHS   = B^{T}*AINV*( - FGRAV + B*P_CAPILLARY) WITH MOBILITY
+      CALL GETLOCALRHS(LRHS,LAINVF,LTRAN,AINV,B,I,J,K,PCN,RHON,VPROP,
+     &                 FINDEX,FDIM,VINDEX,VDIM,IDIM,JDIM,KDIM,
+     &                 XC,YC,ZC,NBLK,UPMOBPROD,NC,NPH,NCINPH,
+     &                 ICINPH)
+
+c COPY LOCAL LAINVF TO GLOBAL AINVF
+      DO IPH = 1,NPH
+        CALL COPYLRHS(LAINVF(1,IPH),AINVF(1,IPH),FDIM,
+     &               FINDEX)
+      ENDDO
+
+      CALL GETLOCALRES(LRHS,LCOF,PN,VINDEX,VDIM,NC)
+
+C MULTIPLY LOCAL COF WITH DELTIM
+      DO IC = 1,NC
+        CALL SCAMULMAT(DELTIM,LCOF(1,1,IC),VDIM,VDIM)
+        CALL SCAMULMAT(DELTIM,LRHS(1,IC),VDIM,1)
+
+C STORE LOCAL COF AND RESID TO GLOBAL COF AND RESID
+        CALL STOREMATRIX(COF(1,1,1,-13,IC),IDIM,JDIM,KDIM,
+     &                  I,J,K,LCOF(1,1,IC),VPROP,VINDEX,VDIM)
+        CALL STORERHS(RESID(1,1,1,IC),LRHS(1,IC),VDIM,
+     &                  VINDEX,IDIM,JDIM,KDIM,I,J,K,VPROP)
+      ENDDO
+
+      RETURN
+      END
+
+
+C======================================================================
+      SUBROUTINE GETLOCALRHS(LRHS,LAINVF,LTRAN,AINV,B,I,J,K,PCN,
+     &                  RHON,VPROP,FINDEX,FDIM,VINDEX,VDIM,
+     &                  IDIM,JDIM,KDIM,XC,YC,ZC,NBLK,
+     &                  UPMOBPROD,NC,NPH,NCINPH,ICINPH)
+C======================================================================
+      IMPLICIT NONE
+C
+C
+C (RHO G , V) CONTRIBUTION TO RIGHT HAND SIDE.
+C
+C
+      INTEGER VDIM,IDIM,JDIM,KDIM,I,J,K,VPROP(8),FDIM,
+     &        FINDEX(FDIM),NBLK,VINDEX(VDIM),NC,NPH,NCINPH,
+     &     ICINPH(12+1,3)
+      REAL*8 LRHS(VDIM,NC),LAINVF(FDIM,NPH),AINV(12,12),
+     &       B(FDIM,VDIM),XC(IDIM+1,JDIM+1,KDIM+1),
+     &       YC(IDIM+1,JDIM+1,KDIM+1),
+     &       ZC(IDIM+1,JDIM+1,KDIM+1),
+     &       UPMOBPROD(IDIM,JDIM,KDIM,3,NCINPH),
+     &       UPMOB(FDIM),RHON(8,NPH),LTRAN(12,8),
+     &       PCN(8,NPH)
+C
+      INTEGER L,M,N,IC,IPH,LC
+      REAL *8 DUMLCOF(VDIM,VDIM,NCINPH),F(FDIM,NPH),
+     &        TMPAINV(FDIM,FDIM)
+
+      LRHS    = 0.D0
+      TMPAINV = 0.D0
+      DUMLCOF = 0.D0
+
+      DO L = 1,FDIM
+      DO M = 1,FDIM
+         TMPAINV(L,M) = AINV(FINDEX(L),FINDEX(M))
+      ENDDO
+      ENDDO
+
+C F = -FGRAV [GRAVITY CONTRIBUTION -(RHO G, V)]
+      DO IPH = 1,NPH
+        CALL BUILDFGRAV(F(1,IPH),RHON(1,IPH),I,J,K,VPROP,
+     &        FINDEX,IDIM,JDIM,KDIM,FDIM,XC,YC,ZC,NBLK)
+
+C AINVF = AINV*F
+        CALL DGEMV('N',FDIM,FDIM,1.D0,TMPAINV,FDIM,F(1,IPH),1,
+     &              0.D0,LAINVF(1,IPH),1)
+      ENDDO
+
+C LRHS   =  B'*AINVF1 = B'*AINV*( - FGRAV)
+      DO IPH = 1,NPH
+      DO IC = 1,NC
+        LC = ICINPH(IC,IPH)
+        IF (LC==0) CYCLE
+C ADDED UPMOB TO FGRAV TERM IN RHS
+        CALL GETUPMOB(I,J,K,FDIM,FINDEX,UPMOBPROD(1,1,1,1,LC),
+     &                IDIM,JDIM,KDIM,UPMOB)
+        DO M = 1,VDIM
+          DO L = 1,FDIM
+             LRHS(M,IC)=LRHS(M,IC) - UPMOB(L)* B(L,M)
+     &                *LAINVF(L,IPH)
+            DO N = 1,VDIM
+               DUMLCOF(M,N,LC) = DUMLCOF(M,N,LC) + UPMOB(L)*B(L,M)
+     &                      *LTRAN(FINDEX(L),VINDEX(N))
+            ENDDO
+          ENDDO
+        ENDDO
+      ENDDO
+      ENDDO
+
+C LRHS = B'*AINV*(-FGRAV) + B'*AINV*B*P_c
+      DO IPH = 1,NPH
+      DO IC = 1,NC
+        LC = ICINPH(IC,IPH)
+        IF (LC==0) CYCLE
+        DO M = 1, VDIM
+          DO N = 1, VDIM
+           LRHS(M,IC) = LRHS(M,IC) + DUMLCOF(M,N,LC)
+     &                  *PCN(VINDEX(N),IPH)
+          ENDDO
+        ENDDO
+      ENDDO
+      ENDDO
+
+      RETURN
+      END
+
+C======================================================================
+      SUBROUTINE GETLOCALCOF(LCOF,B,LTRAN,I,J,K,PERMINV,
+     &          FINDEX,VINDEX,VPROP,IDIM,JDIM,KDIM,FDIM,VDIM,
+     &          UPMOBPROD,NC,NPH,NCINPH,ICINPH)
+C======================================================================
+      IMPLICIT NONE
+C
+C MOBILITY CONTRIBUTIONS ARE ADDED : LAMBDA_{IC}
+C LTRAN CONTAINS A(-1)*B ONLY
+C
+C
+      INTEGER FDIM,VDIM,I,J,K,IDIM,JDIM,KDIM,FINDEX(FDIM),VINDEX(VDIM),
+     &        VPROP(8),NC,NPH,NCINPH,ICINPH(12+1,3)
+      REAL*8 LCOF(VDIM,VDIM,NC),PERMINV(3,3,8,IDIM,JDIM,KDIM),
+     &       LTRAN(12,8),UPMOBPROD(IDIM,JDIM,KDIM,3,NCINPH)
+C
+      INTEGER L,M,N,IC,IPH,LC
+      REAL*8 UPMOB(FDIM),UPMOBNC(FDIM,NC),B(FDIM,VDIM)
+C
+
+      LCOF    = 0.D0
+      UPMOB   = 0.D0
+      UPMOBNC = 0.D0
+
+C
+C COMPUTE LOCAL B MATRIX (PRESSURE-DIFFERENCE MATRIX) STORE IN LTRAN
+C
+      CALL GETB(B,FDIM,VDIM,FINDEX,VINDEX)
+C
+C GETUPMOB: 12 UPWINDED MOBILITIES FOR CORNER POINT I,J,K
+C
+      DO IC = 1,NC
+      DO IPH = 1,NPH
+         LC = ICINPH(IC,IPH)
+         IF (LC==0) CYCLE
+         CALL GETUPMOB(I,J,K,FDIM,FINDEX,UPMOBPROD(1,1,1,1,LC),
+     &                 IDIM,JDIM,KDIM,UPMOB)
+         DO M = 1,FDIM
+            UPMOBNC(M,IC) = UPMOBNC(M,IC) + UPMOB(M)
+         ENDDO
+      ENDDO
+      ENDDO
+C
+C LCOF = B^T * LTRAN = B^T*AINV*B
+C UPWIND MOBILITY CONTRIBUTION A <-- A/UPMOB GOES ONLY TO
+C LCOF AND NOT LTRAN
+
+      DO L=1,VDIM
+      DO N=1,VDIM
+      DO M=1,FDIM
+      DO IC = 1,NC
+         LCOF(L,N,IC) = LCOF(L,N,IC) + UPMOBNC(M,IC)*B(M,L)
+     &                  *LTRAN(FINDEX(M),VINDEX(N))
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+
+      RETURN
+      END
+C======================================================================
+      SUBROUTINE GETUPMOB(I,J,K,FDIM,FINDEX,LUP,IDIM,JDIM,KDIM,
+     &                    UPMOB)
+C======================================================================
+      IMPLICIT NONE
+C
+C UPWINDED MOBILITY
+C
+C
+      INTEGER FDIM,I,J,K,M,IDIM,JDIM,KDIM,FINDEX(FDIM)
+C
+      REAL*8 UPMOB(FDIM),LAM(12),
+     &       LUP(IDIM,JDIM,KDIM,3)
+
+
+C P1: (I-1,J-1,K-1)
+C P2: (I  ,J-1,K-1)
+C P3: (I  ,J  ,K-1)
+C P4: (I-1,J  ,K-1)
+C P5: (I-1,J-1,K)
+C P6: (I  ,J-1,K)
+C P7: (I  ,J  ,K)
+C P8: (I-1,J  ,K)
+
+C U1  : P2: (I  ,J-1,K-1)
+C U3  : P3: (I  ,J  ,K-1)
+C U11 : P7: (I  ,J  ,K)
+C U9  : P6: (I  ,J-1,K)
+
+C U4  : P4: (I-1,J  ,K-1)
+C U2  : P3: (I  ,J  ,K-1)
+C U10 : P7: (I  ,J  ,K)
+C U12 : P8: (I-1,J  ,K)
+
+C U5  : P5: (I-1,J-1,K)
+C U6  : P6: (I  ,J-1,K)
+C U7  : P7: (I  ,J  ,K)
+C U8  : P8: (I-1,J  ,K)
+
+C-------X-DIRECTION
+
+        LAM(1)=LUP(I  ,J-1,K-1,1)
+        LAM(3)=LUP(I  ,J  ,K-1,1)
+        LAM(11)=LUP(I  ,J  ,K,1)
+        LAM(9)=LUP(I  ,J-1,K,1)
+
+C-------Y-DIRECTION
+
+        LAM(4)=LUP(I-1,J  ,K-1,2)
+        LAM(2)=LUP(I  ,J  ,K-1,2)
+        LAM(10)=LUP(I  ,J  ,K,2)
+        LAM(12)=LUP(I-1,J  ,K,2)
+
+C-------Z-DIRECTION
+
+        LAM(5)=LUP(I-1,J-1,K,3)
+        LAM(6)=LUP(I  ,J-1,K,3)
+        LAM(7)=LUP(I  ,J  ,K,3)
+        LAM(8)=LUP(I-1,J  ,K,3)
+
+
+        DO M = 1, FDIM
+          UPMOB(M) = LAM(FINDEX(M))
+        ENDDO
+
+      RETURN
+      END
+
+
+C======================================================================
+      SUBROUTINE GETLOCALRES(LRHS,LCOF,PN,VINDEX,VDIM,NC)
+C======================================================================
+      IMPLICIT NONE
+C
+C
+      INTEGER VDIM,VINDEX(VDIM),IC,NC
+      REAL*8 LRHS(VDIM,NC),LCOF(VDIM,VDIM,NC),PN(8)
+C
+      INTEGER L,N
+      DO L = 1, VDIM
+      DO N = 1, VDIM
+       DO IC = 1,NC
+CGUS DIFFERENCE IN CONSTRUCTION OF PRESSURE EQUATION
+         LRHS(L,IC) = LRHS(L,IC) + LCOF(L,N,IC)*PN(VINDEX(N))
+       ENDDO
+      ENDDO
+      ENDDO
+
+      LRHS = -1.D0*LRHS
+
+      RETURN
+      END
+
+C======================================================================
+      SUBROUTINE STOREMATRIX(MATRIX,IDIM,JDIM,KDIM,I,J,K,
+     & LMAT,VPROP,VINDEX,VDIM)
+C======================================================================
+      IMPLICIT NONE
+C
+C     STOREMATRIXPRES STORES THE LOCAL CONTRIBUTION B*AINV*tr(B)
+C     ASSOCIATED WITH NODE (I,J,K) TO GLOBAL MATRIX.
+C
+
+C----------------------------------------------------------------------
+C ORDERING FOR GMRES SOLVER:
+C----------------------------------------------------------------------
+C
+C  MATRIX(I,J,K,-13:13) IS FOR EQUATION (I,J,K) WITH THE BAND
+C  CONNECTIONS AS
+C
+C    COF TO PRES MAPPING
+C     0 0 0, -1 0 0, 1 0 0,
+C     0 -1 0, 0 1 0, 0 0 -1,
+C     0 0 1, -1 -1 1, 1 -1 0,
+C    -1 1 0, 1 1 0, -1 0 -1,
+C     1 0 -1, 1 -1 -1, 0 1 -1,
+C    -1 0 1, 1 0 1, 1 -1 1,
+C     0 1 1, -1 -1 -1, 1 -1 -1,
+C    -1 1 -1, 1 1 -1, -1 -1 1,
+C     1 -1 1,  -1 1 1, 1 1 1
+C
+C  FRONT
+C    ---------------       -----------------------------------------
+C   | 12 | 5  | 13  |     | (I-1,J+1,K+1)|(I,J+1,K+1)|(I+1,J+1,K+1) |
+C   |---------------|     |-----------------------------------------|
+C   |  2 | -7 |  3  |  =  | (I-1, J, K+1)|(I, J, K+1)|(I+1, J, K+1) |
+C   |-------------- |     |-----------------------------------------|
+C   | 10  | 4 | 11  |     | (I-1,J-1,K+1)|(I,J-1,K+1)|(I+1,J-1,K+1) |
+C    ---------------       -----------------------------------------
+C
+C  MIDDLE
+C    --------------        -----------------------------------------
+C   | -4 | -9 |-3  |      | (I-1,J+1,K) | (I, J+1, K) | (I+1,J+1,K) |
+C   |--------------|      |-----------------------------------------|
+C   | -12|-13 |-11 |   =  | (I-1, J, K) | ( I, J, K ) | (I+1, J, K) |
+C   |--------------|      |-----------------------------------------|
+C   | -6 |-10 |-5  |      | (I-1,J-1,K) | (I, J-1, K) | (I+1,J-1,K) |
+C    --------------        -----------------------------------------
+C
+C  BACK
+C    ---------------       -----------------------------------------
+C   | 8  | 1  |  9  |     | (I-1,J+1,K-1)|(I,J+1,K-1)|(I+1,J+1,K-1) |
+C   |---------------|     |-----------------------------------------|
+C   |-2  | -8 |  -1 |  =  | (I-1, J, K-1)|(I, J, K-1)|(I+1, J, K-1) |
+C   |-------------- |     |-----------------------------------------|
+C   | 6  | 0  |  7  |     | (I-1,J-1,K-1)|(I,J-1,K-1)|(I+1,J-1,K-1) |
+C    ---------------       -----------------------------------------
+
+
+
+C
+C   NOTE: MATRIX( ... ) STORES CELL/PRESSURE WEIGHTS FROM B*AINV*tr(B)
+C
+C   NOTE: THE PROBLEM IS SYMMETRIC, SO THE MATRIX IS REDUNDANTLY
+C         STORED.
+C
+C
+C----------------------------------------------------------------------
+C ORDERING FOR DIRECT SOLVER:
+C----------------------------------------------------------------------
+C
+C  FRONT
+C    ---------------       -----------------------------------------
+C   |  11 | 12 | 13 |     | (I-1,J+1,K+1)|(I,J+1,K+1)|(I+1,J+1,K+1) |
+C   |---------------|     |-----------------------------------------|
+C   |  8  | 9 |  10 |  =  | (I-1, J, K+1)|(I, J, K+1)|(I+1, J, K+1) |
+C   |-------------- |     |-----------------------------------------|
+C   |  5  | 6 |  7  |     | (I-1,J-1,K+1)|(I,J-1,K+1)|(I+1,J-1,K+1) |
+C    ---------------       -----------------------------------------
+C
+C  MIDDLE
+C    --------------        -----------------------------------------
+C   |  2 |  3 |  4 |      | (I-1,J+1,K) | (I, J+1, K) | (I+1,J+1,K) |
+C   |--------------|      |-----------------------------------------|
+C   | -1 |  0 |  1 |   =  | (I-1, J, K) | ( I, J, K ) | (I+1, J, K) |
+C   |--------------|      |-----------------------------------------|
+C   | -4 | -3 | -2 |      | (I-1,J-1,K) | (I, J-1, K) | (I+1,J-1,K) |
+C    --------------        -----------------------------------------
+C
+C  BACK
+C    ---------------       -----------------------------------------
+C   |  -7 | -6 | -5 |     | (I-1,J+1,K-1)|(I,J+1,K-1)|(I+1,J+1,K-1) |
+C   |---------------|     |-----------------------------------------|
+C   | -10 | -9 | -8 |  =  | (I-1, J, K-1)|(I, J, K-1)|(I+1, J, K-1) |
+C   |-------------- |     |-----------------------------------------|
+C   | -13 |-12| -11 |     | (I-1,J-1,K-1)|(I,J-1,K-1)|(I+1,J-1,K-1) |
+C    ---------------       -----------------------------------------
+
+
+
+C----------------------------------------------------------------------
+C
+C    (BACK)
+C    P4------------------------P3
+C    | \           |            |
+C    |  VOLUME121  U3 VOLUME221 | \
+C    |             |            |
+C    -------U4----------U2-------   \
+C    |             |            |
+C    |  VOLUME111  U1 VOLUME211 |     \
+C    |             |            |
+C    P1------------------------P2       \
+C     \
+C              \ (MIDDLE)                 \
+C       \       U8------------------------U7
+C               |             |            |
+C         \     |             |            | \
+C               |             |            |
+C           \   -----------(I,J,K)----------   \
+C               |             |            |
+C             \ |             |            |     \
+C               |             |            |
+C               U5------------------------U6       \
+C                \                          \
+C ^(Y)                    \ (FRONT)                  \
+C |                \       P8------------------------P7
+C |                        |             |            |
+C |________(X)       \     |  VOLUME122 U11 VOLUME222 |
+C  \                       |             |            |
+C    \                 \   ------U12----------U10------
+C      (Z)                 |             |            |
+C                        \ |  VOLUME112  U9 VOLUME212 |
+C                          |             |            |
+C                   (LEFT) P5------------------------P6 (RIGHT)
+C
+C
+C
+      INTEGER IDIM,JDIM,KDIM,I,J,K,VPROP(8),VDIM,VINDEX(VDIM)
+      REAL*8  LMAT(VDIM,VDIM)
+C      REAL*4 MATRIX(IDIM,JDIM,KDIM,-13:13)
+      REAL*8 MATRIX(IDIM,JDIM,KDIM,-13:13)
+C
+      INTEGER MAPPING
+C
+      INTEGER L,M
+      REAL*8 WORK(8,8)
+
+C P1: (I-1,J-1,K-1)
+C P2: (I  ,J-1,K-1)
+C P3: (I  ,J  ,K-1)
+C P4: (I-1,J  ,K-1)
+C P5: (I-1,J-1,K)
+C P6: (I  ,J-1,K)
+C P7: (I  ,J  ,K)
+C P8: (I-1,J  ,K)
+
+      WORK(:,:) = 0.D0
+      DO 100 M = 1,VDIM
+      DO 100 L = 1,VDIM
+        WORK(VINDEX(L),VINDEX(M)) = LMAT(L,M)
+ 100  CONTINUE
+
+! bag8
+      if ((vprop(1).eq.0).or.(vprop(1).eq.5)) then
+
+         MATRIX(I-1,J-1,K-1,MAPPING(0))=
+     &      MATRIX(I-1,J-1,K-1,MAPPING(0))+ WORK(1,1)
+         MATRIX(I-1,J-1,K-1,MAPPING(1))=
+     &      MATRIX(I-1,J-1,K-1,MAPPING(1))+ WORK(1,2)
+         MATRIX(I-1,J-1,K-1,MAPPING(4))=
+     &      MATRIX(I-1,J-1,K-1,MAPPING(4))+ WORK(1,3)
+         MATRIX(I-1,J-1,K-1,MAPPING(3))=
+     &      MATRIX(I-1,J-1,K-1,MAPPING(3))+ WORK(1,4)
+         MATRIX(I-1,J-1,K-1,MAPPING(9))=
+     &      MATRIX(I-1,J-1,K-1,MAPPING(9))+ WORK(1,5)
+         MATRIX(I-1,J-1,K-1,MAPPING(10)) =
+     &       MATRIX(I-1,J-1,K-1,MAPPING(10)) + WORK(1,6)
+         MATRIX(I-1,J-1,K-1,MAPPING(13)) =
+     &       MATRIX(I-1,J-1,K-1,MAPPING(13)) + WORK(1,7)
+         MATRIX(I-1,J-1,K-1,MAPPING(12)) =
+     &       MATRIX(I-1,J-1,K-1,MAPPING(12)) + WORK(1,8)
+
+      ENDIF
+
+! bag8
+      if ((vprop(2).eq.0).or.(vprop(2).eq.5)) then
+
+         MATRIX(I,J-1,K-1,MAPPING(-1)) =
+     &          MATRIX(I,J-1,K-1,MAPPING(-1)) + WORK(2,1)
+         MATRIX(I,J-1,K-1,MAPPING(0))=
+     &          MATRIX(I,J-1,K-1,MAPPING(0))+ WORK(2,2)
+         MATRIX(I,J-1,K-1,MAPPING(3))=
+     &          MATRIX(I,J-1,K-1,MAPPING(3))+ WORK(2,3)
+         MATRIX(I,J-1,K-1,MAPPING(2))=
+     &          MATRIX(I,J-1,K-1,MAPPING(2))+ WORK(2,4)
+         MATRIX(I,J-1,K-1,MAPPING(8))=
+     &           MATRIX(I,J-1,K-1,MAPPING(8))+ WORK(2,5)
+         MATRIX(I,J-1,K-1,MAPPING(9))=
+     &          MATRIX(I,J-1,K-1,MAPPING(9))+ WORK(2,6)
+         MATRIX(I,J-1,K-1,MAPPING(12)) =
+     &          MATRIX(I,J-1,K-1,MAPPING(12)) +  WORK(2,7)
+         MATRIX(I,J-1,K-1,MAPPING(11)) =
+     &         MATRIX(I,J-1,K-1,MAPPING(11)) +  WORK(2,8)
+
+      ENDIF
+
+! bag8
+      IF ((VPROP(3).EQ.0).OR.(VPROP(3).EQ.5)) THEN
+
+         MATRIX(I,J,K-1,MAPPING(-4)) =
+     &            MATRIX(I,J,K-1,MAPPING(-4)) + WORK(3,1)
+         MATRIX(I,J,K-1,MAPPING(-3)) =
+     &           MATRIX(I,J,K-1,MAPPING(-3)) + WORK(3,2)
+         MATRIX(I,J,K-1,MAPPING(0))=
+     &           MATRIX(I,J,K-1,MAPPING(0))+ WORK(3,3)
+         MATRIX(I,J,K-1,MAPPING(-1)) =
+     &           MATRIX(I,J,K-1,MAPPING(-1)) + WORK(3,4)
+         MATRIX(I,J,K-1,MAPPING(5))=
+     &          MATRIX(I,J,K-1,MAPPING(5))+ WORK(3,5)
+         MATRIX(I,J,K-1,MAPPING(6))=
+     &         MATRIX(I,J,K-1,MAPPING(6))+ WORK(3,6)
+         MATRIX(I,J,K-1,MAPPING(9))=
+     &        MATRIX(I,J,K-1,MAPPING(9))+ WORK(3,7)
+         MATRIX(I,J,K-1,MAPPING(8))=
+     &       MATRIX(I,J,K-1,MAPPING(8))+ WORK(3,8)
+
+      ENDIF
+
+! bag8
+      IF ((VPROP(4).EQ.0).OR.(VPROP(4).EQ.5)) THEN
+
+         MATRIX(I-1,J,K-1,MAPPING(-3)) =
+     &          MATRIX(I-1,J,K-1,MAPPING(-3)) + WORK(4,1)
+         MATRIX(I-1,J,K-1,MAPPING(-2)) =
+     &          MATRIX(I-1,J,K-1,MAPPING(-2)) + WORK(4,2)
+         MATRIX(I-1,J,K-1,MAPPING(1 )) =
+     &         MATRIX(I-1,J,K-1,MAPPING(1 )) + WORK(4,3)
+         MATRIX(I-1,J,K-1,MAPPING(0 )) =
+     &        MATRIX(I-1,J,K-1,MAPPING(0 )) + WORK(4,4)
+         MATRIX(I-1,J,K-1,MAPPING(6 )) =
+     &       MATRIX(I-1,J,K-1,MAPPING(6 )) + WORK(4,5)
+         MATRIX(I-1,J,K-1,MAPPING(7 )) =
+     &       MATRIX(I-1,J,K-1,MAPPING(7 )) + WORK(4,6)
+         MATRIX(I-1,J,K-1,MAPPING(10)) =
+     &       MATRIX(I-1,J,K-1,MAPPING(10)) + WORK(4,7)
+         MATRIX(I-1,J,K-1,MAPPING(9 )) =
+     &      MATRIX(I-1,J,K-1,MAPPING(9 )) + WORK(4,8)
+
+      ENDIF
+
+! bag8
+      IF ((VPROP(5).EQ.0).OR.(VPROP(5).EQ.5)) THEN
+
+         MATRIX(I-1,J-1,K,MAPPING(-9)) =
+     &        MATRIX(I-1,J-1,K,MAPPING(-9)) + WORK(5,1)
+         MATRIX(I-1,J-1,K,MAPPING(-8)) =
+     &        MATRIX(I-1,J-1,K,MAPPING(-8)) + WORK(5,2)
+         MATRIX(I-1,J-1,K,MAPPING(-5)) =
+     &        MATRIX(I-1,J-1,K,MAPPING(-5)) + WORK(5,3)
+         MATRIX(I-1,J-1,K,MAPPING(-6)) =
+     &       MATRIX(I-1,J-1,K,MAPPING(-6)) + WORK(5,4)
+         MATRIX(I-1,J-1,K,MAPPING(0))=
+     &       MATRIX(I-1,J-1,K,MAPPING(0))+ WORK(5,5)
+         MATRIX(I-1,J-1,K,MAPPING(1))=
+     &      MATRIX(I-1,J-1,K,MAPPING(1))+ WORK(5,6)
+         MATRIX(I-1,J-1,K,MAPPING(4))=
+     &     MATRIX(I-1,J-1,K,MAPPING(4))+ WORK(5,7)
+         MATRIX(I-1,J-1,K,MAPPING(3))=
+     &     MATRIX(I-1,J-1,K,MAPPING(3))+ WORK(5,8)
+
+      ENDIF
+
+! bag8
+      IF ((VPROP(6).EQ.0).OR.(VPROP(6).EQ.5)) THEN
+
+         MATRIX(I,J-1,K,MAPPING(-10)) =
+     &         MATRIX(I,J-1,K,MAPPING(-10)) + WORK(6,1)
+         MATRIX(I,J-1,K,MAPPING(-9 )) =
+     &         MATRIX(I,J-1,K,MAPPING(-9 )) + WORK(6,2)
+         MATRIX(I,J-1,K,MAPPING(-6 )) =
+     &         MATRIX(I,J-1,K,MAPPING(-6 )) + WORK(6,3)
+         MATRIX(I,J-1,K,MAPPING(-7 )) =
+     &         MATRIX(I,J-1,K,MAPPING(-7 )) + WORK(6,4)
+         MATRIX(I,J-1,K,MAPPING(-1)) =
+     &        MATRIX(I,J-1,K,MAPPING(-1)) + WORK(6,5)
+         MATRIX(I,J-1,K,MAPPING(0 ))=
+     &        MATRIX(I,J-1,K,MAPPING(0 ))+ WORK(6,6)
+         MATRIX(I,J-1,K,MAPPING(3 ))=
+     &        MATRIX(I,J-1,K,MAPPING(3 ))+ WORK(6,7)
+         MATRIX(I,J-1,K,MAPPING(2 ))=
+     &        MATRIX(I,J-1,K,MAPPING(2 ))+ WORK(6,8)
+
+      ENDIF
+
+! bag8
+      IF ((VPROP(7).EQ.0).OR.(VPROP(7).EQ.5)) THEN
+
+         MATRIX(I,J,K,MAPPING(-13)) =
+     &         MATRIX(I,J,K,MAPPING(-13)) + WORK(7,1)
+         MATRIX(I,J,K,MAPPING(-12)) =
+     &         MATRIX(I,J,K,MAPPING(-12)) + WORK(7,2)
+         MATRIX(I,J,K,MAPPING(-9 )) =
+     &        MATRIX(I,J,K,MAPPING(-9 )) + WORK(7,3)
+         MATRIX(I,J,K,MAPPING(-10)) =
+     &        MATRIX(I,J,K,MAPPING(-10)) + WORK(7,4)
+         MATRIX(I,J,K,MAPPING(-4)) =
+     &        MATRIX(I,J,K,MAPPING(-4 ))+ WORK(7,5)
+         MATRIX(I,J,K,MAPPING(-3)) =
+     &        MATRIX(I,J,K,MAPPING(-3 ))+ WORK(7,6)
+         MATRIX(I,J,K,MAPPING( 0)) =
+     &        MATRIX(I,J,K,MAPPING( 0 ))+ WORK(7,7)
+         MATRIX(I,J,K,MAPPING(-1)) =
+     &       MATRIX(I,J,K,MAPPING(-1 ))+ WORK(7,8)
+
+      ENDIF
+
+! bag8
+      IF ((VPROP(8).EQ.0).OR.(VPROP(8).EQ.5)) THEN
+
+         MATRIX(I-1,J,K,MAPPING(-12)) =
+     &          MATRIX(I-1,J,K,MAPPING(-12)) + WORK(8,1)
+         MATRIX(I-1,J,K,MAPPING(-11)) =
+     &          MATRIX(I-1,J,K,MAPPING(-11)) + WORK(8,2)
+         MATRIX(I-1,J,K,MAPPING(-8)) =
+     &          MATRIX(I-1,J,K,MAPPING(-8)) + WORK(8,3)
+         MATRIX(I-1,J,K,MAPPING(-9)) =
+     &          MATRIX(I-1,J,K,MAPPING(-9)) + WORK(8,4)
+         MATRIX(I-1,J,K,MAPPING(-3))=
+     &         MATRIX(I-1,J,K,MAPPING(-3))+ WORK(8,5)
+         MATRIX(I-1,J,K,MAPPING(-2))=
+     &        MATRIX(I-1,J,K,MAPPING(-2))+ WORK(8,6)
+         MATRIX(I-1,J,K,MAPPING( 1))=
+     &          MATRIX(I-1,J,K,MAPPING( 1))+ WORK(8,7)
+         MATRIX(I-1,J,K,MAPPING( 0))=
+     &         MATRIX(I-1,J,K,MAPPING( 0))+ WORK(8,8)
+
+      ENDIF
+
+      RETURN
+      END
+
+C======================================================================
+      SUBROUTINE STORERHS(RHS,F,VDIM,VINDEX,IDIM,JDIM,KDIM,
+     &                        I,J,K,VPROP)
+C======================================================================
+      IMPLICIT NONE
+      INCLUDE 'mpfaary.h'
+C
+C STORERHSPRESSURE ASSIGNS RHS <- G1
+C
+C   INPUTS:
+C     G1        : A LOCAL VECTOR CONTRIBUTION TO RHS
+C     HX,HY,HZ  : CELL SIZES IN EACH DIRECTION
+C     NX,NY,NZ  : NUMBER OF CELLS IN EACH DIRECTION
+C     I,J,K     : VERTEX INDEX (I,J,K)
+C     VDIM      : DIMENSION OF PRESSURE DOF COUPLED TO VERTEX (I,J,K)
+C     VINDEX    : LOCAL NUMBERING OF PRESSURE DOF COUPLED TO VERTEX
+C                 (I,J,K)
+C
+C   OUTPUT:
+C     RHS     : RIGHT HAND SIDE OF PRESSURE SYSTEM
+C
+C   NOTE:
+C     THIS SUBROUTINE IS ESSENTIALLLY FROM STORERHS BY RNIL
+C
+C     GUANGRI XUE, 10/26/2008, 1/9/2009
+C
+      INTEGER I,J,K,L,VPROP(8),IDIM,JDIM,KDIM,VDIM,VINDEX(VDIM),IVAL
+      REAL*8  F(VDIM),RHS(IDIM,JDIM,KDIM),WORK(8)
+
+C PRESSURE DOFS AND CORRESPONDING VOLUMES. THIS PART IS
+C DEPENDENT ON COORDINATE. THIS IS BASED ON PARCEL COORDINATE.
+
+C P1: (I-1,J-1,K-1)
+C P2: (I  ,J-1,K-1)
+C P3: (I  ,J  ,K-1)
+C P4: (I-1,J  ,K-1)
+C P5: (I-1,J-1,K)
+C P6: (I  ,J-1,K)
+C P7: (I  ,J  ,K)
+C P8: (I-1,J  ,K)
+
+      WORK = 0.D0
+      DO L = 1, VDIM
+         IF (VINDEX(L).GT.0) WORK(VINDEX(L)) = F(L)
+      ENDDO
+
+! bag8
+      IF (.NOT.DO_INTF) THEN
+        IVAL=0
+      ELSE
+        IVAL=5
+      ENDIF
+
+      IF (VPROP(1).EQ.IVAL) RHS(I-1,J-1,K-1)=RHS(I-1,J-1,K-1)+WORK(1)
+      IF (VPROP(2).EQ.IVAL) RHS(I  ,J-1,K-1)=RHS(I  ,J-1,K-1)+WORK(2)
+      IF (VPROP(3).EQ.IVAL) RHS(I  ,J  ,K-1)=RHS(I  ,J  ,K-1)+WORK(3)
+      IF (VPROP(4).EQ.IVAL) RHS(I-1,J  ,K-1)=RHS(I-1,J  ,K-1)+WORK(4)
+      IF (VPROP(5).EQ.IVAL) RHS(I-1,J-1,K)=RHS(I-1,J-1,K)+WORK(5)
+      IF (VPROP(6).EQ.IVAL) RHS(I  ,J-1,K)=RHS(I  ,J-1,K)+WORK(6)
+      IF (VPROP(7).EQ.IVAL) RHS(I  ,J  ,K)=RHS(I  ,J  ,K)+WORK(7)
+      IF (VPROP(8).EQ.IVAL) RHS(I-1,J  ,K)=RHS(I-1,J  ,K)+WORK(8)
+
+      RETURN
+      END
+
+c======================================================================
+      SUBROUTINE UNPACK_MPFAVOLNEW(SUBREG,REG,NBLK,VOL,TYPE)
+c======================================================================
+c Unpacks the definition of boundary volume
+c for a given block and region.
+c Fills in LOCBND(),LOFFBND and sets BAREA
+c in case of TRCHEM models zeroes in the aux array BFLUX
+c
+c subreg - index of subregion (input)
+c reg    - index of bdary region (input)
+c nblk    - faultblock number fot his volume
+c vol     - 6 numbers defining the volume
+c type    - mpfa bc type
+c************************************************
+      IMPLICIT NONE
+      INTEGER SUBREG,REG,NBLK,TYPE
+      REAL*4 VOL(6)
+
+      INCLUDE 'boundary.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'blkary.h'
+
+      INTEGER A(2),I
+      EXTERNAL MPFABELSWNEW
+C      EXTERNAL ZEROFLUX
+      DATA A/2*0/
+C -----------------------
+C      write(*,*) 'unpack vol ',nsubreg,' in reg=',nreg,
+C     &     ' <blk=',nblk,'>',vol, 'type=',type
+
+c copy values to common so callwork findbelsw can access it
+
+      DO I=1,6
+         VVOL(I) = VOL(I)
+      ENDDO
+c      BCTYPE = TYPE
+      MYNBLK = NBLK
+      MYREG = REG
+
+      A(1)=1
+      A(2)=N_I4U
+!      I4UTIL = REG
+      I4UTIL = SUBREG     ! bag8
+c      A(2)=N_XC
+c      A(3)=N_YC
+c      A(4)=N_ZC
+c      A(5)=N_DEPTH
+c      A(6)=N_ROCK
+
+cgxue
+c      write(0,*)'Called MPFABELSWNEW'
+cgxue
+      CALL CALLWORK(MPFABELSWNEW,A)! 01/23/2011
+
+C      A(1)=0
+C      CALL CALLWORK(ZEROFLUX,A)
+
+      END
+
+
+c======================================================================
+      SUBROUTINE MPFABELSWNEW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &     KL1,KL2,KEYOUT,NBLK,SUBREG)
+c======================================================================
+      IMPLICIT NONE
+C
+C
+C gxue 01/23/2011
+C
+C      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'mpfaary.h'
+c
+      INTEGER I, J, K, L, IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IDIM,JDIM,KDIM,LDIM,NBLK,SUBREG
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KDIM1,KDIM2
+c
+c bag8 - "hard coded" boundary conditions
+      WRITE(*,*)'In MPFABELSWNEW (hard coded bc for flow)'
+c
+      IF (NBND_REG.EQ.0) RETURN
+      IF (NBLK.NE.MYNBLK) RETURN
+c
+c x- face
+c scan the jk elements to find boundary elements on jk, x- surfaces
+c
+      IF (SUBREG.EQ.1) THEN
+         DO K=1,KDIM
+         DO J=1,JDIM
+         DO I=2,IDIM
+
+cgus
+c NDIR for external boundaries is different from expected
+cgus
+
+             IF((KEYOUT(I,J,K).NE.0).AND.(KEYOUT(I-1,J,K).EQ.0)) THEN
+                NBEL = NBEL + 1
+                LOCBND(1,NBEL)=I-1
+                LOCBND(2,NBEL)=J
+                LOCBND(3,NBEL)=K
+                LOCBND(4,NBEL)=1 ! FACE X-
+                LOFFBND(MYREG,MYNBLK)=NBEL
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDIF
+c
+c x+ face
+c scan the jk elements to find boundary elements on jk, x+ surfaces
+c
+      IF (SUBREG.EQ.2) THEN
+         DO K=1,KDIM
+         DO J=1,JDIM
+         DO I=IDIM-1,1,-1
+             IF((KEYOUT(I,J,K).NE.0).AND.(KEYOUT(I+1,J,K).EQ.0)) THEN
+                NBEL = NBEL + 1
+                LOCBND(1,NBEL)=I+1
+                LOCBND(2,NBEL)=J
+                LOCBND(3,NBEL)=K
+                LOCBND(4,NBEL)=2 ! FACE X+
+                LOFFBND(MYREG,MYNBLK)=NBEL
+             ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDIF
+c
+c y- face
+c scan the ik elements to find boundary elements on ik, y- surfaces
+c
+      IF (SUBREG.EQ.3) THEN
+         DO K=1,KDIM
+         DO I=1,IDIM
+         DO J=2,JDIM
+            IF((KEYOUT(I,J,K).NE.0).AND.(KEYOUT(I,J-1,K).EQ.0)) THEN
+               NBEL = NBEL + 1
+               LOCBND(1,NBEL)=I
+               LOCBND(2,NBEL)=J-1
+               LOCBND(3,NBEL)=K
+               LOCBND(4,NBEL)=3 ! FACE Y-
+               LOFFBND(MYREG,MYNBLK)=NBEL
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDIF
+c
+c y+ face
+c scan the ik elements to find boundary elements on ik, y+ surfaces
+c
+      IF (SUBREG.EQ.4) THEN
+         DO K=1,KDIM
+         DO I=1,IDIM
+         DO J=JDIM-1,1,-1
+            IF((KEYOUT(I,J,K).NE.0).AND.(KEYOUT(I,J+1,K).EQ.0)) THEN
+               NBEL = NBEL + 1
+               LOCBND(1,NBEL)=I
+               LOCBND(2,NBEL)=J+1
+               LOCBND(3,NBEL)=K
+               LOCBND(4,NBEL)=4 ! FACE Y+
+               LOFFBND(MYREG,MYNBLK)=NBEL
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDIF
+c
+c z- face
+c scan the ij elements to find boundary elements on ij, z- surfaces
+c
+      IF (SUBREG.EQ.5) THEN
+         DO J=1,JDIM
+         DO I=1,IDIM
+         DO K=2,KDIM
+            IF((KEYOUT(I,J,K).NE.0).AND.(KEYOUT(I,J,K-1).EQ.0)) THEN
+               NBEL = NBEL + 1
+               LOCBND(1,NBEL)=I
+               LOCBND(2,NBEL)=J
+               LOCBND(3,NBEL)=K-1
+               LOCBND(4,NBEL)=5 ! FACE Z-
+               LOFFBND(MYREG,MYNBLK)=NBEL
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDIF
+c
+c z+ face
+c scan the ij elements to find boundary elements on ij, z+ surfaces
+c
+      IF (SUBREG.EQ.6) THEN
+         DO J=1,JDIM
+         DO I=1,IDIM
+         DO K=KDIM-1,1,-1
+            IF((KEYOUT(I,J,K).NE.0).AND.(KEYOUT(I,J,K+1).EQ.0)) THEN
+               NBEL = NBEL + 1
+               LOCBND(1,NBEL)=I
+               LOCBND(2,NBEL)=J
+               LOCBND(3,NBEL)=K+1
+               LOCBND(4,NBEL)=6 ! FACE Z+
+               LOFFBND(MYREG,MYNBLK)=NBEL
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDIF
+
+
+cgus
+c Hard coded internal BC for testing purposes
+c Internal boundary in xy plane at LZ/2
+c Note: IDIM,JDIM,KDIM contain ghost layers
+c (IDIM,JDIM,KDIM) = (I+2,J+2,K+2)
+c      IF (REG.EQ.7) THEN
+c      KDIM1=KDIM/2
+c      KDIM2=KDIM1+1
+c      DO J=4,JDIM-3
+c      DO I=4,IDIM-3
+c      DO K=KDIM1,KDIM2
+c         NBEL=NBEL+1
+c         IF (K.EQ.KDIM1) THEN
+c            LOCBND(1,NBEL)=I
+c            LOCBND(2,NBEL)=J
+c            LOCBND(3,NBEL)=K
+c            LOCBND(4,NBEL)=5
+c            LOFFBND(MYREG,MYNBLK)=NBEL
+c         ELSE
+c            LOCBND(1,NBEL)=I
+c            LOCBND(2,NBEL)=J
+c            LOCBND(3,NBEL)=K
+c            LOCBND(4,NBEL)=6
+c            LOFFBND(MYREG,MYNBLK)=NBEL
+c         ENDIF
+c      ENDDO
+c      ENDDO
+c      ENDDO
+c      ENDIF
+cgus
+
+      RETURN
+      END

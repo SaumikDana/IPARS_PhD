@@ -1,0 +1,419 @@
+C  TIVDAT.F - IMPLICIT SINGLE PHASE FLOW INITIALIZATION CODE
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE TIVDAT (NERR)
+C  SUBROUTINE TINIT  (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,POR,DEPTH,PRES)
+
+C  CODE HISTORY:
+
+C  BAHAREH MOMKEN 02/02/99 Hydrology-IMPES givdat.df is used as template
+
+C*********************************************************************
+      SUBROUTINE TIVDAT (NERR)
+C*********************************************************************
+
+C  Single phase flow model initialization after initial keyword input and
+C  grid-element array creation
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+C  NOTES:
+
+C  TIMKLS(I) = TIMER CLASS
+C            = 0 ==> UNUSED
+C            = 1 ==> TOTAL TIME
+C            = 2 ==> COMMUNICATION TIMES
+C            = 3 ==> ALL REDUNDANT CALCULATION TIMES
+C            = 4 ==> MISCELLANEOUS TIMES
+C*********************************************************************
+      IMPLICIT NONE
+
+C      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'times.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'tarydat.h'
+      INCLUDE 'tbaldat.h'
+      INCLUDE 'tfluidsc.h'
+      INCLUDE 'mpfaary.h'
+
+      INTEGER ISET(4),IINIT(9),IPNT(6),IARG(3)
+      INTEGER NERR,N
+
+      EXTERNAL TINIT,SETARYR8N,MPFA_POR_VOL,CPYARYR8
+
+C  DEFINE TIMERS (USE 20 TO 30)
+
+      TIMNAM(20)='PROPERTIES AND ACCUMULATION'
+      TIMKLS(20)=4
+      TIMNAM(21)='TRANSMISSABILITY TERMS'
+      TIMKLS(21)=4
+      TIMNAM(22)='PROPERTY COMMUNICATION'
+      TIMKLS(22)=2
+      TIMNAM(23)='WELL COMMUNICATION'
+      TIMKLS(23)=2
+
+C  INITIALIZE WELL DENSITY AND BOTTOM-HOLE PRESSURE
+
+      DO 2 N=1,NUMWEL
+      IF (MODWEL(N).EQ.MODACT
+C     & .OR.FLOWMODEL.EQ.MODACT
+     &   ) THEN
+         WELDEN(N)=STFLDEN
+         WELBHP(N)=PINIT
+      ENDIF
+    2 CONTINUE
+
+C  COUNT GRID ELEMENTS
+C  CONVERT POROSITY TO PORE VOLUME
+C  INITIALIZE PRESSURES AND DENSITIES
+
+C     ZERO OUT INITIAL VELOCITIES
+
+      R8UTIL=0.D0
+      I4UTIL=3
+      ISET(1)=3
+      ISET(2)=N_VEL
+      ISET(3)=N_R8U
+      ISET(4)=N_I4U
+      CALL CALLWORK(SETARYR8N,ISET)
+
+C     ZERO OUT UPWINDED MOBILITY ARRAY
+
+      R8UTIL=0.D0
+      I4UTIL=3
+      ISET(1)=3
+      ISET(2)=N_UPMOBPROD
+      ISET(3)=N_R8U
+      ISET(4)=N_I4U
+      CALL CALLWORK(SETARYR8N,ISET)
+
+C     INITIALIZE BALANCE TERMS TO ZERO
+
+
+C-------CALCULATE PORE VOLUME AND (ROCK COMPRESSIBILITY * PORE VOLUME)
+      IPNT(1)=5
+      IPNT(2)=N_XC
+      IPNT(3)=N_YC
+      IPNT(4)=N_ZC
+      IPNT(5)=N_POR
+      IPNT(6)=N_CR
+      CALL CALLWORK(MPFA_POR_VOL,IPNT)
+
+      IINIT(1)=8
+      IINIT(2)=N_DEPTH
+      IINIT(3)=N_PRES
+      IINIT(4)=N_PV
+      IINIT(5)=N_REFPRES
+      IINIT(6)=N_POR
+      IINIT(7)=N_FLDEN
+      IF(MBPOROE) THEN
+        IINIT(8)=N_MODULFLOW
+        IINIT(9)=N_BIOTAFLOW
+      ENDIF
+      CALL CALLWORK (TINIT,IINIT)
+
+C  INITIALIZE BC FLUX CONTRIBUTION TO MASS BALANCE
+
+      FLITNP = 0.D0
+
+C  INITIALIZE MPFA RELATED ARRAYS
+
+      CALL MPFA_INIT(NERR)
+      CALL MPFA_PERMINV(NERR)
+
+C CALCULATE AINV, TRAN = AINV*B AND STORE IN N_AINV,N_TRAN
+
+      CALL MPFA_SET_AINV_TRAN(NERR)
+
+C bag8 - fill DP with P for subsequent calls to TPORE
+
+      IARG(1)=2
+      IARG(2)=N_PRES
+      IARG(3)=N_DELTAP
+      CALL CALLWORK(CPYARYR8,IARG)
+
+C EXITS
+
+      RETURN
+
+      END
+
+C*********************************************************************
+      SUBROUTINE TINIT (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,DEPTH,PRES,PV,REFPRES,POR,FLDEN,
+     &                  MODUL,BIOTA)
+C*********************************************************************
+CGUS Something stupid to get around EQUIVALENCE AND MODULE incompatibility
+      USE scrat1mod
+      IMPLICIT NONE
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,JL1V(KL1),JL2V(KL2),
+     &        KEYOUT(IDIM,JDIM,KDIM),NBLK
+
+      REAL*8 DEPTH(IDIM,JDIM,KDIM),PRES(IDIM,JDIM,KDIM),
+     &       PV(IDIM,JDIM,KDIM),REFPRES(IDIM,JDIM,KDIM),
+     &       POR(IDIM,JDIM,KDIM),FLDEN(IDIM,JDIM,KDIM)
+      REAL*8 MODUL(IDIM,JDIM,KDIM),BIOTA(IDIM,JDIM,KDIM)
+
+      CALL TINIT2 (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,DEPTH,PRES,PV,REFPRES,POR,FLDEN,
+     &                  MODUL,BIOTA,A)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE TINIT2 (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,DEPTH,PRES,PV,REFPRES,POR,FLDEN,
+     &                  MODUL,BIOTA,AL)
+C*********************************************************************
+
+C  ROUTINE SETS UP INITIAL PRESSURE AND DENSITY FOR SINGLE FLUID.
+C  IT ALSO CONVERTS POROSITY TO PORE VOLUME AND PRINTS A TYPICAL COLUMN
+C  OF DATA.
+C  THIS IS A WORK ROUTINE.
+c  only interior computations are performed
+
+C  DEPTH(I,J,K) = GRID-BLOCK CENTER DEPTHS (INPUT, REAL*8)
+C  PRES(I,J,K) = FLUID PRESSURE, PSI (OUTPUT, REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+C      INCLUDE 'msjunk.h'
+
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'wells.h'
+!      INCLUDE 'scrat1.h'
+
+      INCLUDE 'tfluidsc.h'
+      INCLUDE 'tbaldat.h'
+
+      INTEGER I, J, K, IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IOFF,JOFF,KOFF,IDIM,JDIM,KDIM,LDIM,NBLK
+      INTEGER MERR,N,M,MW,LW,LS,L,JTO,J1O
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+
+      REAL*8 PWBW(IDIM,50),DEPBW(IDIM,50)
+      REAL*8 PRES(IDIM,JDIM,KDIM)
+      REAL*8 DEPTH(IDIM,JDIM,KDIM)
+      REAL*8 PV(IDIM,JDIM,KDIM),REFPRES(IDIM,JDIM,KDIM)
+      REAL*8 POR(IDIM,JDIM,KDIM),FLDEN(IDIM,JDIM,KDIM)
+      REAL*8 DX,DY,DZ,GRD2,DP,F,DF,DEPA,DENA,PRESA,DEPB,DENB,
+     &       PRESB,DEPC(3),DENC(3),PRESC(3)
+
+      INTEGER NW(50),JW(50),KW(50),NWE(50),
+     &        IW(IDIM,50)
+      LOGICAL ONCEONLY,ONLYONCE,TOPI,ONETYP
+      CHARACTER*80 AL(100000000/80),ALS
+      CHARACTER*1 ALS1(80)
+      EQUIVALENCE (ALS,ALS1)
+      DATA ONCEONLY /.TRUE./, ONLYONCE/.TRUE./,ONETYP/.TRUE./
+
+      REAL*8 MODUL(IDIM,JDIM,KDIM),BIOTA(IDIM,JDIM,KDIM),RANDOM
+
+
+C  GET LOCAL/GLOBAL INDEX OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  ID WELLS FOR TYPICAL OUTPUT
+
+      MW=0
+      DO 14 LW=1,NTYPOUT
+      IF (LOCWEL(1,1,LW).EQ.NBLK.AND.NWELPRC(LW).EQ.MYPRC) THEN
+         MW=MW+1
+         NWE(MW)=0
+         NW(MW)=LW
+         JW(MW)=LOCWEL(4,1,LW)-JOFF
+         KW(MW)=LOCWEL(5,1,LW)-KOFF
+      ENDIF
+   14 CONTINUE
+
+C  SET UP FOR EQUILIBRIUM CALCULATIONS
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+         DEPA=DINIT
+         PRESA=PINIT
+         IF (TMODEL.EQ.0) THEN
+           DENA=STFLDEN*EXP(FLCMP*PRESA)
+         ELSEIF (TMODEL.EQ.1) THEN
+           DENA=STFLDEN
+         ENDIF
+         DO 11 I=1,3
+         DEPC(I)=DEPA
+         DENC(I)=DENA
+   11    PRESC(I)=PRESA
+      ENDIF
+
+C  LOOP OVER LOCAL GRID ELEMENTS AND PICK UP MESH SIZES
+
+      DO 2 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 2 J=JL1,JL2
+      TOPI=.TRUE.
+      DO 2 I=IL1,IL2
+      IF (KEYOUT(I,J,K).NE.1) GO TO 2
+
+C  EQUILIBRIUM FLUID PRESSURE
+C  PICK OUT CLOSEST DEPTH FROM PREVIOUS CALCULATIONS
+
+      M=1
+      DEPB=DEPTH(I,J,K)
+      IF (ABS(DEPB-DEPC(M)).GT.ABS(DEPB-DEPC(2))) M=2
+      IF (ABS(DEPB-DEPC(M)).GT.ABS(DEPB-DEPC(3))) M=3
+
+      DEPA=DEPC(M)
+      DENA=DENC(M)
+      PRESA=PRESC(M)
+
+C  STORE VALUES FROM INPUT DATAFILE
+
+      IF(TREADIN) THEN
+         PRESB = PRES(I,J,K)
+         IF (TMODEL.EQ.0) THEN
+           DENB=STFLDEN*EXP(PRESB*FLCMP)
+         ELSEIF (TMODEL.EQ.1) THEN
+           DENB=STFLDEN
+         ENDIF
+         GOTO 7
+      ENDIF
+
+C  CALCULATE FLUID PRESSURE AND DENSITY AT I,J,K
+
+      GRD2=.5D0*GRAV*DENA*(DEPB-DEPA)
+      DP=2.D0*GRD2/(1.D0-GRD2*FLCMP)
+
+      DO  N=1,3
+         DENB=EXP(FLCMP*DP)
+         F=DP-GRD2*(1.D0+DENB)
+         DF=1.D0-GRD2*FLCMP*DENB
+         DP=DP-F/DF
+      ENDDO
+
+      PRESB=PRESA+DP
+      IF (TMODEL.EQ.0) THEN
+        DENB=STFLDEN*EXP(FLCMP*PRESB)
+      ELSEIF (TMODEL.EQ.1) THEN
+        DENB=STFLDEN
+      ENDIF
+
+C  STORE INITIAL EQUILLIBRIUM RESULTS
+
+      PRES(I,J,K) = PRESB
+      IF (TMODEL.EQ.0) THEN
+        FLDEN(I,J,K) = STFLDEN*EXP(FLCMP*PRES(I,J,K))
+      ELSEIF (TMODEL.EQ.0) THEN
+        FLDEN(I,J,K) = STFLDEN
+      ENDIF
+
+ 7    CONTINUE
+
+      DEPC(2)=DEPB
+      DENC(2)=DENB
+      PRESC(2)=PRESB
+
+      IF (TOPI)THEN
+         TOPI=.FALSE.
+         DEPC(3)=DEPB
+         DENC(3)=DENB
+         PRESC(3)=PRESB
+      ENDIF
+
+C  COLLECT TYPICAL GRID COLUMN DATA AT WELLS
+
+      DO 15 LW=1,MW
+      IF (J.EQ.JW(LW).AND.K.EQ.KW(LW)) THEN
+         NWE(LW)=NWE(LW)+1
+         IW(NWE(LW),LW)=I+IOFF
+         PWBW(NWE(LW),LW)=PRESB
+         DEPBW(NWE(LW),LW)=DEPB
+      ENDIF
+   15 CONTINUE
+
+C  COUPLING WITH POROELASTICITY
+
+      IF (.NOT.TREADIN) THEN
+        REFPRES(I,J,K) = PINIT
+      ELSE
+        REFPRES(I,J,K) = PRES(I,J,K)
+        IF (TMODEL.EQ.0) THEN
+          FLDEN(I,J,K) = STFLDEN*EXP(FLCMP*PRES(I,J,K))
+        ELSEIF (TMODEL.EQ.1) THEN
+          FLDEN(I,J,K) = STFLDEN
+        ENDIF
+      ENDIF
+      PV(I,J,K) = POR(I,J,K)
+
+    2 CONTINUE
+
+C  PRINT TYPICAL COLUMN DATA
+
+      IF (LEVELC.AND.(NTYPOUT.GT.0).AND.ONLYONCE.AND.NBLK.EQ.1) THEN
+         ONLYONCE=.FALSE.
+         WRITE (NFOUT,*)
+         TITU='******'
+         CALL PRTTIT(TITU)
+         TITU='TYPICAL ROCK COLUMNS'
+         CALL PRTTIT(TITU)
+      ENDIF
+
+      DO 16 L=1,MW
+      AL(1)=' '
+      N=1
+      LS=1
+      IF (NWE(L).GT.0) THEN
+
+         LS=70
+         WRITE (AL(1),20)
+   20    FORMAT(' ')
+         WRITE (AL(2),8) JW(L)+JOFF,KW(L)+KOFF,NBLK,NW(L)
+    8    FORMAT(' J =',I5,4X,'K =',I5,4X,'FAULT BLOCK =',I4,4X,
+     &      '(WELL',I4,')')
+         WRITE (AL(3),20)
+         WRITE (AL(4),9)
+    9    FORMAT(T5,'I',T9,'P, psi',T23,'DEPTH, ft')
+         WRITE (AL(5),20)
+         N=5
+         DO 17 M=1,NWE(L)
+         N=N+1
+   17    WRITE (AL(N),10) IW(M,L),PWBW(M,L),DEPBW(M,L)
+   10    FORMAT(I5,4G14.5)
+
+         IF (MYPRC.EQ.0) THEN
+            IF (LEVELC) THEN
+               DO 18 M=1,N
+               ALS=AL(M)
+               DO 22 JTO=80,1,-1
+               J1O=JTO
+               IF (ALS1(JTO).NE.' ') GO TO 18
+   22          CONTINUE
+   18          WRITE (NFOUT,19) (ALS1(JTO),JTO=1,J1O)
+   19          FORMAT(80A1)
+            ENDIF
+         ENDIF
+
+      ENDIF
+
+      IF (MYPRC.GT.0) CALL TYPEOUT(AL,N)
+
+   16 CONTINUE
+
+      IF (LEVELC.AND.ONETYP) THEN
+         ONETYP=.FALSE.
+         DO 21 LW=1,NTYPOUT
+      IF (NWELPRC(LW).NE.0.AND.(MODWEL(LW).EQ.MODACT
+C     & .OR. MODACT.EQ.FLOWMODEL
+     &   ))
+     & CALL TYPEOUT(AL,100000000/80)
+   21    CONTINUE
+      ENDIF
+
+      END

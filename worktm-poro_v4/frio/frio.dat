@@ -1,0 +1,92 @@
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+TITLE(2)="SINGLE PHASE TEST SMALL"
+
+DESCRIPTION()=""
+
+BLOCKMODEL(1) = "POROELASTIC"
+FLOW_MODEL = "SINGLE_PHASE_MFMFE"
+
+TIMEEND = 600.0
+CR_TYPE = 2
+
+PEPVTOL = 1.0E-2 $ fixed stress convergence tolerance
+
+MAXNEWT = 20    $ MAX PRES NEWT STEP (DEFAULT 20)
+PROCOUT
+OUTLEVEL = 2
+
+$ Convergence Tolerance for flow
+CVTOL = 1.0E-8
+
+$$$ FAULT BLOCK AND MESH DATA
+BLOCKNAME(1) = "BLOCK1"
+DOWN(1 TO 3,1) =0. 0. 1.
+
+$corner point geometry
+Include mesh.dat
+
+$ INITIAL CONDITIONS
+PINIT = 0.0
+FLVIS = 1.
+STFLDEN = 62.34
+FLCOMP = 1.E-4
+POROSITY1() = .2
+
+$ PERMEABILITIES $$$$$$$$$$
+$XPERM1() = 50.  YPERM1() = 400. ZPERM1() = 150.
+Include perm.dat
+Include permzero.dat
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ WELLS
+$NUMWELL = 0
+Include wells.dat
+
+$ Elastic Properties
+GRAVITY_FLAG = 1
+MODULUS1() = 5.E5  $ Young's modulus
+POISSON1() = 0.2 $ poisson's ratio
+BIOTA1() = 0.8   $ flow mechanics coupling term
+ROCKD1() = 2.65  $ rock density  (in Kg\Liter)
+ 
+EBCXX1() = 2
+XXDI1() = 0.0
+
+EBCXXN1() = 2
+XXDIN1() = 0.0
+
+EBCYY1() = 2
+YYDI1() = 0.0
+
+EBCYYN1() = 2
+YYDIN1() = 0.0
+
+EBCZZ1() = 1
+PRESZ1() = 5500.0
+
+EBCZZN1() = 2
+ZZDIN1() = 0.0
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+
+DELTIM = 1.0  
+DTIMMUL = 1.0  DTIMMIN = 1.0  DTIMMAX = 3.  TIMOUT = 10.  DTIMOUT = 40.
+
+VISOUT = 8.0
+DVISOUT = 8.0
+
+VIS_SCL = 7
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "XPERM8"
+VIS_SCL_NAMES(3) = "YPERM8"
+VIS_SCL_NAMES(4) = "ZPERM8"
+VIS_SCL_NAMES(5) = "DISPX"
+VIS_SCL_NAMES(6) = "DISPY"
+VIS_SCL_NAMES(7) = "DISPZ"
+VIS_FNAME = "saumik"
+VISFLAG = 8
+EndTime
+
