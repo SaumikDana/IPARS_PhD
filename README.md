@@ -37,4 +37,6 @@ memman1.dc invokes a routine which help in visualization in the two-grid framewo
 
 memman2.dc invokes three routines which work to create grid-to-grid projection operators and transfer data from one grid to the other using the C/Fortran name mangling framework
 
+added metis.dc for METIS partitioning
 
+added tetgen.h and tetgen.cpp for calls to TETGEN delaunay triangulation library
