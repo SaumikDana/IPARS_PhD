@@ -1,6 +1,8 @@
 # IPARS_PhD
 Code framework I worked on during my PhD at UT Austin
 
+The algorithm I developed has separate finite element grids for flow and poromechanics. That algorithm is built on top of the existing algorithm that solves flow and poromechanics sequentially on the same grid
+
 All code chunks I have worked on can be found by "grep -irn "saumik" ./" or "grep -irn "SAUMIK" ./"
 
 --------- /comp_mfmfe is the folder pertaining to compositional flow model with multipoint flux mixed finite element method
