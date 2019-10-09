@@ -27,5 +27,6 @@ blkary.dh has declaration of all variables pertaining to design of MPI subcommun
 
 idata.df has declaration of flags pertinent to various types of problems we want to study -- routine setgeomnew is written with routine setgeomas a template with all the logic for declaration of MPI subcommunicator
 
+---------- /memman is the folder pertaining to memory allocation and division of elements among MPI processes 
 
 
