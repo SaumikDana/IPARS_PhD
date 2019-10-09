@@ -20,3 +20,12 @@ xvisual.df calls the visualization part of the code framework to generate fields
 ---------- /drive is the folder with the driver code ipars.df
 
 ipars.df has the call to the flag mbporoe that ensures separate element index numbering for flow and poromechanics model
+
+---------- /input is the folder pertaining to parameters common to flow and poromechanics
+
+blkary.dh has declaration of all variables pertaining to design of MPI subcommunicator and the big field problem we solve
+
+idata.df has declaration of flags pertinent to various types of problems we want to study -- routine setgeomnew is written with routine setgeomas a template with all the logic for declaration of MPI subcommunicator
+
+
+
