@@ -61,3 +61,15 @@ added flag mbporoe in tisdat.df, tprop.df, tstep.df and tvisual.df wherever nece
 
 tarray.df has all memory allocation for extra parameters introduced for the two grid framework 
 
+---------- /solver is the folder pertaining to solvers
+
+------- /solve/hypre has all the files for hypre solver: GMRES with AMG preconditioning
+
+hypre.df assigns flow subcommunicator when we solve and default MPI communicator when we solve poromechanics
+
+---------- /size is the folder which sets values to symbols
+
+We typically use one size file for one particular kind of problem
+
+Added metis.siz for METIS and tetgen.siz for TETGEN
+
