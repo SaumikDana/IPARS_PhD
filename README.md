@@ -75,5 +75,10 @@ Added metis.siz for METIS and tetgen.siz for TETGEN
 
 ---------- /visual is the folder pertaining to visualization
 
+/includes/visual.dh has declaration of variables for visualization with two-grid framework
 
+/source/visout.df has flag mbporoe added wherever necessary
 
+/vtk/visual8.dcpp introduces logic for visualization in two-grid framework using pointer to flag mblock
+
+/vtk/vtkmem.dc introduces logic for setting the right model for visualization using pointer to flag mblock
