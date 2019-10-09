@@ -1,7 +1,7 @@
 # IPARS_PhD
 Code framework I worked on during my PhD at UT Austin
 
-All code chunks I have worked on have my name "saumik" or "SAUMIK" 
+All code chunks I have worked on can be found by "grep -irn "saumik" ./" or "grep -irn "SAUMIK" ./"
 
 --------- /comp_mfmfe is the folder pertaining to compositional flow model with multipoint flux mixed finite element method
 
