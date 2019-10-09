@@ -33,6 +33,8 @@ idata.df has declaration of flags pertinent to various types of problems we want
 
 divide.df invokes the METIS library to divide elements among processes as an option
 
-memman1.dc invokes a routine which help in visualization in the two-grid framework
+memman1.dc invokes a routine which help in visualization in the two-grid framework using the C/Fortran name mangling framework
+
+memman2.dc invokes three routines which work to create grid-to-grid projection operators and transfer data from one grid to the other using the C/Fortran name mangling framework
 
 
