@@ -1,0 +1,2618 @@
+C  XPROP.F - EVALUATE FLOW TERMS MOB, PC, AND MOBPROD
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE XPROP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                   KEYOUT,NBLK,MOB,PMD)
+C  SUBROUTINE XRELPERM1(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                       KEYOUT,NBLK,KROCK,,MOB,SAT,PRES)
+C  SUBROUTINE XHYSRLPRM1(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                        KEYOUT,NBLK,KROCK,SAT,SWMIN,SGT,MOB,DMOB,PC,
+C                        DPC)
+C  SUBROUTINE XHYSRLPRM3(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                           KL2,KEYOUT,NBLK,KROCK,SAT,SWMIN,SGT,MOB,
+C                           DMOB,PC,DPC,YPERM,PORO,SGR,SWR,XVISC)
+C  SUBROUTINE XIFTSATRES (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                    KL1,KL2,KEYOUT,NBLK,PRES,DEPTH,MDEN,PC,
+C                    KROCK,XPERM,YPERM,ZPERM,SGR,SWR,XTENS)
+C  SUBROUTINE XIFTRLPRM(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,PRES,SAT,KROCK,YPERM,PORO
+C                      ,PC,DPC,MOB,DMOB,SGT,SWMIN,SGR,SWR,XTENS)
+C  SUBROUTINE XSAT_ERROR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                        KL2,KEYOUT,NBLK,ERRSAT)
+C  SUBROUTINE XSAT_SUMERR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                         KL2,KEYOUT,NBLK,ERRSAT)
+C  SUBROUTINE XPRES (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                    KL1,KL2,KEYOUT,NBLK,PRES,DELP)
+C  SUBROUTINE XMFRAC_ALL (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                         KL1,KL2,KEYOUT,NBLK,PMD,MOLFRAC)
+C  SUBROUTINE XPHMDENS (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,PMD,PHDEN)
+C  SUBROUTINE XPHDENS (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                      KL1,KL2,KEYOUT,NBLK,PMD,PHDEN)
+C  SUBROUTINE XRELFOAM(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                      KL2,KEYOUT,NBLK,KROCK,MOB,SAT,DMOB,
+C                      TRACER,XVEL)
+C  SUBROUTINE XRELFOAM1(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,KROCK,MOB,SAT,DMOB,
+C                       CONC,XVEL)
+C  SUBROUTINE XVELCOMP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                      KL2,KEYOUT,NBLK,TCOFX,TCOFY,TCOFZ,DEPTH,PRES,
+C                      PC,MDEN,MOB,XVEL)
+C  CODE HISTORY:
+
+C  RICK DEAN         6/26/01   INITIAL VERSION
+C  SUNIL G. THOMAS   9/01/07   MOLE FRACTION, MOLAR AND MASS DENSITY,
+C                              HYSTERESIS 
+C  XIANHUI KONG      6/11/14   IFT CALC, CAPILLARY DESATURATION, 
+C                              HYSTERESIS, TRAPPING MODEL
+C  XIN YANG          6/8/15    FOAM MODEL 
+
+C*********************************************************************
+      SUBROUTINE XPROP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                 KL2,KEYOUT,NBLK,MOB,PMD,MOBPROD)
+C*********************************************************************
+ 
+C  ROUTINE SETS UP FLOW COEFFICIENTS. THIS IS A WORK ROUTINE.
+
+C  INPUT:
+C     PMD(I,J,K,L) = MASS FRACTION X MOLAR DENSITY (REAL*8)
+C     MOB(I,J,K,IPH) = MOBILITY OF PHASE IPH (REAL*8)
+
+C  OUTPUT:
+C     MOBPROD(I,J,K,L) = FLOW COEFFICIENT (REAL*8)
+C                        MASS FRACTION X MOLAR DENSITY X MOBILITY
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 MOB(IDIM,JDIM,KDIM,NPH),PMD(IDIM,JDIM,KDIM,NCINPH),
+     &       MOBPROD(IDIM,JDIM,KDIM,NCINPH)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,L,IPH,IC
+
+      DO IPH = 1,NPH
+      DO IC = 1,NC
+         L = ICINPH(IC,IPH)
+         IF(L == 0) CYCLE
+         DO K = KL1,KL2
+            DO  J = JL1V(K),JL2V(K)
+               DO  I = IL1,IL2
+                  IF(KEYOUT(I,J,K) /= 1) CYCLE
+                  MOBPROD(I,J,K,L) = MOB(I,J,K,IPH)*PMD(I,J,K,L)
+               END DO
+            END DO
+         END DO
+      END DO
+      END DO
+      END
+
+C*********************************************************************
+      SUBROUTINE XRELPERM1(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                     KL2,KEYOUT,NBLK,KROCK,MOB,SAT,PC,DPC,DMOB)
+C*********************************************************************
+ 
+C  ROUTINE EVALUATES MOBILITIES. THIS IS A WORK ROUTINE OR IS CALLED
+C  FROM A WORK ROUTINE.
+C  THIS ROUTINE ASSUMES:
+C                         PHASE 1 = WATER
+C                         PHASE 2 = LIQUID
+C                         PHASE 3 = VAPOR
+
+C  INPUT:
+C     KROCK(I,J,K) = ROCK CURVE (INTEGER)
+C     SAT(I,J,K,IPH) = SATURATION FOR PHASE IPH (REAL*8)
+
+C  INPUT/OUTPUT:
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C                      ASSUMES MOB ALREADY CONTAINS 1/VISCOSITY TERM
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE OF PHASE IPH (REAL*8)
+C     DMOB(I,J,K,*) = MOBILITY DERIVATIVE (REAL*4)
+C     DPC(I,J,K,*) = CAPILLARY PRESSURE DERIVATIVE (REAL*4)
+
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'rock.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8 MOB(IDIM,JDIM,KDIM,NPH),SAT(IDIM,JDIM,KDIM,NPH), 
+     &       PC(IDIM,JDIM,KDIM,NPH)
+      REAL*4 DPC(IDIM,JDIM,KDIM,2),DMOB(IDIM,JDIM,KDIM,4)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,KR
+      REAL*8 SW,SG,PCOW,PCGO,DPCOW,DPCGO,RELW,RELO,RELG,DKWSW,
+     &       DKOSW,DKOSG,DKGSG,P
+C-----------------------------------------------------------------------
+C     THREE-PHASE
+C-----------------------------------------------------------------------
+      IF(NPH == 3) THEN
+         IF(IREFPRES == 1) THEN
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     SW = SAT(I,J,K,1)
+                     SG = SAT(I,J,K,3)
+
+                     CALL LOOKUP(NPCOW(KR),SW,PCOW,DPCOW)
+                     CALL LOOKUP(NPCGO(KR),ONE-SG,PCGO,DPCGO)
+                     PC(I,J,K,1) = ZERO
+                     PC(I,J,K,2) = PCOW
+                     PC(I,J,K,3) = PCGO + PCOW
+                     IF(ABS(PCOW) <= TEN_M10) DPCOW = ZERO
+                     IF(ABS(PCGO) <= TEN_M10) DPCGO = ZERO
+                     DPC(I,J,K,1) = DPCOW
+                     DPC(I,J,K,2) = DPCGO
+
+                     CALL RELPERM3(KR,SW,SG,RELW,RELG,RELO,DKWSW,
+     &                             DKOSW,DKOSG,DKGSG)
+                     IF(RELW <= TEN_M10) DKWSW = ZERO
+                     IF(RELO <= TEN_M10) THEN
+                        DKOSW = ZERO
+                        DKOSG = ZERO
+                     ENDIF
+                     IF(RELG <= TEN_M10) DKGSG = ZERO
+                     DMOB(I,J,K,1) = DKWSW * MOB(I,J,K,1)
+                     DMOB(I,J,K,2) = DKOSW * MOB(I,J,K,2)
+                     DMOB(I,J,K,3) = DKOSG * MOB(I,J,K,2)
+                     DMOB(I,J,K,4) = DKGSG * MOB(I,J,K,3)
+                     MOB(I,J,K,1) = RELW * MOB(I,J,K,1)
+                     MOB(I,J,K,2) = RELO * MOB(I,J,K,2)
+                     MOB(I,J,K,3) = RELG * MOB(I,J,K,3)
+                  END DO
+               END DO
+            END DO
+         ELSEIF(IREFPRES == 2) THEN
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     SW = SAT(I,J,K,1)
+                     SG = SAT(I,J,K,3)
+
+                     CALL LOOKUP(NPCOW(KR),SW,PCOW,DPCOW)
+                     CALL LOOKUP(NPCGO(KR),ONE-SG,PCGO,DPCGO)
+                     IF(ABS(PCOW) <= TEN_M10) DPCOW = ZERO
+                     IF(ABS(PCGO) <= TEN_M10) DPCGO = ZERO
+                     PC(I,J,K,1) = -PCOW
+                     PC(I,J,K,2) = ZERO
+                     PC(I,J,K,3) = PCGO
+                     DPC(I,J,K,1) = DPCOW
+                     DPC(I,J,K,2) = DPCGO
+                     CALL RELPERM3(KR,SW,SG,RELW,RELG,RELO,DKWSW,
+     &                             DKOSW,DKOSG,DKGSG)
+                     IF (RELW <= TEN_M10) DKWSW = ZERO
+                     IF (RELO <= TEN_M10) THEN
+                        DKOSW = ZERO
+                        DKOSG = ZERO
+                     ENDIF
+                     IF(RELG <= TEN_M10) DKGSG = ZERO
+                     DMOB(I,J,K,1) = DKWSW * MOB(I,J,K,1)
+                     DMOB(I,J,K,2) = DKOSW * MOB(I,J,K,2)
+                     DMOB(I,J,K,3) = DKOSG * MOB(I,J,K,2)
+                     DMOB(I,J,K,4) = DKGSG * MOB(I,J,K,3)
+                     MOB(I,J,K,1) = RELW * MOB(I,J,K,1)
+                     MOB(I,J,K,2) = RELO * MOB(I,J,K,2)
+                     MOB(I,J,K,3) = RELG * MOB(I,J,K,3)
+
+                  END DO
+               END DO
+            END DO
+         ELSE
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     SW = SAT(I,J,K,1)
+                     SG = SAT(I,J,K,3)
+
+                     CALL LOOKUP(NPCOW(KR),SW,PCOW,DPCOW)
+                     CALL LOOKUP(NPCGO(KR),ONE-SG,PCGO,DPCGO)
+                     IF(ABS(PCOW) <= TEN_M10) DPCOW = ZERO
+                     IF(ABS(PCGO) <= TEN_M10) DPCGO = ZERO
+                     PC(I,J,K,1) = -PCOW-PCGO
+                     PC(I,J,K,2) = -PCGO
+                     PC(I,J,K,3) = ZERO
+                     DPC(I,J,K,1) = DPCOW
+                     DPC(I,J,K,2) = DPCGO
+
+                     CALL RELPERM3(KR,SW,SG,RELW,RELG,RELO,DKWSW,
+     &                             DKOSW,DKOSG,DKGSG)
+                     IF(RELW <= TEN_M10) DKWSW = ZERO
+                     IF(RELO <= TEN_M10) THEN
+                        DKOSW = ZERO
+                        DKOSG = ZERO
+                     ENDIF
+                     IF(RELG <= TEN_M10) DKGSG = ZERO
+                     DMOB(I,J,K,1) = DKWSW * MOB(I,J,K,1)
+                     DMOB(I,J,K,2) = DKOSW * MOB(I,J,K,2)
+                     DMOB(I,J,K,3) = DKOSG * MOB(I,J,K,2)
+                     DMOB(I,J,K,4) = DKGSG * MOB(I,J,K,3)
+                     MOB(I,J,K,1) = RELW * MOB(I,J,K,1)
+                     MOB(I,J,K,2) = RELO * MOB(I,J,K,2)
+                     MOB(I,J,K,3) = RELG * MOB(I,J,K,3)
+                  END DO
+               END DO
+            END DO
+         ENDIF
+C-----------------------------------------------------------------------
+C     TWO-PHASE
+C-----------------------------------------------------------------------
+      ELSEIF(NPH == 2) THEN
+         IF(IREFPRES == 1) THEN
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     SW = SAT(I,J,K,1)
+                     SG = ZERO
+
+                     CALL LOOKUP(NPCOW(KR),SW,PCOW,DPCOW)
+                     IF(ABS(PCOW) <= TEN_M10) DPCOW = ZERO
+                     PC(I,J,K,1) = ZERO
+                     PC(I,J,K,2) = PCOW
+                     DPC(I,J,K,1) = DPCOW
+
+                     CALL RELPERM3(KR,SW,SG,RELW,RELG,RELO,DKWSW,
+     &                             DKOSW,DKOSG,DKGSG)
+                     IF(RELW <= TEN_M10) DKWSW = ZERO
+                     IF(RELO <= TEN_M10) DKOSW = ZERO
+                     DMOB(I,J,K,1) = DKWSW * MOB(I,J,K,1)
+                     DMOB(I,J,K,2) = DKOSW * MOB(I,J,K,2)
+                     MOB(I,J,K,1) = RELW * MOB(I,J,K,1)
+                     MOB(I,J,K,2) = RELO * MOB(I,J,K,2)
+                  END DO
+               END DO
+            END DO
+         ELSE
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     SW = SAT(I,J,K,1)
+                     SG = ZERO
+
+                     CALL LOOKUP(NPCOW(KR),SW,PCOW,DPCOW)
+                     IF(ABS(PCOW) <= TEN_M10) DPCOW = ZERO
+                     PC(I,J,K,1) = -PCOW
+                     PC(I,J,K,2) = ZERO
+                     DPC(I,J,K,1) = DPCOW
+
+                     CALL RELPERM3(KR,SW,SG,RELW,RELG,RELO,DKWSW,
+     &                             DKOSW,DKOSG,DKGSG)
+                     IF(RELW <= TEN_M10) DKWSW = ZERO
+                     IF(RELO <= TEN_M10) DKOSW = ZERO
+                     DMOB(I,J,K,1) = DKWSW * MOB(I,J,K,1)
+                     DMOB(I,J,K,2) = DKOSW * MOB(I,J,K,2)
+                     MOB(I,J,K,1) = RELW * MOB(I,J,K,1)
+                     MOB(I,J,K,2) = RELO * MOB(I,J,K,2)
+                  END DO
+               END DO
+            END DO
+         ENDIF
+C-----------------------------------------------------------------------
+C     SINGLE-PHASE
+C-----------------------------------------------------------------------
+      ELSEIF(NPH == 1) THEN
+         DO K = KL1,KL2
+            DO  J = JL1V(K),JL2V(K)
+               DO  I = IL1,IL2
+                  PC(I,J,K,1) = ZERO
+               END DO
+            END DO
+         END DO
+      ENDIF
+      END
+
+C*********************************************************************
+      SUBROUTINE XHYSRLPRM1(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                      KL2,KEYOUT,NBLK,KROCK,SAT,SWMIN,SGT,MOB,
+     &                      DMOB,PC,DPC)
+C*********************************************************************
+ 
+C  ROUTINE EVALUATES MOBILITIES. THIS IS A WORK ROUTINE OR IS CALLED
+C  FROM A WORK ROUTINE.
+C  THIS ROUTINE ASSUMES:
+C                         PHASE 1 = WATER
+C                         PHASE 2 = LIQUID
+C                         PHASE 3 = VAPOR
+
+C  INPUT:
+C     KROCK(I,J,K) = ROCK CURVE (INTEGER)
+C     SAT(I,J,K,IPH) = SATURATION FOR PHASE IPH (REAL*8)
+
+C  INPUT/OUTPUT:
+C     SWMIN(I,J,K) = EFFECTIVE REVERSAL WETTING PHASE SATURATION 
+C                    (REAL*8)
+C     SGT(I,J,K) = EFFECTIVE TRAPPED NON-WETTING PHASE SATURATION 
+C                  (REAL*8)
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C                      ASSUMES MOB ALREADY CONTAINS 1/VISCOSITY TERM
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE OF PHASE IPH (REAL*8)
+C     DMOB(I,J,K,*) = MOBILITY DERIVATIVE (REAL*4)
+C     DPC(I,J,K,*) = CAPILLARY PRESSURE DERIVATIVE (REAL*4)
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'rock.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8 MOB(IDIM,JDIM,KDIM,NPH),SAT(IDIM,JDIM,KDIM,NPH), 
+     &       SWMIN(IDIM,JDIM,KDIM),SGT(IDIM,JDIM,KDIM),
+     &       PC(IDIM,JDIM,KDIM,NPH)
+      REAL*4 DPC(IDIM,JDIM,KDIM,2),DMOB(IDIM,JDIM,KDIM,4)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,KR
+      REAL*8 SW,SNW,PCNW,DPCNW,DPCOW,RELW,RELN,DKWSW,DKNSW,WKSP,RTERM,
+     &       SGTRAP,SWNORM,SWBAR,STNORM
+
+      DO K = KL1,KL2
+         DO  J = JL1V(K),JL2V(K)
+            DO  I = IL1,IL2
+               IF (KEYOUT(I,J,K) /= 1) CYCLE
+               KR = KROCK(I,J,K)
+
+               IF (AQPHSWTCH) THEN
+                  SNW = SAT(I,J,K,3)
+                  SW = SAT(I,J,K,2)
+                  SWNORM = (SAT(I,J,K,2)-SORES(KR))
+     &                   / (ONE-SORES(KR))
+               ELSE
+                  SNW = SAT(I,J,K,2)
+                  SW = SAT(I,J,K,1)
+                  SWNORM = (SAT(I,J,K,1)-SWRES(KR)) 
+     &                   / (ONE-SWRES(KR))
+               ENDIF
+               SWNORM = MAX(ZERO,SWNORM)
+               SWNORM = MIN(ONE,SWNORM)
+               SGT(I,J,K) = ZERO
+               IF (NSTEP <= 1) GOTO 10
+               IF (.NOT.HYSTERESIS) THEN
+                  IF (SNW >= TEN_M6) THEN
+                     IF (AQPHSWTCH) THEN
+                        SGT(I,J,K) = SGRES(KR)/(ONE-SORES(KR))
+                     ELSE
+                        SGT(I,J,K) = SORES(KR)/(ONE-SWRES(KR))
+                     ENDIF
+                  ENDIF
+                  GOTO 10
+               ENDIF
+
+               IF (SNW > TEN_M6) THEN
+                  IF (SGRES(KR) > TEN_M6) THEN
+                     IF (AQPHSWTCH) THEN
+                        WKSP = SGRES(KR)/(ONE-SORES(KR))
+                     ELSE
+                        WKSP = SORES(KR)/(ONE-SWRES(KR))
+                     ENDIF
+                     RTERM = ONE/WKSP-ONE
+                  ENDIF
+C                 MOVING ALONG DRAINAGE
+                  IF (SWNORM <= SWMIN(I,J,K)) THEN 
+C                    RESET HISTORICAL MIN
+                     SWMIN(I,J,K) = SWNORM
+                     SGTRAP = ZERO 
+C                 MOVING ALONG IMBIBITION
+                  ELSE
+                     SGTRAP = (ONE-SWMIN(I,J,K))
+     &                  / (ONE+RTERM*(ONE-SWMIN(I,J,K)))
+                  ENDIF
+               ELSE
+                  SWMIN(I,J,K) = SWNORM
+                  SGTRAP = ZERO
+               ENDIF
+
+C              DRAINAGE
+               IF (SWNORM.LE.SWMIN(I,J,K)) THEN  
+                  SGT(I,J,K) = ZERO
+C              IMBIBITION (LENHARD INTERPOLATION METHOD)
+               ELSE  
+                  IF (SGTRAP+SWMIN(I,J,K) >= ONE) THEN
+                     SGT(I,J,K) = ZERO
+                  ELSE
+                     SGT(I,J,K) = SGTRAP
+     &                   * (SWNORM-SWMIN(I,J,K))
+     &                   / (ONE-SGTRAP-SWMIN(I,J,K))
+                     SGT(I,J,K) = MAX(ZERO,SGT(I,J,K))
+                  ENDIF
+               ENDIF
+
+  10           CONTINUE
+
+C              COMPUTE APPARENT WETTING PHASE (WATER) SATURATION
+               SWBAR = SWNORM+SGT(I,J,K)
+               SWBAR = MIN(ONE,SWBAR)
+
+C              COMPUTE WETTING PHASE (WATER) RELATIVE PERMEABILITY
+C              USING BURDINE'S EQUATION
+               RELW = SWNORM**((TWO+THREE*RPLMDA(KR))/RPLMDA(KR))
+               IF (SW >= ONE) GOTO 20
+
+               IF (AQPHSWTCH) THEN
+                  DKWSW = ((TWO+THREE*RPLMDA(KR))/RPLMDA(KR))
+     &                 * (SWNORM**((TWO+TWO/RPLMDA(KR))))
+     &                 / (ONE-SORES(KR))
+                  DMOB(I,J,K,1) = ZERO
+                  DMOB(I,J,K,2) = DKWSW * MOB(I,J,K,2)
+                  MOB(I,J,K,1) = ZERO
+                  MOB(I,J,K,2) = RELW * MOB(I,J,K,2)
+               ELSE
+                  DKWSW = ((TWO+THREE*RPLMDA(KR))/RPLMDA(KR))
+     &                  * (SWNORM**((TWO+TWO/RPLMDA(KR))))
+     &                  / (ONE-SWRES(KR))
+                  DMOB(I,J,K,1) = DKWSW * MOB(I,J,K,1)
+                  MOB(I,J,K,1) = RELW * MOB(I,J,K,1)
+               ENDIF
+
+   20          CONTINUE
+C              COMPUTE NON-WETTING PHASE (OIL/GAS) RELATIVE PERMEABILITY 
+C              AND CAPILLARY PRESSURE (IF PRESENT)
+               IF (SNW > TEN_M6) THEN
+
+                  IF (SWBAR > TEN_M8) THEN
+                     PCNW = ENTRYP(KR)*(SWBAR**(-ONE/RPLMDA(KR)))
+                  ELSE
+                     PCNW = ZERO
+                     DPCNW = ZERO
+                  ENDIF
+                  IF (AQPHSWTCH) THEN
+                     PC(I,J,K,1) = ZERO
+                     DPC(I,J,K,1) = ZERO
+                     DPCNW = ENTRYP(KR)*(-ONE/RPLMDA(KR))
+     &                     * (SWBAR**(-ONE-ONE/RPLMDA(KR)))
+     &                     / (ONE-SORES(KR))
+                     IF (DABS(PCNW) <= TEN_M10) DPCNW = ZERO
+                     IF ((IREFPRES==1).OR.(IREFPRES==2)) THEN
+                        PC(I,J,K,2) = ZERO
+                        PC(I,J,K,3) = PCNW
+                     ELSE
+                        PC(I,J,K,2) = -PCNW
+                        PC(I,J,K,3) = ZERO
+                     ENDIF
+                     DPC(I,J,K,2) = DPCNW
+                     STNORM = SWNORM+SNW/(ONE-SORES(KR))
+                  ELSE
+                     DPCNW = ENTRYP(KR)*(-ONE/RPLMDA(KR))
+     &                     * (SWBAR**(-ONE-ONE/RPLMDA(KR)))
+     &                     / (ONE-SWRES(KR))
+                     IF (DABS(PCNW) <= TEN_M10) DPCNW = ZERO
+                     IF (IREFPRES==1) THEN
+                        PC(I,J,K,1) = ZERO
+                        PC(I,J,K,2) = PCNW
+                     ELSE
+                        PC(I,J,K,1) = -PCNW
+                        PC(I,J,K,2) = ZERO
+                     ENDIF
+                     DPC(I,J,K,1) = DPCNW
+                     STNORM = SWNORM+SNW/(ONE-SWRES(KR))
+                  ENDIF
+                  STNORM = MIN(ONE,STNORM)
+                  IF (STNORM <= SWBAR) THEN
+                     RELN = ZERO
+                     DKNSW = ZERO
+                  ELSE
+                     RELN = KRNW0(KR)*((ONE-SWBAR)**TWO)
+     &                    * (ONE-(SWBAR**(ONE+TWO/RPLMDA(KR))))
+                     IF (AQPHSWTCH) THEN
+                        DKNSW = KRNW0(KR)*(TWO*(ONE-SWBAR)
+     &                        * (ONE-(SWBAR**(ONE+TWO/RPLMDA(KR))))
+     &                        + ((ONE-SWBAR)**TWO)*(-ONE-TWO/RPLMDA(KR))
+     &                        * (SWBAR**(TWO/RPLMDA(KR))))
+     &                        / (ONE-SORES(KR))
+                        IF (RELN <= TEN_M10) DKNSW = ZERO
+                        DMOB(I,J,K,3) = DKNSW*MOB(I,J,K,2)
+                        DMOB(I,J,K,4) = DKNSW*MOB(I,J,K,3)
+                        MOB(I,J,K,3) = RELN*MOB(I,J,K,3)
+                     ELSE
+                        DKNSW = KRNW0(KR)*(TWO*(ONE-SWBAR)
+     &                        * (ONE-(SWBAR**(ONE+TWO/RPLMDA(KR))))
+     &                        + ((ONE-SWBAR)**TWO)*(-ONE-TWO/RPLMDA(KR))
+     &                        * (SWBAR**(TWO/RPLMDA(KR))))
+     &                        / (ONE-SWRES(KR))
+                        IF (RELN <= TEN_M10) DKNSW = ZERO
+                        DMOB(I,J,K,2) = DKNSW*MOB(I,J,K,2)
+                        MOB(I,J,K,2) = RELN*MOB(I,J,K,2)
+                     ENDIF
+                  ENDIF
+
+C              CASE WHEN ONLY WETTING (AQUEOUS) PHASE ACTUALLY EXISTS
+               ELSE
+
+                  RELN = ZERO
+                  DKNSW = ZERO
+                  PCNW = ZERO
+                  DPCNW = ZERO
+                  IF (AQPHSWTCH) THEN
+                     MOB(I,J,K,3) = ZERO
+                     DMOB(I,J,K,3) = ZERO
+                     DMOB(I,J,K,4) = ZERO
+                     PC(I,J,K,1) = ZERO
+                     PC(I,J,K,1) = ZERO
+                     PC(I,J,K,2) = ZERO
+                     PC(I,J,K,3) = ZERO
+                     DPC(I,J,K,1) = ZERO
+                     DPC(I,J,K,2) = ZERO
+                  ELSE
+                     MOB(I,J,K,2) = ZERO
+                     DMOB(I,J,K,2) = ZERO
+                     PC(I,J,K,1) = ZERO
+                     PC(I,J,K,2) = ZERO
+                     DPC(I,J,K,1) = ZERO
+                  ENDIF
+
+               ENDIF
+
+C              RE-CHECK FOR SINGLE PHASE CELLS AGAIN
+               IF (SW >= ONE) THEN
+                  RELW = ONE
+                  RELN = ZERO
+                  PCNW = ENTRYP(KR)
+                  IF (AQPHSWTCH) THEN
+                     DKWSW = ((TWO+THREE*RPLMDA(KR))/RPLMDA(KR))
+     &                     / (ONE-SORES(KR))
+                     DMOB(I,J,K,1) = ZERO
+                     DMOB(I,J,K,2) = DKWSW*MOB(I,J,K,2)
+                     MOB(I,J,K,1) = ZERO
+                     MOB(I,J,K,2) = RELW*MOB(I,J,K,2)
+                     DKNSW = ZERO
+                     DMOB(I,J,K,3) = ZERO
+                     DMOB(I,J,K,4) = ZERO
+                     MOB(I,J,K,3) = ZERO
+                     DPCNW = ENTRYP(KR)*(-ONE/RPLMDA(KR))
+     &                     / (ONE-SORES(KR))
+                     PC(I,J,K,1) = ZERO
+                     DPC(I,J,K,1) = ZERO
+                     DPC(I,J,K,2) = DPCNW
+                     IF ((IREFPRES==1).OR.(IREFPRES==2)) THEN
+                        PC(I,J,K,2) = ZERO
+                        PC(I,J,K,3) = PCNW
+                     ELSE
+                        PC(I,J,K,2) = -PCNW
+                        PC(I,J,K,3) = ZERO
+                     ENDIF
+                  ELSE
+                     MOB(I,J,K,1) = RELW*MOB(I,J,K,1)
+                     DKWSW = ((TWO+THREE*RPLMDA(KR))/RPLMDA(KR))
+     &                     / (ONE-SWRES(KR))
+                     DMOB(I,J,K,1) = DKWSW*MOB(I,J,K,1)
+                     DKNSW = ZERO
+                     MOB(I,J,K,2) = ZERO
+                     DMOB(I,J,K,2) = ZERO
+                     DPCNW = ENTRYP(KR)*(-ONE/RPLMDA(KR))
+     &                     / (ONE-SWRES(KR))
+                     DPC(I,J,K,1) = DPCNW
+                     IF (IREFPRES==1) THEN
+                        PC(I,J,K,1) = ZERO
+                        PC(I,J,K,2) = PCNW
+                     ELSE
+                        PC(I,J,K,1) = -PCNW
+                        PC(I,J,K,2) = ZERO
+                     ENDIF
+                  ENDIF
+               ENDIF
+
+               IF (SNW >= ONE) THEN
+                  RELN = KRNW0(KR)
+                  PCNW = ZERO
+                  IF (AQPHSWTCH) THEN
+                     DKNSW = TWO*KRNW0(KR)/(ONE-SORES(KR))
+                     DMOB(I,J,K,3) = DKNSW*MOB(I,J,K,3)
+                     DMOB(I,J,K,4) = DKNSW*MOB(I,J,K,3)
+                     MOB(I,J,K,3) = RELN*MOB(I,J,K,3)
+                  ELSE
+                     DKNSW = TWO*KRNW0(KR)/(ONE-SWRES(KR))
+                     DMOB(I,J,K,2) = DKNSW*MOB(I,J,K,2)
+                     MOB(I,J,K,2) = RELN*MOB(I,J,K,2)
+                  ENDIF
+               ENDIF
+
+            ENDDO
+         ENDDO
+      ENDDO
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE XSAT_ERROR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                      KL2,KEYOUT,NBLK,ERRSAT)
+C*********************************************************************
+ 
+C  ROUTINE DETERMINES MAXIMUM SATURATION ERROR.
+C  THIS IS A WORK ROUTINE.
+
+C  INPUT:
+C     ERRSAT(I,J,K) = SATURATION ERROR (REAL*8)
+
+C  OUTPUT:
+C     SAT_ERRMAX = MAXIMUM ABSOLUTE SATURATION ERROR (REAL*8)
+C     ISAT = I LOCATION OF MAXIMUM SATURATION ERROR (INTEGER*4)
+C     JSAT = J LOCATION OF MAXIMUM SATURATION ERROR (INTEGER*4)
+C     KSAT = K LOCATION OF MAXIMUM SATURATION ERROR (INTEGER*4)
+C     NSAT = BLOCK LOCATION OF MAXIMUM SATURATION ERROR (INTEGER*4)
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xbaldat.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 ERRSAT(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IS,JS,KS,NS
+      REAL*8 U,X
+
+      U = -ONE
+      DO K = KL1,KL2
+         DO  J = JL1V(K),JL2V(K)
+            DO  I = IL1,IL2
+               IF(KEYOUT(I,J,K) == 1) THEN
+                  X = DABS(ERRSAT(I,J,K))
+                  IF( X > U) THEN
+                     U = X
+                     IS = I
+                     JS = J
+                     KS = K
+                     NS = NBLK
+                  ENDIF
+               ENDIF
+            END DO
+         END DO
+      END DO
+      IF(U > SAT_ERRMAX) THEN
+         SAT_ERRMAX = U
+         ISAT = IS
+         JSAT = JS
+         KSAT = KS
+         NSAT = NBLK
+      ENDIF
+      END
+
+C*********************************************************************
+      SUBROUTINE XSAT_SUMERR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                       KL2,KEYOUT,NBLK,ERRSAT)
+C*********************************************************************
+ 
+C  ROUTINE DETERMINES SUM OF SATURATION ERRORS.
+C  THIS IS A WORK ROUTINE.
+
+C  INPUT:
+C     ERRSAT(I,J,K) = SATURATION ERROR (REAL*8)
+
+C  OUTPUT:
+C     SAT_ERRAVG = SUM OF ABSOLUTE SATURATION ERRORS (REAL*8)
+C     ISAT = I LOCATION OF MAXIMUM SATURATION ERROR (INTEGER*4)
+C     JSAT = J LOCATION OF MAXIMUM SATURATION ERROR (INTEGER*4)
+C     KSAT = K LOCATION OF MAXIMUM SATURATION ERROR (INTEGER*4)
+C     NSAT = BLOCK LOCATION OF MAXIMUM SATURATION ERROR (INTEGER*4)
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xbaldat.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 ERRSAT(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IS,JS,KS,NS
+      REAL*8 U,X,Y
+
+      U = ZERO
+      Y = -ONE
+      DO K = KL1,KL2
+         DO  J = JL1V(K),JL2V(K)
+            DO  I = IL1,IL2
+               IF(KEYOUT(I,J,K) == 1) THEN
+                  X = DABS(ERRSAT(I,J,K))
+                  IF( X > Y) THEN
+                     Y = X
+                     IS = I
+                     JS = J
+                     KS = K
+                     NS = NBLK
+                  ENDIF
+                  U = U + X
+               ENDIF
+            END DO
+         END DO
+      END DO
+      SAT_ERRAVG = U
+      IF(Y > SAT_ERRMAX) THEN
+         SAT_ERRMAX = Y
+         ISAT = IS
+         JSAT = JS
+         KSAT = KS
+         NSAT = NBLK
+      ENDIF
+      END
+
+
+C*********************************************************************
+      SUBROUTINE XPRES (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,PRES,DELP)
+C*********************************************************************
+ 
+C  UPDATES PRESSURES FOR CELLS.
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'xmodel.h'
+      INCLUDE 'control.h'
+      INCLUDE 'xiter.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 PRES(IDIM,JDIM,KDIM),DELP(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,IPH
+
+      DO K=KL1,KL2
+      DO J=JL1V(K),JL2V(K)
+      DO I=IL1,IL2
+         IF(KEYOUT(I,J,K) == 1) THEN
+            PRES(I,J,K) = PRES(I,J,K) + DELP(I,J,K)
+         ENDIF
+      END DO
+      END DO
+      END DO
+
+      END
+
+C*********************************************************************
+      SUBROUTINE XMFRAC_ALL (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                       KL1,KL2,KEYOUT,NBLK,PMD,MOLFRAC)
+C*********************************************************************
+
+C  COMPUTES CURRENT MOLE FRACTION FOR COMPONENTS IN EACH PHASE IPH FROM 
+C  PMD ARRAY. THIS IS A WORK ROUTINE.
+
+C  PMD(I,J,K,J)= PRODUCT OF MOLAR DENSITY AND MOLE FRACTION (INPUT, REAL*8)
+
+C  MOLFRAC(I,J,K,L)= MOLE FRACTION OF COMPONENT (OUTPUT, REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,IPH,IERR
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 MOLFRAC(IDIM,JDIM,KDIM,NCINPH),PMD(IDIM,JDIM,KDIM,NCINPH)
+!     REAL*8  MOLSUM(IDIM,JDIM,KDIM,NPH)
+      REAL*8, ALLOCATABLE :: MOLSUM(:,:,:,:) 
+      INTEGER I,J,K,IC,L,M
+
+      ALLOCATE(MOLSUM(IDIM,JDIM,KDIM,NPH),STAT=IERR)
+      IF (IERR.NE.0) STOP 'Could not allocate MOLSUM'
+
+      DO IPH=1,NPH
+         DO K = KL1,KL2
+            DO J = JL1V(K),JL2V(K)
+               DO I = IL1,IL2
+                  MOLSUM(I,J,K,IPH) = SMALL
+               END DO
+            END DO
+         END DO
+      END DO
+      DO IPH=1,NPH
+         DO IC = 1,NC
+            L = ICINPH(IC,IPH)
+            IF(L == 0) CYCLE
+            DO K = KL1,KL2
+               DO J = JL1V(K),JL2V(K)
+                  DO I = IL1,IL2
+                     MOLSUM(I,J,K,IPH) = MOLSUM(I,J,K,IPH) + 
+     &                                   PMD(I,J,K,L)
+                  END DO
+               END DO
+            END DO
+         END DO
+         DO K = KL1,KL2
+            DO J = JL1V(K),JL2V(K)
+               DO I = IL1,IL2
+                  MOLSUM(I,J,K,IPH) = ONE / MOLSUM(I,J,K,IPH)
+               END DO
+            END DO
+         END DO
+         DO IC = 1,NC
+            L = ICINPH(IC,IPH)
+            IF(L == 0) CYCLE
+            DO K = KL1,KL2
+               DO J = JL1V(K),JL2V(K)
+                  DO I = IL1,IL2
+                     MOLFRAC(I,J,K,L) = 
+     &               PMD(I,J,K,L)*MOLSUM(I,J,K,IPH)
+                  END DO
+               END DO
+            END DO
+         END DO
+      END DO
+
+      DEALLOCATE(MOLSUM)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE XPHMDENS (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                     KL1,KL2,KEYOUT,NBLK,PMD,PHDEN)
+C*********************************************************************
+C COMPUTES PHASE MOLAR DENSITY FROM PRODUCT OF COMPONENT MOLE FRACTIONS 
+C AND MOLAR DENSITIES
+      IMPLICIT NONE
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+
+      INTEGER I,IC,IL1,IL2,IPH,J,K,IDIM,JDIM,KDIM,LDIM,LC,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 PMD(IDIM,JDIM,KDIM,NCINPH),PHDEN(IDIM,JDIM,KDIM,NPH)
+
+      DO IPH=1,NPH
+         DO K=KL1,KL2
+            DO J=JL1V(K),JL2V(K)
+               DO I=IL1,IL2
+                  PHDEN(I,J,K,IPH)=ZERO
+                  IF(KEYOUT(I,J,K) == 0) CYCLE
+                  DO IC=1,NC
+                     LC=ICINPH(IC,IPH)
+                     IF(LC == 0) CYCLE
+                     PHDEN(I,J,K,IPH)=PHDEN(I,J,K,IPH)+PMD(I,J,K,LC)
+                  END DO
+               END DO
+            END DO
+         END DO
+      END DO
+
+      RETURN
+      END
+
+
+C*********************************************************************
+      SUBROUTINE XPHDENS (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                     KL1,KL2,KEYOUT,NBLK,PMD,PHDEN)
+C*********************************************************************
+C COMPUTES PHASE MASS DENSITY FROM PRODUCT OF COMPONENT MOLE FRACTIONS 
+C AND MOLAR DENSITIES
+      USE xgendat
+      IMPLICIT NONE
+      INCLUDE 'xparam.h'
+      INCLUDE 'xresprop.h'
+      INCLUDE 'xmodel.h'
+
+      INTEGER I,IC,IL1,IL2,IPH,J,K,IDIM,JDIM,KDIM,LDIM,LC,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 PMD(IDIM,JDIM,KDIM,NCINPH),PHDEN(IDIM,JDIM,KDIM,NPH),MOLWT
+
+      DO IPH=1,NPH
+         DO K=KL1,KL2
+            DO J=JL1V(K),JL2V(K)
+               DO I=IL1,IL2
+                  PHDEN(I,J,K,IPH)=ZERO
+                  IF(KEYOUT(I,J,K) == 0) CYCLE
+                  DO IC=1,NC
+                     LC=ICINPH(IC,IPH)
+                     IF(LC == 0) CYCLE
+                     IF(IC==1) THEN
+                        MOLWT=WATMOLW
+                     ELSE
+                        MOLWT=WMOL(IC-1)
+                     ENDIF
+                     PHDEN(I,J,K,IPH)=PHDEN(I,J,K,IPH)+
+     &                                PMD(I,J,K,LC)*MOLWT
+                  END DO
+               END DO
+            END DO
+         END DO
+      END DO
+
+      RETURN
+      END
+
+
+C*********************************************************************
+      SUBROUTINE XCALCXTENS (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,PRES,MDEN,KSI,
+     &                  TEMPR,TENS,XTENS)
+C*********************************************************************
+ 
+C  CALCULATE RESIDUAL SATURATION BASED ON IFT AND TRAPPING FOR CELLS.
+C  INPUT PRESSURES, DEPTH, PHDEN, TEMPREATURE, SALIN, KSI
+C  OUTPUT SGRES, SWRES, SORES FOR EACH GRID
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'xmodel.h'
+      INCLUDE 'control.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'rock.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  PRES(IDIM,JDIM,KDIM),DEPTH(IDIM,JDIM,KDIM)
+     &        ,PC(IDIM,JDIM,KDIM,NPH),MDEN(IDIM,JDIM,KDIM,NPH)
+     &        ,TEMPR(IDIM,JDIM,KDIM),KSI(IDIM,JDIM,KDIM,NCINPH)
+     &        ,XTENS(IDIM,JDIM,KDIM),DDEN23(IDIM,JDIM,KDIM)
+     &        ,TENS(IDIM,JDIM,KDIM)
+
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IPH,KR
+      INTEGER IL2P,JM1,KM1,IMIN,IOFF,JOFF,KOFF,MERR,
+     &        JL1(KDIM),JL2(KDIM), KL2P,KL1S
+      REAL*8  DX,DY,DZ,G,DEN,XCO2,
+     &        COE13,COE12,COE11,COE10,COE23,COE22,COE21,COE20,
+     &        COE33,COE32,COE31,COE30,TENS1,TENS2,TENS3,TENSA
+     &        ,SALIN1,SALIN2,SALIN3
+     &        ,COEA3,COEA2,COEA1,COEA0,COEA4
+     &        ,COEC3,COEC2,COEC1,COEC0
+      PARAMETER (COEA4 = -.0004,COEA3 = .0241,COEA2 = -.3836,
+     &          COEA1 = -.7305,COEA0 = 73.264,COEC0 = 26.4,
+     &          COEC1 = 1.2550D0,COEC2 = 4.718D0,COEC3 = 1.0243D0,
+     &          COE13 = -.002,COE12 = .1295,COE11 = -4.172,
+     &          COE10 = 85.243,COE23 = .0008,COE22 = .0484,
+     &          COE21 = -3.9456,COE20 = 80.417,COE33 = .0165,
+     &          COE32 = -.4591,COE31 = .3624,COE30 = 70.532,
+     &          SALIN1 = 0.0,SALIN2 = 144300.0,SALIN3 = 334010.0)
+
+        
+C      print *, 'IN XIFTCALC'
+      G = HALF*GRAV
+
+      DO K=KL1,KL2
+      DO J=JL1V(K),JL2V(K)
+      DO I=IL1,IL2
+         IF(KEYOUT(I,J,K) .NE. 1) CYCLE
+
+         IF(IFTCALC.AND.0)THEN
+C          Mcleod-Sugden from flash calculation
+C          Model NOT available, due to TENS(L) from flash calc is 1d array
+           XTENS(I,J,K)=TENS(I,J,K)
+         ELSEIF(IFTTYPE == 3)THEN
+C          Chalbaud SPE 102918 correlation based on S,T,density difference
+C          CO2 Parachor 82, M 44, Tc 547.56R
+C          MDEN lb/ft3, = 0.016 g/cm3, delta den = 0.37 g/cm3
+C          DDEN   0.127992655677892        44.4331506842795
+           DDEN23(I,J,K) = TWO*G*(MDEN(I,J,K,2)-MDEN(I,J,K,3))
+C           print *, DDEN23(I,J,K),(MDEN(I,J,K,2)-MDEN(I,J,K,3))*.016
+           XTENS(I,J,K)= COEC0+COEC1*SALIN+(82.D0/44.01D0*DDEN23(I,J,K)
+     &            /TWO/G*0.016)**COEC2
+     &            *((TEMPR(I,J,K)+459.67)/547.56)**COEC3
+C          TENSC 26.0  DDEN 0.163
+C          WRITE(*,*)' TENSC ',TENSC,DDEN23(I,J,K),J,K
+           
+         ELSEIF(IFTTYPE == 2)THEN
+C          Bennion and Bachu 2009, on Xco2 mole fraction
+C          KSI(I,J,K,2) CO2 SOLUBILITY MASS FRAC,TENSA for all saline case
+C          XCO2 CO2 SOLUBILITY VOLUME FRAC, AT STANDARD CONDITION m3/m3
+C          XCO2 = 44./18.*1000./1.977*KSI(I,J,K,2)
+           XCO2 = KSI(I,J,K,2)/44.0*.0224/(1-KSI(I,J,K,2))*1E6
+           TENS1 = COE13*XCO2**3+COE12*XCO2**2
+     &           +COE11*XCO2+COE10
+           TENS2 = COE23*XCO2**3+COE22*XCO2**2
+     &           +COE21*XCO2+COE20
+           TENS3 = COE33*XCO2**3+COE32*XCO2**2
+     &           +COE31*XCO2+COE30
+           TENSA = COEA4*XCO2**4+COEA3*XCO2**3+COEA2*XCO2**2
+     &           +COEA1*XCO2+COEA0
+           IF(SALIN.GE.SALIN1.AND.SALIN.LE.SALIN2)THEN
+              XTENS(I,J,K)= (SALIN2-SALIN)*TENS1/(SALIN2-SALIN1)
+     &                      +(SALIN-SALIN1)*TENS2/(SALIN2-SALIN1)
+           ELSEIF(SALIN.GT.SALIN2.AND.SALIN.LE.SALIN3)THEN
+              XTENS(I,J,K)= (SALIN3-SALIN)*TENS2/(SALIN3-SALIN2)
+     &                      +(SALIN-SALIN2)*TENS3/(SALIN3-SALIN2)
+           ELSE
+              XTENS(I,J,K)= TENSA
+           ENDIF
+         ELSEIF(IFTTYPE == 1)THEN
+C          Bennion and Bachu, on P, T, S
+           XTENS(I,J,K)=71.69243*(PRES(I,J,K)*6.894757E-3)**(-0.432629)
+     &               +0.210558*((TEMPR(I,J,K)-32.)*0.555556)**0.900261
+     &               +0.075859*(1E-6*SALIN)**1.457937
+         ELSE
+C          No valid model, use default (30 mN/m) or input IFT
+           XTENS(I,J,K)=IFT0
+         ENDIF
+C           print *,XTENS(I,J,K), IFTTYPE
+
+      END DO
+      END DO
+      END DO
+C      PAUSE 1
+      END
+
+C*********************************************************************
+      SUBROUTINE XLJFUNPC(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,
+     &                  PC,DPC,PORO,YPERM,XTENS,KROCK) 
+C*********************************************************************
+C
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'rock.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8  XTENS(IDIM,JDIM,KDIM),
+     &       PC(IDIM,JDIM,KDIM,NPH),PORO(IDIM,JDIM,KDIM)
+      REAL*4 DPC(IDIM,JDIM,KDIM,2)
+      REAL*4 YPERM(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,KR
+      REAL*8 IFTIJK,MULT,COSTHETA,MULTKPHI
+
+Cxianhui add J-leverret scale for Pc of CO2/BRINE
+
+C      print *, 'IN XLJFUNPC'
+      IF(NPH == 3) THEN
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     IF (IFTSATRES) THEN
+                       IFTIJK = XTENS(I,J,K)/IFT0
+                     ELSE
+                       IFTIJK = ONE
+                     ENDIF
+                     IF (IFTPCWET) THEN
+                       COSTHETA = COS(IFTTHETA)
+                     ELSE
+                       COSTHETA = ONE
+                     ENDIF
+                     IF (NOPCKPHI) THEN
+                       MULTKPHI = ONE
+                     ELSE
+                       MULTKPHI = (PORO(I,J,K)/YPERM(I,J,K))**0.5
+     &                   /(REFPORO(KR)/REFPERM(KR))**0.5
+                     ENDIF
+C                     MULT=(PORO(I,J,K)/YPERM(I,J,K))**0.5*IFTIJK
+C     &                   /(REFPORO(KR)/REFPERM(KR))**0.5*COSTHETA
+                       MULT = MULTKPHI*IFTIJK*COSTHETA
+                       PC(I,J,K,3) = PC(I,J,K,3)*MULT
+                       DPC(I,J,K,2) = DPC(I,J,K,2)*MULT
+                       PC(I,J,K,2) = PC(I,J,K,2)*MULT
+                       DPC(I,J,K,1) = DPC(I,J,K,1)*MULT
+                       PC(I,J,K,1) = PC(I,J,K,1)*MULT
+                  END DO
+               END DO
+            END DO
+
+C-----------------------------------------------------------------------
+C     TWO-PHASE
+C-----------------------------------------------------------------------
+      ELSEIF(NPH == 2) THEN
+         IF(IREFPRES == 1) THEN
+         ELSE
+         ENDIF
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     IF (IFTSATRES) THEN
+                       IFTIJK = XTENS(I,J,K)/IFT0
+                     ELSE
+                       IFTIJK = ONE
+                     ENDIF
+                     IF (IFTPCWET) THEN
+                       COSTHETA = COS(IFTTHETA)
+                     ELSE
+                       COSTHETA = ONE
+                     ENDIF
+                     IF (NOPCKPHI) THEN
+                       MULTKPHI = ONE
+                     ELSE
+                       MULTKPHI = (PORO(I,J,K)/YPERM(I,J,K))**0.5
+     &                   /(REFPORO(KR)/REFPERM(KR))**0.5
+                     ENDIF
+                       MULT = MULTKPHI*IFTIJK*COSTHETA
+                       PC(I,J,K,2) = PC(I,J,K,2)*MULT
+                       DPC(I,J,K,1) = DPC(I,J,K,1)*MULT
+                       PC(I,J,K,1) = PC(I,J,K,1)*MULT
+                  END DO
+               END DO
+            END DO
+C-----------------------------------------------------------------------
+C     SINGLE-PHASE
+C-----------------------------------------------------------------------
+      ELSEIF(NPH == 1) THEN
+      ENDIF
+
+C      print *, 'OUT XLJFUNPC'
+      END
+
+C*********************************************************************
+      SUBROUTINE XIFTSATRES (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,PRES,DEPTH,MDEN,PC,
+     &                  KROCK,XPERM,YPERM,ZPERM,SGR,SWR,XTENS)
+C*********************************************************************
+ 
+C  CALCULATE RESIDUAL SATURATION BASED ON IFT AND TRAPPING FOR CELLS.
+C  INPUT PRESSURES, DEPTH, PHDEN, TEMPREATURE, SALIN, KSI
+C  OUTPUT SGRES, SWRES, SORES FOR EACH GRID
+C  ROUTINE EVALUATES MOBILITIES. THIS IS A WORK ROUTINE OR IS CALLED
+C  FROM A WORK ROUTINE.
+C  THIS ROUTINE ASSUMES:
+C                         PHASE 1 = WATER
+C                         PHASE 2 = LIQUID
+C                         PHASE 3 = VAPOR
+
+C  INPUT:
+C     KROCK(I,J,K) = ROCK CURVE (INTEGER)
+C     SAT(I,J,K,IPH) = SATURATION FOR PHASE IPH (REAL*8)
+C     PRES(IDIM,JDIM,KDIM) = PRESSURE (REAL*8)
+C     YPERM(IDIM,JDIM,KDIM) = X,Y,Z PERMEABILITY (REAL*4)
+
+C  INPUT/OUTPUT:
+C     SGR(I,J,K) = EFFECTIVE TRAPPED NON-WETTING PHASE SATURATION
+C     SWR(I,J,K) = EFFECTIVE RESIDUAL WETTING PHASE SATURATION
+C     XTENS(I,J,K) = IFT
+C                  (REAL*8)
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'xmodel.h'
+      INCLUDE 'control.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'rock.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  PRES(IDIM,JDIM,KDIM),DEPTH(IDIM,JDIM,KDIM)
+     &        ,PC(IDIM,JDIM,KDIM,NPH),MDEN(IDIM,JDIM,KDIM,NPH)
+     &        ,SGR(IDIM,JDIM,KDIM),SWR(IDIM,JDIM,KDIM)
+     &        ,XTENS(IDIM,JDIM,KDIM),DDEN23(IDIM,JDIM,KDIM)
+      REAL*4  XPERM(IDIM,JDIM,KDIM),YPERM(IDIM,JDIM,KDIM)
+     &        ,ZPERM(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)             
+
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+
+      INTEGER I,J,K,IPH,KR,IERR
+      INTEGER IL2P,JM1,KM1,IMIN,IOFF,JOFF,KOFF,MERR,
+     &        JL1(KDIM),JL2(KDIM), KL2P,KL1S
+      REAL*8  DX,DY,DZ,G,DEN,TEMP1,XCO2
+!      REAL*8 DELH(IDIM,JDIM,KDIM),XDELP(IDIM,JDIM,KDIM,NPH),
+!     &       YDELP(IDIM,JDIM,KDIM,NPH),ZDELP(IDIM,JDIM,KDIM,NPH),
+!     &       XNTRAP(IDIM,JDIM,KDIM,NPH)
+      REAL*8, ALLOCATABLE :: DELH(:,:,:),XNTRAP(:,:,:,:),
+     &        XDELP(:,:,:,:),YDELP(:,:,:,:),ZDELP(:,:,:,:)
+
+      ALLOCATE(DELH(IDIM,JDIM,KDIM),STAT=IERR)
+      IF (IERR.NE.0) STOP 'Could not allocate DELH'
+      ALLOCATE(XDELP(IDIM,JDIM,KDIM,NPH),STAT=IERR)
+      IF (IERR.NE.0) STOP 'Could not allocate XDELP'
+      ALLOCATE(YDELP(IDIM,JDIM,KDIM,NPH),STAT=IERR)
+      IF (IERR.NE.0) STOP 'Could not allocate YDELP'
+      ALLOCATE(ZDELP(IDIM,JDIM,KDIM,NPH),STAT=IERR)
+      IF (IERR.NE.0) STOP 'Could not allocate ZDELP'
+      ALLOCATE(XNTRAP(IDIM,JDIM,KDIM,NPH),STAT=IERR)
+      IF (IERR.NE.0) STOP 'Could not allocate XNTRAP'
+      
+
+C     SET UP PRESSURE POTENTIAL IN X Y Z DIRECTIONS
+      G = HALF*GRAV
+C      print *,G
+      IL2P = IL2
+      IMIN = MAX(IL1,2)
+      KL2P = KL2
+      KL1S = MAX(2,KL1)
+C-------set up JL1 and JL2 vectors
+      JL1(KL1)=JL1V(KL1)
+      JL2(KL1)=JL2V(KL1)
+      DO K = KL1+1,KL2
+         JL1(K)=MIN(JL1V(K-1),JL1V(K))
+         JL2(K)=MAX(JL2V(K-1),JL2V(K))
+      END DO
+      JL1(KL2P)=JL1V(KL2)
+      JL2(KL2P)=JL2V(KL2)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C-------calc X deltP  
+C-------set difference in depth times half gravity
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IMIN,IL2P
+         DELH(I,J,K) = G *(DEPTH(I,J,K)-DEPTH(I-1,J,K))
+C        NB_l = k*g*(den_l' - den_l)/IFT
+C        MDEN lb/ft3, = 0.016 g/cm3, delta den = 0.37 g/cm3
+C        DDEN   0.127992655677892        44.4331506842795
+         DDEN23(I,J,K) = TWO*G*(MDEN(I,J,K,2)-MDEN(I,J,K,3))
+C         print *, DDEN23(I,J,K),(MDEN(I,J,K,2)-MDEN(I,J,K,3))*.016
+      END DO
+      END DO
+      END DO
+
+      DO IPH = 1,NPH
+C----------setup up potential for phase IPH
+         DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+         DO I = IMIN,IL2P
+            DEN =  MDEN(I,J,K,IPH) + MDEN(I-1,J,K,IPH)
+            DX=(DXREC(I+IOFF,NBLK)+DXREC(I-1+IOFF,NBLK))/TWO
+C        WRITE(*,*)' DX',DX,I
+            IF(MDEN(I,J,K,IPH) == ZERO .OR.
+     &         MDEN(I-1,J,K,IPH) == ZERO) DEN = TWO*DEN
+            XDELP(I,J,K,IPH) = (PRES(I,J,K)-PRES(I-1,J,K))
+     &                  + (PC(I,J,K,IPH)-PC(I-1,J,K,IPH))
+     &                  - DEN*DELH(I,J,K)
+            XDELP(I,J,K,IPH)=XDELP(I,J,K,IPH)/DX
+         END DO
+         END DO
+         END DO
+        END DO
+
+C----------Y delt P
+C-------set difference in depth times half gravity
+      DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+C         DO J = JL1V(K),JL2V(K)+1
+            JM1 = J-1
+            IF(JM1 <= 0) CYCLE
+            DO I = IL1,IL2
+               DELH(I,J,K) = G *(DEPTH(I,J,K)-DEPTH(I,JM1,K))
+            END DO
+         END DO
+      END DO
+C----------setup up potential for phase IPH
+        DO IPH = 1,NPH
+         DO K = KL1,KL2
+C         DO J = JL1V(K),JL2V(K)+1
+         DO J = JL1V(K),JL2V(K)
+            JM1 = J-1
+            IF(JM1 <= 0) CYCLE
+            DY=(DYREC(J+JOFF,NBLK)+DYREC(J-1+JOFF,NBLK))/TWO
+            DO I = IL1,IL2
+               DEN =  MDEN(I,J,K,IPH) + MDEN(I,JM1,K,IPH)
+               IF(MDEN(I,J,K,IPH) == ZERO .OR.
+     &            MDEN(I,JM1,K,IPH) == ZERO) DEN = TWO*DEN
+               YDELP(I,J,K,IPH) = (PRES(I,J,K)-PRES(I,JM1,K))
+     &                     + (PC(I,J,K,IPH)-PC(I,JM1,K,IPH))
+     &                     - DEN*DELH(I,J,K)
+            YDELP(I,J,K,IPH)=YDELP(I,J,K,IPH)/DY
+            END DO
+         END DO
+         END DO
+        END DO
+
+C------------Z delt P
+C-------set difference in depth times half gravity
+      DO K = KL1S,KL2P
+         KM1 = K-1
+         DO J = JL1(K),JL2(K)
+         DO I = IL1,IL2
+            DELH(I,J,K) = G *(DEPTH(I,J,K)-DEPTH(I,J,KM1))
+         END DO
+         END DO
+      END DO
+
+C----------setup up potential for phase IPH
+      DO IPH = 1,NPH
+         DO K = KL1S,KL2P
+            KM1 = K-1
+            DZ=(DZREC(K+KOFF,NBLK)+DZREC(K-1+KOFF,NBLK))/TWO
+            DO J = JL1(K),JL2(K)
+            DO I = IL1,IL2
+               DEN =  MDEN(I,J,K,IPH) + MDEN(I,J,KM1,IPH)
+               IF(MDEN(I,J,K,IPH) == ZERO .OR.
+     &            MDEN(I,J,KM1,IPH) == ZERO) DEN = TWO*DEN
+               ZDELP(I,J,K,IPH) = (PRES(I,J,K)-PRES(I,J,KM1))
+     &                     + (PC(I,J,K,IPH)-PC(I,J,KM1,IPH))
+     &                     - DEN*DELH(I,J,K)
+            ZDELP(I,J,K,IPH)=ZDELP(I,J,K,IPH)/DZ
+            END DO
+            END DO
+         END DO
+       END DO
+C     END OF SETTING UP PRESSURE POTENTIAL GRADIENT
+C
+C     CALCULATE RESIDUAL BASED ON TRAPPNIG NUMBER AND IFT
+      DO K=KL1,KL2
+      DO J=JL1V(K),JL2V(K)
+      DO I=IL1,IL2
+         IF(KEYOUT(I,J,K) .NE. 1) CYCLE
+C         KR = KROCK(I,J,K)
+C         SGLOW = SGRES(KR)
+C         SWLOW = SWRES(KR)
+         IF (AQPHSWTCH) THEN
+C            SWLOW = SORES(KR)
+         ENDIF
+C         XNTRAP(I,J,K,2)=((XPERM(I,J,K)*XDELP(I,J,K,2))**2
+C     &         +(YPERM(I,J,K)*YDELP(I,J,K,2))**2
+C     &         +(ZPERM(I,J,K)*ZDELP(I,J,K,2))**2)**0.5/XTENS(I,J,K)
+C     &         *2.23D-8
+         XNTRAP(I,J,K,2)=((XPERM(I,J,K)
+     &         *(XDELP(I,J,K,2)-DOWN(1,NBLK)*DDEN23(I,J,K)))**2
+     &         +(YPERM(I,J,K)
+     &         *(YDELP(I,J,K,2)-DOWN(2,NBLK)*DDEN23(I,J,K)))**2
+     &         +(ZPERM(I,J,K)
+     &         *(ZDELP(I,J,K,2)-DOWN(3,NBLK)*DDEN23(I,J,K)))**2)
+     &         **0.5/XTENS(I,J,K)/(MAX(ABS(COS(IFTTHETA)),1E-7))
+     &         *2.23D-8
+C         XTENS(I,J,K)=71.69243*((PRES(I,J,K)+PC(I,J,K,3))*6.894757E-3)
+C     &               **(-0.432629)
+C     &               +0.210558*((TEMP1-32.)*0.555556)**0.900261
+C     &               +0.075859*(1E-6*SALIN)**1.457937
+         XNTRAP(I,J,K,3)=((XPERM(I,J,K)
+     &         *(XDELP(I,J,K,3)+DOWN(1,NBLK)*DDEN23(I,J,K)))**2
+     &         +(YPERM(I,J,K)
+     &         *(YDELP(I,J,K,3)+DOWN(2,NBLK)*DDEN23(I,J,K)))**2
+     &         +(ZPERM(I,J,K)
+     &         *(ZDELP(I,J,K,3)+DOWN(3,NBLK)*DDEN23(I,J,K)))**2)
+     &         **0.5/XTENS(I,J,K)
+     &         *2.23D-8
+C         WRITE(*,*)' XTENS',XTENS(I,J,K),K
+C         xtens 30
+         SGR(I,J,K) = SGHIGH+(SGLOW-SGHIGH)
+     &                /(ONE+TGL*XNTRAP(I,J,K,3)**TAUG)
+         SGR(I,J,K) = MAX(SGR(I,J,K),ZERO)
+         SWR(I,J,K) = SWHIGH+(SWLOW-SWHIGH)
+     &                /(ONE+TWL*XNTRAP(I,J,K,2)**TAUW)
+
+C         WRITE(*,*)' SGR',SGR(I,J,K),J,K
+
+C         IF(KEYOUT(I,J,K) == 1) THEN
+C         25.8697835628004       2.643935734013511E-005
+C         WRITE(*,*)' XTENS',XTENS(I,J,K),XNTRAP(I,J,K,3)
+C         ENDIF
+      END DO
+      END DO
+      END DO
+
+      DEALLOCATE(DELH)
+      DEALLOCATE(XDELP)
+      DEALLOCATE(YDELP)
+      DEALLOCATE(ZDELP)
+      DEALLOCATE(XNTRAP)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE XHYSRLPRM3(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                      KL2,KEYOUT,NBLK,KROCK,SAT,SWMIN,SGT,MOB,
+     &                      DMOB,PC,DPC,YPERM,PORO,SGR,SWR,XVISC)
+C*********************************************************************
+ 
+C  ROUTINE EVALUATES MOBILITIES. THIS IS A WORK ROUTINE OR IS CALLED
+C  FROM A WORK ROUTINE.HYSTESIS MODEL 3
+C  THIS ROUTINE ASSUMES:
+C                         PHASE 1 = WATER
+C                         PHASE 2 = LIQUID
+C                         PHASE 3 = VAPOR
+
+C  INPUT:
+C     KROCK(I,J,K) = ROCK CURVE (INTEGER)
+C     SAT(I,J,K,IPH) = SATURATION FOR PHASE IPH (REAL*8)
+
+C  INPUT/OUTPUT:
+C     SWMIN(I,J,K) = EFFECTIVE REVERSAL WETTING PHASE SATURATION 
+C                    (REAL*8)
+C     SGT(I,J,K) = EFFECTIVE TRAPPED NON-WETTING PHASE SATURATION 
+C                  (REAL*8)
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C                      ASSUMES MOB ALREADY CONTAINS 1/VISCOSITY TERM
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE OF PHASE IPH (REAL*8)
+C     DMOB(I,J,K,*) = MOBILITY DERIVATIVE (REAL*4)
+C     DPC(I,J,K,*) = CAPILLARY PRESSURE DERIVATIVE (REAL*4)
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'rock.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8 MOB(IDIM,JDIM,KDIM,NPH),SAT(IDIM,JDIM,KDIM,NPH), 
+     &       SWMIN(IDIM,JDIM,KDIM),SGT(IDIM,JDIM,KDIM),
+     &       PC(IDIM,JDIM,KDIM,NPH),PORO(IDIM,JDIM,KDIM)
+      REAL*8 SGR(IDIM,JDIM,KDIM),SWR(IDIM,JDIM,KDIM), 
+     &       XVISC(IDIM,JDIM,KDIM,NPH)
+      REAL*4 DPC(IDIM,JDIM,KDIM,2),DMOB(IDIM,JDIM,KDIM,4)
+      REAL*4 YPERM(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,KR
+      REAL*8 SW,SNW,PCNW,DPCNW,DPCOW,RELW,RELN,DKWSW,DKNSW,WKSP,RTERM,
+     &       SGTRAP,SWNORM,SWBAR,STNORM,ALPHA,SGR1,SWR1,VW,VNW
+
+      DO K = KL1,KL2
+         DO  J = JL1V(K),JL2V(K)
+            DO  I = IL1,IL2
+               IF (KEYOUT(I,J,K) /= 1) CYCLE
+               KR = KROCK(I,J,K)
+               ALPHA =1.0 
+C               WRITE(*,*)'SGR ',SGR(I,J,K),SWR(I,J,K),K
+               
+               IF (IFTSATRES) THEN
+                 IF (AQPHSWTCH) THEN
+                    SGR1 = SGR(I,J,K)
+                    SWR1 = SWR(I,J,K)
+                 ELSE
+                    SGR1 = SGR(I,J,K)
+                    SWR1 = SWR(I,J,K)
+                 ENDIF
+               ELSE
+                 IF (AQPHSWTCH) THEN
+                    SGR1 = SGRES(KR)
+                    SWR1 = SORES(KR)
+                 ELSE
+                    SGR1 = SGRES(KR)
+                    SWR1 = SWRES(KR)
+                 ENDIF
+               ENDIF
+
+Cxianhui SAT FROM REAL4 TO REAL8,HAS PROBLEM CONVERTING DATA TYPE
+               IF (AQPHSWTCH) THEN
+                  VW = XVISC(I,J,K,2)
+                  VNW = XVISC(I,J,K,3)
+                  SW = SAT(I,J,K,2)
+                  SNW = SAT(I,J,K,3)
+                  SW = MIN(ONE,SW+1E-5)
+                  SWNORM = (SW-SWR1)
+     &                   / (ONE-SWR1)
+               ELSE
+                  VW = XVISC(I,J,K,1)
+                  VNW = XVISC(I,J,K,2)
+                  SW = SAT(I,J,K,1)
+                  SNW = SAT(I,J,K,2)
+                  SWNORM = (SAT(I,J,K,1)-SWR1) 
+     &                   / (ONE-SWR1)
+               ENDIF
+C               PRINT *,'   XPROP DM',1/MOB(I,J,K,2),MOB(I,J,K,3)
+C               PRINT *,'   XPROP VW',VW,VNW,SNW
+               SW = MIN(ONE,SW)
+               SWNORM = MAX(ZERO,SWNORM)
+               SWNORM = MIN(ONE,SWNORM)
+               SGT(I,J,K) = ZERO
+               IF (NSTEP <= 1) GOTO 10
+               IF (.NOT.HYSTERESIS) THEN
+                  IF (SNW >= TEN_M6) THEN
+                     SGT(I,J,K) = SGR1/(ONE-SWR1)
+                  ENDIF
+                  GOTO 10
+               ENDIF
+
+               IF (SNW > TEN_M6) THEN
+C                 MOVING ALONG DRAINAGE
+                  IF (SWNORM <= SWMIN(I,J,K)) THEN 
+C                    RESET HISTORICAL MIN
+                     SWMIN(I,J,K) = SWNORM
+                     SGTRAP = ZERO 
+C                 MOVING ALONG IMBIBITION
+                  ELSE
+                    IF (SGR1 > TEN_M6) THEN
+                       WKSP = SGR1/(ONE-SWR1)
+                       RTERM = ONE/WKSP-ONE
+                       SGTRAP = (ONE-SWMIN(I,J,K))
+     &                  / (ONE+RTERM*(ONE-SWMIN(I,J,K)))
+                    ELSE
+                       SGTRAP = SGR1
+                    ENDIF
+                     IF((SWNORM + SGTRAP- ONE).GT.ZERO)THEN
+C                     SWNORM = MIN(SWNORM,ONE-SGTRAP)
+C                        write(*,*)'big snorm',I,J,K
+                     ENDIF
+                  ENDIF
+               ELSE
+                  SWMIN(I,J,K) = SWNORM
+                  SGTRAP = ZERO
+               ENDIF
+
+C              DRAINAGE
+               IF (SWNORM.LE.SWMIN(I,J,K)) THEN  
+                  SGT(I,J,K) = ZERO
+C              IMBIBITION (LENHARD INTERPOLATION METHOD)
+               ELSE  
+                  IF (SGTRAP+SWMIN(I,J,K) >= ONE) THEN
+                     SGT(I,J,K) = ZERO
+                  ELSE
+                     SGT(I,J,K) = SGTRAP
+     &                   * (SWNORM-SWMIN(I,J,K))
+     &                   / (ONE-SGTRAP-SWMIN(I,J,K))
+                     SGT(I,J,K) = MAX(ZERO,SGT(I,J,K))
+                     SGT(I,J,K) = MIN(SGT(I,J,K) , SGTRAP)
+                  ENDIF
+               ENDIF
+
+  10           CONTINUE
+
+C              COMPUTE APPARENT WETTING PHASE (WATER) SATURATION
+               SWBAR = SWNORM+SGT(I,J,K)
+               SWBAR = MIN(ONE,SWBAR)
+
+C             COMPUTE WETTING PHASE (WATER) RELATIVE PERMEABILITY
+              IF (SWNORM <= SWMIN(I,J,K)) THEN 
+C             MOVING ALONG DRAINAGE
+                RELW = SWNORM**(RPLMDAW(KR))
+                IF (AQPHSWTCH) THEN
+                  DKWSW = RPLMDAW(KR)*SWNORM**(RPLMDAW(KR)-ONE)
+     &                 / (ONE-SWR1)
+                  DMOB(I,J,K,1) = ZERO
+                  DMOB(I,J,K,2) = DKWSW * MOB(I,J,K,2) 
+                  MOB(I,J,K,1) = ZERO
+                  MOB(I,J,K,2) = RELW * MOB(I,J,K,2)
+                ELSE
+                  DKWSW = RPLMDAW(KR)*KRW0(KR)*SWNORM**(RPLMDAW(KR)-ONE)
+     &                 / (ONE-SWR1)
+                  DMOB(I,J,K,1) = DKWSW * MOB(I,J,K,1)
+                  MOB(I,J,K,1) = RELW * MOB(I,J,K,1)
+                ENDIF
+              ELSE
+C             MOVING ALONG IMBIBITION
+                RELW = KRW0(KR)*SWBAR**(RPLMDAW(KR))
+                IF (AQPHSWTCH) THEN
+                  DKWSW = RPLMDAW(KR)*KRW0(KR)*SWBAR**(RPLMDAW(KR)-ONE)
+     &                 / (ONE-SWR1)
+                  DMOB(I,J,K,1) = ZERO
+                  DMOB(I,J,K,2) = DKWSW * MOB(I,J,K,2)
+                  MOB(I,J,K,1) = ZERO
+                  MOB(I,J,K,2) = RELW * MOB(I,J,K,2)
+                ELSE
+                  DKWSW = RPLMDAW(KR)*KRW0(KR)*SWBAR**(RPLMDAW(KR)-ONE)
+     &                 / (ONE-SWR1)
+                  DMOB(I,J,K,1) = DKWSW * MOB(I,J,K,1)
+                  MOB(I,J,K,1) = RELW * MOB(I,J,K,1)
+                ENDIF
+              ENDIF
+C
+C             COMPUTE NON-WETTING PHASE (OIL/GAS) RELATIVE PERMEABILITY 
+C             DRAINAGE AND IMBIBITION USING SAME FORM OF CURVE
+C              IF ((ONE-SGTRAP)<= SWNORM.OR.SW.GE.ONE-SGRES(KR)) THEN
+              IF ((ONE-SGTRAP)<= SWNORM) THEN
+C                  WRITE(*,*)'BIG SW'
+                     RELN = ZERO
+                     DKNSW = ZERO
+                     IF (AQPHSWTCH) THEN
+                        DMOB(I,J,K,3) = DKNSW*MOB(I,J,K,2)
+                        DMOB(I,J,K,4) = DKNSW*MOB(I,J,K,3)
+                        MOB(I,J,K,3) = RELN*MOB(I,J,K,3)
+                     ELSE
+                        DMOB(I,J,K,2) = DKNSW*MOB(I,J,K,2)
+                        MOB(I,J,K,2) = RELN*MOB(I,J,K,2)
+                     ENDIF
+              ELSE
+CCorey
+                     RELN = KRNW0(KR)*((ONE-SWBAR)**RPLMDANW(KR))
+                     IF (AQPHSWTCH) THEN
+                        DKNSW = KRNW0(KR)*RPLMDANW(KR)*((ONE-SWBAR)
+     &                   **(RPLMDANW(KR)-ONE))/(ONE-SWR1)
+                        IF (RELN <= TEN_M10) DKNSW = ZERO
+                        DMOB(I,J,K,3) = DKNSW*MOB(I,J,K,2)
+                        DMOB(I,J,K,4) = DKNSW*MOB(I,J,K,3)
+                        MOB(I,J,K,3) = RELN*MOB(I,J,K,3)
+                     ELSE
+                        DKNSW = KRNW0(KR)*RPLMDANW(KR)
+     &                   *((ONE-SWBAR)**(RPLMDANW(KR)-ONE))
+     &                   /(ONE-SWR1)
+                        IF (RELN <= TEN_M10) DKNSW = ZERO
+                        DMOB(I,J,K,2) = DKNSW*MOB(I,J,K,2)
+                        MOB(I,J,K,2) = RELN*MOB(I,J,K,2)
+                     ENDIF
+              ENDIF
+
+            IF (SW >= ONE) GOTO 20
+
+C           COMPUTE NON-WETTING PHASE (OIL/GAS) AND CAPILLARY PRESSURE
+C              (IF PRESENT)
+            IF (SNW > TEN_M6) THEN
+
+              IF (SWNORM <= SWMIN(I,J,K)) THEN 
+C             DRAINAGE
+                  PCNW = ENTRYP(KR)*(SWBAR**(-ONE/RPLMDA(KR)))
+                  IF (AQPHSWTCH) THEN
+                     PC(I,J,K,1) = ZERO
+                     DPC(I,J,K,1) = ZERO
+                     DPCNW = ENTRYP(KR)*(-ONE/RPLMDA(KR))
+     &                     * (SWBAR**(-ONE-ONE/RPLMDA(KR)))
+     &                     / (ONE-SWR1)
+                     IF (DABS(PCNW) <= TEN_M10) DPCNW = ZERO
+                     IF ((IREFPRES==1).OR.(IREFPRES==2)) THEN
+                        PC(I,J,K,2) = ZERO
+                        PC(I,J,K,3) = PCNW
+                     ELSE
+                        PC(I,J,K,2) = -PCNW
+                        PC(I,J,K,3) = ZERO
+                     ENDIF
+                     DPC(I,J,K,2) = DPCNW
+                     STNORM = SWNORM+SNW/(ONE-SORES(KR))
+                  ELSE
+                     DPCNW = ENTRYP(KR)*(-ONE/RPLMDA(KR))
+     &                     * (SWBAR**(-ONE-ONE/RPLMDA(KR)))
+     &                     / (ONE-SWR1)
+                     IF (DABS(PCNW) <= TEN_M10) DPCNW = ZERO
+                     IF (IREFPRES==1) THEN
+                        PC(I,J,K,1) = ZERO
+                        PC(I,J,K,2) = PCNW
+                     ELSE
+                        PC(I,J,K,1) = -PCNW
+                        PC(I,J,K,2) = ZERO
+                     ENDIF
+                     DPC(I,J,K,1) = DPCNW
+                     STNORM = SWNORM+SNW/(ONE-SWRES(KR))
+                  ENDIF
+              ELSE
+C             IMBIBITION
+                  IF ( SWMIN(I,J,K).LT.(ONE-1E-5)) THEN
+                     IF(SWMIN(I,J,K).LT.1E-5)THEN
+                     WRITE(*,*)' XPROP SWMIN ERR',SWMIN(I,J,K)
+                     SWMIN(I,J,K)= MAX(SWMIN(I,J,K),1E-5)
+                     ENDIF
+                     PCNW = ENTRYP(KR)*(SWMIN(I,J,K)**(-ONE/RPLMDA(KR)))
+                     PCNW =PCNW*((1-SWBAR)/(1-SWMIN(I,J,K)))
+     &                     **(ONE/RPLMDAIM(KR))
+                  ELSE
+                     PCNW = ENTRYP(KR)
+                     DPCNW = ZERO
+                  ENDIF
+
+                  IF (AQPHSWTCH) THEN
+                     PC(I,J,K,1) = ZERO
+                     DPC(I,J,K,1) = ZERO
+                     DPCNW = ENTRYP(KR)*(SWMIN(I,J,K)
+     &                       **(-ONE/RPLMDA(KR)))
+                     DPCNW = DPCNW*((1-SWBAR)/(1-SWMIN(I,J,K)))
+     &                     **(ONE/RPLMDAIM(KR)-1)*ONE/RPLMDAIM(KR)
+     &                     / (ONE-SWR1)/(1-SWMIN(I,J,K))
+                     IF (DABS(PCNW) <= TEN_M10) DPCNW = ZERO
+                     IF ((IREFPRES==1).OR.(IREFPRES==2)) THEN
+                        PC(I,J,K,2) = ZERO
+                        PC(I,J,K,3) = PCNW
+                     ELSE
+                        PC(I,J,K,2) = -PCNW
+                        PC(I,J,K,3) = ZERO
+                     ENDIF
+                     DPC(I,J,K,2) = DPCNW
+                     STNORM = SWNORM+SNW/(ONE-SORES(KR))
+                  ELSE
+                     DPCNW = ENTRYP(KR)*(-ONE/RPLMDA(KR))
+     &                     * (SWBAR**(-ONE-ONE/RPLMDA(KR)))
+     &                     / (ONE-SWR1)
+                     IF (DABS(PCNW) <= TEN_M10) DPCNW = ZERO
+                     IF (IREFPRES==1) THEN
+                        PC(I,J,K,1) = ZERO
+                        PC(I,J,K,2) = PCNW
+                     ELSE
+                        PC(I,J,K,1) = -PCNW
+                        PC(I,J,K,2) = ZERO
+                     ENDIF
+                     DPC(I,J,K,1) = DPCNW
+                     STNORM = SWNORM+SNW/(ONE-SWRES(KR))
+                  ENDIF
+               
+              ENDIF
+
+C              CASE WHEN ONLY WETTING (AQUEOUS) PHASE ACTUALLY EXISTS
+               ELSE
+
+                  RELN = ZERO
+                  DKNSW = ZERO
+                  PCNW = ENTRYP(KR)
+C                  PCNW = ZERO
+                  DPCNW = ZERO
+                  IF (AQPHSWTCH) THEN
+                     MOB(I,J,K,3) = ZERO
+                     DMOB(I,J,K,3) = ZERO
+                     DMOB(I,J,K,4) = ZERO
+                     PC(I,J,K,1) = ZERO
+                     PC(I,J,K,1) = ZERO
+                     PC(I,J,K,2) = ZERO
+                     PC(I,J,K,3) = ZERO
+                     DPC(I,J,K,1) = ZERO
+                     DPC(I,J,K,2) = ZERO
+                  ELSE
+                     MOB(I,J,K,2) = ZERO
+                     DMOB(I,J,K,2) = ZERO
+                     PC(I,J,K,1) = ZERO
+                     PC(I,J,K,2) = ZERO
+                     DPC(I,J,K,1) = ZERO
+                  ENDIF
+
+               ENDIF
+
+   20          CONTINUE
+C              RE-CHECK FOR SINGLE PHASE CELLS AGAIN
+               IF (SW >= ONE) THEN
+                  RELW = ONE
+                  RELN = ZERO
+                  PCNW = ENTRYP(KR)
+                  IF (AQPHSWTCH) THEN
+                     DKWSW = RPLMDAW(KR)*KRW0(KR)*ONE**(RPLMDAW(KR)-ONE)
+     &                     / (ONE-SWR1)
+                     DMOB(I,J,K,1) = ZERO
+                     DMOB(I,J,K,2) = DKWSW*MOB(I,J,K,2)
+                     MOB(I,J,K,1) = ZERO
+                     MOB(I,J,K,2) = RELW*MOB(I,J,K,2)
+                     DKNSW = ZERO
+                     DMOB(I,J,K,3) = ZERO
+                     DMOB(I,J,K,4) = ZERO
+                     MOB(I,J,K,3) = ZERO
+                     DPCNW = ENTRYP(KR)*RPLMDA(KR)
+     &                     / (ONE-SWR1)
+                     PC(I,J,K,1) = ZERO
+                     DPC(I,J,K,1) = ZERO
+                     DPC(I,J,K,2) = DPCNW
+                     IF ((IREFPRES==1).OR.(IREFPRES==2)) THEN
+                        PC(I,J,K,2) = ZERO
+                        PC(I,J,K,3) = PCNW
+                     ELSE
+                        PC(I,J,K,2) = -PCNW
+                        PC(I,J,K,3) = ZERO
+                     ENDIF
+                  ELSE
+                     MOB(I,J,K,1) = RELW*MOB(I,J,K,1)
+                     DKWSW = ((TWO+THREE*RPLMDA(KR))/RPLMDA(KR))
+     &                     / (ONE-SWR1)
+                     DMOB(I,J,K,1) = DKWSW*MOB(I,J,K,1)
+                     DKNSW = ZERO
+                     MOB(I,J,K,2) = ZERO
+                     DMOB(I,J,K,2) = ZERO
+                     DPCNW = ENTRYP(KR)*(-ONE/RPLMDA(KR))
+     &                     / (ONE-SWR1)
+                     DPC(I,J,K,1) = DPCNW
+                     IF (IREFPRES==1) THEN
+                        PC(I,J,K,1) = ZERO
+                        PC(I,J,K,2) = PCNW
+                     ELSE
+                        PC(I,J,K,1) = -PCNW
+                        PC(I,J,K,2) = ZERO
+                     ENDIF
+                  ENDIF
+               ENDIF
+
+               IF (SNW >= ONE) THEN
+                  RELN = KRNW0(KR)
+                  PCNW = ZERO
+                  IF (AQPHSWTCH) THEN
+                     DKNSW = RPLMDANW(KR)*KRNW0(KR)/(ONE-SWR1)
+                     DMOB(I,J,K,3) = DKNSW*MOB(I,J,K,3)
+                     DMOB(I,J,K,4) = DKNSW*MOB(I,J,K,3)
+                     MOB(I,J,K,3) = RELN*MOB(I,J,K,3)
+                  ELSE
+                     DKNSW = TWO*KRNW0(KR)/(ONE-SWR1)
+                     DMOB(I,J,K,2) = DKNSW*MOB(I,J,K,2)
+                     MOB(I,J,K,2) = RELN*MOB(I,J,K,2)
+                  ENDIF
+               ENDIF
+Cxianhui add verification for hysteresis
+C                  IF(I.EQ.1.AND.J.EQ.1.AND.K.EQ.25)THEN
+                  IF(K.EQ.0)THEN
+               WRITE(67,1000)TIM,SW,SWNORM,SWMIN(I,J,K),RELW,RELN,PCNW
+C                  WRITE(*,*)'ALPHA',I,J,K
+                  ENDIF
+                  IF(K.EQ.0)THEN
+               WRITE(68,1000)TIM,SW,SWNORM,SWMIN(I,J,K),RELW,RELN,PCNW
+C                  WRITE(*,*)'ALPHA',I,J,K
+                  ENDIF
+C                  WRITE(*,*)'SGTRAP',SGTRAP,SWMIN(I,J,K),K
+1000  format (f8.3,3(f16.9),3(f16.9))
+
+            ENDDO
+         ENDDO
+      ENDDO
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE XIFTRLPRM(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                     KL2,KEYOUT,NBLK,PRES,SAT,KROCK,YPERM,PORO
+     &                   ,PC,DPC,MOB,DMOB,SGT
+     &                   ,SWMIN,SGR,SWR,XTENS)
+C*********************************************************************
+
+C  ROUTINE EVALUATES MOBILITIES. THIS IS A WORK ROUTINE OR IS CALLED
+C  FROM A WORK ROUTINE.
+C  THIS ROUTINE ASSUMES:
+C                         PHASE 1 = WATER
+C                         PHASE 2 = LIQUID
+C                         PHASE 3 = VAPOR
+
+C  INPUT:
+C     KROCK(I,J,K) = ROCK CURVE (INTEGER)
+C     SAT(I,J,K,IPH) = SATURATION FOR PHASE IPH (REAL*8)
+C     PRES(IDIM,JDIM,KDIM) = PRESSURE (REAL*8)
+C     MDEN(IDIM,JDIM,KDIM,NPH) = PHASE DENSITY (REAL*8)
+C     TEMPR(IDIM,JDIM,KDIM) = TEMPERATURE AT GRID BLOCK (REAL*8)
+C     DEPTH(IDIM,JDIM,KDIM) = DEPTH OF EACH GRID (REAL*8)
+C     XPERM(IDIM,JDIM,KDIM) = X,Y,Z PERMEABILITY (REAL*4)
+C     YPERM(IDIM,JDIM,KDIM) = X,Y,Z PERMEABILITY (REAL*4)
+C     ZPERM(IDIM,JDIM,KDIM) = X,Y,Z PERMEABILITY (REAL*4)
+C     KSI(IDIM,JDIM,KDIM,NCINPH) = mol FRACTION IN PHASE
+
+C  INPUT/OUTPUT:
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C                      ASSUMES MOB ALREADY CONTAINS 1/VISCOSITY TERM
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE OF PHASE IPH (REAL*8)
+C     DMOB(I,J,K,*) = MOBILITY DERIVATIVE (REAL*4)
+C     DPC(I,J,K,*) = CAPILLARY PRESSURE DERIVATIVE (REAL*4)
+C     SWMIN(I,J,K) = EFFECTIVE REVERSAL WETTING PHASE SATURATION
+C                    (REAL*8)
+C     SGT(I,J,K) = EFFECTIVE TRAPPED NON-WETTING PHASE SATURATION
+C                  (REAL*8)
+
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'rock.h'
+      INCLUDE 'layout.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+C      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8 PRES(IDIM,JDIM,KDIM),SAT(IDIM,JDIM,KDIM,NPH),
+     &     SWR(IDIM,JDIM,KDIM),
+     &     PC(IDIM,JDIM,KDIM,NPH),SGT(IDIM,JDIM,KDIM),
+     &     MOB(IDIM,JDIM,KDIM,NPH),
+     &     SGR(IDIM,JDIM,KDIM),SWMIN(IDIM,JDIM,KDIM),
+     &     XTENS(IDIM,JDIM,KDIM),
+     &     PORO(IDIM,JDIM,KDIM)
+      REAL*4 YPERM(IDIM,JDIM,KDIM),
+     &       DPC(IDIM,JDIM,KDIM,2),
+     &       DMOB(IDIM,JDIM,KDIM,4)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IL2P,JM1,KM1,IPH,IMIN,IOFF,JOFF,KOFF,MERR,
+     &       JL1(KDIM),JL2(KDIM), KL2P,KL1S,KR,III
+C
+      REAL*8 PCNW,DPCOW,DPCGO,RELW,RELO,RELG,DKWSW,IFTIJK,
+     &       DKOSW,DKOSG,DKGSG,G,SW,SNW,
+     &       KG0,SWNORM,SWBAR,RELN,DKNSW,DPCNW,
+     &       KW0,RPLMDA1,EG,EW,SGR0,SWR0,SGTRAP,RTERM,WKSP
+C     &       ,SGLOW,SGHIGH,SWLOW,SWHIGH,KGLOW,KGHIGH,KWLOW,KWHIGH,
+C     &       EGLOW,EGHIGH,EWLOW,EWHIGH,
+C     &       EPC,PCLOW,IFT0
+C-----------------------------------------------------------------------
+C      print *, ' IN IFTRLPRM'
+         G = HALF*GRAV
+
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+               IF (KEYOUT(I,J,K) .NE. 1) CYCLE
+                  KR = KROCK(I,J,K)
+C              SET TEMPERORAY RESIDUAL SATURATION SGR0 SWR0 FOR GRID
+               IF (IFTSATRES) THEN
+                  SGR0 = SGR(I,J,K)
+                  SWR0 = SWR(I,J,K)
+                  IFTIJK = XTENS(I,J,K)
+               ELSE
+C              no shift of Slr with trapping number
+                  SGR0 = SGLOW
+                  SWR0 = SWLOW
+                  IFTIJK = IFT0
+               ENDIF
+C
+               IF (AQPHSWTCH) THEN
+                  SW = SAT(I,J,K,2)
+                  SNW = SAT(I,J,K,3)
+               ELSE
+                  SW = SAT(I,J,K,1)
+                  SNW = SAT(I,J,K,2)
+               ENDIF
+
+C should be 3 phase for CO2 inj into brine aquifer
+C        SGR = SGHIGH+(SGLOW-SGHIGH)/(1.+TGL*XNTRAP(I,J,K,3)**TAUG)
+C        SGR = MAX(SGR,ZERO)
+C        SWR = SWHIGH +(SWLOW - SWHIGH)/(1.+TWL*XNTRAP(I,J,K,2)**TAUW)
+          SWNORM = (SW-SWR0)
+     &              / (1-SWR0-SGR0)
+          SWNORM = MAX(ZERO,SWNORM)
+          SWNORM = MIN(ONE,SWNORM)
+C interpolate Kr0 according to calculated residual
+         IF (ABS(SWLOW-SWHIGH) > TEN_M6) THEN
+          KG0=KGLOW + (SWLOW-SWR0)*(KGHIGH-KGLOW)/(SWLOW-SWHIGH)
+         ELSE
+          KG0=KGLOW
+         ENDIF
+         IF (ABS(SGLOW-SGHIGH) > TEN_M6) THEN
+          KW0=KWLOW + (SGLOW-SGR0)*(KWHIGH-KWLOW)/(SGLOW-SGHIGH)
+         ELSE
+          KW0=KWLOW
+         ENDIF
+          KG0 = MAX(ZERO, KG0)
+          KW0 = MAX(ZERO, KW0)
+          KG0 = MIN(ONE,KG0)
+          KW0 = MIN(ONE,KW0)
+C interpolate exponent for Kr curves
+         IF (ABS(SWLOW-SWHIGH) > TEN_M6) THEN
+          EG=EGLOW+ (SWLOW-SWR0)*(EGHIGH-EGLOW)/(SWLOW-SWHIGH)
+         ELSE
+          EG=EGLOW
+         ENDIF
+         IF (ABS(SGLOW-SGHIGH) > TEN_M6) THEN
+          EW=EWLOW+ (SGLOW-SGR0)*(EWHIGH-EWLOW)/(SGLOW-SGHIGH)
+         ELSE
+          EW=EWLOW
+         ENDIF
+C at extrem high trapping number, Kr-curve is line, minimum eg =1
+          EG= MAX(ONE,EG)
+          EW= MAX(ONE,EW)
+C
+C following part calculate Kr, Pc
+C
+C calc. mobility
+C USING Brooks-Corey equation calc. wetting phase Kr
+            RELW = KW0*SWNORM**EW
+            DKWSW = KW0*EW*(SWNORM**(EW-ONE))
+     &          / (ONE-SWR0)
+            IF(SNW .GE.(ONE-SWR0))THEN
+              RELN = KG0
+              PCNW = ZERO
+            ELSE
+              RELN = KG0*(ONE-SWNORM)**EG
+            ENDIF
+            DKNSW = -KG0*EG*(ONE-SWNORM)
+     &          **(EG-ONE) / (ONE-SWR0)
+            IF(SNW.LE.SGR0)THEN
+              RELN = ZERO
+              DKNSW = ZERO
+            ENDIF
+
+          IF (AQPHSWTCH) THEN
+             DMOB(I,J,K,1) = ZERO
+             MOB(I,J,K,1) = ZERO
+             PC(I,J,K,1) = ZERO
+             DPC(I,J,K,1) = ZERO
+             DMOB(I,J,K,2) = DKWSW * MOB(I,J,K,2)
+             MOB(I,J,K,2) = RELW * MOB(I,J,K,2)
+
+             IF (RELN <= TEN_M10) DKNSW = ZERO
+             DMOB(I,J,K,3) = DKNSW*MOB(I,J,K,2)
+             DMOB(I,J,K,4) = DKNSW*MOB(I,J,K,3)
+             MOB(I,J,K,3) = RELN*MOB(I,J,K,3)
+          ELSE
+             IF (RELN <= TEN_M10) DKNSW = ZERO
+             DMOB(I,J,K,1) = DKWSW * MOB(I,J,K,1)
+             MOB(I,J,K,1) = RELW * MOB(I,J,K,1)
+             DMOB(I,J,K,2) = DKNSW*MOB(I,J,K,2)
+             MOB(I,J,K,2) = RELN*MOB(I,J,K,2)
+          ENDIF
+C       END FOR COREY
+
+C       COMPUTE Non-wetting phase CAPILLARY PRESSURE Pc
+        IF (SNW  > TEN_M8) THEN
+            PCNW = PCLOW*(SWNORM**(-ONE/EPC))
+            DPCNW = PCLOW*(-ONE/EPC)
+     &              * (SWNORM**(-ONE-ONE/EPC))
+     &              / (ONE-SWR0)
+        ELSE
+C         NO NON-WETTING PHASE EXIST
+          PCNW = ZERO
+          DPCNW = ZERO
+        ENDIF
+
+        IF (AQPHSWTCH) THEN
+            DPC(I,J,K,2) = DPCNW
+            DPC(I,J,K,1) = ZERO
+
+            IF (DABS(PCNW) <= TEN_M10) DPCNW = ZERO
+            IF ((IREFPRES==1).OR.(IREFPRES==2)) THEN
+              PC(I,J,K,2) = ZERO
+              PC(I,J,K,3) = PCNW
+            ELSE
+              PC(I,J,K,2) = -PCNW
+              PC(I,J,K,3) = ZERO
+            ENDIF
+        ELSE
+            IF (DABS(PCNW) <= TEN_M10) DPCNW = ZERO
+            IF (IREFPRES==1) THEN
+              PC(I,J,K,1) = ZERO
+              PC(I,J,K,2) = PCNW
+            ELSE
+              PC(I,J,K,1) = -PCNW
+              PC(I,J,K,2) = ZERO
+            ENDIF
+            DPC(I,J,K,1) = DPCNW
+        ENDIF
+
+   10   CONTINUE
+C bellow for debug output
+                  IF(K.EQ.0)THEN
+               WRITE(67,1000)TIM,SAT(I,J,K,2),SWNORM,SWMIN(I,J,K),
+     &                       RELW,RELN,PCNW
+C                  WRITE(*,*)'ALPHA',I,J,K
+                  ENDIF
+                  IF(K.EQ. 0)THEN
+               WRITE(68,1000)TIM,SAT(I,J,K,2),SWNORM,SWMIN(I,J,K),
+     &              RELW,RELN,PCNW
+C                  WRITE(*,*)'ALPHA',I,J,K
+                  ENDIF
+1000  format (f8.3,3(f16.9),3(f16.9))
+C       IF((I.EQ.2).AND.(J.EQ.2).AND.(K.EQ.11))THEN
+       IF(0)THEN
+        WRITE(*,*)'$I',I,J,K
+        WRITE(*,*)'  P, PC ',PRES(I,J,K),PC(I,J,K,3)
+C        WRITE(*,*)'KCO2 ,Ksi ',KSI(I,J,K,1),KSI(I,J,K,2),KSI(I,J,K,3)
+C        WRITE(*,*)'PORO',PORO(I,J,K)
+          WRITE(*,*)'  SG  SW ',SAT(I,J,K,3),SAT(I,J,K,2)
+          WRITE(*,*)'  SGR SWR',SGR0,SWR0
+          WRITE(*,*)'  KG0 KW0',KG0,KW0
+          WRITE(*,*)'  SWNORM SWM ',SWNORM,SWMIN(I,J,K)
+          WRITE(*,*)'  SGTrap SGT',SGTRAP,SGT(I,J,K)
+        WRITE(*,*)' DKWSW RELW',DKWSW,RELW
+        WRITE(*,*)' DKnSW RELn',DKNSW,RELN
+C        WRITE(*,*)' DXDYDZ',DX,DY,DZ
+C        TENS2 = COE23*XCO2**3+COE22*XCO2**2
+C     &           +COE21*XCO2+COE20
+C        TENS3 = COE33*XCO2**3+COE32*XCO2**2
+C     &           +COE31*XCO2+COE30
+C        TENS3 = COE33*KSI(I,J,K,2)**3+COE32*KSI(I,J,K,2)**2
+C     &           +COE31*KSI(I,J,K,2)+COE30
+C        WRITE(*,*)' PC  ', PC(I,J,K,1), PC(I,J,K,2), PC(I,J,K,3)
+C        WRITE(*,*)' DPC  ',DPC(I,J,K,1),DPC(I,J,K,2)
+       ENDIF
+C
+      END DO
+      END DO
+      END DO
+      END
+
+C*********************************************************************
+      SUBROUTINE XRELFOAM(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                     KL2,KEYOUT,NBLK,KROCK,MOB,SAT,DMOB,
+     &                     TRACER,XVEL)
+C*********************************************************************
+ 
+C  ROUTINE EVALUATES MOBILITIES. THIS IS A WORK ROUTINE OR IS CALLED
+C  FROM A WORK ROUTINE.
+C  THIS ROUTINE ASSUMES:
+C                         PHASE 1 = WATER
+C                         PHASE 2 = LIQUID
+C                         PHASE 3 = VAPOR
+
+C  INPUT:
+C     KROCK(I,J,K) = ROCK CURVE (INTEGER)
+C     SAT(I,J,K,IPH) = SATURATION FOR PHASE IPH (REAL*8)
+
+C  INPUT/OUTPUT:
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C                      ASSUMES MOB ALREADY CONTAINS 1/VISCOSITY TERM
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE OF PHASE IPH (REAL*8)
+C     DMOB(I,J,K,*) = MOBILITY DERIVATIVE (REAL*4)
+C     DPC(I,J,K,*) = CAPILLARY PRESSURE DERIVATIVE (REAL*4)
+
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'rock.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8 MOB(IDIM,JDIM,KDIM,NPH),SAT(IDIM,JDIM,KDIM,NPH), 
+     &       PC(IDIM,JDIM,KDIM,NPH),TRACER(IDIM,JDIM,KDIM)
+     &       ,XVEL(IDIM,JDIM,KDIM,NPH,3),XVELN(IDIM,JDIM,KDIM,NPH,3)
+      REAL*4 DPC(IDIM,JDIM,KDIM,2),DMOB(IDIM,JDIM,KDIM,4)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+C      INTEGER I,J,K,KR,IL2P,IMIN
+      INTEGER I,IM1,J,K,IOFF,JOFF,KOFF,IERR,IPH,IL2P,IMIN
+      REAL*8 SW,SG,PCOW,PCGO,DPCOW,DPCGO,RELW,RELO,RELG,DKWSW,KRGF,FM
+     &       ,UGX,UGY,UGZ,UGA,RPRIM,FLUX,DX,DY,DZ,DKRGF
+
+C      WRITE(*,*)'IN XRELFM',CSTAR,SWSTAR
+C      WRITE(46,*),'TIME ',TIM
+C      WRITE(47,*),'TIME ',TIM
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+
+      FM = 1.0
+      IPH = 3
+      IL2P = IL2+0
+      IMIN = MAX(IL1,2)
+
+         DO K = KL1,KL2
+            DO J = JL1V(K),JL2V(K)
+               DO I = IMIN,IL2P
+                  IF(KEYOUT(I,J,K) == 0) CYCLE
+C    CALCULATE R'=R_REF*U_G/UG_REF)^(SIGMA-1)
+                  IF((SAT(I,J,K,1)>(SWSTAR-EPXLO))
+     &              .AND.(TRACER(I,J,K)>CSTAR).OR.1)THEN
+
+                     IF(XDARCYFLUX) THEN
+                         DX = DXREC(I+IOFF,NBLK)
+                         DY = DYREC(J+JOFF,NBLK)
+                         DZ = DZREC(K+KOFF,NBLK)
+                         UGX= (ABS(XVEL(I,J,K,IPH,1))
+     &                        +ABS(XVEL(I+1,J,K,IPH,1)))*HALF/DY/DZ
+                         UGY= (ABS(XVEL(I,J,K,IPH,2))
+     &                        +ABS(XVEL(I,J+1,K,IPH,2)))*HALF/DX/DZ
+                         UGZ= (ABS(XVEL(I,J,K,IPH,3))
+     &                        +ABS(XVEL(I,J,K+1,IPH,3)))*HALF/DY/DX
+                         IF(I.EQ.IMIN)UGX= XVEL(I+1,J,K,IPH,1)/DY/DZ
+                         IF(I.EQ.IL2P)UGX= XVEL(I,J,K,IPH,1)/DY/DZ
+                         IF(J.EQ.JL1V(K))UGY= XVEL(I,J+1,K,IPH,2)/DX/DZ
+                         IF(J.EQ.JL2V(K))UGY= XVEL(I,J,K,IPH,2)/DX/DZ
+                         IF(K.EQ.KL1)UGZ= XVEL(I,J,K+1,IPH,3)/DX/DY
+                         IF(K.EQ.KL2)UGZ= XVEL(I,J,K,IPH,3)/DX/DY
+                     ELSE
+                         UGX= (ABS(XVEL(I,J,K,IPH,1))
+     &                        +ABS(XVEL(I+1,J,K,IPH,1)))*HALF
+                         UGY= (ABS(XVEL(I,J,K,IPH,2))
+     &                        +ABS(XVEL(I,J+1,K,IPH,2)))*HALF
+                         UGZ= (ABS(XVEL(I,J,K,IPH,3))
+     &                        +ABS(XVEL(I,J,K+1,IPH,3)))*HALF
+                         IF(I.EQ.IMIN)UGX= XVEL(I+1,J,K,IPH,1)
+                         IF(I.EQ.IL2P)UGX= XVEL(I,J,K,IPH,1)
+                         IF(J.EQ.JL1V(K))UGY= XVEL(I,J+1,K,IPH,2)
+                         IF(J.EQ.JL2V(K))UGY= XVEL(I,J,K,IPH,2)
+                         IF(K.EQ.KL1)UGZ= XVEL(I,J,K+1,IPH,3)
+                         IF(K.EQ.KL2)UGZ= XVEL(I,J,K,IPH,3)
+                     ENDIF
+                     UGA = SQRT(UGX**2+UGY**2+UGZ**2)
+                     IF(UGA.GT.1E-5)THEN
+                       RPRIM = RREF*(UGA/VELGR)**(SHRTN-ONE)
+                     ELSE
+                       RPRIM = 1.0
+                     ENDIF
+                  ENDIF
+                  
+C    CALCULATE FOAM KRGF
+                  TRACER(I,J,K)=0.1
+                  IF (AQPHSWTCH) THEN
+C      WITH AQSWICH, OIL PHASE IS H2O WATER
+                  IF((SAT(I,J,K,2)<(SWSTAR-EPXLO))
+     &              .OR.(TRACER(I,J,K)<CSTAR))THEN
+                     FM=1.0
+
+                  ELSEIF((SAT(I,J,K,2)>(SWSTAR-EPXLO))
+     &              .AND.(SAT(I,J,K,2)<(SWSTAR+EPXLO))
+     &              .AND.(TRACER(I,J,K)>CSTAR))THEN
+                     FM=(RPRIM-1.0)*(SAT(I,J,K,2)-SWSTAR+EPXLO)
+     &                  *HALF/EPXLO+1.0
+
+                  ELSEIF((SAT(I,J,K,2)>(SWSTAR+EPXLO))
+     &              .AND.(TRACER(I,J,K)>CSTAR))THEN
+                     FM=RPRIM
+                  ELSE
+                     WRITE(*,*)'RELFOAM UNKNOW', I,J,K
+                  ENDIF
+
+                  ELSE 
+C      WITHOUT AQSWICH
+                  IF((SAT(I,J,K,1)<(SWSTAR-EPXLO))
+     &              .OR.(TRACER(I,J,K)<CSTAR)
+     &              .OR.(SAT(I,J,K,2)>SOSTAR))THEN
+                     FM=1.0
+
+                  ELSEIF((SAT(I,J,K,1)>(SWSTAR-EPXLO))
+     &              .AND.(SAT(I,J,K,1)<(SWSTAR+EPXLO))
+     &              .AND.(TRACER(I,J,K)>CSTAR))THEN
+                     FM=(RPRIM-1.0)*(SAT(I,J,K,1)-SWSTAR+EPXLO)
+     &                  *HALF/EPXLO+1.0
+
+                  ELSEIF((SAT(I,J,K,1)>(SWSTAR+EPXLO))
+     &              .AND.(TRACER(I,J,K)>CSTAR))THEN
+                     FM=RPRIM
+                  ELSE
+                     WRITE(*,*)'RELFOAM UNKNOW', I,J,K
+                  ENDIF
+
+                  ENDIF
+C      end of AQSWITCH
+
+C      FOAM Kr and dKrgSG with reduction FM
+                  IF(ABS(FM).GT.1E-3)THEN 
+                     KRGF=MOB(I,J,K,IPH)/FM
+                     DKRGF=DMOB(I,J,K,4)/FM
+                     MOB(I,J,K,IPH)=KRGF
+                     DMOB(I,J,K,4)=DKRGF
+                  ENDIF
+
+C                  IF(I.EQ.2 .AND.J.EQ.34)THEN
+C                  WRITE(46,1000)I*10000+J*100+K,SAT(I,J,K,1),SAT(I,J,K,2)
+C     &                      ,TRACER(I,J,K)
+C                  WRITE(47,1000)I*10000+J*100+K,FM,UGA,RPRIM,KRGF
+C                  ENDIF
+C1000              format (I8,f9.3,3(f16.8),3(f16.8))
+               END DO
+            END DO
+         END DO
+
+      END
+
+C*********************************************************************
+      SUBROUTINE XRELFOAM1(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                     KL2,KEYOUT,NBLK,KROCK,MOB,SAT,DMOB,
+     &                     CONC,XVEL)
+C*********************************************************************
+
+C  ROUTINE EVALUATES MOBILITIES. THIS IS A WORK ROUTINE OR IS CALLED
+C  FROM A WORK ROUTINE.
+C  THIS ROUTINE ASSUMES:
+C                         PHASE 1 = WATER
+C                         PHASE 2 = LIQUID
+C                         PHASE 3 = VAPOR
+
+C  INPUT:
+C     KROCK(I,J,K) = ROCK CURVE (INTEGER)
+C     SAT(I,J,K,IPH) = SATURATION FOR PHASE IPH (REAL*8)
+
+C  INPUT/OUTPUT:
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C                      ASSUMES MOB ALREADY CONTAINS 1/VISCOSITY TERM
+C     DMOB(I,J,K,*) = MOBILITY DERIVATIVE (REAL*4)
+
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'rock.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8 MOB(IDIM,JDIM,KDIM,NPH),SAT(IDIM,JDIM,KDIM,NPH),
+     &       CONC(IDIM,JDIM,KDIM,NC),
+     &       XVEL(IDIM,JDIM,KDIM,NPH,3),XVELN(IDIM,JDIM,KDIM,NPH,3)
+      REAL*4 DMOB(IDIM,JDIM,KDIM,4)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+
+      INTEGER I,J,K,IOFF,JOFF,KOFF,IERR
+      REAL*8 DX,DY,DZ,SW,FM,VELX,VELY,VELZ,VEL,RF,FACTOR
+
+C     GET THE GLOBAL OFFSETS FOR DX,DY,DZ
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      IF(IERR.NE.0) RETURN
+
+C      PRINT*, 'NC=', NC
+      DO K = KL1,KL2
+         DO  J = JL1V(K),JL2V(K)
+            DO  I = IL1,IL2
+               IF (KEYOUT(I,J,K) /= 1) CYCLE
+
+               IF (AQPHSWTCH) THEN
+                  SW = SAT(I,J,K,2)
+               ELSE
+C This model is for CO2 sequestration only temporarily. 
+C AQPHSWTCH needs to be true.
+                  WRITE(*,*) 'ERROR: AQPHSWTCH=FALSE; CO2 FOAM'   
+                  STOP
+               ENDIF
+
+               IF(I.EQ.IL1) THEN
+                  VELX = XVEL(I+1,J,K,3,1)
+               ELSE IF(I.EQ.IL2) THEN
+                  VELX = XVEL(I,J,K,3,1)
+               ELSE
+               VELX= (XVEL(I,J,K,3,1)+XVEL(I+1,J,K,3,1))*HALF
+               ENDIF
+
+               IF(J.EQ.JL1V(K)) THEN
+                  VELY = XVEL(I,J+1,K,3,2)
+               ELSE IF(J.EQ.JL2V(K)) THEN
+                  VELY = XVEL(I,J,K,3,2)
+               ELSE
+                  VELY= (XVEL(I,J,K,3,2)+XVEL(I,J+1,K,3,2))*HALF
+               ENDIF
+               IF(K.EQ.KL1) THEN
+                  VELZ = XVEL(I,J,K+1,3,3)
+               ELSE IF(K.EQ.KL2) THEN
+                  VELZ = XVEL(I,J,K,3,3)
+               ELSE
+                  VELZ= (XVEL(I,J,K,3,3)+XVEL(I,J,K+1,3,3))*HALF
+               ENDIF
+
+               IF(XDARCYFLUX) THEN
+                  DX=DXREC(I+IOFF,NBLK)
+                  DY=DYREC(J+JOFF,NBLK)
+                  DZ=DZREC(K+KOFF,NBLK)
+                  VELX = VELX/DY/DZ
+                  VELY = VELY/DX/DZ
+                  VELZ = VELZ/DX/DY
+               ENDIF
+
+               VEL = SQRT(VELX**2+VELY**2+VELZ**2)
+C              PRINT*, 'TRACER CONCENTRATION IS', CONC(I,J,K,4)
+
+               IF (VEL .GT. 1E-6) THEN
+                  RF = RREF*(VEL/VELREF)**(SHRTN-1)
+               ELSE
+                  RF = RREF
+               ENDIF 
+
+               IF ( SW<SWSTAR-EPSILON.OR.CONC(I,J,K,4)<CSTAR ) THEN
+C                    PRINT*, 'case 1'
+               ELSE IF ( SW > SWSTAR-EPSILON .AND. SW < SWSTAR+EPSILON 
+     &             .AND. CONC(I,J,K,4)>CSTAR-1E-10 ) THEN
+C                    PRINT*, 'case 2'
+                   FACTOR=(1+((RF-1)*(SW-SWSTAR+EPSILON))/(2*EPSILON))
+                   MOB(I,J,K,3)=MOB(I,J,K,3)/FACTOR
+                   DMOB(I,J,K,4)=( DMOB(I,J,K,4)*FACTOR
+     &              -MOB(I,J,K,3)*(RF-1)/(2*EPSILON) )/(FACTOR**2)
+               ELSE
+C                  PRINT*, 'case 3'
+                   MOB(I,J,K,3)=MOB(I,J,K,3)/RF
+                   DMOB(I,J,K,4)=DMOB(I,J,K,4)/RF
+               END IF
+
+            END DO
+         END DO
+      END DO
+      END
+
+
+C ==================================================================
+       SUBROUTINE XVELCOMP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                   KL2,KEYOUT,NBLK,TCOFX,TCOFY,TCOFZ,DEPTH,PRES,
+     &                   PC,MDEN,MOB,XVEL)
+C ------------------------------------------------------------------
+C COMPUTES VELOCITIES (FLUXES) ASSOCIATED WITH FACES 1,2,3 (X,Y,Z) OF
+C EACH GRIDBLOCK, FOR EACH PHASE 1,2,3 (OIL,WATER,GAS)
+C XVEL(I,J,K,IPHASE,1) FOR EXAMPLE CONTAINS THE VALUE OF VELOCITY FOR 
+C PHASE IPHASE ON THE FACE OF LOCATION I-1/2,J,K. 
+C-------------------------------------------------------------------
+      IMPLICIT NONE
+$POWER       INCLUDE 'msjunk.h'
+
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xmodel.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,NBLK,KL1,KL2,IDBG1,IDBG2
+      INTEGER IERR,JL1,I1,J1,K1,I,J,K,JLP,MKEY1,MKEY
+      INTEGER IPHASE,IFACE,MIOFF,MJOFF,MKOFF,IOFF,JOFF,KOFF
+      INTEGER OIL,WATER,GAS
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 G2,DD,DGRAV,DENS1,DENS2,DX,DY,DZ,DP,ZERO
+      REAL*8 TCOFX(IDIM,JDIM,KDIM),       TCOFY(IDIM,JDIM,KDIM),
+     &       TCOFZ(IDIM,JDIM,KDIM),       DEPTH(IDIM,JDIM,KDIM),
+     &       PRES(IDIM,JDIM,KDIM),        PC(IDIM,JDIM,KDIM,NPH),
+     &       MDEN(IDIM,JDIM,KDIM,NPH),    MOB(IDIM,JDIM,KDIM,3), 
+     &       XVEL(IDIM,JDIM,KDIM,NPH,3)
+
+      PARAMETER (IDBG1=102,IDBG2=103,WATER=1,OIL=2,GAS=3,ZERO=0.0D0)
+
+C     GET THE GLOBAL OFFSETS FOR DX,DY,DZ
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      IF(IERR.NE.0) RETURN
+
+      G2=.5D0*GRAV
+
+C     MAIN LOOP OVER FACES AND PHASES 
+
+      DO IFACE=1,3
+         MIOFF=0
+         MJOFF=0
+         MKOFF=0
+         IF (IFACE.EQ.1) MIOFF=1
+         IF (IFACE.EQ.2) MJOFF=1
+         IF (IFACE.EQ.3) MKOFF=1
+
+      DO IPHASE=1,NPH
+
+      DO K=KL1,KL2+MKOFF
+         IF (K.EQ.KL1) THEN
+            JL1=JL1V(K)
+            JLP=JL2V(K)+MJOFF
+         ELSEIF(K.LE.KL2) THEN
+            JL1=MIN(JL1V(K-1),JL1V(K))
+            JLP=MAX(JL2V(K-1),JL2V(K))+MJOFF
+         ELSE
+            JL1=JL1V(KL2)
+            JLP=JL2V(KL2)
+         ENDIF
+      DO J=JL1,JLP
+      DO I=IL1,IL2+MIOFF
+
+         I1=I-MIOFF
+         J1=J-MJOFF
+         K1=K-MKOFF
+
+         MKEY=KEYOUT(I,J,K)
+         MKEY1=KEYOUT(I1,J1,K1)
+
+C     INNER FACE
+         IF(MKEY.EQ.1.AND.MKEY1.EQ.1) GOTO 4
+C     GHOST FACE
+         IF(((MKEY.EQ.-1).AND.(MKEY1.EQ.1)).OR.
+     &      ((MKEY.EQ.1).AND.(MKEY1.EQ.-1))) GOTO 4
+C     BDARY FACE: THESE ARE SET TO ZERO AND RECOMPUTED
+C     IN BC_VELCOMP
+         IF((MKEY.EQ.0.AND.MKEY1.EQ.1).OR.
+     &      (MKEY.EQ.1.AND.MKEY1.EQ.0)) GOTO 1
+C     ELSE: DO NOT COMPUTE
+         GOTO 1
+
+C     BEGINNING OF ACTUAL COMPUTATION FOR XVEL(I,J,K)
+
+ 4       CONTINUE
+C     DD IS THE DIFFERENCE IN DEPTHS
+
+         DD=(DEPTH(I,J,K)-DEPTH(I1,J1,K1))*G2
+
+C     DP IS DIFFERENCE  OF PRESSURES
+C     DP=PPHASE2-PPHASE1
+
+      IF(NPH == 3) THEN
+         IF(IREFPRES == WATER) THEN
+            IF (IPHASE.EQ.WATER) DP=PRES(I,J,K)-PRES(I1,J1,K1)
+            IF (IPHASE.EQ.OIL) DP=PRES(I,J,K)-PRES(I1,J1,K1) 
+     &               +PC(I,J,K,OIL)-PC(I1,J1,K1,OIL)
+            IF (IPHASE.EQ.GAS) DP=PRES(I,J,K)-PRES(I1,J1,K1)
+     &               +PC(I,J,K,GAS)-PC(I1,J1,K1,GAS)
+         ELSEIF(IREFPRES == OIL) THEN
+            IF (IPHASE.EQ.WATER) DP=PRES(I,J,K)-PRES(I1,J1,K1)
+     &               +PC(I,J,K,WATER)-PC(I1,J1,K1,WATER)
+            IF (IPHASE.EQ.OIL) DP=PRES(I,J,K)-PRES(I1,J1,K1) 
+            IF (IPHASE.EQ.GAS) DP=PRES(I,J,K)-PRES(I1,J1,K1)
+     &               +PC(I,J,K,GAS)-PC(I1,J1,K1,GAS)
+         ELSE
+            IF (IPHASE.EQ.WATER) DP=PRES(I,J,K)-PRES(I1,J1,K1)
+     &               +PC(I,J,K,WATER)-PC(I1,J1,K1,WATER)
+            IF (IPHASE.EQ.OIL) DP=PRES(I,J,K)-PRES(I1,J1,K1) 
+     &               +PC(I,J,K,OIL)-PC(I1,J1,K1,OIL)
+            IF (IPHASE.EQ.GAS) DP=PRES(I,J,K)-PRES(I1,J1,K1)
+         ENDIF
+      ELSEIF(NPH == 2) THEN
+         IF(IREFPRES == WATER) THEN
+            IF (IPHASE.EQ.WATER) DP=PRES(I,J,K)-PRES(I1,J1,K1)
+            IF (IPHASE.EQ.OIL) DP=PRES(I,J,K)-PRES(I1,J1,K1)
+     &               +PC(I,J,K,OIL)-PC(I1,J1,K1,OIL)
+         ELSE
+            IF (IPHASE.EQ.WATER) DP=PRES(I,J,K)-PRES(I1,J1,K1)
+     &               +PC(I,J,K,WATER)-PC(I1,J1,K1,WATER)
+            IF (IPHASE.EQ.OIL) DP=PRES(I,J,K)-PRES(I1,J1,K1)
+         ENDIF
+      ELSE
+         DP=PRES(I,J,K)-PRES(I1,J1,K1)
+      ENDIF
+
+C COMPUTE DGRAV : GRAVITY COMPONENT FROM DARCYS LAW, ASSUME 0.0 FOR 
+C GAS VELOCITY IF THERE IS NO GAS IN EITHER OF THE CELLS
+
+         DGRAV=0.0D0
+         DENS1=MDEN(I1,J1,K1,IPHASE)
+         DENS2=MDEN(I,J,K,IPHASE)
+         IF (IPHASE.NE.GAS) THEN
+            DGRAV=DD*(DENS1+DENS2)
+         ELSE
+            IF (DENS1.NE.0.0D0.AND.DENS2.NE.0.0D0) THEN
+               DGRAV=DD*(DENS1+DENS2)
+            ELSE
+               IF (DENS1.NE.0.0D0) THEN
+                  DGRAV=2.0D0*DD*DENS1
+               ENDIF
+               IF (DENS2.NE.0.0D0) THEN
+                  DGRAV=2.0D0*DD*DENS2
+               ENDIF
+            ENDIF
+         ENDIF
+         DP=DP-DGRAV
+
+C DP NOW CONTAINS THE DARCY DIFFERENCES. NOW COMPUTE THE DARCY GRADIENT
+
+         DX=DXREC(I+IOFF,NBLK)
+         DY=DYREC(J+JOFF,NBLK)
+         DZ=DZREC(K+KOFF,NBLK)
+
+         IF(.NOT.XDARCYFLUX) THEN
+            IF(IFACE.EQ.1) DP=-DP*TCOFX(I,J,K)/(DY*DZ)
+            IF(IFACE.EQ.2) DP=-DP*TCOFY(I,J,K)/(DX*DZ)
+            IF(IFACE.EQ.3) DP=-DP*TCOFZ(I,J,K)/(DX*DY)
+         ELSE
+            IF(IFACE.EQ.1) DP=-DP*TCOFX(I,J,K)
+            IF(IFACE.EQ.2) DP=-DP*TCOFY(I,J,K)
+            IF(IFACE.EQ.3) DP=-DP*TCOFZ(I,J,K)
+         ENDIF
+
+C COMPUTE VEL=GRADIENT MULTIPLIED BY LAMBDA IN AN UPWINDING WAY
+
+         IF (DP.GT.0.D0) THEN
+            IF (IPHASE <= NPH) THEN
+               XVEL(I,J,K,IPHASE,IFACE)=DP*MOB(I1,J1,K1,IPHASE)
+            ELSE
+               STOP 'ERROR IN XVELCOMP: UNDEFINED PHASE NUMBER !!'
+            ENDIF
+         ELSE
+            IF (IPHASE <= NPH) THEN
+               XVEL(I,J,K,IPHASE,IFACE)=DP*MOB(I,J,K,IPHASE)
+            ELSE
+               STOP 'ERROR IN XVELCOMP: UNDEFINED PHASE NUMBER !!'
+            ENDIF
+         ENDIF
+
+ 1       CONTINUE
+
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+
+      RETURN
+      END
+
+
+
+

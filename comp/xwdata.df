@@ -1,0 +1,742 @@
+C  XWDATA.F - READS COMPOSITIONAL MODEL WELL DATA
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE XWDATA (NERR,KINP)
+C  SUBROUTINE XIWDATA (NERR)
+C  SUBROUTINE XTWDATA (NERR)
+
+C  CODE HISTORY:        
+
+C    THE IPARS TEAM          04/02/1997  FRAMEWORK
+C    RICK DEAN               03/12/2001  INITIAL VERSION
+C    SUNIL G. THOMAS         09/01/2007  THERMAL AND CO2 APPS
+
+C*********************************************************************
+        SUBROUTINE XWDATA (NERR,KINP)
+C*********************************************************************
+
+C  Reads compositional model specific well data
+
+C  NERR = Error number stepped by 1 on error (input & output, INTEGER*4)
+
+C  KINP = Input type
+C       = 1 ==> initial data
+C       = 2 ==> initial or transient data
+
+C*********************************************************************
+
+      IF(KINP == 1) THEN
+         CALL XIWDATA(NERR)
+      ENDIF
+      CALL XTWDATA(NERR)
+      END
+
+C*********************************************************************
+        SUBROUTINE XIWDATA (NERR)
+C*********************************************************************
+
+C  Reads compositional model specific initial well data
+
+C  NERR = Error number stepped by 1 on error (input & output, INTEGER*4)
+
+C*********************************************************************
+
+      INCLUDE 'xparam.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'control.h'
+      INCLUDE 'xcompwel.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'unitsex.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'xresprop.h'
+      INCLUDE 'xwells.h'
+
+      REAL*8 X
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &                         ' ENTERING SUBROUTINE XIWDATA'
+      IF(LEVELC) THEN
+         TITU='INITIAL COMPOSITIONAL WELL DATA'
+         WRITE(NFOUT,*)
+         CALL PRTTIT(TITU)
+         WRITE(NFOUT,*)
+      ENDIF
+
+C--------set well cumulatives to zero
+      DO J=1,$MXWELL
+         DO IC=1,2*$MXCOMP+2
+            WTOT_COMP(IC,J)=ZERO
+         END DO
+      END DO
+      DO J=1,$MXWELL
+         DO IPH=1,2*$MXPHASE
+            WTOT_PH(IPH,J)=ZERO
+         END DO
+      END DO
+      DO IC=1,$MXCOMP+1
+         WTOTL(IC)=ZERO
+      END DO
+
+C--------set compositions for gas injectors (also allows water)
+      DO J=1,$MXINJ
+         DO IC=1,$MXCOMP+1
+            COMPINJ(IC,J)=-TEN
+         END DO
+      END DO
+
+C--------set composition of aqueous phase
+      DO J=1,$MXINJ
+         DO IC=1,$MXCOMP+1
+            COMPAQINJ(IC,J)=-TEN
+         END DO
+      END DO
+
+C--------set well component mass rate output flags to false
+      DO J=1,$MXWELL
+         DO IC=1,$MXCOMP
+            WELXOUT(IC,J)=.FALSE.
+         END DO
+      END DO
+
+C--------initialize producer mass fraction cut-offs
+      DO J=1,$MXPRD
+         DO IC=1,$MXCOMP+1
+            WELL_MCUT(IC,J)=-ONE
+         END DO
+      END DO
+
+C--------read separator information
+      NSEP=1
+      DO J=1,$MXSEP
+         NSTAGE(J)=0
+         ISEPTYP(J)=0
+         DO I=1,$MXSTAGE
+            TSEP(I,J)=-TEN
+            PSEP(I,J)=-TEN
+         END DO
+      END DO
+      DO K=1,$MXSEP
+         DO J=1,$MXSTAGE
+            DO I=1,$MXCOMP
+               SEPKVAL(I,J,K)=-TEN
+            END DO
+         END DO
+      END DO
+      CALL GETVAL('TSEP[F] ',TSEP,'R8',-$MXSTAGE,$MXSEP,0,0,NDUM,NERR)
+      CALL GETVAL('PSEP[psi] ',PSEP,'R8',-$MXSTAGE,$MXSEP,0,0,NDUM,NERR)
+      CALL GETVAL('KSEP ',SEPKVAL,'R8',-$MXCOMP,$MXSTAGE,$MXSEP,
+     &            0,NDUM,NERR)
+      NSEPSURF=1
+      CALL GETVAL('SEPSURF ',NSEPSURF,'I4',0,0,0,0,NDUM,NERR)
+      IF(LEVELC .AND. NPH > 1) THEN
+         WRITE(NFOUT,'(A,I5,A,/)') 'SEPARATOR',NSEPSURF,
+     &              ' USED FOR IN-PLACE CALCULATIONS '
+      ENDIF
+      DO J=1,$MXSEP
+         IF(NPH > 2) THEN
+            K=0
+            DO I=1,$MXSTAGE
+               IF(TSEP(I,J) > ZERO .AND. PSEP(I,J) > ZERO) K=K+1
+            END DO
+            IF(K == 0) THEN
+               TSEP(1,J)=TSURF
+               PSEP(1,J)=PSURF
+               NSTAGE(J)=1
+               IF(J > 1) CYCLE
+            ELSE
+               NSEP=J
+               NSTAGE(J)=K
+            ENDIF
+            DO I=1,NSTAGE(J)
+               MC=0
+               DO IC=1,$MXCOMP
+                  IF(SEPKVAL(IC,I,J) >= ZERO) THEN
+                     ISEPTYP(J)=1
+                     MC=MC+1
+                  ENDIF
+               END DO
+               IF(MC /= NHC .AND. ISEPTYP(J) == 1) THEN
+                  NERR=NERR+1
+                  IF(LEVELC) WRITE(NFOUT,'(2A,I3,A,I5)') 
+     &              'ERROR 602 - INCORRECT NUMBER OF',
+     &              ' K-VALUES ENTERED FOR SEPARATOR ',J,' STAGE ',I
+               ENDIF
+            END DO
+         ELSE
+            NSTAGE(J)=1
+            ISEPTYP(J) = 1
+            K=0
+            IF(TSEP(1,J) > ZERO .AND. PSEP(1,J) > ZERO) K=1
+            IF(K == 0) THEN
+               TSEP(1,J)=TSURF
+               PSEP(1,J)=PSURF
+               IF(J > 1 .OR. NPH == 1) CYCLE
+            ENDIF
+            DO IC=1,$MXCOMP
+               SEPKVAL(IC,1,J) = HALF
+            END DO
+         ENDIF
+         IF(LEVELC) THEN
+            WRITE(NFOUT,'(A,I5,A,I5,A)') 'SEPARATOR ',J,
+     &              ' HAS ',NSTAGE(J),' STAGES'
+            IF(ISEPTYP(J) == 0) THEN
+               WRITE(NFOUT,'(5X,2A)') 'FULL EOS FLASH PERFORMED',
+     &              ' FOR THIS SEPARATOR'
+               WRITE(NFOUT,'(5X,2A,10F7.2)') 'TEMP',EXTTEMP,
+     &              (TSEP(I,J)*CVMTEMP+CVATEMP,I=1,NSTAGE(J))
+               WRITE(NFOUT,'(5X,2A,10F7.2)') 'PRES',EXTPRES,
+     &              (PSEP(I,J)*CVMPRES,I=1,NSTAGE(J))
+            ELSEIF(NPH > 2) THEN
+               WRITE(NFOUT,'(5X,2A)') 'K-VALUES USED',
+     &              ' FOR THIS SEPARATOR'
+               WRITE(NFOUT,'(5X,2A)') 'TEMPERATURE AND PRESSURE AT ',
+     &              'LAST STAGE USED TO CALCULATE SURFACE VOLUMES'
+               WRITE(NFOUT,'(5X,A,F7.2,A)') 'TEMP AT LAST STAGE IS ',
+     &              TSEP(NSTAGE(J),J)*CVMTEMP+CVATEMP,EXTTEMP
+               WRITE(NFOUT,'(5X,A,F7.2,A)') 'PRES AT LAST STAGE IS ',
+     &              PSEP(NSTAGE(J),J)*CVMPRES,EXTPRES
+               DO K=1,NSTAGE(J)
+                  WRITE(NFOUT,'(5X,A,I5)') 'K-VALUES FOR STAGE ',K
+                  WRITE(NFOUT,'(10X,10F7.2)') (SEPKVAL(L,K,J),L=1,MC)
+                  DO L=1,MC
+                     IF(SEPKVAL(L,K,J) <= ZERO) THEN
+                        WRITE(NFOUT,'(2A,I3,A,I3)') 'ERROR - K-VALUES ',
+     &                      'MUST BE POSTIVE, BAD VALUE FOR SEP ',J,
+     &                      ' STAGE ',K
+                        NERR=NERR+1
+                     ENDIF
+                  END DO
+               END DO
+            ELSE
+               WRITE(NFOUT,'(5X,2A)') 'TEMPERATURE AND PRESSURE ',
+     &              'USED TO CALCULATE SURFACE VOLUMES'
+               WRITE(NFOUT,'(5X,A,F7.2,A)') 'TEMP IS ',
+     &              TSEP(NSTAGE(J),J)*CVMTEMP+CVATEMP,EXTTEMP
+               WRITE(NFOUT,'(5X,A,F7.2,A)') 'PRES IS ',
+     &              PSEP(NSTAGE(J),J)*CVMPRES,EXTPRES
+            ENDIF
+         ENDIF 
+      END DO
+
+C------- set well assignments for separators and injection composition
+C------- set explicit/implicit well indicator (default is explicit, 0)
+      DO IW=1,NUMWEL
+         TINJ(IW)=TSURF
+         INJCOMP(IW) = 1
+         IWSEP(IW) = -1
+         INPUT_WGRAD(IW) = .FALSE.
+         PLIMIT(IW) = -ONE
+         LCROSS(IW) = .TRUE.
+         WDEPTH(IW) = -ONE
+         IMPWEL(IW) = 1
+$LSOR         IMPWEL(IW) = 0
+         IF(MODWEL(IW) == MODACT) THEN
+            WELDEN(IW) = -ONE
+            WELBHP(IW) = ZERO
+            LINSYSW(IW) = 0
+            DRESID(IW) = ZERO
+            QRESID(IW) = ZERO
+            DWELDEN(IW) = ZERO
+            DWELBHP(IW) = ZERO
+            QCOFN(1,IW) = SONE
+            QCOFN(2,IW) = SZERO
+            DCOFN(1,IW) = SZERO
+            DCOFN(2,IW) = SONE
+            DO L = 1,$MXWELE
+               VCOFQ(1,L,IW) = SZERO
+               VCOFD(1,L,IW) = SZERO
+               DCOFW(1,L,IW) = SZERO
+               QCOFW(1,L,IW) = SZERO
+            END DO            
+         ENDIF
+      END DO
+
+      END
+
+C*********************************************************************
+        SUBROUTINE XTWDATA (NERR)
+C*********************************************************************
+
+C  Reads compositional model specific transient well data
+C  Sets stability indicator for all well cells
+
+C  NERR = Error number stepped by 1 on error (input & output, INTEGER*4)
+
+C*********************************************************************
+
+      INCLUDE 'xparam.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'control.h'
+      INCLUDE 'xcompwel.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'unitsex.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'xresprop.h'
+      INCLUDE 'xiter.h'
+      INCLUDE 'xwells.h'
+  
+      PARAMETER (NVAL = 2)
+      REAL*8 X,WTEMP($MXWELL),WSUM(NVAL*$MXWELE)
+      INTEGER KWELL_OLD($MXWELL),ITEMP($MXWELL)
+      DATA KWELL_OLD/$MXWELL*100/
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &                         ' ENTERING SUBROUTINE XTWDATA'
+      IF(LEVELC) THEN
+         TITU='TRANSIENT COMPOSITIONAL WELL DATA'
+         WRITE(NFOUT,*)
+         CALL PRTTIT(TITU)
+         WRITE(NFOUT,*)
+      ENDIF
+
+C--------read compositions for gas injectors (also allows water)
+      CALL GETVAL('COMPINJ ',COMPINJ,'R8',-($MXCOMP+1),$MXINJ,0,0,
+     &             NDUM,NERR)
+      IF(NDUM > 0) THEN
+         NINJCOMP=0
+         DO J=1,$MXINJ
+            MC=0
+            IF(COMPINJ(1,J) < ZERO) CYCLE
+            NINJCOMP=J
+            X=ZERO
+            DO IC=1,$MXCOMP+1
+               IF(COMPINJ(IC,J) < ZERO) EXIT
+               MC=MC+1
+               X=X+COMPINJ(IC,J)
+            END DO
+            IF(ABS(ONE-X) > TEN_M6) THEN
+               IF(LEVELC) THEN
+                  WRITE(NFOUT,'(2A,I3)') 'ERROR 601 - MOLE FRACTIONS ',
+     &                                   ' NOT 1.0 FOR COMPINJ ',J
+               ENDIF
+               NERR=NERR+1
+            ENDIF
+            IF(MC /= NC) THEN
+               IF(LEVELC) THEN
+                  WRITE(NFOUT,'(2A,I3)') 'ERROR 602 - NOT ENOUGH',
+     &                 ' MOLE FRACTIONS ENTERED FOR COMPINJ ',J
+               ENDIF
+               NERR=NERR+1
+            ENDIF
+            IF(LEVELC) THEN
+               WRITE(NFOUT,'(2A,I5)') ' INJECTION COMPOSITION',
+     &                                ' SET NUMBER ',J
+               WRITE(NFOUT,'(5X,10F7.4)') (COMPINJ(IC,J),IC=1,MC)
+            ENDIF
+         END DO
+      ENDIF
+
+
+C--------read aqueous phase composition for injectors
+      CALL GETVAL('COMPAQINJ ',COMPAQINJ,'R8',-($MXCOMP+1),$MXINJ,0,0,
+     &             NDUM,NERR)
+      IF(NDUM > 0) THEN
+         DO J=1,$MXINJ
+            MC=0
+            IF(COMPAQINJ(1,J) < ZERO) CYCLE
+            DO IC=1,$MXCOMP+1
+               IF(COMPAQINJ(IC,J) < ZERO) EXIT
+               MC=MC+1
+            END DO
+            IF(MC /= NAQ) THEN
+               IF(LEVELC) THEN
+                  WRITE(NFOUT,'(2A,I3)') 'ERROR 602 - NOT ENOUGH',
+     &                 ' AQ. COMPONENTS ENTERED FOR COMPAQINJ ',J
+               ENDIF
+               NERR=NERR+1
+            ENDIF
+            IF(LEVELC) THEN
+               WRITE(NFOUT,'(2A,I5)') 'AQ. INJECTION COMPOSITION',
+     &                                ' SET NUMBER ',J
+               WRITE(NFOUT,'(5X,10F7.4)') (COMPAQINJ(IC,J),IC=1,MC)
+            ENDIF
+         END DO
+      ENDIF
+
+C--------read well assignments for injection comp.
+      CALL GETVAL('INJCOMP ',INJCOMP,'I4',NUMWEL,0,0,0,KDUM,NERR)
+
+C-------read in temperatures of fluid at injection wells 
+      CALL GETVAL('TINJ ',TINJ,'R8',NUMWEL,0,0,0,MDUM,NERR)
+
+C--------read well assignments for separators
+      DO IW = 1,NUMWEL
+         ITEMP(IW) = -1
+      END DO
+      CALL GETVAL('IWSEP ',ITEMP,'I4',NUMWEL,0,0,0,LDUM,NERR)
+      DO IW = 1,NUMWEL
+         IF(MODWEL(IW) /= MODACT) CYCLE
+         IF(ITEMP(IW) > 0) THEN
+            K = ITEMP(IW)
+            IWSEP(IW) = K
+            IF(ISEPTYP(K) == 1) THEN
+               DO I = 1,NSTAGE(K)
+                  DO IC = 1,NHC
+                     WELL_KVAL(IC,I,IW) = SEPKVAL(IC,I,K)
+                  END DO
+               END DO
+            ENDIF
+         ELSEIF(IWSEP(IW) < 0) THEN
+            IWSEP(IW) = 1
+            IF(ISEPTYP(1) == 1) THEN
+               DO I = 1,NSTAGE(1)
+                  DO IC = 1,NHC
+                     WELL_KVAL(IC,I,IW) = SEPKVAL(IC,I,1)
+                  END DO
+               END DO
+            ENDIF
+         ENDIF
+      END DO
+      IF(LEVELC .AND. (KDUM > 0 .OR. LDUM > 0 .OR. MDUM > 0)) THEN
+         WRITE(NFOUT,'(3X,A,2X,A,2X,A,2X,A)') 'WELL','INJ ASSIGN',
+     &                                   'SEP ASSIGN','TEMP ASSIGN'
+         DO IW=1,NUMWEL
+            WRITE(NFOUT,'(I5,2I10,F8.2)') IW,INJCOMP(IW),IWSEP(IW),
+     &                                    TINJ(IW)
+         END DO
+      ENDIF
+
+C--------read well gradient specification
+      DO IW = 1,NUMWEL
+         WTEMP(IW) = -ONE
+      END DO
+      CALL GETVAL('WGRAD[psi/ft] ',WTEMP,'R8',NUMWEL,0,0,0,KDUM,NERR)
+      DO IW = 1,NUMWEL
+         IF(MODWEL(IW) /= MODACT) CYCLE
+         IF(WTEMP(IW) > ZERO) THEN
+            INPUT_WGRAD(IW) = .TRUE.
+            WELDEN(IW) = WTEMP(IW)
+         ELSEIF(WELDEN(IW) < ZERO) THEN
+            WELDEN(IW) = ONE/FOUR
+         ENDIF
+      END DO
+
+C------- set compositional controls
+      DO IW=1,NUMWEL
+         IF(MODWEL(IW) /= MODACT) CYCLE
+
+C        WATER INJECTOR, PW SPECIFIED
+         IF(KWELL(IW) == 1) THEN
+            BHP_CONTROL(IW) = -1
+            IWTYPE(IW) = -1
+
+C        WATER INJECTOR, RATE SPECIFIED
+         ELSEIF(KWELL(IW) == 2) THEN
+            BHP_CONTROL(IW) = 1
+            IWTYPE(IW) = -1
+
+C        PRODUCER, PW SPECIFIED
+         ELSEIF(KWELL(IW) == 31) THEN
+            BHP_CONTROL(IW) = -1
+            IWTYPE(IW) = 1
+
+C        PRODUCER, LIQUID RATE SPECIFIED
+         ELSEIF(KWELL(IW) == 36) THEN
+            BHP_CONTROL(IW) = 1
+            IWTYPE(IW) = 1
+
+C        PRODUCER, OIL RATE SPECIFIED
+         ELSEIF(KWELL(IW) == 33) THEN
+            BHP_CONTROL(IW) = 1
+            IWTYPE(IW) = 1
+
+C        PRODUCER, RESERVOIR RATE SPECIFIED
+         ELSEIF(KWELL(IW) == 37) THEN
+            BHP_CONTROL(IW) = 1
+            IWTYPE(IW) = 3
+
+C        PRODUCER, WATER RATE SPECIFIED
+         ELSEIF(KWELL(IW) == 35) THEN
+            BHP_CONTROL(IW) = 1
+            IWTYPE(IW) = 1
+
+C        PRODUCER, GAS RATE SPECIFIED
+         ELSEIF(KWELL(IW) == 34) THEN
+            BHP_CONTROL(IW) = 1
+            IWTYPE(IW) = 1
+
+C        GAS INJECTOR, RATE SPECIFIED
+         ELSEIF(KWELL(IW) == 4) THEN
+            BHP_CONTROL(IW) = 1
+            IWTYPE(IW) = -2
+
+C        GAS INJECTOR, PW SPECIFIED
+         ELSEIF(KWELL(IW) == 3) THEN
+            BHP_CONTROL(IW) = -1
+            IWTYPE(IW) = -2
+
+CXIN ------------ START ---------------- 
+C FOR CO2 SEQUESTRATION AND FOAM FLOODING APPLICATIONS
+C LIQUID INJECTION WELL, PRESSURE SPECIFIED
+         ELSEIF(KWELL(IW) == 9) THEN
+            BHP_CONTROL(IW) = -1
+            IWTYPE(IW) = -3
+
+C LIQUID INJECTION WELL, MASS RATE SPECIFIED
+         ELSEIF(KWELL(IW) == 10) THEN
+            BHP_CONTROL(IW) = 1
+            IWTYPE(IW) = -3
+CXIN ------------ END ---------------- 
+
+
+C        SHUT-IN 
+         ELSEIF(KWELL(IW) == 0) THEN
+            IWTYPE(IW) = 0
+
+C        NO COMPOSITIONAL DEFINITION
+         ELSE
+            IF(LEVELC) THEN
+               WRITE(NFOUT,'(2A,I3)') 'ERROR 601 - BAD WELL TYPE',
+     &                                ' FOR WELL ',IW
+            ENDIF
+            NERR=NERR+1
+         ENDIF
+      END DO
+
+C-------read in component mass rate output flags
+      CALL GETVAL('WELXOUT ',WELXOUT,'FG',-$MXCOMP,$MXWELL,0,0,NDUM,NERR)
+
+C-------read in producer mass fraction cut-offs
+      CALL GETVAL('MFRAC_CUTOFF ',WELL_MCUT,'R8',-($MXCOMP+1),$MXPRD,0,0,
+     &             JDUM,NERR)
+
+      IF(JDUM.GT.0) THEN
+         DO J=1,NUMWEL
+            IF(LEVELC.AND.(IWTYPE(J) > 0)) THEN
+               WRITE(NFOUT,'(2A,I5)') ' PRODUCTION CUT-OFF COMPOSITION',
+     &                                ' WELL NUMBER ',J
+               WRITE(NFOUT,'(10F15.12,10X)') (WELL_MCUT(IC,J),IC=1,NC)
+            ENDIF
+         END DO
+      ENDIF
+
+C--------read well depth specification
+      DO IW = 1,NUMWEL
+         WTEMP(IW) = -ONE
+      END DO
+      CALL GETVAL('WDEPTH[ft] ',WTEMP,'R8',NUMWEL,0,0,0,KDUM,NERR)
+      DO IW = 1,NUMWEL
+         IF(WTEMP(IW) > ZERO) THEN
+            WDEPTH(IW) = WTEMP(IW)
+         ELSEIF(WDEPTH(IW) == -ONE) THEN
+            WDEPTH(IW) = DEPBOT(IW)
+         ENDIF
+      END DO
+
+C--------read well pressure limit specification
+      DO IW = 1,NUMWEL
+         WTEMP(IW) = -ONE
+      END DO
+      CALL GETVAL('PLIMITC[psi] ',WTEMP,'R8',NUMWEL,0,0,0,KDUM,NERR)
+      DO IW = 1,NUMWEL
+         IF(WTEMP(IW) > ZERO) THEN
+            PLIMIT(IW) = WTEMP(IW)
+         ELSEIF(PLIMIT(IW) == -ONE) THEN
+            IF(IWTYPE(IW) > 0) THEN
+               PLIMIT(IW) = ZERO
+            ELSEIF(IWTYPE(IW) < 0) THEN
+               PLIMIT(IW) = TEN_P10
+            ENDIF
+         ENDIF
+      END DO
+
+C--------read crossflow specification
+      CALL GETVAL('WELCROSS ',LCROSS,'L4',NUMWEL,0,0,0,KDUM,NERR)
+
+C------- set WELL_CONSTRAINT
+      DO IW=1,NUMWEL
+         IF(KWELL(IW) == KWELL_OLD(IW)) CYCLE
+         KWELL_OLD(IW) = KWELL(IW)
+
+C        WATER INJECTOR
+         IF(KWELL(IW) == 1 .OR. KWELL(IW) == 2) THEN
+            WELL_CONSTRAINT(1,IW) = FT_TO_BBL/WATDEN
+            DO IC = 2,NC
+               WELL_CONSTRAINT(IC,IW) = ZERO
+            END DO
+            DO IPH = 1,NPH
+               DO IC = 1,NC
+                  CONVERT_IC(IC,IPH,IW) = ZERO
+                  CONVERT_PH(IC,IPH,IW) = ZERO
+               END DO
+            END DO
+            CONVERT_IC(1,1,IW) = ONE
+            CONVERT_PH(1,1,IW) = FT_TO_BBL/WATDEN
+
+C        PRODUCER, OIL RATE
+         ELSEIF(KWELL(IW) == 31 .OR. KWELL(IW) == 33) THEN
+            DO IPH = 1,NPH
+               WELL_CONSTRAINT(IPH,IW) = ZERO
+            END DO
+            WELL_CONSTRAINT(2,IW) = ONE
+
+C        PRODUCER, LIQUID RATE
+         ELSEIF(KWELL(IW) == 36) THEN
+            DO IPH = 1,NPH
+               WELL_CONSTRAINT(IPH,IW) = ZERO
+            END DO
+            WELL_CONSTRAINT(1,IW) = ONE
+            WELL_CONSTRAINT(2,IW) = ONE
+
+C        PRODUCER, GAS RATE SPECIFIED
+         ELSEIF(KWELL(IW) == 34) THEN
+            DO IPH = 1,NPH
+               WELL_CONSTRAINT(IPH,IW) = ZERO
+            END DO
+            IF(NPH > 2) THEN
+               WELL_CONSTRAINT(3,IW) = ONE
+            ELSE
+               WELL_CONSTRAINT(2,IW) = ONE
+            ENDIF
+
+C        PRODUCER, WATER RATE SPECIFIED
+         ELSEIF(KWELL(IW) == 35) THEN
+            DO IPH = 1,NPH
+               WELL_CONSTRAINT(IPH,IW) = ZERO
+            END DO
+            WELL_CONSTRAINT(1,IW) = ONE
+
+C        GAS INJECTOR
+         ELSEIF(KWELL(IW) == 3 .OR. KWELL(IW) == 4) THEN
+            DO IC = 1,NC
+               WELL_CONSTRAINT(IC,IW) = LBMOLE_TO_MCF
+            END DO
+            DO IPH = 1,NPH
+               DO IC = 1,NC
+                  CONVERT_IC(IC,IPH,IW) = ZERO
+                  CONVERT_PH(IC,IPH,IW) = ZERO
+               END DO
+            END DO
+            CONVERT_IC(1,1,IW) = ONE
+            CONVERT_PH(1,1,IW) = FT_TO_BBL/WATDEN
+            IF(NPH > 2) THEN
+               DO IC = 2,NC
+                  CONVERT_IC(IC,3,IW) = ONE
+                  CONVERT_PH(IC,3,IW) = LBMOLE_TO_MCF
+               END DO
+            ELSE
+               DO IC = 2,NC
+                  CONVERT_IC(IC,3,IW) = ONE
+                  CONVERT_PH(IC,3,IW) = LBMOLE_TO_MCF
+               END DO
+            ENDIF
+CXIN-----------START---------------------------
+C        LIQUID INJECTOR
+         ELSEIF(KWELL(IW) == 9 .OR. KWELL(IW) == 10) THEN
+            DO IC = 1,NC
+               WELL_CONSTRAINT(IC,IW) = FT_TO_BBL/XOILDEN
+            END DO
+            DO IPH = 1,NPH
+               DO IC = 1,NC
+                  CONVERT_IC(IC,IPH,IW) = ZERO
+                  CONVERT_PH(IC,IPH,IW) = ZERO
+               END DO
+            END DO
+            CONVERT_IC(1,1,IW) = ONE
+            CONVERT_PH(1,1,IW) = FT_TO_BBL/XOILDEN
+            IF(NPH > 2) THEN
+               DO IC = 2,NC
+                  CONVERT_IC(IC,2,IW) = ONE
+                  CONVERT_PH(IC,2,IW) = FT_TO_BBL/XOILDEN
+               END DO
+            ELSE
+               DO IC = 2,NC
+                  CONVERT_IC(IC,2,IW) = ONE
+                  CONVERT_PH(IC,2,IW) = FT_TO_BBL/XOILDEN
+               END DO
+            ENDIF
+CXIN-----------------END----------------------------
+         ENDIF
+      END DO
+
+C--------read implicit/explicit well assignment
+      DO IW = 1,NUMWEL
+         ITEMP(IW) = IMPWEL(IW)
+      END DO
+      CALL GETVAL('IMPWEL ',IMPWEL,'I4',NUMWEL,0,0,0,KDUM,NERR)
+      KIMP = 0
+      DO IW = 1,NUMWEL
+         IF(ITEMP(IW) /= IMPWEL(IW)) KIMP = 1
+      END DO
+$LSOR      DO IW = 1,NUMWEL
+$LSOR         IF(IMPWEL(IW) == 0) CYCLE
+$LSOR         IF(LEVELC) THEN
+$LSOR            WRITE(NFOUT,'(A,I3,A)') 'ERROR 601 - IMPLICIT WELL ',
+$LSOR     &                             IW,' NOT VALID WITH LSOR'
+$LSOR         ENDIF
+$LSOR         NERR=NERR+1
+$LSOR      END DO
+
+C--------determine if compositional wells span several processors
+C--------turn off implicit well if spans processor
+$MANY      WELLSPAN = .FALSE.
+$MANY      DO IW = 1,NUMWEL
+$MANY         IF(MODWEL(IW) /= MODACT) CYCLE
+$MANY         IF(NUMELET(IW) == 0) CYCLE
+$MANY         J = LOCWEL(6,1,IW)
+$MANY         DO I = 2,NUMELET(IW)
+$MANY            IF(LOCWEL(6,I,IW) /= J) THEN
+$MANY               WELLSPAN = .TRUE.
+$MANY               IMPWEL(IW) = 0
+$MANY               EXIT
+$MANY            ENDIF
+$MANY         END DO
+$MANY      END DO
+
+C--------gather ELEDEP and ELECONS on processor assigned to well 
+$MANY      IF(WELLSPAN) THEN
+$MANY         DO IW = 1,NUMWEL
+$MANY            IF(NWELPRC(IW) /= MYPRC) THEN
+$MANY               K = 0
+$MANY               DO L = 1,NUMELE(IW)
+$MANY                  K = K + 1
+$MANY                  WSUM(K) = ELEDEP(L,IW)
+$MANY                  K = K + 1
+$MANY                  WSUM(K) = ELECONS(L,IW)
+$MANY               END DO
+$MANY            ENDIF
+$MANY            CALL ELEGET(IW,NVAL,WSUM)
+$MANY            IF(NWELPRC(IW) == MYPRC) THEN
+$MANY               K = 0
+$MANY               DO L = NUMELE(IW)+1,NUMELET(IW)
+$MANY                  K = K + 1
+$MANY                  ELEDEP(L,IW) = WSUM(K)
+$MANY                  K = K + 1
+$MANY                  ELECONS(L,IW) = WSUM(K)
+$MANY               END DO
+$MANY            ENDIF
+$MANY         END DO
+$MANY      ENDIF
+
+C--------turn off implicit well if it has only one completion
+      DO IW = 1,NUMWEL
+         IF(MODWEL(IW) /= MODACT) CYCLE
+         IF(NUMELET(IW) <= 1) IMPWEL(IW) = 0
+      END DO
+      IF(LEVELC .AND. (KIMP > 0 .OR. TIM == ZERO) ) THEN
+         K = 0
+         L = 0
+         DO IW = 1,NUMWEL
+            IF(MODWEL(IW) /= MODACT) CYCLE
+            IF(IMPWEL(IW) == 0) THEN
+               K = K + 1
+            ELSE
+               L = L + 1
+            ENDIF
+         END DO
+         IF(K == 0) THEN
+            WRITE(NFOUT,'(A)') ' ALL WELLS ARE IMPLICIT'
+         ELSEIF(L == 0) THEN 
+            WRITE(NFOUT,'(A)') ' ALL WELLS ARE EXPLICIT'
+         ELSE
+            WRITE(NFOUT,'(3X,A,2X,A)') 'WELL','EXPLICIT/IMPLICIT'
+            DO IW=1,NUMWEL
+               IF(MODWEL(IW) /= MODACT) CYCLE
+               WRITE(NFOUT,'(I5,I10)') IW,IMPWEL(IW)
+            END DO
+         ENDIF
+      ENDIF
+      RETURN
+      END
+

@@ -1,0 +1,125 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/repos/csm/!svn/ver/123/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase
+END
+tmpr_soln.dat.bak
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/tmpr_soln.dat.bak
+END
+tmpr_soln_CN55shut.dat
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/tmpr_soln_CN55shut.dat
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/IPARS.IN
+END
+tmpr_soln.dat
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/tmpr_soln.dat
+END
+1dpics.tgz
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dpics.tgz
+END
+1dTempDiff.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dTempDiff.pdf
+END
+1dPulTempAdv_flxLmtr100SB.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dPulTempAdv_flxLmtr100SB.pdf
+END
+1dTempAdv.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dTempAdv.pdf
+END
+1dPulTempAdv_flxLmtr85MM.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dPulTempAdv_flxLmtr85MM.pdf
+END
+1dTempTest.dat
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/repos/csm/!svn/ver/123/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dTempTest.dat
+END
+1dPulTempAdv_flxLmtr100MM.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dPulTempAdv_flxLmtr100MM.pdf
+END
+tmpr_soln_FI.dat
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/tmpr_soln_FI.dat
+END
+tmpr_soln_FIshut.dat
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/tmpr_soln_FIshut.dat
+END
+tmpr_soln.dat.advdiffPul
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/tmpr_soln.dat.advdiffPul
+END
+1dHDTempDiff.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dHDTempDiff.pdf
+END
+tmpr_soln_CNshut.dat
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/tmpr_soln_CNshut.dat
+END
+1dPulTempAdv_flxLmtr100VL.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dPulTempAdv_flxLmtr100VL.pdf
+END
+1dPulTempAdv_flxLmtr85CD.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dPulTempAdv_flxLmtr85CD.pdf
+END
+tmpr_soln.dat.advPul
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/tmpr_soln.dat.advPul
+END
+1dPulTempAdv.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/1phase/1dPulTempAdv.pdf
+END

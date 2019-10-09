@@ -1,0 +1,53 @@
+POROSITY1() = .30
+POROSITY2() = .30
+POROSITY3() = .30
+POROSITY4() = .30
+
+XPERM1(1,,) = 50.
+XPERM1(2,,) = 50. 
+XPERM1(3,,) = 25. 
+
+YPERM1(1,,) = 500. 
+YPERM1(2,,) = 50. 
+YPERM1(3,,) = 200. 
+
+ZPERM1(1,,) = 500. 
+ZPERM1(2,,) = 50. 
+ZPERM1(3,,) = 200. 
+
+XPERM2(1,,) = 50.
+XPERM2(2,,) = 50. 
+XPERM2(3,,) = 25. 
+
+YPERM2(1,,) = 500. 
+YPERM2(2,,) = 50. 
+YPERM2(3,,) = 200. 
+
+ZPERM2(1,,) = 500. 
+ZPERM2(2,,) = 50. 
+ZPERM2(3,,) = 200. 
+
+XPERM3(1,,) = 50.
+XPERM3(2,,) = 50. 
+XPERM3(3,,) = 25. 
+
+YPERM3(1,,) = 500. 
+YPERM3(2,,) = 50. 
+YPERM3(3,,) = 200. 
+
+ZPERM3(1,,) = 500. 
+ZPERM3(2,,) = 50. 
+ZPERM3(3,,) = 200. 
+
+XPERM4(1,,) = 50.
+XPERM4(2,,) = 50. 
+XPERM4(3,,) = 25. 
+
+YPERM4(1,,) = 500. 
+YPERM4(2,,) = 50. 
+YPERM4(3,,) = 200. 
+
+ZPERM4(1,,) = 500. 
+ZPERM4(2,,) = 50. 
+ZPERM4(3,,) = 200. 
+

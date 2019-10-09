@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine
+END
+poroTest
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine/poroTest
+END
+CWInj_16x100permX
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine/CWInj_16x100permX
+END
+CWInj_16x100permY
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine/CWInj_16x100permY
+END
+CWInj_16x100permZ
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine/CWInj_16x100permZ
+END
+tempPermUpsc.f
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine/tempPermUpsc.f
+END
+CWInj_16x100poro
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine/CWInj_16x100poro
+END
+permxTest
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine/permxTest
+END
+permyTest
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine/permyTest
+END
+permzTest
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine/permzTest
+END
+poroUPSC.f
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/refine/poroUPSC.f
+END

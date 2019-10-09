@@ -1,0 +1,151 @@
+$==============================
+$ Ben Ganis
+$==============================
+
+TITLE(2)="SINGLE PHASE TEST SMALL"
+
+DESCRIPTION()=
+"SINGLE PHASE TEST SMALL"
+
+BLOCKMODEL(1) = "SINGLE_PHASE_IMPLICIT"
+BLOCKMODEL(2) = "SINGLE_PHASE_IMPLICIT"
+
+METHOD=1
+
+$TIMEEND = 1.0
+TIMEEND = 10.0
+
+$ SOLVER OPTIONS
+
+MAXNEWT = 10000
+CVTOL = 1.E-10
+
+LSOL_ITMAX = 1000
+LSOL_TOL = 1.E-14
+$PRECOND_ID = 0
+
+$ Use fully coupled enhanced velocity solver
+HYPRE_EVFEM
+
+$ I/O OPTIONS
+
+OUTLEVEL = 2
+PROCOUT
+$BUGKEY(6)
+BUGKEY(7)
+
+$==============================
+$ FAULT BLOCK AND MESH DATA
+$==============================
+
+$CONV_FACTOR = 1.0
+
+ BLOCKNAME(1) = "BLOCK1"
+ DOWN(1 TO 3,1) = 0 0 0
+ XYZ111(,1) = 0. 0. 0.
+ NX(1) = 1     NY(1) = 2     NZ(1) = 4
+ DX(,1) = 100.
+ DY(,1) = 25.
+ DZ(,1) = 25.
+
+ BLOCKNAME(2) = "BLOCK2"
+ DOWN(1 TO 3,2) = 0 0 0
+ XYZ111(,2) = 0. 50. 0.
+ NX(2) = 1      NY(2) = 3      NZ(2) = 5
+ DX(,2) = 100.    
+ DY(,2) = 16.6667
+ DZ(,2) = 20.
+
+FACEBLOCKS(,1) = 1 2  FACEXYZ(,1) = 0. 0. 0., 0. 0. 0.
+
+$==============================
+$ BOUNDARY CONDITIONS
+$==============================
+
+NBND_REG = 2
+NBND_SUBREG = 2
+BDAREA_EPS = 1.0E-6
+
+$ Regions:
+$             subreg nblk  x1 y1 z1     x2 y2 z2
+BND_VOL(,1) = 1      1,    0. 0. 0.     100. 0. 100.       $ y=0
+BND_VOL(,2) = 2      2,    0. 0. 0.     100. 0. 100.       $ y=0
+
+$ Conditions for Subregions:
+
+BOUND_TYPE(1) = 1  $ Dirichlet condition for pressure
+TBOUND(1) Block
+Interpolation Linear
+Extrapolation Constant
+Data 0. 1.
+EndBlock
+
+BOUND_TYPE(2) = 1  $ Dirichlet condition for pressure
+TBOUND(2) Block
+Interpolation Linear
+Extrapolation Constant
+Data 0. 1.
+EndBlock
+
+$==============================
+$ INITIAL CONDITIONS
+$==============================
+
+$PINIT = 0.
+PINIT = -1.
+
+$==============================
+$ FLUID AND MEDIA PROPERTIES
+$==============================
+
+$ Porosity
+POROSITY1() = 0.2
+POROSITY2() = 0.2
+
+$ Permeability
+XPERM1() = 1.  YPERM1() = 2.  ZPERM1() = 1.
+XPERM2() = 1.  YPERM2() = 2.  ZPERM2() = 1.
+
+$ Fluid viscosity
+$FLVIS = 1.
+FLVIS = 2.
+
+$ Fluid standard density
+$STFLDEN = 1.
+STFLDEN = 56.
+
+$ Fluid compressibility
+$FLCOMP = 0.
+FLCOMP = 1.E-5
+
+$==============================
+$ WELLS
+$==============================
+
+NUMWELL=0
+
+PLOT_MYPRC
+
+EndInitial
+
+$==============================
+$ TRANSIENT DATA INPUT BLOCKS
+$==============================
+
+BeginTime    0.
+
+DELTIM = 1.0  DTIMMUL = 1.0  DTIMMAX = 1.0
+
+VISOUT = 1.0  DVISOUT = 1.0
+VIS_FNAME = "Vis"
+$VIS_DIR = "visual"
+VISFLAG = 9
+VIS_SCL = 2
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "MYPRC"
+VIS_NVEC = 1
+VIS_VEC_NAMES(1) = "VEL"
+VIS_BINARY = FALSE
+
+EndTime
+

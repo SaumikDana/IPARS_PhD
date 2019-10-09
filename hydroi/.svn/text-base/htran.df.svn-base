@@ -1,0 +1,580 @@
+C  HTRAN.F - TRANSPORT EVALUATION FOR DIAGONAL TENSOR PERMEABILITY
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE HTRANX (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,TCOFX,DEPTH,POIL,PWAT,DUNK,RELPRM,
+C                     DPCSW,COF,RESID)
+C  SUBROUTINE HTRANY (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,TCOFY,DEPTH,POIL,PWAT,DUNK,RELPRM,
+C                     DPCSW,COF,RESID)
+C  SUBROUTINE HTRANZ (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,TCOFZ,DEPTH,POIL,PWAT,DUNK,RELPRM,
+C                     DPCSW,COF,RESID)
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     5/10/97    PORT ROUTINES FROM PIERS
+
+C*********************************************************************
+      SUBROUTINE HTRANX (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,TCOFX,DEPTH,POIL,PWAT,DUNK,
+     &                   RELPRM,DPCSW,COF,RESID)
+C*********************************************************************
+
+C  Hydrology model x transport for diagonal tensor permeability
+
+C  TCOFX(I,J,K) = X TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  DUNK(I,J,K,2) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  RELPRM(I,J,K,N) = RELATIVE PERMEABILITY DATA (INPUT, REAL*8)
+
+C  DPCSW(I,J,K) = DERIVATIVE OF Pc WRT Sw, PSI (INPUT, REAL*8)
+
+C  COF(I,J,K,N,M,L) = JACOBIAN COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+
+C  RESID(I,J,K,N)= RESIDUALS (INPUT AND OUTPUT, REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'hfluids.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM),JL2V(KDIM),
+     &        KL1,KL2,KEYOUT(IDIM,JDIM,KDIM),NBLK
+      REAL*8 TCOFX(IDIM,JDIM,KDIM),       POIL(IDIM,JDIM,KDIM),
+     &       PWAT(IDIM,JDIM,KDIM),        DEPTH(IDIM,JDIM,KDIM),
+     &       DUNK(IDIM,JDIM,KDIM,2),      DPCSW(IDIM,JDIM,KDIM),
+     &       RELPRM(IDIM,JDIM,KDIM,4),    RESID(IDIM,JDIM,KDIM,2)
+      REAL*4 COF(IDIM,JDIM,KDIM,$NUMCOF,2,2)
+
+      INTEGER I,J,K,L,JL1,JL2,IL2P
+      REAL*8 DOP,DWP,DUB1,DUB2,DUB3,DUB4,DUB5,DD,G2,TVW,TVO
+
+cgp dbg
+      LOGICAL DBG
+      DATA DBG /.FALSE./
+cgp dbg
+
+      G2=.5D0*GRAV
+      TVW=DELTIM/WATVIS
+      TVO=DELTIM/OILVIS
+      IL2P=IL2+1
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2P
+
+      IF (TCOFX(I,J,K).NE.0.D0) THEN
+         DD=(DEPTH(I,J,K)-DEPTH(I-1,J,K))*G2
+    
+C  OIL EQUATION, X TRANSPORT AT I - 1/2
+
+         DOP=POIL(I,J,K)-POIL(I-1,J,K)-(DUNK(I,J,K,1)+DUNK(I-1,J,K,1))
+     &       *DD
+         DUB1=TVO*TCOFX(I,J,K)
+         IF (DOP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I-1,J,K,1)*DUNK(I-1,J,K,1)
+            DUB4=DUB1*DOP*RELPRM(I-1,J,K,2)
+            DUB3=DUB2*DOP
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               COF(I,J,K,2,1,1)=-DUB2
+               COF(I,J,K,1,1,1)=COF(I,J,K,1,1,1)+DUB2
+               COF(I,J,K,2,1,2)=-DUB4
+               RESID(I,J,K,1)=RESID(I,J,K,1)-DUB3
+            ENDIF
+            IF (KEYOUT(I-1,J,K).GT.0) THEN
+               COF(I-1,J,K,3,1,1)=-DUB2
+               COF(I-1,J,K,1,1,1)=COF(I-1,J,K,1,1,1)+DUB2
+               COF(I-1,J,K,1,1,2)=COF(I-1,J,K,1,1,2)+DUB4
+               COF(I-1,J,K,3,1,2)=0.
+               RESID(I-1,J,K,1)=RESID(I-1,J,K,1)+DUB3
+            ENDIF
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+            DUB4=DUB1*DOP*RELPRM(I,J,K,2)
+            DUB3=DUB2*DOP
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               COF(I,J,K,2,1,1)=-DUB2
+               COF(I,J,K,1,1,1)=COF(I,J,K,1,1,1)+DUB2
+               COF(I,J,K,1,1,2)=COF(I,J,K,1,1,2)-DUB4
+               COF(I,J,K,2,1,2)=0.
+               RESID(I,J,K,1)=RESID(I,J,K,1)-DUB3
+            ENDIF
+            IF (KEYOUT(I-1,J,K).GT.0) THEN
+               COF(I-1,J,K,3,1,1)=-DUB2
+               COF(I-1,J,K,1,1,1)=COF(I-1,J,K,1,1,1)+DUB2
+               COF(I-1,J,K,3,1,2)=DUB4
+               RESID(I-1,J,K,1)=RESID(I-1,J,K,1)+DUB3
+            ENDIF
+         ENDIF
+
+C  WATER EQUATION, X TRANSPORT AT I - 1/2
+
+         DWP=PWAT(I,J,K)-PWAT(I-1,J,K)-(DUNK(I,J,K,2)+DUNK(I-1,J,K,2))
+     &       *DD
+         DUB1=TVW*TCOFX(I,J,K)
+         IF (DWP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I-1,J,K,3)*DUNK(I-1,J,K,2)
+            DD=RDENOR*DUB2
+            DUB5=DPCSW(I-1,J,K)*DD+RELPRM(I-1,J,K,4)*DWP*DRATIO*DUB1
+            DUB4=DPCSW(I,J,K)*DD
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,3)*DUNK(I,J,K,2)
+            DD=RDENOR*DUB2
+            DUB5=DPCSW(I-1,J,K)*DD
+            DUB4=DPCSW(I,J,K)*DD-RELPRM(I,J,K,4)*DWP*DRATIO*DUB1
+         ENDIF
+         DUB3=DUB2*DWP
+         IF (KEYOUT(I,J,K).GT.0) THEN
+            COF(I,J,K,2,2,1)=-DUB2
+            COF(I,J,K,1,2,1)=COF(I,J,K,1,2,1)+DUB2
+            COF(I,J,K,2,2,2)=-DUB5
+            COF(I,J,K,1,2,2)=COF(I,J,K,1,2,2)+DUB4
+            RESID(I,J,K,2)=RESID(I,J,K,2)-DUB3
+         ENDIF
+         IF (KEYOUT(I-1,J,K).GT.0) THEN
+            COF(I-1,J,K,3,2,1)=-DUB2
+            COF(I-1,J,K,1,2,1)=COF(I-1,J,K,1,2,1)+DUB2
+            COF(I-1,J,K,1,2,2)=COF(I-1,J,K,1,2,2)+DUB5
+            COF(I-1,J,K,3,2,2)=-DUB4
+            RESID(I-1,J,K,2)=RESID(I-1,J,K,2)+DUB3
+         ENDIF
+
+      ELSE
+
+C  NO X TRANSPORT AT I - 1/2
+
+         IF (KEYOUT(I,J,K).GT.0) THEN
+            COF(I,J,K,2,1,1)=0.
+            COF(I,J,K,2,1,2)=0.
+            COF(I,J,K,2,2,1)=0.
+            COF(I,J,K,2,2,2)=0.
+         ENDIF
+         IF (I.GT.1) THEN
+            COF(I-1,J,K,3,1,1)=0.
+            COF(I-1,J,K,3,1,2)=0.
+            COF(I-1,J,K,3,2,1)=0.
+            COF(I-1,J,K,3,2,2)=0.
+         ENDIF
+
+      ENDIF
+
+    1 CONTINUE
+
+cgp dbg
+      IF (DBG) THEN
+        WRITE(0,*)
+        WRITE(0,'(2(A,I2),A)')'------------- NSTEP ',NSTEP,' NEWT',NEWT,
+     &                        ': HTRANX -------------'
+c        PAUSE
+        DO K = KL1,KL2
+        DO J = JL1V(K),JL2V(K)
+        DO I = IL1,IL2
+          IF (KEYOUT(I,J,K)==0) CYCLE
+          WRITE(0,'(A,3I3,3X,2E23.15)')'I,J,K,RESID',I,J,K,
+     &                                 RESID(I,J,K,1:2)
+          DO L = 1,$NUMCOF
+            WRITE(0,'(A,I3,4E23.15)')'L,COF',L,COF(I,J,K,L,1:2,1:2)
+          ENDDO
+          PAUSE
+        ENDDO
+        ENDDO
+        ENDDO
+        WRITE(0,*)'----------------------------------------------------'
+c        PAUSE
+      ENDIF
+cgp dbg
+
+      END
+
+C*********************************************************************
+      SUBROUTINE HTRANY (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,TCOFY,DEPTH,POIL,PWAT,DUNK,
+     &                   RELPRM,DPCSW,COF,RESID)
+C*********************************************************************
+
+C  Hydrology model y transport for diagonal tensor permeability
+
+C  TCOFY(I,J,K) = Y TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  DUNK(I,J,K,2) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  RELPRM(I,J,K,N) = RELATIVE PERMEABILITY DATA (INPUT, REAL*8)
+
+C  DPCSW(I,J,K) = DERIVATIVE OF Pc WRT Sw, PSI (INPUT, REAL*8)
+
+C  COF(I,J,K,N,M,L) = JACOBIAN COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+
+C  RESID(I,J,K,N)= RESIDUALS (INPUT AND OUTPUT, REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'hfluids.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM),JL2V(KDIM),
+     &        KL1,KL2,KEYOUT(IDIM,JDIM,KDIM),NBLK
+      REAL*8 TCOFY(IDIM,JDIM,KDIM),       POIL(IDIM,JDIM,KDIM),
+     &       PWAT(IDIM,JDIM,KDIM),        DEPTH(IDIM,JDIM,KDIM),
+     &       DUNK(IDIM,JDIM,KDIM,2),      DPCSW(IDIM,JDIM,KDIM),
+     &       RELPRM(IDIM,JDIM,KDIM,4),    RESID(IDIM,JDIM,KDIM,2)
+      REAL*4 COF(IDIM,JDIM,KDIM,$NUMCOF,2,2)
+
+      INTEGER I,J,K,L,JL1,JL2,JL2P
+      REAL*8 DOP,DWP,DUB1,DUB2,DUB3,DUB4,DUB5,DD,G2,TVW,TVO
+
+cgp dbg
+      LOGICAL DBG
+      DATA DBG /.FALSE./
+cgp dbg
+
+      G2=.5D0*GRAV
+      TVW=DELTIM/WATVIS
+      TVO=DELTIM/OILVIS
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2P=JL2V(K)+1
+      DO 1 J=JL1,JL2P
+      DO 1 I=IL1,IL2
+
+      IF (TCOFY(I,J,K).NE.0.D0) THEN
+         DD=(DEPTH(I,J,K)-DEPTH(I,J-1,K))*G2
+    
+C  OIL EQUATION, Y TRANSPORT AT J - 1/2
+
+         DOP=POIL(I,J,K)-POIL(I,J-1,K)-(DUNK(I,J,K,1)+DUNK(I,J-1,K,1))
+     &       *DD
+         DUB1=TVO*TCOFY(I,J,K)
+         IF (DOP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I,J-1,K,1)*DUNK(I,J-1,K,1)
+            DUB4=DUB1*DOP*RELPRM(I,J-1,K,2)
+            DUB3=DUB2*DOP
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               COF(I,J,K,4,1,1)=-DUB2
+               COF(I,J,K,1,1,1)=COF(I,J,K,1,1,1)+DUB2
+               COF(I,J,K,4,1,2)=-DUB4
+               RESID(I,J,K,1)=RESID(I,J,K,1)-DUB3
+            ENDIF
+            IF (KEYOUT(I,J-1,K).GT.0) THEN
+               COF(I,J-1,K,5,1,1)=-DUB2
+               COF(I,J-1,K,1,1,1)=COF(I,J-1,K,1,1,1)+DUB2
+               COF(I,J-1,K,1,1,2)=COF(I,J-1,K,1,1,2)+DUB4
+               COF(I,J-1,K,5,1,2)=0.
+               RESID(I,J-1,K,1)=RESID(I,J-1,K,1)+DUB3
+            ENDIF
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+            DUB4=DUB1*DOP*RELPRM(I,J,K,2)
+            DUB3=DUB2*DOP
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               COF(I,J,K,4,1,1)=-DUB2
+               COF(I,J,K,1,1,1)=COF(I,J,K,1,1,1)+DUB2
+               COF(I,J,K,1,1,2)=COF(I,J,K,1,1,2)-DUB4
+               COF(I,J,K,4,1,2)=0.
+               RESID(I,J,K,1)=RESID(I,J,K,1)-DUB3
+            ENDIF
+            IF (KEYOUT(I,J-1,K).GT.0) THEN
+               COF(I,J-1,K,5,1,1)=-DUB2
+               COF(I,J-1,K,1,1,1)=COF(I,J-1,K,1,1,1)+DUB2
+               COF(I,J-1,K,5,1,2)=DUB4
+               RESID(I,J-1,K,1)=RESID(I,J-1,K,1)+DUB3
+            ENDIF
+         ENDIF
+
+C  WATER EQUATION, Y TRANSPORT AT J - 1/2
+
+         DWP=PWAT(I,J,K)-PWAT(I,J-1,K)-(DUNK(I,J,K,2)+DUNK(I,J-1,K,2))
+     &       *DD
+         DUB1=TVW*TCOFY(I,J,K)
+         IF (DWP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I,J-1,K,3)*DUNK(I,J-1,K,2)
+            DD=RDENOR*DUB2
+            DUB5=DPCSW(I,J-1,K)*DD+RELPRM(I,J-1,K,4)*DWP*DRATIO*DUB1
+            DUB4=DPCSW(I,J,K)*DD
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,3)*DUNK(I,J,K,2)
+            DD=RDENOR*DUB2
+            DUB5=DPCSW(I,J-1,K)*DD
+            DUB4=DPCSW(I,J,K)*DD-RELPRM(I,J,K,4)*DWP*DRATIO*DUB1
+         ENDIF
+         DUB3=DUB2*DWP
+
+         IF (KEYOUT(I,J,K).GT.0) THEN
+            COF(I,J,K,4,2,1)=-DUB2
+            COF(I,J,K,1,2,1)=COF(I,J,K,1,2,1)+DUB2
+            COF(I,J,K,4,2,2)=-DUB5
+            COF(I,J,K,1,2,2)=COF(I,J,K,1,2,2)+DUB4
+            RESID(I,J,K,2)=RESID(I,J,K,2)-DUB3
+         ENDIF
+         IF (KEYOUT(I,J-1,K).GT.0) THEN
+            COF(I,J-1,K,5,2,1)=-DUB2
+            COF(I,J-1,K,1,2,1)=COF(I,J-1,K,1,2,1)+DUB2
+            COF(I,J-1,K,1,2,2)=COF(I,J-1,K,1,2,2)+DUB5
+            COF(I,J-1,K,5,2,2)=-DUB4
+            RESID(I,J-1,K,2)=RESID(I,J-1,K,2)+DUB3
+         ENDIF
+
+      ELSE
+
+C  NO Y TRANSPORT AT J - 1/2
+
+         IF (KEYOUT(I,J,K).GT.0) THEN
+            COF(I,J,K,4,1,1)=0.
+            COF(I,J,K,4,1,2)=0.
+            COF(I,J,K,4,2,1)=0.
+            COF(I,J,K,4,2,2)=0.
+         ENDIF
+         IF (J.GT.1) THEN
+            COF(I,J-1,K,5,1,1)=0.
+            COF(I,J-1,K,5,1,2)=0.
+            COF(I,J-1,K,5,2,1)=0.
+            COF(I,J-1,K,5,2,2)=0.
+         ENDIF
+
+      ENDIF
+
+    1 CONTINUE
+
+cgp dbg
+      IF (DBG) THEN
+        WRITE(0,*)
+        WRITE(0,'(2(A,I2),A)')'------------- NSTEP ',NSTEP,' NEWT',NEWT,
+     &                        ': HTRANY -------------'
+c        PAUSE
+        DO K = KL1,KL2
+        DO J = JL1V(K),JL2V(K)
+        DO I = IL1,IL2
+          IF (KEYOUT(I,J,K)==0) CYCLE
+          WRITE(0,'(A,3I3,3X,2E23.15)')'I,J,K,RESID',I,J,K,
+     &                                 RESID(I,J,K,1:2)
+          DO L = 1,$NUMCOF
+            WRITE(0,'(A,I3,4E23.15)')'L,COF',L,COF(I,J,K,L,1:2,1:2)
+          ENDDO
+          PAUSE
+        ENDDO
+        ENDDO
+        ENDDO
+        WRITE(0,*)'----------------------------------------------------'
+c        PAUSE
+      ENDIF
+cgp dbg
+
+
+
+      END
+
+C*********************************************************************
+      SUBROUTINE HTRANZ (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,TCOFZ,DEPTH,POIL,PWAT,DUNK,
+     &                   RELPRM,DPCSW,COF,RESID)
+C*********************************************************************
+
+C  Hydrology model z transport for diagonal tensor permeability
+
+C  TCOFZ(I,J,K) = Z TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  DUNK(I,J,K,2) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  RELPRM(I,J,K,N) = RELATIVE PERMEABILITY DATA (INPUT, REAL*8)
+
+C  DPCSW(I,J,K) = DERIVATIVE OF Pc WRT Sw, PSI (INPUT, REAL*8)
+
+C  COF(I,J,K,N,M,L) = JACOBIAN COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+
+C  RESID(I,J,K,N)= RESIDUALS (INPUT AND OUTPUT, REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'hfluids.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM),JL2V(KDIM),
+     &        KL1,KL2,KEYOUT(IDIM,JDIM,KDIM),NBLK
+      REAL*8 TCOFZ(IDIM,JDIM,KDIM),       POIL(IDIM,JDIM,KDIM),
+     &       PWAT(IDIM,JDIM,KDIM),        DEPTH(IDIM,JDIM,KDIM),
+     &       DUNK(IDIM,JDIM,KDIM,2),      DPCSW(IDIM,JDIM,KDIM),
+     &       RELPRM(IDIM,JDIM,KDIM,4),    RESID(IDIM,JDIM,KDIM,2)
+      REAL*4 COF(IDIM,JDIM,KDIM,$NUMCOF,2,2)
+
+      INTEGER I,J,K,L,JL1,JL2,KL2P
+      REAL*8 DOP,DWP,DUB1,DUB2,DUB3,DUB4,DUB5,DD,G2,TVW,TVO
+      INTRINSIC min,max
+
+cgp dbg
+      LOGICAL DBG
+      DATA DBG /.FALSE./
+cgp dbg
+
+      G2=.5D0*GRAV
+      TVW=DELTIM/WATVIS
+      TVO=DELTIM/OILVIS
+      KL2P=KL2+1
+      DO 1 K=KL1,KL2P
+      IF ( K .eq. KL1 ) then
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+      ELSE IF (K.LT.KL2P) THEN
+         JL1=min( JL1V(K-1) , JL1V(K) )
+         JL2=max( JL2V(K-1) , JL2V(K) )
+      ELSE
+         JL1=JL1V(KL2)
+         JL2=JL2V(KL2)
+      ENDIF
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2
+
+      IF (TCOFZ(I,J,K).NE.0.D0) THEN
+         DD=(DEPTH(I,J,K)-DEPTH(I,J,K-1))*G2
+    
+C  OIL EQUATION, Z TRANSPORT AT K - 1/2
+
+         DOP=POIL(I,J,K)-POIL(I,J,K-1)-(DUNK(I,J,K,1)+DUNK(I,J,K-1,1))
+     &       *DD
+         DUB1=TVO*TCOFZ(I,J,K)
+         IF (DOP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I,J,K-1,1)*DUNK(I,J,K-1,1)
+            DUB4=DUB1*DOP*RELPRM(I,J,K-1,2)
+            DUB3=DUB2*DOP
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               COF(I,J,K,6,1,1)=-DUB2
+               COF(I,J,K,1,1,1)=COF(I,J,K,1,1,1)+DUB2
+               COF(I,J,K,6,1,2)=-DUB4
+               RESID(I,J,K,1)=RESID(I,J,K,1)-DUB3
+            ENDIF
+            IF (KEYOUT(I,J,K-1).GT.0) THEN
+               COF(I,J,K-1,7,1,1)=-DUB2
+               COF(I,J,K-1,1,1,1)=COF(I,J,K-1,1,1,1)+DUB2
+               COF(I,J,K-1,1,1,2)=COF(I,J,K-1,1,1,2)+DUB4
+               COF(I,J,K-1,7,1,2)=0.
+               RESID(I,J,K-1,1)=RESID(I,J,K-1,1)+DUB3
+            ENDIF
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+            DUB4=DUB1*DOP*RELPRM(I,J,K,2)
+            DUB3=DUB2*DOP
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               COF(I,J,K,6,1,1)=-DUB2
+               COF(I,J,K,1,1,1)=COF(I,J,K,1,1,1)+DUB2
+               COF(I,J,K,1,1,2)=COF(I,J,K,1,1,2)-DUB4
+               COF(I,J,K,6,1,2)=0.
+               RESID(I,J,K,1)=RESID(I,J,K,1)-DUB3
+            ENDIF
+            IF (KEYOUT(I,J,K-1).GT.0) THEN
+               COF(I,J,K-1,7,1,1)=-DUB2
+               COF(I,J,K-1,1,1,1)=COF(I,J,K-1,1,1,1)+DUB2
+               COF(I,J,K-1,7,1,2)=DUB4
+               RESID(I,J,K-1,1)=RESID(I,J,K-1,1)+DUB3
+            ENDIF
+         ENDIF
+
+C  WATER EQUATION, Z TRANSPORT AT K - 1/2
+
+         DWP=PWAT(I,J,K)-PWAT(I,J,K-1)-(DUNK(I,J,K,2)+DUNK(I,J,K-1,2))
+     &       *DD
+         DUB1=TVW*TCOFZ(I,J,K)
+         IF (DWP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I,J,K-1,3)*DUNK(I,J,K-1,2)
+            DD=RDENOR*DUB2
+            DUB5=DPCSW(I,J,K-1)*DD+RELPRM(I,J,K-1,4)*DWP*DRATIO*DUB1
+            DUB4=DPCSW(I,J,K)*DD
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,3)*DUNK(I,J,K,2)
+            DD=RDENOR*DUB2
+            DUB5=DPCSW(I,J,K-1)*DD
+            DUB4=DPCSW(I,J,K)*DD-RELPRM(I,J,K,4)*DWP*DRATIO*DUB1
+         ENDIF
+         DUB3=DUB2*DWP
+         IF (KEYOUT(I,J,K).GT.0) THEN
+            COF(I,J,K,6,2,1)=-DUB2
+            COF(I,J,K,1,2,1)=COF(I,J,K,1,2,1)+DUB2
+            COF(I,J,K,6,2,2)=-DUB5
+            COF(I,J,K,1,2,2)=COF(I,J,K,1,2,2)+DUB4
+            RESID(I,J,K,2)=RESID(I,J,K,2)-DUB3
+         ENDIF
+         IF (KEYOUT(I,J,K-1).GT.0) THEN
+            COF(I,J,K-1,7,2,1)=-DUB2
+            COF(I,J,K-1,1,2,1)=COF(I,J,K-1,1,2,1)+DUB2
+            COF(I,J,K-1,1,2,2)=COF(I,J,K-1,1,2,2)+DUB5
+            COF(I,J,K-1,7,2,2)=-DUB4
+            RESID(I,J,K-1,2)=RESID(I,J,K-1,2)+DUB3
+         ENDIF
+
+      ELSE
+
+C  NO Z TRANSPORT AT K - 1/2
+
+         IF (KEYOUT(I,J,K).GT.0) THEN
+            COF(I,J,K,6,1,1)=0.
+            COF(I,J,K,6,1,2)=0.
+            COF(I,J,K,6,2,1)=0.
+            COF(I,J,K,6,2,2)=0.
+         ENDIF
+         IF (K.GT.1) THEN
+            COF(I,J,K-1,7,1,1)=0.
+            COF(I,J,K-1,7,1,2)=0.
+            COF(I,J,K-1,7,2,1)=0.
+            COF(I,J,K-1,7,2,2)=0.
+         ENDIF
+
+      ENDIF
+
+    1 CONTINUE
+
+cgp dbg
+      IF (DBG) THEN
+        WRITE(0,*)
+        WRITE(0,'(2(A,I2),A)')'------------- NSTEP ',NSTEP,' NEWT',NEWT,
+     &                        ': HTRANZ -------------'
+c        PAUSE
+        DO K = KL1,KL2
+        DO J = JL1V(K),JL2V(K)
+        DO I = IL1,IL2
+          IF (KEYOUT(I,J,K)==0) CYCLE
+          WRITE(0,'(A,3I3,3X,2E23.15)')'I,J,K,RESID',I,J,K,
+     &                                 RESID(I,J,K,1:2)
+          DO L = 1,$NUMCOF
+            WRITE(0,'(A,I3,4E23.15)')'L,COF',L,COF(I,J,K,L,1:2,1:2)
+          ENDDO
+          PAUSE
+        ENDDO
+        ENDDO
+        ENDDO
+        WRITE(0,*)'----------------------------------------------------'
+c        PAUSE
+      ENDIF
+cgp dbg
+
+      END

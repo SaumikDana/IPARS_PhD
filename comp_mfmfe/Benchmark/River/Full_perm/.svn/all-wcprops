@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/River/Full_perm
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/River/Full_perm/IPARS.IN
+END
+mesh.dat
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/River/Full_perm/mesh.dat
+END
+input.dat
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/River/Full_perm/input.dat
+END
+perm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/River/Full_perm/perm.dat
+END

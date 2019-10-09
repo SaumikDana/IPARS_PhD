@@ -1,0 +1,322 @@
+C  VISTABF.F - PRINT TABLE VISUALIZATION OUTPUT
+C  ROUTINES IN THIS MODULE:
+c      SUBROUTINE VIS_SAVETAB(VALS,NUMX,XNAM,YNAM,NTAB)
+c      SUBROUTINE VIS_SETTAB(NROCK,TNUM,TNAME,TMIN,TMAX )
+c      SUBROUTINE TABLE_OUT()
+c -------------------------------------------------------
+C  CODE HISTORY:
+c Malgo Peszynska, 3/20/99      added routines for
+c       table visualization to visout.f
+c M. Peszynska, 9/99 moved the code from visout.f to vistabf.f
+c ------------------------------------------------------
+      SUBROUTINE VIS_SAVETAB(VALS,NUMX,XNAM,YNAM,NTAB)
+c ---------------------------------------------
+C Get the value of vis_tabotype to check whether
+c the vis table output is requested or not.
+c If yes, then save values vals (table data from  input file) in
+c a temporary location to be printed by VIS_SETTAB() later.
+c Names of the variables (on axes) are also saved.
+c --------------- called from util/table.df/table()
+c VALS = location of data points (input)
+c NUMX = 2*number of points-1 (input)
+c XNAM, YNAM= names on the coordinate axes (input)
+c NTAB = IPARS number of the table for which the values are input (input)
+c ------------------------------------------------------
+      IMPLICIT NONE
+      
+      INCLUDE 'control.h'
+      INCLUDE 'vistab.h'
+
+      REAL*8 VALS(*)
+      CHARACTER*8 XNAM,YNAM
+      INTEGER NUMX,NTAB
+C=========================
+      INTEGER N,I,NDUM,NERR
+      LOGICAL ONCEONLY
+      DATA ONCEONLY  /.TRUE./      
+C==========================================
+      IF(ONCEONLY) THEN
+
+         ONCEONLY = .FALSE.
+
+c----------------------------
+C VIS_TABOTYPE = 0 (DEFAULT) : NO OUTPUT
+C VIS_TABOTYPE = 1           : OUTPUT all values
+C VIS_TABOTYPE = 2           : OUTPUT requested values and stop
+c----------------------------
+         VIS_TABOTYPE = 0
+
+         CALL GETVAL('VIS_TABOUTTYPE ',
+     &        VIS_TABOTYPE,'I4',0,0,0,0,NDUM,NERR)
+
+c ----------------------- numrock = -1 means there was no data for
+c this table or taht vis_settab was not called
+c -----------------------
+         
+c         write(*,*) 'vistab =',maxtabnum
+
+         DO N = 1, MAXTABNUM
+            NUMROCK(N) = -1
+         ENDDO
+
+      ENDIF
+
+c      DO N = 1, MAXTABNUM
+c         write(*,*) '** ',n,NUMROCK(N)
+c      ENDDO
+
+
+c check whether output was requested or not
+
+      IF(VIS_TABOTYPE.EQ.0) RETURN
+      N = (NUMX + 1)/2
+
+      NDATAVALS = N
+
+c x,y data vals are only a temporary location ... may be changed to 
+c a permanent location by dimensioning the matrix properly with tabnum
+
+      DO I = 1, N
+         XDATAVALS(I) = VALS(I*2 -1)
+         YDATAVALS(I) = VALS(I*2)
+      ENDDO
+
+      TABX(NTAB) = XNAM
+      TABY(NTAB) = YNAM
+
+      END
+
+
+C-------------------------------------------------------------
+      SUBROUTINE VIS_SETTAB(NROCK,TNUM,TNAME,TMIN,TMAX )
+c -------------------------
+c if vistab output is requested, saves the name of the table,
+c the rock type (if relevant, otherwise 0) as well as 
+c sets the interval for a given table of number tnum
+c ----------------- called from input/idata.df/getrock()
+c ----------------- called from black/iisdat.df/iisdat()
+c ----------------- ... and can be called whenever getblk() is used
+c nrock = rock type for the table values read (input) 
+c tnum  = table number for the table
+c tname = the name associated with the table (must end with underscore_)
+c         and be not longer than 6 characters  (input)
+c tmin, tmax - let and right end of the interval for relevant arguments
+c              for the table (input and output) to betested by 
+c              the lookup function
+c ------------------------------------------------------------
+      IMPLICIT NONE
+c       
+      INCLUDE 'control.h'
+      INCLUDE 'vistab.h'
+      INCLUDE 'visual.h'
+
+      INTEGER NROCK, TNUM
+      CHARACTER*1 TNAME(*)
+c -------------------------
+      CHARACTER*1 POM(7)
+      CHARACTER*7 POML
+      CHARACTER*8 CROCK
+
+c bag8, gp
+      CHARACTER*$MXVFNAM FNAME
+
+      EQUIVALENCE (POM,POML)
+      REAL*8 TMIN, TMAX
+
+      INTEGER I,II
+C-----------------------------------------------------------
+$MANY      IF(MYPRC.NE.0) RETURN
+      IF(VIS_TABOTYPE.EQ.0) RETURN
+
+c process the name of the table: if no underscore found withing the first 7
+c characters, truncate it.
+
+      I = 1
+ 1    CONTINUE
+      POM(I) = TNAME(I)
+      IF(TNAME(I).EQ.'_') GOTO 2
+      I=I+1
+      IF (I.GT.6) GOTO 3
+      GO TO 1
+
+c name is shorter than 6: pad the remaining space with _
+
+ 2    CONTINUE
+      DO II=I+1,6
+         POM(II)='_'
+      ENDDO
+
+ 3    CONTINUE
+      POM(7)='_'
+
+c create the file and the zone name 
+
+      IF (NROCK.LT.10) THEN
+         WRITE(CROCK,5) POML,NROCK
+      ELSE 
+         WRITE(CROCK,6) POML,NROCK
+      ENDIF
+ 5    FORMAT(A7,I1)
+ 6    FORMAT(A6,I2)
+
+c save the names and info about the table
+
+      TABNAME(TNUM) = CROCK
+      NUMROCK(TNUM) = NROCK
+      XMIN(TNUM)    = TMIN
+      XMAX(TNUM)    = TMAX
+      
+c bag8, gp - support for dirname
+         IF (len_trim(VIS_DIR).EQ.0) THEN
+           FNAME=CROCK
+         ELSE
+           FNAME=trim(VIS_DIR)//'/'//CROCK
+         ENDIF
+      
+c output data points to the file in the Tecplot format
+
+      OPEN (99,FILE=FNAME,STATUS='UNKNOWN')
+
+      WRITE(99,*) 'TITLE = "',CROCK,'"'
+      WRITE(99,*) 'VARIABLES = "',TABX(TNUM),
+     &     '","',TABY(TNUM),'"'
+      
+      WRITE(99,*) 'ZONE T= "',CROCK,'",',
+     &     ' I=',NDATAVALS,', F=BLOCK'    
+
+      WRITE(99,*) (XDATAVALS(I),I=1,NDATAVALS)
+      WRITE(99,*) (YDATAVALS(I),I=1,NDATAVALS)
+
+c process poml to get just the name of the table
+
+      I = INDEX(POML,'_')
+      DO II=I,7
+         POM(II)=' '
+      ENDDO
+         
+      IF(NROCK.GT.0) THEN
+         WRITE(99,*) 'TEXT X=20, Y = 80, H=8, T= "',
+     &        POML,' ROCK TYPE ',NROCK,'"'
+      ELSE
+         WRITE(99,*) 'TEXT X=20, Y = 80, H=8, T= "',
+     &        POML,'"'
+      ENDIF
+
+      CLOSE(99)
+
+      END
+
+
+C---------------------------------------------------------------
+	SUBROUTINE TABLE_OUT()
+c ----------------------------
+C If vistab output is requested, outputs the values for the tables 
+c using the spline lookup table. The tables processed are 
+c none (if vis_tabouttype = 0) 
+c all (if vis_tabouttype = 1) 
+c only the ones that have been requested (if vis_tabouttype = 2) 
+c 
+c stops the simulation in case (if vis_tabouttype = 2) 
+c --------------------------------------------------------------
+	IMPLICIT NONE
+
+        INCLUDE 'control.h'
+	INCLUDE 'rock.h'
+        INCLUDE 'vistab.h'
+      INCLUDE 'visual.h'
+c -------------------------	
+	INTEGER NR,NTAB
+	INTEGER N,NTIMES
+	PARAMETER (NTIMES = 50)
+
+	REAL*8 SW,TXMIN,TXMAX,DSW,FUN,DER        
+        CHARACTER*12 TABOUT
+
+c bag8, gp
+      CHARACTER*$MXVFNAM FNAME
+
+C---------------------------------
+$MANY        IF(MYPRC.NE.0) RETURN
+        IF(VIS_TABOTYPE.EQ.0) RETURN
+
+c        DO NR = 1, MAXTABNUM
+c           WRITE(*,*) 'TABLE ',NR,' ',
+c     &       TABNAME(NR),numrock(nr)
+c        enddo
+
+        IF(VIS_TABOTYPE.EQ.2) THEN
+           WRITE(*,*) 'AVAILABLE TABLE NUMBERS ARE:'
+
+           DO NR = 1, MAXTABNUM
+              IF(NUMROCK(NR).GE.0) 
+     &             WRITE(*,*) 'TABLE ',NR,' ',
+     &             TABNAME(NR),numrock(nr)
+           ENDDO
+        ENDIF
+
+c bag8, gp - support for dirname
+         IF (len_trim(VIS_DIR).EQ.0) THEN
+           FNAME='Vistab.inf'
+         ELSE
+           FNAME=trim(VIS_DIR)//'/Vistab.inf'
+         ENDIF
+
+c output to auxiliary file: record which tables have been output
+      OPEN (98,FILE=FNAME,STATUS='UNKNOWN')
+
+c loop over the tables -----------------------------------------x
+
+        DO NTAB =1, MAXTABNUM
+           NR = NTAB
+           IF(VIS_TABOTYPE.EQ.2) THEN
+              WRITE(*,*) 'ENTER TABLE NUMBER (1..'
+     &             ,MAXTABNUM,') OR 0 TO QUIT:'
+              READ(*,*) NR
+
+c              write(*,*) nr,numrock(nr),tabname(nr)
+
+              IF(NR.LT.1.OR.NR.GT.MAXTABNUM)
+     &             GOTO 10
+           ENDIF
+           IF(NUMROCK(NR).LT.0)GOTO 9
+           
+           WRITE(TABOUT,1) TABNAME(NR),'.out'
+ 1         FORMAT(A8,A4)
+           
+c bag8, gp - support for dirname
+         IF (len_trim(VIS_DIR).EQ.0) THEN
+           FNAME=TABOUT
+         ELSE
+           FNAME=trim(VIS_DIR)//'/'//TABOUT
+         ENDIF
+           
+         OPEN (99,FILE=FNAME,STATUS='UNKNOWN')           
+           WRITE(99,*) 'ZONE T= "',TABOUT,'",',
+     &          ' I=',NTIMES,', F=POINT'    
+           
+           TXMIN = XMIN(NR)
+           TXMAX = XMAX(NR)
+           DSW = (	TXMAX - TXMIN) / (NTIMES -1)
+           SW = TXMIN
+           DO N =1, NTIMES
+              CALL LOOKUP(NR,SW,FUN,DER)
+              WRITE(99,*) SW,FUN
+              SW = SW + DSW
+           ENDDO
+           
+           CLOSE(99)
+
+           WRITE(98,*) TABNAME(NR)
+
+ 9         CONTINUE
+        ENDDO
+c end loop ---------------------------------------------        
+
+ 10     CONTINUE
+        CLOSE(98)
+
+        IF(VIS_TABOTYPE.EQ.2) STOP
+	
+        END
+
+

@@ -1,0 +1,40 @@
+C FILE: PEVISUAL.H
+C CONTAINS GLOSSARY FOR VISUALIZATION VARIABLES FOR POROELASTIC MODEL
+C
+C CODE HISTORY: 
+C    XIULI GAI 08/09/2003
+C *********************************************************************
+      INTEGER IPARS_NSCL
+      PARAMETER (IPARS_NSCL = 9)  
+
+      CHARACTER*$MXANAM IPARS_SCL_NAMES(3,IPARS_NSCL)
+C *********************************************************************
+C NAME IN INPUT FILE,  IN TEC FILE, IPARS NAME
+      DATA IPARS_SCL_NAMES /
+     &     'DISPX', 'DISPX', 'DISP',
+     &     'DISPY', 'DISPY', 'DISP',
+     &     'DISPZ', 'DISPZ', 'DISP',
+     &     'STRXX', 'STRXX', 'STRESS',
+     &     'STRYY', 'STRYY', 'STRESS',
+     &     'STRZZ', 'STRZZ', 'STRESS',
+     &     'STRXY', 'STRXY', 'STRESS',
+     &     'STRYZ', 'STRYZ', 'STRESS',
+     &     'STRXZ', 'STRXZ', 'STRESS'/  
+      INTEGER IPARS_SCL_OFFSETS (IPARS_NSCL) 
+      DATA IPARS_SCL_OFFSETS /
+     &     1,
+     &     2,
+     &     3,
+     &     1,
+     &     2,
+     &     3,
+     &     4,
+     &     5,
+     &     6 /
+C *********************************************************************
+
+
+
+
+
+

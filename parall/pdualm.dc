@@ -1,0 +1,62 @@
+// pdualm.c - C routines for Dual Approximatin Interface, multiple processors
+
+// HISTORY:
+
+// JOHN WHEELER      3/30/99   ORIGINAL ALPHA CODE
+
+#include "memory.h"
+
+// ROUTINE DECLARATIONS
+
+FORTSUB $UPPERpntibuf4$USAN (PINT4 n_bufif, PINT4 n_bufdim, PINT4 ntbm);
+FORTSUB $UPPERpntibuf8$USAN (PINT4 n_bufif, PINT4 n_bufdim, PINT4 ntbm);
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+FORTSUB $UPPERpntibuf4$USAN (PINT4 n_bufif, PINT4 n_bufdim, PINT4 ntbm)
+{
+// *******************************************************************
+
+// Procedure passes REAL*4 interface buffers and their first dimension
+// to SRIBUF4 ().  This routine is called only if $MANY is turned on.
+
+// n_bufif = Memory management index for interface buffers (input)
+
+// n_bufdim = Memory management index for first dimension of
+//            interface buffers (input)
+
+// nbtm(m) = Number of buffers (1 to ntbm) to be transmitted to physical
+//           model m
+
+// *******************************************************************
+
+extern FORTSUB $CALLUPsribuf4$USAN(PADD buf,PADD bufdim,PINT4 ntbm);
+
+$CALLUPsribuf4$USAN (aryadd[0][*n_bufif] , aryadd[0][*n_bufdim], ntbm);
+
+return;
+}
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+FORTSUB $UPPERpntibuf8$USAN (PINT4 n_bufif, PINT4 n_bufdim, PINT4 ntbm)
+{
+// *******************************************************************
+
+// Procedure passes REAL*8 interface buffers and their first dimension
+// to SRIBUF8 ().  This routine is called only if $MANY is turned on.
+
+// n_bufif = Memory management index for interface buffers (input)
+
+// n_bufdim = Memory management index for first dimension of
+//            interface buffers (input)
+
+// nbtm(m) = Number of buffers (1 to ntbm) to be transmitted to physical
+//           model m
+
+// *******************************************************************
+
+extern FORTSUB $CALLUPsribuf8$USAN(PADD buf,PADD bufdim, PINT4 ntbm);
+
+$CALLUPsribuf8$USAN (aryadd[0][*n_bufif] , aryadd[0][*n_bufdim], ntbm);
+
+return;
+}

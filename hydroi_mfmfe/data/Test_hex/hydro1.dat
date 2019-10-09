@@ -1,0 +1,156 @@
+TITLE(2)="HYDROLOGY MODEL TEST 1"
+
+DESCRIPTION()=
+"LENGTH (FT) : 400"
+"WIDTH (FT) : 400"
+"THICKNESS (FT) : 20"
+"GRID BLOCKS : 10X20X20   4000 GRID ELEMENTS"
+"DATE : 6/9/98"
+
+BLOCKMODEL(1)="HYDROLOGY_IMPLICIT_MFMFE"
+
+TIMEEND = 500.
+
+$ I/O OPTIONS
+
+OUTLEVEL = 2  SPLINEOUT  GEOMOUT  PROCOUT
+$WELLOUTKEY = 3   WELLFILE = "hydro1.wel"
+
+$MAXNEWT = 100
+$SAMG
+$GMRES_PREC = 17
+$LSOL_TOL = 1.0E-06
+$N_GS_STEP = 10
+
+$ FAULT BLOCK AND MESH DATA
+
+DINIT = 0.
+DOWN(1 TO 3,1) = 0. 0. 1.
+Include mesh.dat
+
+$KEYOUT1(4 TO 6, 4 TO 6,) = 0
+
+$ INITIAL CONDITIONS
+
+POINIT = 1500.0  SWINIT = 0.5
+
+$ POROSITY
+
+POROSITY1() = .2
+
+WATCOMP = 1.E-7
+OILCOMP = 1.E-4
+WATVIS = 1.
+OILVIS = 3.
+WATDEN = 56.
+OILDEN = 62.4
+
+CR1() = 0.
+
+$ PERMEABILITIES
+
+XPERM1() = 20.0
+YPERM1() = 10.0
+ZPERM1() = 10.0
+$XYPERM1() = 8.0
+$YZPERM1() = 2.0
+$XZPERM1() = 2.0
+
+KOSW(1) Block        $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .8
+  Derivative  0 At .8
+  Constraint  1 At  0
+  Nodes  .2  .58
+  Data  0.  1. , .1  .67 , .2  .46 , .4  .2 , .6  .055 , .7  .015 , .8  0
+EndBlock
+
+KWSW(1) Block        $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .15
+  Derivative  0 At .15
+  Constraint  1 At   1
+  Nodes  .55  .7  .75
+  Data  .15  0 , .3  .035 , .4  .085 , .6  .28 , .8  .776 , 1  1
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Spline3
+  Extrapolation Same
+  Nodes  .25  .4  .7  .9
+  Pole   .12
+  Data
+  .16   9. , .2   6.12 , .225 4.86 , .25  4.22 , .275 3.78 , .325 3.2
+  .375 2.74 , .45  2.28 , .55  1.94 , .65  1.74 , .75  1.61 , .85  1.54
+  .925 1.44 , .95  1.37 , .975 1.14 , 1.0  .7
+EndBlock
+
+$KOSW(1) Block
+$  Interpolation Linear
+$  Extrapolation Constant
+$  Data
+$  0. 1.,
+$  1.0 0.
+$EndBlock
+$
+$KWSW(1) Block
+$  Interpolation Linear
+$  Extrapolation Constant
+$  Data
+$  0. 0.,
+$  1. 1.
+$EndBlock
+$
+$PCOW(1) Block
+$  Interpolation Linear
+$  Extrapolation Constant
+$  Data
+$  0. 10.,
+$  1. 0.
+$EndBlock
+
+NUMWELL=2
+DIAMETER(,1) = 0.05
+WELLNAME(1) = "FIRST WELL"
+KINDWELL(1) = 1
+WELLTOP(1 TO 3,1,1) = 2*0.1 30.
+WELLBOTTOM(1 TO 3,1,1) = 2*0.1 0.
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  2000.
+EndBlock
+
+DIAMETER(,2) = 0.05
+WELLNAME(2) = "SECOND WELL"
+KINDWELL(2) = 31
+WELLTOP(1 TO 3,1,2) = 2*29.9 30.
+WELLBOTTOM(1 TO 3,1,2) = 2*29.9 0.
+WELLPQ(2) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  1500.
+EndBlock
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+DELTIM = 0.01  DTIMMUL = 1.01  DTIMMAX = 0.5 TIMOUT = 40.  DTIMOUT = 60.
+CVTOL = 1.E-8
+$TIMRES = 0.32
+VISOUT = 20.  DVISOUT =20.
+VIS_SCL = 3
+VIS_SCL_NAMES(1) = "PWAT"
+VIS_SCL_NAMES(2) = "COIL"
+VIS_SCL_NAMES(3) = "SWAT"
+VIS_NVEC = 2
+VIS_VEC_NAMES(1) = "VEL_OIL"
+VIS_VEC_NAMES(2) = "VEL_WAT"
+VISFLAG = 8
+VIS_FNAME = "HYDRO1_"
+EndTime
+

@@ -1,0 +1,32 @@
+$ ############ TICAM (GMRES) Linear Solver Include File ############
+
+Replace_Symbols
+
+MSOLG  C               $ Include GMRES linear solver as model solver
+GMRES  ""               $ Include GMRES linear solver
+YGMRES ""               $ Include Y. Vassilevski GMRES linear solver
+MULTISTAGE "//"         $ Use combinative method instead of multistage
+EDWSTPTEST ""           $ Use C.Edwards' stop test instead of Euclidian norm
+SWTCH2LSOR "//"         $ Don't switch to LSOR preconditioner after the first GMRES restart
+
+$MULTISTAGE ""           $ Use multistage method instead of combinative
+$EDWSTPTEST "//"         $ Use Euclidian norm instead of C.Edwards' stop test
+$SWTCH2LSOR ""           $ Switch to LSOR preconditioner after the first GMRES restart
+
+
+Source_Directory
+../solve/ygmres/
+Source_Files
+
+sol.df        .f
+slgmres.f    
+slupdate.df   .f
+slmsg.df      .f
+ticama.df     .f
+gr8sum.df     .f
+intrfdc3d.df  .f
+sllsorc.dh    .h
+sllsor.df     .f
+slblk.dc      .c
+gmg.hpp       .hpp
+gmg.cpp       .cpp

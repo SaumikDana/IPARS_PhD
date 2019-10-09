@@ -1,0 +1,164 @@
+$==============================
+$ Ben Ganis
+$==============================
+
+TITLE(2)="SINGLE PHASE TEST SMALL"
+
+DESCRIPTION()=
+"SINGLE PHASE TEST SMALL"
+
+BLOCKMODEL(1) = "SINGLE_PHASE_IMPLICIT"
+BLOCKMODEL(2) = "SINGLE_PHASE_IMPLICIT"
+
+$TIMEEND = 1.0
+TIMEEND = 10.0
+
+$ I/O OPTIONS
+
+OUTLEVEL = 2
+PROCOUT
+$BUGKEY(6)
+BUGKEY(7)
+
+$ SOLVER OPTIONS
+
+MAXNEWT = 1000
+CVTOL = 1.E-9
+LSOL_TOL = 1.E-10
+
+$ Use fully coupled enhanced velocity solver
+HYPRE_EVFEM
+
+$ Inherit processor grid assignment from fault block 1
+EV_PRCBLK=1
+
+$==============================
+$ FAULT BLOCK AND MESH DATA
+$==============================
+
+$CONV_FACTOR = 1.0
+
+$ Nested blocks
+
+ BLOCKNAME(1) = "BLOCK1"
+ DOWN(1 TO 3,1) = 0 0 0
+ XYZ111(,1) = 0. 0. 0.
+ NX(1) = 10     NY(1) = 10     NZ(1) = 10
+ DX(,1) = 10.   DY(,1) = 10.   DZ(,1) = 10. 
+ KEYOUT1(5 TO 6,5 TO 6,)=0
+
+ BLOCKNAME(2) = "BLOCK2"
+ DOWN(1 TO 3,2) = 0 0 0
+ XYZ111(,2) = 35. 35. 0.
+ NX(2) = 6      NY(2) = 6      NZ(2) = 20
+ DX(,2) = 5.    DY(,2) = 5.    DZ(,2) = 5. 
+ $------------------------------------------------------------------
+ $ Note: an overlap of at least one element prevents parallel issues
+ $------------------------------------------------------------------
+ KEYOUT2()=0
+ KEYOUT2(2 TO 5,2 TO 5,)=1
+
+$$ Side by side blocks
+$
+$ BLOCKNAME(1) = "BLOCK1"
+$ DOWN(1 TO 3,1) = 0 0 0
+$ XYZ111(,1) = 0. 0. 0.
+$ NX(1) = 5      NY(1) = 10     NZ(1) = 10
+$ DX(,1) = 10.   DY(,1) = 10.   DZ(,1) = 10. 
+$
+$ BLOCKNAME(2) = "BLOCK2"
+$ DOWN(1 TO 3,2) = 0 0 0
+$ XYZ111(,2) = 50. 0. 0.
+$ NX(2) = 10     NY(2) = 20     NZ(2) = 10
+$ DX(,2) = 5.    DY(,2) = 5.    DZ(,2) = 10. 
+
+FACEBLOCKS(,1) = 1 2  FACEXYZ(,1) = 0. 0. 0., 0. 0. 0.
+
+$==============================
+$ BOUNDARY CONDITIONS
+$==============================
+
+NBND_REG = 1
+NBND_SUBREG = 1
+BDAREA_EPS = 1.0E-08
+
+$ Regions:
+$             subreg nblk  x1 y1 z1     x2 y2 z2
+BND_VOL(,1) = 1      1,    0. 0. 0.     0. 100. 100.       $ x=0
+$BND_VOL(,2) = 2      1,    100. 0. 0.   100. 100. 100.     $ x=1 on blk 1
+$BND_VOL(,2) = 2      2,    100. 0. 0.   100. 100. 100.     $ x=1 on blk 2
+
+$ Conditions for Subregions:
+
+BOUND_TYPE(1) = 1  $ Dirichlet condition for pressure
+TBOUND(1) Block
+Interpolation Linear
+Extrapolation Constant
+Data 0. 1.
+EndBlock
+
+$BOUND_TYPE(2) = 1  $ Dirichlet condition for pressure
+$TBOUND(2) Block
+$Interpolation Linear
+$Extrapolation Constant
+$Data 0. 0.
+$EndBlock
+
+$==============================
+$ INITIAL CONDITIONS
+$==============================
+
+$PINIT = 0.
+PINIT = -1.
+
+$==============================
+$ FLUID AND MEDIA PROPERTIES
+$==============================
+
+$ Porosity
+POROSITY1() = 0.2
+POROSITY2() = 0.2
+
+$ Permeability
+XPERM1() = 1.  YPERM1() = 2.  ZPERM1() = 1.
+XPERM2() = 1.  YPERM2() = 2.  ZPERM2() = 1.
+
+$ Fluid viscosity
+$FLVIS = 1.
+FLVIS = 2.
+
+$ Fluid standard density
+$STFLDEN = 1.
+STFLDEN = 56.
+
+$ Fluid compressibility
+$FLCOMP = 0.
+FLCOMP = 1.E-5
+
+$==============================
+$ WELLS
+$==============================
+
+NUMWELL=0
+
+EndInitial
+
+$==============================
+$ TRANSIENT DATA INPUT BLOCKS
+$==============================
+
+BeginTime    0.
+
+DELTIM = 1.0  DTIMMUL = 1.0  DTIMMAX = 1.0
+
+VISOUT = 1.0  DVISOUT = 1.0
+VIS_FNAME = "Vis"
+VIS_DIR = "visual"
+VISFLAG = 10
+VIS_SCL = 1
+VIS_SCL_NAMES(1) = "PRES"
+VIS_NVEC = 1
+VIS_VEC_NAMES(1) = "VEL"
+
+EndTime
+

@@ -1,0 +1,151 @@
+$      ipars.siz - Size Data Executive for all Machines and Models
+
+$  Keep this file as simple as possible.  Most size variable and file names
+$  should be set in include files.
+
+$  INCLUDE FILES MARKED WITH AN * DO NOT CURRENTLY EXIST
+
+Target_Directory
+./
+
+$ ################## Unix/Dos control (select one) ###################
+
+Replace_Symbols
+
+$ PCSLASH YES          $ Convert file names to PC format
+$ PCSLASH NO           $ Do not convert file names to PC format
+
+$ ############# Machine and message system (select one) ##############
+
+Include_File
+
+$../size/ibmpc.siz   $ IBM PC with Microsoft compilers
+$../size/sp2.siz     $ IBM SP2 with MPI messages
+$../size/lnx.siz     $ Linux 
+$../size/beo.siz     $ Linux with MPI messages
+$../size/sgi.siz    $ SGI single processor                    *
+$../size/t3e.siz    $ Cray T3E with MPI messages
+$../size/rs6k.siz   $ IBM RS600              
+$../size/net.siz    $ Workstation network with MPI messages   *
+
+$ #################### Framework (select one) ########################
+
+Include_File
+
+$../size/frame1.siz $ 30x105x100, 1 Processor, 20 Wells, 3 Blocks, 3 Eq
+$../size/frame1c.siz $ Compositional version of frame1.siz, 13 Eq
+$../size/frame1b.siz $ 35x200x200, 1 Processor, 30 Wells, 9 Blocks, 3 Eq
+$../size/frame36.siz $ 40x200x200, 36 Processors, 40 Wells, 10 Blocks, 3 Eq
+$../size/frame36c.siz $ Compositional version of frame36.siz, 13 EQ
+
+$ ################## Physical Model (select one) #####################
+
+$ Turn off all models then turn on one or more models in an include file
+
+Replace_Symbols
+
+HYDROI  C            $ Exclude hydrology-implicit model
+HYDROE  C            $ Exclude hydrology-impes model
+BLACKI  C            $ Exclude black-oil implicit model
+BLACKP  C            $ Exclude black-oil impes model
+COMP    C            $ Exclude compositional model
+CMFMFE  C            $ Exclude compositional MFMFE model
+TRCHEM  C            $ Exclude transport-chemistry model
+CHEM    C            $ Exclude chemical-flood model
+SINGLEE C            $ Exclude explicit single-phase model
+SINGLEI C            $ Exclude implicit single-phase model
+AIR     C            $ Exclude air-water model
+DGIMPES C            $ Exclude DG-impes model
+PORESC  C            $ Exclude porescale network model
+POROE   C            $ Exclude poro-elasticty model
+MMODEL  C            $ Exclude multi model 
+NOMMOD  ""           $ Do not exclude multi model 
+MPFA    C            $ Exclude MPFA models
+SIMFMFE C            $ Exclude single-phase mpfa model
+HIMFMFE C            $ Exclude hydrology-implicit mpfa model
+
+Include_File
+
+$../size/hydroi.siz   $ Hydrology Implicit Model
+$../size/hydroe.siz   $ Hydrology Impes Model              
+$../size/blacki.siz   $ Black Oil Implicit Model
+$../size/blackp.siz   $ Black Oil Impes Model              *
+$../size/comp.siz     $ Compositional Model              
+$../size/chem.siz     $ Chemical Flood Model               *
+$../size/singlee.siz  $ Single Phase Explicit Model
+$../size/singlei.siz  $ Single Phase Implicit Model
+
+$ ######################## Graphics ##################################
+
+$ Turn off all graphics code then optionally turn on one or more
+$ capabilities in an include file(s)
+
+Replace_Symbols
+
+VISUAL   C              $ disable visual output        
+TEC      C              $ disable tecplot output
+VTK      C              $ disable vtk output
+PV3      C              $ disable PV3 output
+NOPV3    C              $ disable PV3 output        
+TECBIN   C              $ disable tecplot binary
+
+Include_File
+
+../size/visual.siz   $ TECPLOT visualization
+../size/visvtk.siz   $ VTK visualization 
+../size/vistecbin.siz   $ Tecplot binary
+
+$ ###################### Multi-block Capability ######################
+
+$ Turn off multi-block code then optionally turn on the capability
+$ in an include file(s)
+
+Replace_Symbols
+
+MORTAR   C             $ Exclude mortar code
+DUAL     C             $ Exclude dual approximation code
+
+Include_File
+
+$../size/mortar.siz   $ Mortar space size file               
+$../size/dual.siz     $ Dual approximation size file
+$../size/dualmpfa.siz     $ Dual approximation size file for mpfa
+
+$ ##################### Metis Grid-Partitioning ######################
+
+$ Turn off metis code then turn it on if needed
+
+Replace_Symbols
+
+METIS   C            $ Exclude metis code
+
+Include_File
+
+$../size/metis.siz     $ Metis size file
+
+$ ################## Linear solver (select one) ######################
+
+$ Turn off all linear solvers then turn on one in an include file
+
+Replace_Symbols
+
+TICAMA  C               $ Remove gmres/pcg linear solver
+LSOR    C               $ Remove line sor linear solver
+MULGRD  C               $ Remove multigrid linear solver
+GMRES   C               $ Remove gmres linear solver
+YGMRES  C               $ Remove Y. Vassilevski's gmres linear solver
+PCG     C               $ Remove pcg linear solver
+HYPRE   C               $ Remove Hypre linear solver
+SUPERLU !               $ Remove SuperLU linear solver
+TRILINOS C              $ Remove Trilinos linear solver
+
+Include_File
+
+$../size/lsor.siz     $ Line sor linear solver               
+$../size/mulgrd.siz   $ Miltigrid linear solver
+$../size/bcgs.siz     $ BCGs linear solver
+$../size/gmres.siz    $ BCGs linear solver
+$../size/ygmres.siz   $ BCGs linear solver
+$../size/pcg.siz      $ BCGs linear solver
+$../size/hypre.siz    $ Hypre linear solver
+$../size/superlu.siz  $ SuperLU linear solver

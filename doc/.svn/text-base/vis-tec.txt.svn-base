@@ -1,0 +1,297 @@
+	
+		Tecplot output routines
+		=======================
+
+		M. Peszynska, 3/26/98
+
+I. Overview.
+
+The text below describes the usage and logic of output routines in
+Tecplot format for the IPARS framework. The format can be changed to
+accomodate other packages or needs.
+
+The major routine vis_tecoutput is a WORK routine and it accepts an
+arbitrary number of grid arrays whose elements are going to be
+visualized.  There are some extra routines that set the names for the
+variables, offsets etc. The output can be either in (i,j,k) structured
+format (only good for one processor and rectangular domains), or in
+fully nunstructred format. The intermediate option: unstructured
+piecewise constant output is also available. Except for the last
+option, the output values can be of scalar or vector type.  The last
+option for obvious reason is for scalars only.
+
+
+II. The general mechanism
+
+The routines create files (separate file for each set of parameteres,
+see below) that contain the grid array data for that set.  These files
+can be merged together by a shell script and processed by preplot.
+
+The parameters are:
+
+	faultblock number: example 0
+	processor number: exmaple 0,1 2, or 3... 	
+	visualization flag: 1, 2 or 3
+
+	time step number: example 11
+
+
+III. The names of output files 
+
+For each set of parameters, there can be two types fo filenames: INIT
+and ZONE. INIT files will contain the common (x,y,z and grid
+structure) information, ZONE files contain the values of grid arrays
+(visulaization variables) for a given time step. The INIT file and
+ZONE files for the same set of parameters can be merged together by
+	tecco 
+shell script.
+
+The names are:
+
+INIT	TEC.faultblock.processor.visflag.init
+	- contains xyz information
+	
+ZONE	TEC.faultblock.processor.visflag.timestep
+	- contains vis variable information
+	and zone is named as	
+	zone=faultblock.processor.visflag.timestep
+
+IV. The values to be visualized
+
+In IPARS most relevant data is in the form of grid arrays whose
+numbers (pointers) are created by ALCGEA and used by WORK routines.
+The values in grid arrays can be of scalar or of vector type.  They
+are cell-centered or face-centered, respectively.  They can be
+elements of grid arrays of LDIM different than 1 and in fact, of some
+given offset.  These values can be visualized by passing these
+pointers through CALLWORK to the vis_tecoutput routine. This routine
+needs to know the pointers to the arrays, their offsets as well as the
+type. Vector variables are assumed to come in triples: first variable
+is assumed to be x component, next to be y-component etc.  This
+assumption is necessary because the vector values are always
+interpolated and the type of interpolation depends on the component.
+
+Some extra information can be the provided in the form of the names of
+the variables.
+
+In most cases the user will stick to the chosen set of variables
+throughout the computation process so most of the setup for
+visualization has to be done only once, for example this is done in
+
+	IVIS_TECINIT
+
+for the black oil model. The interface to vis_tecoutput is in
+	
+	IVIS_TECOUTPUT
+
+The initial settings can be varied during the whole computation.  The
+routines are pretty flexible with regard to changes. Make sure though
+that you do not overwrite the once created files for exmaple, by changing 
+the root file name in the middle of the process.
+
+The necessary settings are
+
+	VIS_SCL = number of scalar variables to be visualized
+	VIS_VEC = number of vector variables to be visualized
+	
+The extra settings are
+
+	the offsets - set by vis_off_set
+		default value is 1 for each variable
+
+		EXAMPLE: in blackoil model DUNK(i,j,k,iphase)
+		is the density for phase <iphase>. If you want to
+		visualize the value of density of water(iphase=2), then 
+		the offset for visualization should be set to 2.
+		Suppose this is your only scalar variable and that
+		you have extra 3 vector variables, 
+		VELx(i,j,k), VELy(i,j,k), VELz(i,j,k) that give
+		the total flux in a given direction. Suppose that 
+		these vector variables are assumed to have offset 1. 
+		Then
+		VIS_SCL=1, VIS_VEC=3 (so total number of vars VIS_VARS=4)
+		and you call 
+
+			vis_off_set(VIS_VARS,2,1,1,1)
+
+	the names of variables - set by vis_name_set
+		default value is v?, ? is the number of variable
+		
+		EXAMPLE: for the previous example set
+			
+		vis_varnames(1)='water_density'
+		vis_varnames(2)='flux_x'
+		vis_varnames(3)='flux_y'
+		vis_varnames(4)='flux_z'
+		vis_namelen=len(vis_varnames)
+		
+		and call the setting routine as previosuly
+
+		call vis_name_set(vis_nvars,vis_namelen,vis_varnames)
+
+The auxiliary settings concern the file name. If the 
+
+	vis_fname_set
+	vis_tstep_set
+
+are NOT called, then all the parameteres mentioned above will be set to
+zero and accordingly the filenames will be overwritten. Multiple processors
+writing to the same file can result in an error.
+
+V. The interface routines
+
+For a given model or test case, one should build an interface routine
+that will set the initialization parameters through different
+vis_*_set, compute some extra variables (for example, velocities in
+the black,oil model), perform UPDATE on the ghost regions and call the
+routine vis_tecoutput.
+
+For example, for the black oil model 
+	IVIS_TECINIT	contains the calls to initialization routines
+	IVIS_TECOUTPUT is the interface to vis_tecoutput
+
+
+VI. VISFLAG value : unstrutured versus structured output
+	
+The parameter VISFLAG can take three values
+
+VISFLAG=1: 
+	the easiest but the leats general and the least elegant option.
+
+	Creates a structured output (Tecplot i,j,k),
+	that will only work properly for rectangular regions		
+	with no KEYOUT-ed corners etc. and for only one processor.
+	In case the subdivision between processors is regular,
+	you can hope to see "OK" results. KEOUT-ed corners are 
+	assigned value zero. Any overlap of rectangular regions 
+	should be blanked out (in Tecplot session ?).
+	The values are cell-centered and printed in the cell-centers.
+	This gives Tecplot an impression of a different grid. 
+	The vector values come as average of values at adjacent faces
+	for example, x component from i,i+1 faces , y from j, j+1 etc. 
+
+VISFLAG=2:
+	the not-so-difficult option. Flaws: low efficiency
+	(output of 8*  number of actual values)
+	and the lack of Flood contour plots. 	
+
+	Creates an unstructured output (Tecplot FE type, ET=BRICK) 
+	regarding each gridblock as a separate region. Assignes to all 
+	8 vertices of this gridblock the 
+	same value (grid arrays have cell-centered values). 
+	Tecplot will interpret this output properly but because of 
+	multiple values in each node it will not be able to create
+	a Flood contour plot. Use Average Cell in which case you will get
+	a 'piecewise constant' contour plot.
+	Vector values cannot be visualized: this would require interpolation
+	that is provided in VISFLAG=3 option.
+
+VISFLAG=3:
+	the most general option. 
+
+	Creates fully unstructured output: tecplot FE format with
+	ET=BRICK.
+	The INIT file contains the grid data (xyz values for the nodes
+	and connectivity information).
+	The ZONe files contain only data in feblock format for all the
+	variables. The values printed are nodal values interpolated 
+	from the cell-centered values for adjacent 8 blocks (for
+	scalar values) and nodal values interpolated from adjacent 4
+	faces (for vector values). The values from the neighboring 
+	processors are taken from the ghost cells. Remember to do UPDATE with
+	template type 2 in your interface routine in order
+	to make sure that the corner values are being updated.
+
+	
+VII. Shell script utilities
+
+I wrote two utilities
+
+	tecco
+	teccob
+
+which can help to merge your data in appropriate *.plt files. 
+They work as follows
+
+tecco	root faultblock processor visflag zonelist
+	
+	merges files  
+		root.faultblock.processor.visflag.init
+		root.faultblock.processor.visflag.zone1
+		root.faultblock.processor.visflag.zone2
+		...
+		root.faultblock.processor.visflag.zonelast
+
+	and processes them by preplot to give
+
+		root.faultblock.processor.visflag.plt
+
+teccob numproc visflag zonelist
+	
+	invokes tecco for all the processors 0.. numproc-1
+	assuming root=TEC, faultblock=0
+	
+The files *.plt differing only by the number of processor should be
+read together into Tecplot using the Multiple Files option.
+
+
+VIII. What you need to do in order to use the VIS output
+
+A. Write your own 
+
+	?vis_tecinit
+	?vis_tecoutput
+
+routines (? stands for the model abbreviation, for example it is 'i'
+for the black oil model) and put them in
+	?stdout.df
+
+You can write them using as a template the routines
+
+	ivis_tecinit
+	ivis_tecoutput
+
+from the file ~/black/istdout.df .
+
+B. Insert in the routine ?stdout.df a call to your 
+
+	?vis_tecinit
+	?vis_tecoutput
+For example, in istdout.df these calls are put after the condition
+using 
+
+	BUGKEY(8) 
+
+but you can use a differnet condition.x
+
+
+C. Make sure that you have the current version of
+	~/input/idata.df
+	~/print/visual.h
+	~/print/visual.c
+
+
+D. Modify your makefiles :
+
+Make sure that you have the current version of
+
+	~/make/frm_many.mak
+	~/make/frm_one.mak
+
+Include/modify dependencies to visual.h/c in
+
+	~/mod_*.mak
+where * stands for the model abbreviation like 'blk' etc. 
+
+E. Compile the code and run... 
+The output files then will be ready to be interpreted by Tecplot. 
+Additionally, you can postprocess the files with 
+
+	tecco 
+or 
+	teccob
+
+in order to get a combined output for each of the processors involved.
+
+-------------------------------------------------------------------
+	

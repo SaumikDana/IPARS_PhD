@@ -1,0 +1,260 @@
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+TITLE(2)="BRADLEY NEAR-WELLBORE EXAMPLE"
+
+DESCRIPTION()=
+"BLOCK   LENGTH (FT)   WIDTH (FT)   HEIGHT (FT)    SIZE     CORNER"
+"  1        10            10          2           2x2x2      0,0,0"
+
+$BLOCKMODEL(1) = "SINGLE_PHASE_MFMFE"
+
+BLOCKMODEL(1) = "POROELASTIC"
+FLOW_MODEL = "SINGLE_PHASE_MFMFE"
+
+$TIMEEND = 0.002
+$TIMEEND = 0.02
+$TIMEEND = 0.2
+$TIMEEND = 1.0
+$TIMEEND = 10.0
+TIMEEND = 100.0
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ Newton parameters
+CVTOL = 1.0E-5
+MAXNEWT = 20
+
+$ I/O OPTIONS
+
+$ WELLOUTKEY = 2  WELLFILE = "WELLS.OUT"
+OUTLEVEL = 2
+PROCOUT
+$BUGKEY(6)
+BUGKEY(7) 
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ FAULT BLOCK AND MESH DATA
+
+BLOCKNAME(1) = "BLOCK1"
+DOWN(1 TO 3,1) = 0 0 0  
+$DOWN(1 TO 3,1) = 1 0 0  
+
+$Include = grid-fine.dat
+Include = grid-coarse.dat
+
+$MFMFE_BRICKS
+$NX(1) = 5      NY(1) = 25      NZ(1) = 25
+$DX(,1) = 5.0   DY(,1) = 1.   DZ(,1) = 1.
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ Elastic Properties
+
+GCITERMAX = 20
+NLOADSTEPS = 1
+GRAVITY_FLAG = 0
+EP_SOLVER_FLAG = 0
+CR_TYPE = 0
+PEPVTOL = 1.E-3
+
+MODULUS1() = 1.E6
+POISSON1() = 0.25
+BIOTA1() = 1.0
+BIOTM1() = 1.0
+ROCKD1() = 2.65[gm/cc]
+
+MODEL_EP = 1
+
+   MAX_ITERATION_SOLID = 30
+   MAX_ITERATION_MAT = 1000
+   EP_TOL = 1.0E-3
+   MAT_TOL = 1.0E-3
+   EP_ASSOCIATED1() = 0         $ associated plastic model
+   EP_YIELD_STRENGTH1() = 160   $ shear strength
+   EP_YIELD_SLOPE1() = 0.6      $ yield function slope
+   EP_FLOW_SLOPE1() = 0.6       $ flow function slope
+   EP_HARDEN_MODEL1() = 0       $ bilinear
+   EP_HARDEN_C11() = 3          $ bilinear hardening modulus (slope)
+   EP_HARDEN_C21() = 0.0        $ second coefficient (not really used)
+
+$ HACK FOR TIME-DEPENDENT BC'S
+MECH_BC_NCASE = 1
+
+$ Bradley
+PRESX1() = 10000.                $ Ref. Face 1
+EBCXXN1() = 2  XXDIN1() = 0.     $ Ref. Face 2
+EBCYY1() = 2   YYDI1() = 0.      $ Ref. Face 3
+EBCYZN1() = 2  YZDIN1() = 0.     $ Ref. Face 4
+EBCYYN1() = 1  YYSTN1() = 0.
+PRESZ1() = 4650.0                $ Ref. Face 5
+EBCZZN1(1 TO 6,1 TO 11) = 2      $ Ref. Face 6, 1st half
+ZZDIN1(1 TO 6,1 TO 11) = 0.
+$EBCZYN1(1 TO 6,1 TO 11) = 1
+$ZYSTN1(1 TO 6,1 TO 11) = 0.
+EBCZYN1(1 TO 6,11 TO 21) = 2     $ Ref. Face 6, 2nd half
+ZYDIN1(1 TO 6,11 TO 21) = 0.
+$EBCZZN1(1 TO 6,11 TO 21) = 1
+$ZZSTN1(1 TO 6,11 TO 21) = 0.
+
+$ Bricks
+$   PRESX1() = 10000.
+$   EBCXXN1() = 2  XXDIN1() = 0.
+$   EBCYY1() = 2   YYDI1() = 0.
+$   EBCYYN1() = 2  YYDIN1() = 0.
+$   $PRESZ1() = 4650.
+$   EBCZZ1() = 2  ZZDI1() = 0.
+$   EBCZZN1() = 2  ZZDIN1() = 0.
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ INITIAL CONDITIONS
+
+PINIT = 4650.0
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ FLUID AND MEDIA PROPERTIES
+
+$ Fluid viscosity
+FLVIS = 2.
+
+$ Fluid standard density
+STFLDEN = 56.
+
+$ Fluid compressibility
+$FLCOMP = 0.
+FLCOMP = 4.0E-5
+
+$ POROSITY
+
+POROSITY1() = .2
+
+$ PERMEABILITIES
+
+$PERM_FULL
+
+XPERM1() = 10.  YPERM1() = 10.  ZPERM1() = 10.
+XYPERM1() = 0.  YZPERM1() = 0.  XZPERM1() = 0.
+
+CR1() = 1.E-5
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ BOUNDARY CONDITIONS
+
+NBND_REG = 6
+NBND_SUBREG = 6
+$BDAREA_EPS = 1.0E-02
+
+$             nreg nblk  x1 y1 z1     x2 y2 z2
+ BND_VOL(,1) = 1     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+ BND_VOL(,2) = 2     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+ BND_VOL(,3) = 3     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+ BND_VOL(,4) = 4     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+ BND_VOL(,5) = 5     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+ BND_VOL(,6) = 6     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+
+BOUND_TYPE(1) = 0   $ No-flow
+TBOUND(1) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+BOUND_TYPE(2) = 0   $ No-flow
+TBOUND(2) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+BOUND_TYPE(3) = 0   $ No-flow
+TBOUND(3) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+BOUND_TYPE(4) = 0   $ No-flow
+TBOUND(4) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+BOUND_TYPE(5) = 1   $ Dirichlet pressure
+TBOUND(5) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.   4650.0
+        100. 7000.0
+EndBlock
+
+$BOUND_TYPE(5) = 0   $ No-flow
+$TBOUND(5) Block
+$  Interpolation Linear
+$  Extrapolation Constant
+$  Data 0. 0.0
+$EndBlock
+
+BOUND_TYPE(6) = 0   $ No-flow
+TBOUND(6) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ WELLS
+
+NUMWELL=0
+
+$WELLNAME(1) = "WELL 1 INJECTION"
+$KINDWELL(1) = 1
+$WELLTOP(1 TO 3,1,1) =     0.0   12.5  12.5
+$WELLBOTTOM(1 TO 3,1,1) =  25.0  12.5  12.5
+$WELLPQ(1) Block
+$  Interpolation Linear
+$  Extrapolation Constant
+$  Data    0.    4650.
+$  Data    100.  7000.
+$EndBlock
+
+VISINIT
+$VIS_SCL = 2
+$VIS_SCL = 15
+VIS_SCL = 17
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "PV"
+VIS_SCL_NAMES(3) = "DISPX"
+VIS_SCL_NAMES(4) = "DISPY"
+VIS_SCL_NAMES(5) = "DISPZ"
+VIS_SCL_NAMES(6) = "TDISPX"
+VIS_SCL_NAMES(7) = "TDISPY"
+VIS_SCL_NAMES(8) = "TDISPZ"
+VIS_SCL_NAMES(9) = "STRXX"
+VIS_SCL_NAMES(10) = "STRYY"
+VIS_SCL_NAMES(11) = "STRZZ"
+VIS_SCL_NAMES(12) = "STRXY"
+VIS_SCL_NAMES(13) = "STRYZ"
+VIS_SCL_NAMES(14) = "STRZX"
+VIS_SCL_NAMES(15) = "VSTRAIN"
+VIS_SCL_NAMES(16) = "VPSTRAIN"
+VIS_SCL_NAMES(17) = "EQPL"
+$VIS_FNAME = "elastic"
+VIS_FNAME = "plastic"
+VIS_DIR = "visual"
+VISFLAG = 9
+
+EndInitial
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+$DELTIM = 0.001
+$DTIMMIN = 0.001  DTIMMUL = 1.0  DTIMMAX = 3.  TIMOUT = 10.  DTIMOUT = 40.
+DELTIM = 0.1     DTIMMIN = 0.1  DTIMMUL = 1.0  DTIMMAX = 0.1
+$TIMRES = 99999.
+
+$CVTOL = 1.0E-8
+
+$ these must be set for visualization to be active
+$VISOUT = 0.002  DVISOUT = 0.002
+VISALL
+
+EndTime
+

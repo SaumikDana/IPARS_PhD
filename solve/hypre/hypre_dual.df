@@ -1,0 +1,105 @@
+!*********************************************************************
+!  HYPRE_DUAL.F - FULLY COUPLED ENHANCED VELOCITY HYPRE SOLVER
+!*********************************************************************
+!  - Turned on with input flag HYPRE_EVFEM.
+!
+!  1/7/17  Ben Ganis
+!
+!======================================================================
+! Fills GELEI_EV (in sblkc.h) from GELEI (grid element array).
+!======================================================================
+      SUBROUTINE HYPRE_EVFEM_INIT()
+!======================================================================
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'hypre.h'
+      INCLUDE 'sblkc.h'
+      INTEGER IERR,NBEM($MXMOD)
+      EXTERNAL SEND_GELEI_EV,FILL_GELEI_EV
+
+      NBEM=0
+      IF (HYPRE_EVFEM) THEN
+        CALL CALLWORK(SEND_GELEI_EV,[3,N_GELEI,N_BUFDIM,N_BUFIF])   
+$SINGLEI        NBEM($TMODEL)=1
+$SIMFMFE        NBEM($TMMODEL)=1
+$COMP        NBEM($XMODEL)=1
+$CMFMFE        NBEM($XMMODEL)=1
+        CALL PIFBUF8(NBEM,IERR)    ! Swap buffer between blocks
+        CALL CALLWORK(FILL_GELEI_EV,[2,N_BUFDIM,N_BUFIF])
+      ENDIF
+
+      END SUBROUTINE HYPRE_EVFEM_INIT
+
+!======================================================================
+! Work routine to fill interface buffer with GELEI
+!======================================================================
+      SUBROUTINE SEND_GELEI_EV(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &   KL1,KL2,KEYOUT,NBLK,GELEI,NBUFDIM,BUFIF8)
+!======================================================================
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'sblkc.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER GELEI(IDIM,JDIM,KDIM)
+      REAL*8  BUFIF8(NBUFDIM,*)
+      INTEGER M,II1,II2,NBT,NMT,II,K,IB,JB,KB
+
+      IF (NPAI(NBLK).EQ.0) RETURN
+
+      DO M=1,NPAI(NBLK)
+      II1=IESNDI(M,NBLK)
+      II2=II1+NESNDI(M,NBLK)-1
+      NBT=NBSRI(M,NBLK)
+      NMT=FMODBLK(NBT)
+
+      DO II=II1,II2
+      K=KFESR(II)
+
+      IB=IJKS(1,K)
+      JB=IJKS(2,K)
+      KB=IJKS(3,K)
+
+! Fill buffer with GELEI
+      BUFIF8(II,1)=GELEI(IB,JB,KB)
+
+      ENDDO 
+      ENDDO
+
+      END SUBROUTINE SEND_GELEI_EV
+
+!======================================================================
+! Work routine to fill GELEI_EV from interface buffer.
+!======================================================================
+      SUBROUTINE FILL_GELEI_EV(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &     KL1,KL2,KEYOUT,NBLK,NBUFDIM,BUFIF8)
+!======================================================================
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'hypre.h'
+      INCLUDE 'hypre_dual.h'
+      INCLUDE 'sblkc.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM),JL2V(KDIM),
+     &        KL1,KL2,KEYOUT,NBLK,NBUFDIM
+      REAL*8  BUFIF8(NBUFDIM,*)
+      INTEGER K1,K2,K,J1,J2,J,L
+
+      IF (NIEBS(NBLK).EQ.0) RETURN
+
+      K1=IIEBS(NBLK)
+      K2=K1+NIEBS(NBLK)-1
+      DO K=K1,K2         ! Loop over A-block elements K
+      J1=ICGES(K)
+      J2=J1+NCGES(K)-1
+      DO J=J1,J2         ! Loop over A-B interactions J
+      L=LIBUF(J)
+! Fill interface GELEI with buffer
+      GELEI_EV(J,1,1)=BUFIF8(L,1)
+      ENDDO  ! End do-loop over A-B interactions J
+      ENDDO  ! End do-loop over A-block faces K
+
+      END SUBROUTINE FILL_GELEI_EV
+

@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/repos/csm/!svn/ver/514/IPARSv3.1/solve/superlu
+END
+dcreate_dist_matrix.c
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/repos/csm/!svn/ver/438/IPARSv3.1/solve/superlu/dcreate_dist_matrix.c
+END
+superlu_porohex.f90
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/repos/csm/!svn/ver/514/IPARSv3.1/solve/superlu/superlu_porohex.f90
+END
+superlupara.f90
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/repos/csm/!svn/ver/438/IPARSv3.1/solve/superlu/superlupara.f90
+END
+sp_ienv.c
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/438/IPARSv3.1/solve/superlu/sp_ienv.c
+END
+superlu_c2f_dwrap.c
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/repos/csm/!svn/ver/438/IPARSv3.1/solve/superlu/superlu_c2f_dwrap.c
+END
+superlu_mod.f90
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/repos/csm/!svn/ver/438/IPARSv3.1/solve/superlu/superlu_mod.f90
+END

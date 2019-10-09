@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/repos/csm/!svn/ver/621/IPARSv3.1/output/print
+END
+prtout.df
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/12/IPARSv3.1/output/print/prtout.df
+END
+output.dh
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/455/IPARSv3.1/output/print/output.dh
+END
+stdout.df
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/621/IPARSv3.1/output/print/stdout.df
+END

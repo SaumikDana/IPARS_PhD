@@ -1,0 +1,73 @@
+#! /bin/csh
+#
+# MTECTAB
+#
+# usage: 
+#    mtectab
+#
+# It uses the file:  Vistab.inf	
+# MPeszynska, 3/14/99
+###############################################################
+#  process Vistab.inf 
+set visinf = "Vistab.inf"
+
+echo "<-- MTECTAB will process the file <$visinf>."
+ 
+if ( ! (-e $visinf ) ) then
+        echo "File $visinf does not exist."
+        goto endshell
+endif
+
+set tablist = `cat $visinf `
+
+####################### get all the tables 
+set tsteps = 0
+foreach table ($tablist)
+	@ tsteps ++	
+end	
+
+echo "<-- MTECTAB found : $tsteps  tables : $tablist "
+#
+# call tectab (and Preplot)
+#
+echo "Calling tectab $tablist."
+tectab $tablist
+#
+set tecco_stat = $status
+if ( $tecco_stat != 0) then
+    goto endshell
+endif
+################################## deal with the macros
+#
+
+foreach table ($tablist)
+    # bag8 - changed mydir to macrofilepath
+	set fname = "|macrofilepath|/${table}.plt"	
+	rm -f fdum		
+	echo '4 a\' > fdum
+	echo "'"`pwd`"'" >> fdum
+	echo '5 a\' >> fdum
+	rm -f tmp
+	cp TECtab.src tmp
+	echo '"'"$fname"'"' >> fdum
+	echo "creating file ${table}.mcr...."
+	sed -f fdum tmp > ${table}.mcr
+end
+#
+
+
+##############
+echo "<-- MTECTAB ended OK."
+exit 0
+### we are here if error occured or user interrupted the macro
+endshell:
+echo "<-- MTECTAB interrupted."
+set status = 15
+
+
+
+
+
+
+
+

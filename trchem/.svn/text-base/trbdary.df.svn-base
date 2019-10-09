@@ -1,0 +1,1112 @@
+C  TRBDARY.F - TRCHEM MODEL BOUNDARY CONDITION ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+
+C SUBROUTINE TBDINTAB
+C SUBROUTINE TRBD_ADV
+C SUBROUTINE TRBD_ADV_W
+C SUBROUTINE ZEROFLUX
+C SUBROUTINE TRBD_DIFF_W
+C SUBROUTINE TRBD_DIFFFLUX_W
+C SUBROUTINE TRBDBAL
+
+C  CODE HISTORY:
+
+C  S. SUN,      2/01  INITIAL VERSION
+C  M. PESZYNSKA 2/01 DEBUG, ADDED ZEROFLUX
+C  M. PESZYNSKA, 3/01 ADDED TRBD_DIFF_W AND TRBD_DIFFFLUX_W
+C  S. G. THOMAS, -/-- ADDED MODS TO BC FOR FULL-TENSOR DIFFUSION
+C                     CURRENTLY WILL NOT TREAT EVMFEM
+C===============================================================
+C NOTE: THE TYPE OF BDARY CONDITIONS THAT ARE CONSIDERED BELOW
+C IS MAINLY INDEPENDENT OF THE TYPE OF BDARY CONDITIONS IMPOSED 
+C ON THE FLOW.
+C THERE ARE CURRENTLY TWO TYPES CONSIDERED:0 AND 2, USING
+C NOMENCLATURE CONSISTENT WITH PARSSIM, SEE BELOW.
+C TYPE 1 WILL BE IMPLEMENTED LATER.
+C 
+C NBND_TYPE_D             VALUE           ADV             DIFF
+C
+C 0: OUTFLOW/NO-FLOW:     IRRELEVANT      INT.VALS*U      D\NABLA C_N=0
+C 1: INFLOW               C_IN            ?               ?
+C 2: DIRICHLET            C_D             U*C_D ?         DIRICHLET C=C_D ?
+C
+C TYPE 0 AS DEFAULT MEANS NO MODIFICATIONS ARE NECESSARY FOR DISPERSION.
+C TYPE 0 AND 2 WORK SIMILAR FOR ADVECTION BUT SIGN OF U IS CHECKED IN TYPE 0
+C  AND IT MAY BE INCORRECT TO IMPOSE TYPE 2 ON OUTFLOW BOUNDARY.
+C TYPE 2 REQUIRES MODIFICAITON OF MATRIX AND RHS FOR DISPERSION EQ.,
+C  AS WELL AS POSTPROCESSING TO RETRIEVE BDARY FLUXES NECESSARY FOR BALANCE 
+C  CALCULAITONS.
+C 
+C*********************************************************************
+      SUBROUTINE TRBDINTAB(NTIME,NERR)
+C*********************************************************************
+C INPUT BOUNDARY TYPE FOR DISPERSION/DIFFUSION AND INPUT
+C TABLES WITH CONCENTRATION VALUES AT BOUNDARY
+C*********************************************************************
+      IMPLICIT NONE
+      INTEGER  NTIME,NERR
+
+      INCLUDE 'unitsex.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'trbdary.h'
+      INCLUDE 'trmodel.h'
+
+      INTEGER NDUM,NERR0, I, J
+
+C SPACE FOR GETBLK
+      INTEGER LOCTA($MXBREG,$MXNSPEC),LENTA($MXBREG,$MXNSPEC)
+      CHARACTER*1 BLKBUF($MXTBUF,$MXNSPEC)
+      CHARACTER*50 TABTIT
+      CHARACTER*20  TRBDNAME
+
+      NERR0 = NERR
+
+C ---------------------------------------------
+C READ IN THE BOUNDARY TYPE FOR EACH REGION
+
+      IF(NTIME.EQ.1) THEN
+         DO I=1, NBND_REG
+            NBND_TYPE_D(I) = 0
+            DO J=1,NSPECIES
+               NTABBNDTR(I,J) = 0
+            ENDDO
+         ENDDO
+      ENDIF
+
+      CALL GETVAL('BOUND_TYPE_D ',NBND_TYPE_D,'I4',
+     &             NBND_REG,0,0,0,NDUM,NERR)
+      IF(NERR.NE.NERR0) RETURN
+
+      IF(NDUM.GT.0) THEN
+         IF(LEVELC) THEN
+            DO I=1, NBND_REG
+               IF(LEVELC) WRITE(NFOUT,*)
+     &              'BDARY REGION ',I,' TYPE_DISP=',NBND_TYPE_D(I)
+            ENDDO
+         ENDIF
+      ENDIF
+
+C ---------------------------------------------
+C READ IN THE BOUNDARY VALUES FOR EACH REGION
+
+      DO I=1,$MXBREG
+         DO J=1,$MXNSPEC
+            LENTA(I,J)=0
+         ENDDO
+      ENDDO
+
+      DO J=1,NSPECIES 
+         CALL PASTE_SIS(TRBDNAME, 'TRBOUND', J, ' ', NERR)
+         CALL GETBLK(TRBDNAME, BLKBUF(1,J),$MXTBUF,NBND_REG,
+     &     LOCTA(1,J),LENTA(1,J),NERR)
+      ENDDO
+
+      DO I=1,NBND_REG
+         DO J=1,NSPECIES
+            IF (LENTA(I,J).GT.0) THEN
+               CALL PASTE_SIS(TABTIT, 'CONC_', J, 
+     &                        ' FOR BDARY REGION', NERR)
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT(EXTTIME,'[LBM/CU-FT]')
+               CALL TABLE(BLKBUF(LOCTA(I,J),J),LENTA(I,J),
+     &           'TIME[DAY] ','CONC[LBM/CU-FT] ',TABTIT,
+     &            NTABBNDTR(I,J),NERR)
+            ENDIF
+         ENDDO
+      ENDDO
+
+      END
+
+
+C*********************************************************************
+      SUBROUTINE TRBD_ADV(NALPHA,NERR)
+C*********************************************************************
+C  PERFORM THE ADVECTION AT THE BOUNDARY
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'trarydat.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'trbdary.h'
+
+      INTEGER NALPHA,NERR
+      INTEGER IADV(7),IB
+      EXTERNAL TRBD_ADV_W
+      DATA IADV /7*0/
+C -----------------------------------------------------
+      IADV (1) = 6
+      IADV (2) = N_TRVX
+      IADV (3) = N_TRVY
+      IADV (4) = N_TRVZ
+      IADV (5) = N_CONCARR (NALPHA)
+      IADV (6) = N_CONCOLD
+      IADV (7) = N_PHISN
+
+      CALPHA = NALPHA
+
+      IF(NSTEP.EQ.1.AND.ICSTEP.EQ.1) THEN
+         TRBDINTOT(CALPHA) = 0.D0
+         DO IB=1,NBND_REG
+            TRBDINALL(IB,CALPHA)=0.D0
+         ENDDO
+      ENDIF
+      DO IB=1,NBND_REG
+         TRBDFLUX(IB,CALPHA)=0.D0
+      ENDDO
+
+
+      CALL CALLWORK (TRBD_ADV_W,IADV)
+
+C     TEMP DEBUG MESSAGE
+C     WRITE(*,*) "AFTER ADV_BD AT NSTEP ", NSTEP, " ICSTEP", ICSTEP,
+C    &   " --- TRBDINTOT FOR COMP", CALPHA, " = ", TRBDINTOT(CALPHA)
+
+      END
+
+
+
+C **************************************************************
+      SUBROUTINE TRBD_ADV_W(IDIM,JDIM,KDIM,LDIM,
+     &     IL1,IL2,JL1V,JL2V,KL1,KL2,KEYOUT,NBLK,
+     &     VELX,VELY,VELZ,
+     &     CONC,CONCOLD,PHISOLD)
+C **************************************************************
+C VELX,VELY,VELZY - VELOCITY IN X,Y,Z DIRECTION
+C CONC - CONCENTRATION OF SPECIES
+C **************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'trarydat.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'trbdary.h'
+
+      INTEGER IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IDIM, JDIM, KDIM, LDIM, NBLK
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),   KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  VELX(IDIM,JDIM,KDIM),
+     &     VELY(IDIM,JDIM,KDIM),   VELZ(IDIM,JDIM,KDIM),
+     &     CONC(IDIM,JDIM,KDIM), CONCOLD(IDIM,JDIM,KDIM),
+     &     PHISOLD(IDIM,JDIM,KDIM)
+
+      REAL*8 VELTOL, CSTAR, VEL_IN, CONCB, DCONCB
+      PARAMETER (VELTOL=1.D-14)
+
+      INTEGER I, J, K, IOFF, JOFF, KOFF, MERR, NFOFF 
+      INTEGER IB, L, NDIR, NTYPE
+      INTEGER IS,JS,KS,IV,JV,KV,ILR
+C ----------------------------------
+
+      IF (NBND_REG.EQ.0.OR.NBEL.EQ.0) RETURN
+
+C  GET LOCAL TO GLOBAL INDEX OFFSETS
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  LOOP OVER THE BOUNDARY CONDITION REGIONS
+
+      DO IB=1,NBND_REG
+        NTYPE = NBND_TYPE_D(IB)   
+
+C  GET NFOFF
+         IF(NBLK.EQ.1.AND.IB.EQ.1) NFOFF=1
+         IF(NBLK.GT.1.AND.IB.EQ.1) NFOFF=LOFFBND(NBND_REG,NBLK-1)+1
+         IF(IB.NE.1) NFOFF=LOFFBND(IB-1,NBLK)+1
+
+C GET THE CURRENT VALUE OF PRIMARY VARIABLE (CONCENTRATION)
+         CONCB=0.D0
+         IF(NTABBNDTR(IB,CALPHA).NE.0) THEN
+            CALL LOOKUP(NTABBNDTR(IB,CALPHA),CONCTIM_NEW,CONCB,DCONCB)
+            IF(CONCB.LE.0.D0) CONCB = 0.D0
+         ENDIF
+
+C LOOP OVER ALL BDARY ELEMENTS IN THIS REGION
+         DO L=NFOFF,LOFFBND(IB,NBLK)
+            I = LOCBND(1,L)
+            J = LOCBND(2,L)
+            K = LOCBND(3,L)
+            NDIR = LOCBND(4,L)
+
+            CALL GETSOURCEINDEX(NDIR,I,J,K,IS,JS,KS,IV,JV,KV,ILR)
+
+            IF (NDIR.EQ.1) THEN                   !  FACE: X-
+               VEL_IN = VELX(IV,JV,KV)
+            ELSE IF (NDIR.EQ.2) THEN              !  FACE: X+
+               VEL_IN = -VELX(IV,JV,KV)
+            ELSE IF (NDIR.EQ.3) THEN              !  FACE: Y-
+               VEL_IN = VELY(IV,JV,KV)
+            ELSE IF (NDIR.EQ.4) THEN              !  FACE: Y+
+               VEL_IN = -VELY(IV,JV,KV)
+            ELSE IF (NDIR.EQ.5) THEN              !  FACE: Z-
+               VEL_IN = VELZ(IV,JV,KV)
+            ELSE IF (NDIR.EQ.6) THEN              !  FACE: Z+
+               VEL_IN = -VELZ(IV,JV,KV)
+            ENDIF
+
+C   FIND CSTAR, THE ADVECTED CONC  
+            CSTAR = 0.0D0
+            IF(VEL_IN.GT.0.D0) THEN              ! INFLOW
+
+               CSTAR = CONCB
+
+            ELSE IF(VEL_IN.LE.0D0) THEN
+
+               CSTAR = CONCOLD(IS,JS,KS)         ! OUTFLOW
+
+            ENDIF
+
+
+C    CHECK CFL CONDITION TO PREVENT INSTABILITIES
+             IF(CDELTIM.GT.DABS(PHISOLD(IS,JS,KS)/VEL_IN)) THEN
+C              TEMP DEBUG INFO
+                WRITE(*,*) I,J,K,' CFL BOUNDARY ',CDELTIM,
+     &                    PHISOLD(IS,JS,KS)/VEL_IN
+                CFLERR = .TRUE.
+                CFLTSTEP = DABS(PHISOLD(IS,JS,KS)/VEL_IN)
+                RETURN
+             ENDIF
+
+C   PERFORM ADVECTION (NOW CSTAR MEAN THE EXCHANGED SUBSTANCE AMOUNT IN LBMOL)
+
+            CSTAR = CSTAR*CDELTIM*VEL_IN
+            CONC(IS,JS,KS) = CONC(IS,JS,KS) + CSTAR
+            TRBDINALL(IB,CALPHA) = TRBDINALL(IB,CALPHA) - CSTAR
+            TRBDINTOT(CALPHA) = TRBDINTOT(CALPHA) - CSTAR
+
+C           COUNT BALANCE FROM BOUNDARY
+            TRBDFLUX(IB, CALPHA) = TRBDFLUX(IB, CALPHA) + CSTAR
+
+         ENDDO
+      ENDDO
+
+      END
+
+
+C****************************************************************
+      SUBROUTINE ZEROFLUX(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &           KL2,KEYOUT,NBLK)
+C********************************************************************
+C ZEROES THE BOUNDARY FLUXES EACH TIME THE B. REGION IS INITIALIZED
+C THIS IS ONLY IMPORTANT FOR TRCHEM MODEL SINCE THESE VALUES ARE NOT 
+C USED ELSEWHERE
+C*********************************************************************
+      IMPLICIT NONE
+
+$POWER       INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'boundary.h'
+
+      INTEGER I, J, K, IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IDIM, JDIM, KDIM, LDIM, NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+
+      INTEGER M,NT,IB,L,NFOFF
+C ----------------------------------------------------------	
+
+      IF (NBND_REG.EQ.0.OR.NBEL.EQ.0) RETURN
+
+C  LOOP OVER THE BDARY CONDITION REGIONS
+
+      DO 1 IB=1,NBND_REG
+
+         NT=NBND_TYPE(IB)
+         IF(NT.EQ.0) GOTO 1
+         IF(NBLK.EQ.1.AND.IB.EQ.1) NFOFF=1
+         IF(NBLK.GT.1.AND.IB.EQ.1) NFOFF=LOFFBND(NBND_REG,NBLK-1)+1
+         IF(IB.NE.1) NFOFF=LOFFBND(IB-1,NBLK)+1
+
+C LOOP OVER ALL BDARY ELEMENTS IN THIS REGION
+
+         DO 2 L=NFOFF,LOFFBND(IB,NBLK)
+            I = LOCBND(1,L)
+            J = LOCBND(2,L)
+            K = LOCBND(3,L)
+
+            DO M=1,$MXNUMEQ
+               BFLUX(M,L) = 0.D0
+            ENDDO
+
+ 2       CONTINUE
+ 1    CONTINUE
+
+      END
+
+C *******************************************************************
+      SUBROUTINE TRBD_DIFF_W(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                       KL1,KL2,KEYOUT,NBLK,DISP,CONC,PHISOLD,
+     &                       PHIS,TRCOF,TRRESID,TRDUNK)
+C *******************************************************************
+C APPLIES THE DIRICHLET CONDITION (TYPE 2) TO THE MATRIX/RESIDUAL
+C FOR DIFFUSION/DISPERSION EQUATION.
+C *******************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'trarydat.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'trbdary.h'
+
+      INTEGER IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IDIM, JDIM, KDIM, LDIM, NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER I,J,K,IOFF,JOFF,KOFF,MERR,NFOFF,IB,L,NDIR,NTYPE
+      INTEGER IS,JS,KS,IV,JV,KV,ILR
+
+      REAL*8 DELXY1,DELXY2,DELYZ1,DELYZ2,DELZX1,DELZX2,CDISTMP,CFTMP,
+     &       CDISTMP1,CDISTMP2,CFTMP1,CFTMP2
+      REAL*8 DELY
+      REAL*8  DISP(IDIM,JDIM,KDIM,9),
+     &        CONC(IDIM,JDIM,KDIM),
+     &        PHISOLD(IDIM,JDIM,KDIM),  PHIS(IDIM,JDIM,KDIM),
+     &        TRRESID(IDIM,JDIM,KDIM), TRDUNK(IDIM,JDIM,KDIM)
+      REAL*4  TRCOF(IDIM,JDIM,KDIM,$NUMTRCOF)
+      REAL*8  DELX,DEL,DELZ, DELX1,DELY1,DELZ1, CUR_DISP, CUR_COF
+C OLD 
+      REAL*8 CSTAR, VEL_IN, CONCB, DCONCB
+
+C ----------------------------------
+
+      IF (NBND_REG.EQ.0.OR.NBEL.EQ.0) RETURN
+
+C  GET LOCAL TO GLOBAL INDEX OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  LOOP OVER THE BOUNDARY CONDITION REGIONS
+
+      DO IB=1,NBND_REG
+
+C ONLY DIRICHLET CONDITION IMPOSED HERE
+
+        NTYPE = NBND_TYPE_D(IB) 
+        IF(NTYPE.NE.2) GOTO 1
+
+C  GET NFOFF
+         IF(NBLK.EQ.1.AND.IB.EQ.1) NFOFF=1
+         IF(NBLK.GT.1.AND.IB.EQ.1) NFOFF=LOFFBND(NBND_REG,NBLK-1)+1
+         IF(IB.NE.1) NFOFF=LOFFBND(IB-1,NBLK)+1
+
+C GET THE CURRENT VALUE OF DIRICHLET VALUE OF CONCENTRATION
+         CONCB=0.D0
+         IF(NTABBNDTR(IB,CALPHA).NE.0) THEN
+            CALL LOOKUP(NTABBNDTR(IB,CALPHA),CONCTIM_NEW,CONCB,DCONCB)
+            IF(CONCB.LE.0.D0) CONCB = 0.0D0
+         ENDIF
+
+C LOOP OVER ALL BDARY ELEMENTS IN THIS REGION
+         DO L=NFOFF,LOFFBND(IB,NBLK)
+            I = LOCBND(1,L)
+            J = LOCBND(2,L)
+            K = LOCBND(3,L)
+            NDIR = LOCBND(4,L)
+
+            CALL GETSOURCEINDEX(NDIR,I,J,K,IS,JS,KS,IV,JV,KV,ILR)
+
+CMPESZ: ALL THIS NEEDS TO BE PUT IN CONSERVATIVE FORM !
+C AND USE BAREA(L) TO DETERMINE THE VOLUMETRIC FLUX ACROSS ELEMENT L 
+
+            IF (NDIR.EQ.1.OR.NDIR.EQ.2) THEN      !  FACE: X+ OR X+
+
+               DEL=DXREC(IS+IOFF,NBLK) 
+               CUR_DISP = DISP(IS,JS,KS,1) 
+C ACCOUNT FOR EFFECT OF NEIGHBORING Y AND Z FACE FLUXES (SEE PAPER BY 
+C MFW_IY_TA_2000_MIXEDCCFD)
+               DELY=DYREC(JS+JOFF,NBLK)
+               DELZ=DZREC(KS+KOFF,NBLK)
+               IF((JS.NE.JL1V(KS)).AND.(JS.NE.JL2V(KS))) THEN
+                  CDISTMP1 = 0.125D0*(DISP(IS,JS-1,KS,4)
+     &                               +DISP(IS,JS,KS,4))
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,4)
+     &                               +DISP(IS,JS+1,KS,4))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELY
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELY
+                  IF(NDIR.EQ.1) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRCOF(IS,JS,KS,4)=TRCOF(IS,JS,KS,4)+CFTMP1
+                     TRCOF(IS,JS,KS,5)=TRCOF(IS,JS,KS,5)-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                               +2.0D0*(CFTMP2-CFTMP1)*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRCOF(IS,JS,KS,4)=TRCOF(IS,JS,KS,4)-CFTMP1
+                     TRCOF(IS,JS,KS,5)=TRCOF(IS,JS,KS,5)+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                               +2.0D0*(CFTMP1-CFTMP2)*CONCB
+                  ENDIF
+               ELSEIF(JS.EQ.JL1V(KS)) THEN
+                  CDISTMP1 = 0.5D0*DISP(IS,JS,KS,4)
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,4)
+     &                               +DISP(IS,JS+1,KS,4))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELY
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELY
+                  IF(NDIR.EQ.1) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP2*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP2*CONCB
+                  ENDIF
+               ELSE
+                  CDISTMP1 = 0.125D0*(DISP(IS,JS-1,KS,4)
+     &                               +DISP(IS,JS,KS,4))
+                  CDISTMP2 = 0.5D0*DISP(IS,JS,KS,4)
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELY
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELY
+                  IF(NDIR.EQ.1) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP1*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP1*CONCB
+                  ENDIF
+               ENDIF
+               IF((KS.NE.KL1).AND.(KS.NE.KL2)) THEN
+                  CDISTMP1 = 0.125D0*(DISP(IS,JS,KS-1,7)
+     &                               +DISP(IS,JS,KS,7))
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,7)
+     &                               +DISP(IS,JS,KS+1,7))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELZ
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELZ
+                  IF(NDIR.EQ.1) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRCOF(IS,JS,KS,6)=TRCOF(IS,JS,KS,6)+CFTMP1
+                     TRCOF(IS,JS,KS,7)=TRCOF(IS,JS,KS,7)-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                             +2.0D0*(CFTMP2-CFTMP1)*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRCOF(IS,JS,KS,6)=TRCOF(IS,JS,KS,6)-CFTMP1
+                     TRCOF(IS,JS,KS,7)=TRCOF(IS,JS,KS,7)+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                             +2.0D0*(CFTMP1-CFTMP2)*CONCB
+                  ENDIF
+               ELSEIF(KS.EQ.KL1) THEN
+                  CDISTMP1 = 0.5D0*DISP(IS,JS,KS,7)
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,7)
+     &                               +DISP(IS,JS,KS+1,7))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELZ
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELZ
+                  IF(NDIR.EQ.1) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP2*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP2*CONCB
+                  ENDIF
+               ELSE
+                  CDISTMP1 = 0.125D0*(DISP(IS,JS,KS-1,7)
+     &                               +DISP(IS,JS,KS,7))
+                  CDISTMP2 = 0.5D0*DISP(IS,JS,KS,7)
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELZ
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELZ
+                  IF(NDIR.EQ.1) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP1*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP1*CONCB
+                  ENDIF
+               ENDIF
+
+
+               IF (((KEYOUT(IS,J-1,K).EQ.1).OR.(KEYOUT(IS,J-1,K).EQ.
+     &               -1)).AND.(KEYOUT(IS,J,K).EQ.1))  THEN
+                  DELXY1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                  DELXY2=DYREC(J-1+JOFF,NBLK)    ! DY(J-1)
+                  CDISTMP = 0.5D0*DISP(IS,J,K,2)
+                  CFTMP = CDISTMP/(0.5D0*(DELXY1+DELXY2))/DEL
+                  TRCOF(IS,J,K,1)=TRCOF(IS,J,K,1) + CFTMP
+                  TRCOF(IS,J,K,4)=TRCOF(IS,J,K,4) - CFTMP
+               ELSEIF(((KEYOUT(IS,J+1,K).EQ.1).OR.(KEYOUT(IS,J+1,K).EQ.
+     &                 -1)).AND.(KEYOUT(IS,J,K).EQ.1)) THEN
+                  DELXY1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                  DELXY2=DYREC(J+1+JOFF,NBLK)    ! DY(J+1)
+                  CDISTMP = 0.5D0*DISP(IS,J,K,2)
+                  CFTMP = CDISTMP/(0.5D0*(DELXY1+DELXY2))/DEL
+                  TRCOF(IS,J,K,1)=TRCOF(IS,J,K,1) - CFTMP
+                  TRCOF(IS,J,K,5)=TRCOF(IS,J,K,5) + CFTMP
+               ENDIF
+               IF (((KEYOUT(IS,J,K-1).EQ.1).OR.(KEYOUT(IS,J,K-1).EQ.
+     &               -1)).AND.(KEYOUT(IS,J,K).EQ.1))  THEN 
+                  DELZX1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                  DELZX2=DZREC(K-1+KOFF,NBLK)    ! DZ(K-1)
+                  CDISTMP = 0.5D0*DISP(IS,J,K,3)
+                  CFTMP = CDISTMP/(0.5D0*(DELZX1+DELZX2))/DEL
+                  TRCOF(IS,J,K,1)=TRCOF(IS,J,K,1) + CFTMP
+                  TRCOF(IS,J,K,6)=TRCOF(IS,J,K,6) - CFTMP
+               ELSEIF(((KEYOUT(IS,J,K+1).EQ.1).OR.(KEYOUT(IS,J,K+1).EQ.
+     &                 -1)).AND.(KEYOUT(IS,J,K).EQ.1)) THEN
+                  DELZX1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                  DELZX2=DZREC(K+1+KOFF,NBLK)    ! DZ(K+1)
+                  CDISTMP = 0.5D0*DISP(IS,J,K,3)
+                  CFTMP = CDISTMP/(0.5D0*(DELZX1+DELZX2))/DEL
+                  TRCOF(IS,J,K,1)=TRCOF(IS,J,K,1) - CFTMP
+                  TRCOF(IS,J,K,7)=TRCOF(IS,J,K,7) + CFTMP
+               ENDIF
+
+            ELSE IF (NDIR.EQ.3.OR.NDIR.EQ.4) THEN !  FACE: Y- OR Y+
+
+               DEL=DYREC(JS+JOFF,NBLK) 
+               CUR_DISP = DISP(IS,JS,KS,5)
+C--------------------------------------------------------------------
+C ACCOUNT FOR EFFECT OF NEIGHBORING X AND Z FACE FLUXES (SEE PAPER BY 
+C MFW_IY_TA_2000_MIXEDCCFD)
+               DELX=DXREC(IS+IOFF,NBLK)
+               DELZ=DZREC(KS+KOFF,NBLK)
+               IF((IS.NE.IL1).AND.(IS.NE.IL2)) THEN
+                  CDISTMP1 = 0.125D0*(DISP(IS-1,JS,KS,2)
+     &                               +DISP(IS,JS,KS,2))
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,2)
+     &                               +DISP(IS+1,JS,KS,2))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELX
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELX
+                  IF(NDIR.EQ.3) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRCOF(IS,JS,KS,2)=TRCOF(IS,JS,KS,2)+CFTMP1
+                     TRCOF(IS,JS,KS,3)=TRCOF(IS,JS,KS,3)-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                              +2.0D0*(CFTMP2-CFTMP1)*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRCOF(IS,JS,KS,2)=TRCOF(IS,JS,KS,2)-CFTMP1
+                     TRCOF(IS,JS,KS,3)=TRCOF(IS,JS,KS,3)+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                              +2.0D0*(CFTMP1-CFTMP2)*CONCB
+                  ENDIF
+               ELSEIF(IS.EQ.IL1) THEN
+                  CDISTMP1 = 0.5D0*DISP(IS,JS,KS,2)
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,2)
+     &                               +DISP(IS+1,JS,KS,2))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELX
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELX
+                  IF(NDIR.EQ.3) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP2*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP2*CONCB
+                  ENDIF
+               ELSE
+                  CDISTMP1 = 0.125D0*(DISP(IS-1,JS,KS,2)
+     &                               +DISP(IS,JS,KS,2))
+                  CDISTMP2 = 0.5D0*DISP(IS,JS,KS,2)
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELX
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELX
+                  IF(NDIR.EQ.3) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP1*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP1*CONCB
+                  ENDIF
+               ENDIF
+
+               IF((KS.NE.KL1).AND.(KS.NE.KL2)) THEN
+                  CDISTMP1 = 0.125D0*(DISP(IS,JS,KS-1,8)
+     &                              +DISP(IS,JS,KS,8))
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,8)
+     &                               +DISP(IS,JS,KS+1,8))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELZ
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELZ
+                  IF(NDIR.EQ.3) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRCOF(IS,JS,KS,6)=TRCOF(IS,JS,KS,6)+CFTMP1
+                     TRCOF(IS,JS,KS,7)=TRCOF(IS,JS,KS,7)-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                               +2.0D0*(CFTMP2-CFTMP1)*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRCOF(IS,JS,KS,6)=TRCOF(IS,JS,KS,6)-CFTMP1
+                     TRCOF(IS,JS,KS,7)=TRCOF(IS,JS,KS,7)+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                               +2.0D0*(CFTMP1-CFTMP2)*CONCB
+                  ENDIF
+               ELSEIF(KS.EQ.KL1) THEN
+                  CDISTMP1 = 0.5D0*DISP(IS,JS,KS,8)
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,8)
+     &                               +DISP(IS,JS,KS+1,8))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELZ
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELZ
+                  IF(NDIR.EQ.3) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP2*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)-2*CFTMP2*CONCB
+                  ENDIF
+               ELSE
+                  CDISTMP1 = 0.125D0*(DISP(IS,JS,KS-1,8)
+     &                               +DISP(IS,JS,KS,8))
+                  CDISTMP2 = 0.5D0*DISP(IS,JS,KS,8)
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELZ
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELZ
+                  IF(NDIR.EQ.3) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP1*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP1*CONCB
+                  ENDIF
+               ENDIF
+
+
+               IF (((KEYOUT(I-1,JS,K).EQ.1).OR.(KEYOUT(I-1,JS,K).EQ.
+     &               -1)).AND.(KEYOUT(I,JS,K).EQ.1))  THEN
+                  DELXY1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                  DELXY2=DXREC(I-1+IOFF,NBLK)    ! DX(I-1)
+                  CDISTMP = 0.5D0*DISP(I,JS,K,4)
+                  CFTMP = CDISTMP/(0.5D0*(DELXY1+DELXY2))/DEL
+                  TRCOF(I,JS,K,1)=TRCOF(I,JS,K,1) + CFTMP
+                  TRCOF(I,JS,K,2)=TRCOF(I,JS,K,2) - CFTMP
+               ELSEIF(((KEYOUT(I+1,JS,K).EQ.1).OR.(KEYOUT(I+1,JS,K).EQ.
+     &                 -1)).AND.(KEYOUT(I,JS,K).EQ.1)) THEN
+                  DELXY1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                  DELXY2=DXREC(I+1+IOFF,NBLK)    ! DX(I+1)
+                  CDISTMP = 0.5D0*DISP(I,JS,K,4)
+                  CFTMP = CDISTMP/(0.5D0*(DELXY1+DELXY2))/DEL
+                  TRCOF(I,JS,K,1)=TRCOF(I,JS,K,1) - CFTMP
+                  TRCOF(I,JS,K,3)=TRCOF(I,JS,K,3) + CFTMP
+               ENDIF
+               IF (((KEYOUT(I,JS,K-1).EQ.1).OR.(KEYOUT(I,JS,K-1).EQ.
+     &               -1)).AND.(KEYOUT(I,JS,K).EQ.1))  THEN
+                  DELYZ1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                  DELYZ2=DZREC(K-1+KOFF,NBLK)    ! DZ(K-1)
+                  CDISTMP = 0.5D0*DISP(I,JS,K,6)
+                  CFTMP = CDISTMP/(0.5D0*(DELYZ1+DELYZ2))/DEL
+                  TRCOF(I,JS,K,1)=TRCOF(I,JS,K,1) + CFTMP
+                  TRCOF(I,JS,K,6)=TRCOF(I,JS,K,6) - CFTMP
+               ELSEIF(((KEYOUT(I,JS,K+1).EQ.1).OR.(KEYOUT(I,JS,K+1).EQ.
+     &                 -1)).AND.(KEYOUT(I,JS,K).EQ.1)) THEN
+                  DELYZ1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                  DELYZ2=DZREC(K+1+KOFF,NBLK)    ! DZ(K+1)
+                  CDISTMP = 0.5D0*DISP(I,JS,K,6)
+                  CFTMP = CDISTMP/(0.5D0*(DELYZ1+DELYZ2))/DEL
+                  TRCOF(I,JS,K,1)=TRCOF(I,JS,K,1) - CFTMP
+                  TRCOF(I,JS,K,7)=TRCOF(I,JS,K,7) + CFTMP
+               ENDIF
+C--------------------------------------------------------------------
+
+            ELSE IF (NDIR.EQ.5.OR.NDIR.EQ.6) THEN !  FACE: Z- OR Z+
+
+               DEL=DZREC(KS+KOFF,NBLK) 
+               CUR_DISP = DISP(IS,JS,KS,9) 
+C--------------------------------------------------------------------
+C ACCOUNT FOR EFFECT OF NEIGHBORING X AND Y FACE FLUXES (SEE PAPER BY 
+C MFW_IY_TA_2000_MIXEDCCFD)
+               DELX=DXREC(IS+IOFF,NBLK)
+               DELY=DYREC(JS+JOFF,NBLK)
+               IF((IS.NE.IL1).AND.(IS.NE.IL2)) THEN
+                  CDISTMP1 = 0.125D0*(DISP(IS-1,JS,KS,3)
+     &                               +DISP(IS,JS,KS,3))
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,3)
+     &                               +DISP(IS+1,JS,KS,3))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELX
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELX
+                  IF(NDIR.EQ.5) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRCOF(IS,JS,KS,2)=TRCOF(IS,JS,KS,2)+CFTMP1
+                     TRCOF(IS,JS,KS,3)=TRCOF(IS,JS,KS,3)-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                               +2.0D0*(CFTMP2-CFTMP1)*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRCOF(IS,JS,KS,2)=TRCOF(IS,JS,KS,2)-CFTMP1
+                     TRCOF(IS,JS,KS,3)=TRCOF(IS,JS,KS,3)+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                               +2.0D0*(CFTMP1-CFTMP2)*CONCB
+                  ENDIF
+               ELSEIF(IS.EQ.IL1) THEN
+                  CDISTMP1 = 0.5D0*DISP(IS,JS,KS,3)
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,3)
+     &                               +DISP(IS+1,JS,KS,3))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELX
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELX
+                  IF(NDIR.EQ.5) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP2*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP2*CONCB
+                  ENDIF
+               ELSE
+                  CDISTMP1 = 0.125D0*(DISP(IS-1,JS,KS,3)
+     &                               +DISP(IS,JS,KS,3))
+                  CDISTMP2 = 0.5D0*DISP(IS,JS,KS,3)
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELX
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELX
+                  IF(NDIR.EQ.5) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP1*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP1*CONCB
+                  ENDIF
+               ENDIF
+               IF((JS.NE.JL1V(KS)).AND.(JS.NE.JL2V(KS))) THEN
+                  CDISTMP1 = 0.125D0*(DISP(IS,JS-1,KS,6)
+     &                               +DISP(IS,JS,KS,6))
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,6)
+     &                               +DISP(IS,JS+1,KS,6))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELY
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELY
+                  IF(NDIR.EQ.5) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRCOF(IS,JS,KS,4)=TRCOF(IS,JS,KS,4)+CFTMP1
+                     TRCOF(IS,JS,KS,5)=TRCOF(IS,JS,KS,5)-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                               +2.0D0*(CFTMP2-CFTMP1)*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRCOF(IS,JS,KS,4)=TRCOF(IS,JS,KS,4)-CFTMP1
+                     TRCOF(IS,JS,KS,5)=TRCOF(IS,JS,KS,5)+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                               +2.0D0*(CFTMP1-CFTMP2)*CONCB
+                  ENDIF
+               ELSEIF(JS.EQ.JL1V(KS)) THEN
+                  CDISTMP1 = 0.5D0*DISP(IS,JS,KS,6)
+                  CDISTMP2 = 0.125D0*(DISP(IS,JS,KS,6)
+     &                               +DISP(IS,JS+1,KS,6))
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELY
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELY
+                  IF(NDIR.EQ.5) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP2*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP2*CONCB
+                  ENDIF
+               ELSE
+                  CDISTMP1 = 0.125D0*(DISP(IS,JS-1,KS,6)
+     &                               +DISP(IS,JS,KS,6))
+                  CDISTMP2 = 0.5D0*DISP(IS,JS,KS,4)
+                  CFTMP1 = CDISTMP1/(0.5D0*DEL)/DELY
+                  CFTMP2 = CDISTMP2/(0.5D0*DEL)/DELY
+                  IF(NDIR.EQ.5) THEN
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)+CFTMP1-CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                -2.0D0*CFTMP1*CONCB
+                  ELSE
+                     TRCOF(IS,JS,KS,1)=TRCOF(IS,JS,KS,1)-CFTMP1+CFTMP2
+                     TRRESID(IS,JS,KS)=TRRESID(IS,JS,KS)
+     &                                +2.0D0*CFTMP1*CONCB
+                  ENDIF
+               ENDIF
+
+               IF (((KEYOUT(I-1,J,KS).EQ.1).OR.(KEYOUT(I-1,J,KS).EQ.
+     &               -1)).AND.(KEYOUT(I,J,KS).EQ.1))  THEN
+                  DELZX1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                  DELZX2=DXREC(I-1+IOFF,NBLK)    ! DX(I-1)
+                  CDISTMP = 0.5D0*DISP(I,J,KS,7)
+                  CFTMP = CDISTMP/(0.5D0*(DELZX1+DELZX2))/DEL
+                  TRCOF(I,J,KS,1)=TRCOF(I,J,KS,1) + CFTMP
+                  TRCOF(I,J,KS,2)=TRCOF(I,J,KS,2) - CFTMP
+               ELSEIF(((KEYOUT(I+1,J,KS).EQ.1).OR.(KEYOUT(I+1,J,KS).EQ.
+     &                  -1)).AND.(KEYOUT(I,J,KS).EQ.1)) THEN
+                  DELZX1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                  DELZX2=DXREC(I+1+IOFF,NBLK)    ! DX(I+1)
+                  CDISTMP = 0.5D0*DISP(I,J,KS,7)
+                  CFTMP = CDISTMP/(0.5D0*(DELZX1+DELZX2))/DEL
+                  TRCOF(I,J,KS,1)=TRCOF(I,J,KS,1) - CFTMP
+                  TRCOF(I,J,KS,3)=TRCOF(I,J,KS,3) + CFTMP
+               ENDIF
+               IF (((KEYOUT(I,J-1,KS).EQ.1).OR.(KEYOUT(I,J-1,KS).EQ.
+     &               -1)).AND.(KEYOUT(I,J,KS).EQ.1))  THEN 
+                  DELYZ1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                  DELYZ2=DYREC(J-1+JOFF,NBLK)    ! DY(J-1)
+                  CDISTMP = 0.5D0*DISP(I,J,KS,8)
+                  CFTMP = CDISTMP/(0.5D0*(DELYZ1+DELYZ2))/DEL
+                  TRCOF(I,J,KS,1)=TRCOF(I,J,KS,1) + CFTMP
+                  TRCOF(I,J,KS,4)=TRCOF(I,J,KS,4) - CFTMP
+               ELSEIF(((KEYOUT(I,J+1,KS).EQ.1).OR.(KEYOUT(I,J+1,KS).EQ.
+     &                  -1)).AND.(KEYOUT(I,J,KS).EQ.1)) THEN
+                  DELYZ1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                  DELYZ2=DYREC(J+1+JOFF,NBLK)    ! DY(J+1)
+                  CDISTMP = 0.5D0*DISP(I,J,KS,8)
+                  CFTMP = CDISTMP/(0.5D0*(DELYZ1+DELYZ2))/DEL
+                  TRCOF(I,J,KS,1)=TRCOF(I,J,KS,1) - CFTMP
+                  TRCOF(I,J,KS,5)=TRCOF(I,J,KS,5) + CFTMP
+               ENDIF
+C--------------------------------------------------------------------
+
+            ENDIF
+
+            CUR_COF = CUR_DISP/(0.5D0*DEL)/DEL
+            TRCOF(IS,JS,KS,1) = TRCOF(IS,JS,KS,1) + CUR_COF
+            TRRESID(IS,JS,KS) = TRRESID(IS,JS,KS) + CUR_COF*CONCB
+
+         ENDDO
+
+ 1       CONTINUE
+      ENDDO
+
+      END
+
+
+C **********************************************************************
+      SUBROUTINE TRBD_DIFFFLUX_W(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                           KL1,KL2,KEYOUT,NBLK,DISP,CONC,PHISOLD,
+     &                           PHIS,TRCOF,TRRESID,TRDUNK)
+C **********************************************************************
+C APPLIES THE DIRICHLET CONDITION (TYPE 2) TO THE MATRIX/RESIDUAL
+C FOR DIFFUSION/DISPERSION EQUATION.
+C **********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'trbdary.h'
+
+      INTEGER IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IDIM, JDIM, KDIM, LDIM, NBLK
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),   KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  DISP(IDIM,JDIM,KDIM,9), 
+     &        CONC(IDIM,JDIM,KDIM),
+     &        PHISOLD(IDIM,JDIM,KDIM),  PHIS(IDIM,JDIM,KDIM),
+     &        TRRESID(IDIM,JDIM,KDIM), TRDUNK(IDIM,JDIM,KDIM)
+      REAL*4  TRCOF(IDIM,JDIM,KDIM,$NUMTRCOF)
+      
+      REAL*8 DELX,DEL,DELZ, DELX1,DELY1,DELZ1, CUR_DISP, CUR_COF
+
+      REAL*8 CONCB, DCONCB,CFLUX
+
+      INTEGER I, J, K, IOFF, JOFF, KOFF, MERR, NFOFF 
+      INTEGER IB, L, NDIR, NTYPE
+      INTEGER IS,JS,KS,IV,JV,KV,ILR
+C ----------------------------------
+
+      IF (NBND_REG.EQ.0.OR.NBEL.EQ.0) RETURN
+
+C  GET LOCAL TO GLOBAL INDEX OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  LOOP OVER THE BOUNDARY CONDITION REGIONS
+
+      DO IB=1,NBND_REG
+
+C ONLY DIRICHLET CONDITION IMPOSED HERE
+
+        NTYPE = NBND_TYPE_D(IB) 
+        IF(NTYPE.NE.2) GOTO 1
+
+C  GET NFOFF
+         IF(NBLK.EQ.1.AND.IB.EQ.1) NFOFF=1
+         IF(NBLK.GT.1.AND.IB.EQ.1) NFOFF=LOFFBND(NBND_REG,NBLK-1)+1
+         IF(IB.NE.1) NFOFF=LOFFBND(IB-1,NBLK)+1
+
+C GET THE CURRENT VALUE OF DIRICHLET VALUE OF CONCENTRATION
+         CONCB=0.D0
+
+C MPESZ : NTABBNDTR NEEDS TO BE SET TO ZERO PRIOR TO READING 
+C IF YOU WANT TO USE THIS TEST
+
+         IF(NTABBNDTR(IB,CALPHA).NE.0) THEN
+            CALL LOOKUP(NTABBNDTR(IB,CALPHA),CONCTIM_NEW,CONCB,DCONCB)
+            IF(CONCB.LE.0.D0) CONCB = 0.D0
+         ENDIF
+
+C LOOP OVER ALL BDARY ELEMENTS IN THIS REGION
+         DO L=NFOFF,LOFFBND(IB,NBLK)
+            I = LOCBND(1,L)
+            J = LOCBND(2,L)
+            K = LOCBND(3,L)
+            NDIR = LOCBND(4,L)
+
+            CALL GETSOURCEINDEX(NDIR,I,J,K,IS,JS,KS,IV,JV,KV,ILR)
+
+CMPESZ: ALL THIS NEEDS TO BE PUT IN CONSERVATIVE FORM !
+C AND USE BAREA(L) TO DETERMINE THE VOLUMETRIC FLUX ACROSS ELEMENT L 
+
+            IF (NDIR.EQ.1.OR.NDIR.EQ.2) THEN      !  FACE: X- OR X+
+
+               DEL=DXREC(IS+IOFF,NBLK) 
+               CUR_DISP = DISP(IS,JS,KS,1) 
+
+            ELSE IF (NDIR.EQ.3.OR.NDIR.EQ.4) THEN !  FACE: Y- OR Y+
+
+               DEL=DYREC(JS+JOFF,NBLK) 
+               CUR_DISP = DISP(IS,JS,KS,5) 
+
+            ELSE IF (NDIR.EQ.5.OR.NDIR.EQ.6) THEN !  FACE: Z- OR Z+
+
+               DEL=DZREC(KS+KOFF,NBLK) 
+               CUR_DISP = DISP(IS,JS,KS,9) 
+
+            ENDIF
+
+            CUR_COF = CUR_DISP /( DEL/2.D0 ) /DEL
+            CFLUX = CUR_COF * (CONCB - CONC(IS,JS,KS) ) * CDELTIM
+
+            TRBDINALL(IB,CALPHA) = TRBDINALL(IB,CALPHA) - CFLUX
+            TRBDINTOT(CALPHA) = TRBDINTOT(CALPHA) - CFLUX
+            TRBDFLUX(IB, CALPHA) = TRBDFLUX(IB, CALPHA) + CFLUX
+
+         ENDDO
+
+ 1       CONTINUE
+      ENDDO
+
+
+      END
+
+
+C *********************************************************
+      SUBROUTINE TRBDBAL()
+C *********************************************************
+C EVALUATES TOTAL CONTRIBUTION OF FLUXES ACROSS BOUNDARY
+C AND ADDS IT TO THE CIN
+C *********************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'trarydat.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'trbdary.h'
+
+      INTEGER  NC, I
+      REAL*8   TRBDARYFLUX
+
+      DO NC = 1,NSPECIES
+         TRBDARYFLUX =  0.D0
+         DO I=1,NBND_REG
+            TRBDARYFLUX =  TRBDARYFLUX + TRBDFLUX(I,NC)
+         ENDDO
+         CIN(NC)=CIN(NC) + TRBDARYFLUX
+      ENDDO
+
+C MPESZ: NEED TO INSERT PARALLEL STATEMENTS HERE 
+
+      END
+
+
+C *********************************************************
+      SUBROUTINE TROUT_BDFLUX(NERR)
+C *********************************************************
+C REPORT THE ACCUMULATED NET AMOUNT OF SPECIES FLOWING ACROSS
+C BOUNDARY FOR EACH INDIVIDUAL BOUNDARY REGION (UNIT IN LBMOL) 
+C AND REPORT THE BALANCE OF SPECIES IN EACH INDIVIDUAL ROCK 
+C SUBDOMAIN (UNIT IN LBMOL)
+C *********************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'trarydat.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'trbdary.h'
+
+      INTEGER  NERR
+      INTEGER  NC, IB, NR
+
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./
+
+C  FUTURE CLEAN UP:  USE THE OPEN/CLOSE FILE PROVIDED BY FRAMEWORK
+
+      IF (ONCEONLY) THEN
+         ONCEONLY = .FALSE.
+C        INITIAL VALUE FOR NF_OUT_BD TO BE CLEANED UP 
+         NF_OUT_BD = 55
+         OPEN(NF_OUT_BD,FILE='TRANSPBDFLUX.DAT',
+     &           STATUS='UNKNOWN',ERR=13)
+         WRITE(NF_OUT_BD,*) 
+     &  '   * * * * * * * * * * * * * * * * * * * * * * * * * * *'
+         WRITE(NF_OUT_BD,*) 
+     &  '   REPORT FOR TRANSPORT BD FLUX & ROCK SUBDOMAIN BALANCE '
+         WRITE(NF_OUT_BD,*) 
+     &  '   * * * * * * * * * * * * * * * * * * * * * * * * * * *'
+         WRITE(NF_OUT_BD,*) ' '
+         WRITE(NF_OUT_BD,*) ' NOTE: '
+         WRITE(NF_OUT_BD,*) ' UNIT FOR TIME IS DAY '
+         WRITE(NF_OUT_BD,*) ' UNIT FOR ACCUMULATED FLUX IS LBMOL '
+         WRITE(NF_OUT_BD,*) ' UNIT FOR BALANCE OF SPECIES IS LBMOL '
+         WRITE(NF_OUT_BD,*) ' '
+      ENDIF
+
+C    COMPUTE BALANCE IN EACH ROCK SUBDOMAIN ----------------------
+      DO NC=1,NSPECIES
+         DO NR = 1, NROCKTYPE
+            CBAL_ROCK(NR, NC) = 0.D0
+         ENDDO
+         CALL TRCOMPBAL_ROCK(NC,0)
+      ENDDO
+
+CC     PARALLEL UPATE --------------------------------------------
+$MANY      CALL TIMON(22)
+$MANY      CALL SUMIT(NBND_REG*NSPECIES,TRBDINALL(1,1))
+CC          NOTE THAT TRBDINTOT DO NOT NEED TO UPDATE HERE 
+$MANY      CALL SUMIT(NROCKTYPE*NSPECIES,CBAL_ROCK(1,1))
+$MANY      CALL SUMIT(NROCKTYPE*NSPECIES,CBAL_DECAY(1,1))
+$MANY      CALL TIMOFF(22)
+
+      IF(MYPRC.EQ.0) THEN
+
+C    REPORT HEAD:  THE TIME STEP INFORMATION --------------------
+      WRITE(NF_OUT_BD,*) ' '
+      WRITE(NF_OUT_BD,*) '  NSTEP, ICSTEP, CONCTIM_HALF = ',
+     &  NSTEP, ',' , ICSTEP, ',' ,  CONCTIM_HALF
+
+C    REPORT THE BOUNDARY FLUX INFO ------------------------------
+      DO NC = 1,NSPECIES
+         WRITE(NF_OUT_BD,*)
+     &  '  BD_FLUX(1..N_BD_REGION) FOR SPECIES #', NC, ' ='
+         WRITE(NF_OUT_BD,*)  (TRBDINALL(IB,NC), IB=1,NBND_REG)
+      ENDDO
+
+C    REPORT  BALANCE IN EACH ROCK SUBDOMAIN ----------------------
+      DO NC = 1,NSPECIES
+         WRITE(NF_OUT_BD,*)
+     &  '  BALANCE(1..N_ROCK_REGION) FOR SPECIES #', NC, ' ='
+         WRITE(NF_OUT_BD,*)  (CBAL_ROCK(NR,NC), NR=1,NROCKTYPE)
+      ENDDO
+
+C    REPORT THE RADIODECAY BALANCE -------------------------------
+      DO NC = 1,NSPECIES
+         WRITE(NF_OUT_BD,*)
+     &  '  DECAYBAL(1..N_ROCK_REGION) FOR SPECIES #', NC, ' ='
+         WRITE(NF_OUT_BD,*)  (CBAL_DECAY(NR,NC), NR=1,NROCKTYPE)
+      ENDDO
+
+      ENDIF        !  FOR IF(MYPRC.EQ.0) THEN
+
+C     CLOSE(NF_OUT_BD)  IS DONE IN SUBROUTINE TRQUIT (NERR)
+      RETURN
+
+ 13   CONTINUE
+      IF (LEVELC) WRITE (NFOUT,*) 
+     &   ' ERROR:  OPEN FILE FAILARE AT TROUT_BDFLUX'
+C    &   ,'  (BE SURE THE FILE TRANSPBDFLUX.DAT DOES NOT EXIST)'
+      NERR = NERR + 1
+      RETURN
+
+      END
+
+

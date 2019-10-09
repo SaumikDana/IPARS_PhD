@@ -1,0 +1,12 @@
+$ ############ TICAM (GMRES) Linear Solver Include File ############
+
+Replace_Symbols
+
+MSOLG   C               $ Include GMRES linear solver as model solver
+GMRES  ""               $ Include GMRES linear solver
+
+Source_Directory
+../solve/gmres/
+Source_Files
+
+

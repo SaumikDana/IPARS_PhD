@@ -1,0 +1,37 @@
+c---->------------------------------------------------------------------<
+c  Global Real*8 sum with results duplicated on all processors
+c---->------------------------------------------------------------------<
+      SUBROUTINE GR8SUM( INFO , N , X , Y )
+      IMPLICIT NONE
+c---->
+      INCLUDE 'control.h'
+$MANY      INCLUDE 'mpif.h'
+$MANY$MMODEL      INCLUDE 'mm_comm.h'
+c---->
+      INTEGER INFO(*), N, I
+      REAL*8  X(*), Y(*)
+c---->
+      INTEGER IERR
+c---->
+$MANY$PV3      INCLUDE  'mpipv3.h'
+
+      if ( NUMPRC .lt. 2 ) then
+         do I = 1,N
+            Y(I) = X(I)
+         enddo
+      else
+
+c  Qin Lu    3/26/99    Changed communicator for multi-communicator
+$MANY$MMODEL      CALL mpi_allreduce(X,Y,N,MPI_REAL8,MPI_SUM,COMM_CURRENT,IERR)
+$MANY$NOMMOD$PV3      CALL mpi_allreduce(X,Y,N,MPI_REAL8,MPI_SUM,MPI_COMM_PV3,IERR)
+$MANY$NOMMOD$NOPV3      CALL mpi_allreduce(X,Y,N,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,IERR)
+c---->
+$MANY      if ( IERR .ne. MPI_SUCCESS ) then
+$MANY        CALL SLDIE('GR8SUM : MPI_ALLREDUCE FAILED')
+$MANY      end if
+c---->
+      end if
+      return
+      end
+c---->------------------------------------------------------------------<
+

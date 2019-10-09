@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/repos/csm/!svn/ver/66/IPARSv3.1/comp/data/single_block/tests/test1/mod_spe10
+END
+spe10perm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/repos/csm/!svn/ver/66/IPARSv3.1/comp/data/single_block/tests/test1/mod_spe10/spe10perm.dat
+END
+speUpsc.f
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/66/IPARSv3.1/comp/data/single_block/tests/test1/mod_spe10/speUpsc.f
+END
+spe5_v2.dat
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/repos/csm/!svn/ver/66/IPARSv3.1/comp/data/single_block/tests/test1/mod_spe10/spe5_v2.dat
+END
+README
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/repos/csm/!svn/ver/66/IPARSv3.1/comp/data/single_block/tests/test1/mod_spe10/README
+END
+InitCond.dat
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/66/IPARSv3.1/comp/data/single_block/tests/test1/mod_spe10/InitCond.dat
+END

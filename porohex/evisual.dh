@@ -1,0 +1,99 @@
+C FILE: EVISUAL.H
+C CONTAINS GLOSSARY FOR VISUALIZATION VARIABLES FOR ELASTIC MODEL
+C
+C *********************************************************************
+      INTEGER IPARS_NSCL
+      PARAMETER (IPARS_NSCL = 39)  
+
+      CHARACTER*$MXANAM IPARS_SCL_NAMES(3,IPARS_NSCL)
+C *********************************************************************
+C NAME IN INPUT FILE,  IN TEC FILE, IPARS NAME
+      DATA IPARS_SCL_NAMES /
+     &     'DISPX', 'DISPX', 'DISP',
+     &     'DISPY', 'DISPY', 'DISP',
+     &     'DISPZ', 'DISPZ', 'DISP',
+     &     'TDISPX', 'TDISPX', 'TDISP',
+     &     'TDISPY', 'TDISPY', 'TDISP',
+     &     'TDISPZ', 'TDISPZ', 'TDISP',
+     &     'STRXX', 'STRXX', 'STRESS',
+     &     'STRYY', 'STRYY', 'STRESS',
+     &     'STRZZ', 'STRZZ', 'STRESS',
+     &     'STRXY', 'STRXY', 'STRESS',
+     &     'STRYZ', 'STRYZ', 'STRESS',
+     &     'STRZX', 'STRZX', 'STRESS',
+     &     'STRNXX', 'STRNXX', 'STRAIN',
+     &     'STRNYY', 'STRNYY', 'STRAIN',
+     &     'STRNZZ', 'STRNZZ', 'STRAIN',
+     &     'STRNXY', 'STRNXY', 'STRAIN',
+     &     'STRNYZ', 'STRNYZ', 'STRAIN',
+     &     'STRNZX', 'STRNZX', 'STRAIN',
+     &     'PSTRNXX', 'PSTRNXX', 'PSTRAIN',
+     &     'PSTRNYY', 'PSTRNYY', 'PSTRAIN',
+     &     'PSTRNZZ', 'PSTRNZZ', 'PSTRAIN',
+     &     'PSTRNXY', 'PSTRNXY', 'PSTRAIN',
+     &     'PSTRNYZ', 'PSTRNYZ', 'PSTRAIN',
+     &     'PSTRNZX', 'PSTRNZX', 'PSTRAIN',
+     &     'VSTRAIN', 'VSTRAIN',  'VSTRAIN',
+     &     'VPSTRAIN','VPSTRAIN', 'PSTATE',
+     &     'EQPL', 'EQPL', 'PSTATE',
+     &     'YSTRSS', 'YSTRSS', 'PSTATE',
+     &     'PROCN', 'PROCN', 'PROCN',
+     &     'FWIDTH','FWIDTH','FWIDTH',
+     &     'VSTRAIN_NM1', 'VSTRAIN_NM1', 'VSTRAIN_NM1',
+     &     'XXXX', 'XXXX', 'XXXX',
+     &     'XXXX', 'XXXX', 'XXXX',
+     &     'XXXX', 'XXXX', 'XXXX',
+     &     'XXXX', 'XXXX', 'XXXX',
+     &     'XXXX', 'XXXX', 'XXXX',
+     &     'XXXX', 'XXXX', 'XXXX',
+     &     'XXXX', 'XXXX', 'XXXX',
+     &     'XXXX', 'XXXX', 'XXXX'/ 
+      INTEGER IPARS_SCL_OFFSETS (IPARS_NSCL) 
+      DATA IPARS_SCL_OFFSETS /
+     &     1,
+     &     2,
+     &     3,
+     &     1,
+     &     2,
+     &     3,
+     &     1, 
+     &     2,
+     &     3,
+     &     4,
+     &     5,
+     &     6, 
+     &     1,
+     &     2,
+     &     3,
+     &     4,
+     &     5,
+     &     6,
+     &     1,
+     &     2,
+     &     3,
+     &     4,
+     &     5,
+     &     6,
+     &     1,
+     &     1,
+     &     2,
+     &     3,
+     &     1,
+     &     1,
+     &     1,
+     &     1,
+     &     1,
+     &     1,
+     &     1,
+     &     1,
+     &     1,
+     &     1,
+     &     1/
+
+C *********************************************************************
+
+
+
+
+
+

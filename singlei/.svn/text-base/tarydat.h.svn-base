@@ -1,0 +1,53 @@
+c  TARYDAT.H - IMPLICIT SINGLE PHASE FLOW MODEL GRID-ELEMENT ARRAY NUMBERS
+
+C  CODE HISTORY:
+
+C  BAHAREH MOMKEN  02/02/99   Hydrology-IMPES model garydat.h is used
+C                             as template
+C  JOHN WHEELER    04/03/99   IMPLICIT SINGLE PHASE MODEL
+
+C*********************************************************************
+
+      INTEGER   N_PRES, N_FLDEN, N_PRESN, N_FLDENN, N_DUNK
+      INTEGER   N_COF, N_RESID
+      INTEGER   N_VX, N_VY, N_VZ, N_VEL
+      INTEGER   N_PRES_ERR
+     
+      COMMON /TBAH/ N_PRES,N_FLDEN, N_PRESN, N_FLDENN, N_DUNK,
+     &     N_COF,N_RESID,
+     &     N_VX,N_VY,N_VZ,N_VEL,
+     &     N_PRES_ERR
+
+C*********************************************************************
+
+C  N_PRES = GRID-ELEMENT ARRAY NUMBER FOR FLUID PRESSURE AT TIME N+1,
+C           PSI (REAL*8)
+
+C  N_PRESN = GRID-ELEMENT ARRAY NUMBER FOR FLUID PRESSURE AT TIME N,
+C            PSI (REAL*8)
+
+C  N_FLDEN = GRID-ELEMENT ARRAY NUMBER FOR FLUID DENSITY AT TIME N+1,
+C            LB/CU-FT (REAL*8)
+
+C  N_FLDENN = GRID-ELEMENT ARRAY NUMBER FOR FLUID DENSITY AT TIME N,
+C             LB/CU-FT (REAL*8)
+
+C  N_COF (called COF below):
+C      = GRID-ELEMENT ARRAY NUMBER FOR MATRIX COEFFICIENTS (REAL*4)
+C        7 POINT TEMPLATE ($NUMCOF=7)
+C           COF(I,J,K,1) ==> DIAGONAL
+C           COF(I,J,K,2) ==> X-
+C           COF(I,J,K,3) ==> X+
+C           COF(I,J,K,4) ==> Y-
+C           COF(I,J,K,5) ==> Y+
+C           COF(I,J,K,6) ==> Z-
+C           COF(I,J,K,7) ==> Z+
+
+C  N_RESID= GRID-ELEMENT ARRAY NUMBER FOR RESIDUALS (REAL*8)
+
+C  N_DUNK = GRID-ELEMENT ARRAY NUMBER FOR PRESSURE CHANGE (REAL*8)
+
+C  N_PRES_ERR = GRID-ELEMENT ARRAY NUMBER FOR ERROR IN FLUID PRESSURE 
+C               AGAINST ANALYTIC SOLUTION AT TIME N+1,
+C           PSI (REAL*8)
+

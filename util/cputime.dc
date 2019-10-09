@@ -1,0 +1,98 @@
+// Time routine for unix machines not using mpi
+
+// HISTORY:
+
+// JOHN WHEELER       2/13/97   REVISED CODE FROM PENG WANG
+// BO LU              -/--/06   long to int for 64-bit compatibility
+
+// MACHINE - Only one of the following is valid
+
+$RS6UN#define RS6UN      // IBM RS600 UNIX
+$SGI64#define SGI64      // SGI octane IRIX64 or Linux
+
+// TYPE DEFINITIONS - Compiler and machine dependent
+
+#ifdef RS6UN
+   typedef void             FORTSUB;     // fortran calling convention
+   typedef void *           PADD;        // pointer for address only
+   typedef float *          PREAL4;      // pointer to a REAL*4
+   typedef double *         PREAL8;      // pointer to a REAL*8
+   typedef int *            PINT4;       // pointer to a INTEGER
+   typedef int *            PINT2;       // pointer to a INTEGER
+   typedef int *            PLOG4;       // pointer to a LOGICAL
+   typedef int *            PLOG2;       // pointer to a LOGICAL
+   typedef unsigned char    CHAR;        // fortran character
+   typedef CHAR *           PCHAR;       // pointer to a CHARACTER STRING
+#endif
+
+// change long to int for 64-bit system
+#ifdef SGI64 
+   typedef void             FORTSUB;     // fortran calling convention
+   typedef void *           PADD;        // pointer for address only
+   typedef float *          PREAL4;      // pointer to a REAL*4
+   typedef double *         PREAL8;      // pointer to a REAL*8
+   typedef int *            PINT4;       // pointer to a INTEGER
+   typedef int *            PINT2;       // pointer to a INTEGER
+   typedef int *            PLOG4;       // pointer to a LOGICAL
+   typedef int *            PLOG2;       // pointer to a LOGICAL
+   typedef unsigned char    CHAR;        // fortran character
+   typedef CHAR *           PCHAR;       // pointer to a CHARACTER STRING
+#endif
+
+// ROUTINES IN THIS MODULE:
+
+FORTSUB cputime$USAN (PREAL8 sec);
+
+// *******************************************************************
+FORTSUB cputime$USAN (PREAL8 sec)
+{
+// *******************************************************************
+
+//  Returns seconds measured from unknown point in time
+
+//  sec  = time in seconds (output, double)
+
+// bag8 : for mac os x
+#if defined(__APPLE__)
+
+#define TIMES
+#include <sys/times.h>
+#define HZ 100
+
+#else
+
+#ifdef TIMES
+#include <sys/types.h>
+#include <sys/times.h>
+#include <sys/param.h>
+#else
+#include <sys/time.h>
+#include <sys/resource.h>
+#endif
+
+#endif
+
+double  t, *tp;
+
+#ifdef TIMES
+        struct tms      tm;
+
+        tp = &t;
+        if (times(&tm) == -1L)
+                *tp = (double)0.0;
+        else
+                *tp = (double)(tm.tms_utime + tm.tms_stime) / (double)HZ;
+#else
+        struct rusage   ru;
+
+        tp = &t;
+        if (getrusage(RUSAGE_SELF, &ru) == -1)
+                *tp = (double)0.0;
+        else
+                *tp = (double)ru.ru_utime.tv_sec + ru.ru_stime.tv_sec
+                  + (double)(ru.ru_utime.tv_usec + ru.ru_stime.tv_usec)
+                  / (double)1000000.0;
+#endif
+*sec = *tp;
+return;
+}

@@ -1,0 +1,1554 @@
+C  MULGRID.F - MULTIGRID LINEAR SOLVER
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE MULGRD  (ITLIN,NERR)
+C  SUBROUTINE DUNK0   (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,DUNK)
+C  SUBROUTINE CVGMG   ()
+C  SUBROUTINE CVGMGW  (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,COF,DUNK,RESID)
+C  SUBROUTINE LSORMG  ()
+C  SUBROUTINE LSORMGW (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                      KL1,KL2,KEYOUT,NBLK,COF,DUNK,RESID)
+C  SUBROUTINE MULGRDI (NERR,KINP)
+C  SUBROUTINE GETLEV  (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK)
+C  SUBROUTINE MGBUG1I (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,JMG2,
+C                      KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE MGBUG2I (MGLF,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,JMG1F,JMG2F,
+C                      KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,MAPMG,KEYMGF,
+C                      KEYMGC,COFMGF,COFMGC,DUKMGF,DUKMGC,RESMGF,RESMGC)
+C  SUBROUTINE MGBUG3  (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+C                      MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE MGBUG1  (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,JMG2,
+C                      KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE MGBUGC  (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+C                      MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE MULGRDSO()
+C  SUBROUTINE OPTSOR  (REDM,REDT)
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     4/20/00    INITIAL CODE
+C  YURI VASSILEVSKI 3/30/02    UPDATE FOR PARALLEL CASE
+
+C*********************************************************************
+      SUBROUTINE MULGRD (ITLIN,NERR)
+C*********************************************************************
+
+C  Multigrid iteration executive routine
+
+C  ITLIN  = NUMBER OF MULTIGRID ITERATIONS USED (OUTPUT, INTEGER)
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER )
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER IARG(3)
+
+      EXTERNAL DUNK0,COURSEN1,MGBUG3,COURSEN2,MGDIRECT,REFINE2,REFINE1
+      EXTERNAL MGBUG1,MGBUGC,MGBUGR,PSOR0,WELLSOR,DIAGWEL
+$MANY      EXTERNAL R8SMCOF2,R8SMRES2,R8MATCH2,R8MATCH3,R8UPDMG2
+
+
+      ROBUST=.FALSE.
+      IF (NEWT.GT.MAXITS-2) ROBUST=.TRUE.
+
+C  CLEAR 3D UNKNOWNS
+
+      IARG(1)=1
+      DO 1 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         IARG(2)=N_DUNKV(I)
+         MODACT=I
+         CALL CALLWORK(DUNK0,IARG)
+      ENDIF
+    1 CONTINUE
+      MODACT=0
+
+C  DIAGONALIZE AND NORMALIZE WELL EQUATIONS
+C  SAVE RESIDUALS FOR WELL ELEMENTS
+
+      IARG(1)=1
+      DO 32 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         IARG(2)=N_RESIDV(I)
+         MODACT=I
+         CALL CALLWORK(DIAGWEL,IARG)
+      ENDIF
+   32 CONTINUE
+      MODACT=0
+      KVGMGW=1
+
+C  SET 2D INTERFACE COEFFICIENTS
+
+$DUAL      CALL MDUALC()
+
+C  SET INITIAL RESIDUAL NORMS
+
+      ITMG=0
+      CALL CVGMG()
+      DO 2 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         DO 3 L=1,MXNUMEQS
+         RMAX0(I,L)=RMAX(I,L)
+    3    RTOT0(I,L)=RTOT(I,L)
+      ENDIF
+    2 CONTINUE
+
+C  START MULTIGRID ITERATION LOOP
+
+    4 ITMG=ITMG+1
+
+C  APPLY LSOR TO 3D GRID
+
+      CALL LSORMG()
+
+C APPLY LSOR TO WELL EQUATIONS AND CORRECT ELEMENT RESIDUALS FOR WELL TERMS
+
+      IARG(1)=2
+      DO 31 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         IARG(2)=N_DUNKV(I)
+         IARG(3)=N_RESIDV(I)
+         MODACT=I
+         CALL CALLWORK(WELLSOR,IARG)
+      ENDIF
+   31 CONTINUE
+      MODACT=0
+
+C  UPDATE 3D UNKNOWNS IN THE COMMUNICATION LAYER
+
+$DUAL      CALL MDUAL(NERR)
+
+$MANY      CALL TIMON(4)
+$MANY      DO 15 I=1,$MXMOD
+$MANY      IF (MODELON(I)) THEN
+$MANY         MODACT=I
+$MANY         CALL UPDATE(N_DUNKV(I),1)
+$MANY      ENDIF
+$MANY   15 CONTINUE
+$MANY      MODACT=0
+$MANY      CALL TIMOFF(4)
+
+C  CHECK CONVERGENCE
+
+      CALL CVGMG()
+      IF (KVGMG.EQ.1.OR.ITMG.GT.MAXMGI) GO TO 14
+      IF (ITMG.GT.(4*MAXMGI)/5) ROBUST=.TRUE.
+
+C  COURSEN FROM 3D TO 1ST 2D GRID
+
+      DO 6 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         MODACT=I
+         CALL MGWORK1(COURSEN1,N_COFV(I),N_DUNKV(I),N_RESIDV(I))
+      ENDIF
+    6 CONTINUE
+      MODACT=0
+
+C     IF (BUGKEY(7).AND.(ITMG.LT.4)) THEN
+C        DO 10 I=1,$MXMOD
+C        IF (MODELON(I)) THEN
+C           MODACT=I
+C           CALL MGWORK1(MGBUG1,N_COFV(I),N_DUNKV(I),N_RESIDV(I))
+C        ENDIF
+C  10    CONTINUE
+C        MODACT=0
+C     ENDIF
+
+C  DOWN LOOP OVER MULTIGRID LEVELS
+
+      DO 7 LEVEL=1,MGLEV
+
+C  SUM 2D COEFFICIENTS and RESIDS IN THE COMMUNICATION LAYER
+$MANY      CALL TIMON(4)
+$MANY      DO 16 I=1,$MXMOD
+$MANY      IF (MODELON(I)) THEN
+$MANY         MODACT=I
+$MANY         CALL MGWORK3(R8SMCOF2,LEVEL)
+$MANY         CALL MGWORK3(R8SMRES2,LEVEL)
+$MANY      ENDIF
+$MANY   16 CONTINUE
+$MANY      MODACT=0
+$MANY      CALL TIMOFF(4)
+
+C  CLEAR UNKNOWNS GOING DOWN
+
+      DO 5 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         MODACT=I
+         CALL MGWORK3(PSOR0,LEVEL)
+      ENDIF
+    5 CONTINUE
+      MODACT=0
+
+C  APPLY PSOR GOING DOWN
+
+C     IF (BUGKEY(7).AND.(ITMG.LT.4)) THEN
+C        WRITE(NFOUT,*)' BEFORE PSOR DOWN'
+C        CALL MGWORK3(MGBUGC,LEVEL)
+C     ENDIF
+
+      CALL PSORMG (1)
+
+C  COURSEN FROM ONE 2D GRID TO THE NEXT
+
+C     IF (BUGKEY(7).AND.(ITMG.LT.4)) THEN
+C        WRITE(NFOUT,*)' AFTER  PSOR DOWN'
+C        CALL MGWORK3(MGBUG3,LEVEL)
+C        CALL MGWORK3(MGBUGC,LEVEL)
+C        CALL MGWORK3(MGBUGR,LEVEL)
+C     ENDIF
+
+      CALL MGWORK2(COURSEN2,LEVEL)
+
+    7 CONTINUE
+
+C  SUM 2D COEFFICIENTS and RESIDS IN THE COMMUNICATION LAYER
+$MANY      CALL TIMON(4)
+$MANY      DO 25 I=1,$MXMOD
+$MANY      IF (MODELON(I)) THEN
+$MANY         MODACT=I
+$MANY         CALL MGWORK3(R8SMCOF2,MGLEV+1)
+$MANY         CALL MGWORK3(R8SMRES2,MGLEV+1)
+$MANY      ENDIF
+$MANY   25 CONTINUE
+$MANY      MODACT=0
+$MANY      CALL TIMOFF(4)
+
+C  APPLY PSORMG (1) INSTEAD OF DIRECT SOLUTION TO COURSEST GRID
+
+
+C     IF (BUGKEY(7).AND.(ITMG.LT.4)) THEN
+C        WRITE(NFOUT,*)' BEFORE DIRECT'
+C        CALL MGWORK3(MGBUGC,MGLEV+1)
+C        CALL MGWORK3(MGBUGR,MGLEV+1)
+C     ENDIF
+
+
+c     CALL MGWORK3(MGDIRECT,MGLEV+1)
+      LEVEL=MGLEV+1
+      DO I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         MODACT=I
+         CALL MGWORK3(PSOR0,LEVEL)
+      ENDIF
+      END DO
+      MODACT=0
+      CALL PSORMG (1)
+
+C     IF (BUGKEY(7).AND.(ITMG.LT.4)) THEN
+C        WRITE(NFOUT,*)' AFTER DIRECT'
+C        CALL MGWORK3(MGBUG3,MGLEV+1)
+C        CALL MGWORK3(MGBUGC,MGLEV+1)
+C        CALL MGWORK3(MGBUGR,MGLEV+1)
+C     ENDIF
+
+C  UP LOOP OVER MULTIGRID LEVELS
+
+      DO 8 LEVEL=MGLEV,1,-1
+
+C  REFINE FROM ONE 2D GRID TO THE NEXT
+
+C     IF (BUGKEY(7).AND.(ITMG.LT.4)) THEN
+C        WRITE(NFOUT,*)' BEFORE REFINE'
+C        CALL MGWORK3(MGBUGC,LEVEL)
+C     ENDIF
+
+      CALL MGWORK2(REFINE2,LEVEL)
+
+C  MATCH 2D VALUES IN THE COMMUNICATION LAYER:
+C  IF KEYMGC=-1 and KEYMGF=1 THEN UPDATE THE VALUE
+C  AT KEYMGF from THE NEIGHBORING PROCESSOR
+$MANY      CALL TIMON(4)
+$MANY      DO 35 I=1,$MXMOD
+$MANY      IF (MODELON(I)) THEN
+$MANY         MODACT=I
+$MANY         CALL MGWORK2(R8MATCH2,LEVEL)
+$MANY         CALL MGWORK3(R8UPDMG2,LEVEL)
+$MANY      ENDIF
+$MANY   35 CONTINUE
+$MANY      MODACT=0
+$MANY      CALL TIMOFF(4)
+
+C  APPLY PSOR GOING UP
+
+C     IF (BUGKEY(7).AND.(ITMG.LT.4)) THEN
+C        WRITE(NFOUT,*)' BEFORE PSOR UP'
+C        CALL MGWORK3(MGBUGC,LEVEL)
+C        CALL MGWORK3(MGBUGR,LEVEL)
+C     ENDIF
+
+      CALL PSORMG (2)
+
+C     IF (BUGKEY(7).AND.(ITMG.LT.4)) THEN
+C        WRITE(NFOUT,*)' AFTER PSOR UP'
+C        CALL MGWORK3(MGBUG3,LEVEL)
+C        CALL MGWORK3(MGBUGC,LEVEL)
+C        CALL MGWORK3(MGBUGR,LEVEL)
+C     ENDIF
+
+    8 CONTINUE
+
+C  REFINE FROM COURSEST 2D GRID TO 3D GRID
+
+      DO 9 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         MODACT=I
+         CALL MGWORK1(REFINE1,N_COFV(I),N_DUNKV(I),N_RESIDV(I))
+      ENDIF
+    9 CONTINUE
+      MODACT=0
+
+C  MATCH 3D VALUES IN THE COMMUNICATION LAYER:
+C  IF KEYMG=-1 and KEYOUT=1 THEN UPDATE THE VALUE N_DUNKV
+C  AT KEYOUT from THE NEIGHBORING PROCESSOR
+$MANY      CALL TIMON(4)
+$MANY      DO 45 I=1,$MXMOD
+$MANY      IF (MODELON(I)) THEN
+$MANY         MODACT=I
+$MANY         CALL MGWORK1(R8MATCH3,N_COFV(I),N_DUNKV(I),N_RESIDV(I))
+$MANY         CALL UPDATE(N_DUNKV(I),2)
+$MANY      ENDIF
+$MANY   45 CONTINUE
+$MANY      MODACT=0
+$MANY      CALL TIMOFF(4)
+
+C APPLY LSOR TO WELL EQUATIONS AND CORRECT ELEMENT RESIDUALS FOR WELL TERMS
+
+      IARG(1)=2
+      DO 33 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         IARG(2)=N_DUNKV(I)
+         IARG(3)=N_RESIDV(I)
+         MODACT=I
+         CALL CALLWORK(WELLSOR,IARG)
+      ENDIF
+   33 CONTINUE
+      MODACT=0
+
+C     IF (BUGKEY(7).AND.(ITMG.LT.4)) CALL CVGMG()
+
+C  TERMINATE MULTIGRID LOOP
+
+      GO TO 4
+
+C  EXIT
+
+   14 IF (KVGMG.NE.1) NERR=NERR+1
+      ITLIN=ITMG
+
+      END
+C*********************************************************************
+      SUBROUTINE DUNK0 (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,DUNK)
+C*********************************************************************
+
+C  Clear 3d unknowns.  This is a work routine
+
+C  DUNK(I,J,K,L) = UNKNOWNS (OUTPUT, REAL*8)
+
+C*********************************************************************
+      INCLUDE 'control.h'
+
+      REAL*8 DUNK(IDIM,JDIM,KDIM,*)
+
+      MEQ=NUMEQS(NBLK)
+
+      DO 1 L=1,MEQ
+      DO 1 K=1,KDIM
+      DO 1 J=1,JDIM
+      DO 1 I=1,IDIM
+    1 DUNK(I,J,K,L)=0.D0
+
+      END
+C*********************************************************************
+      SUBROUTINE CVGMG ()
+C*********************************************************************
+
+C  TEST CONVERGENCE
+
+C  KVGMG = CONVERGENCE KEY IN COMMON /MULGRDC/
+C        = 1 ==> CONVERGED
+C        = 2 ==> NOT CONVERGED
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER IARG(4)
+      REAL*8 REDM,REDT,DUB,T
+      EXTERNAL CVGMGW
+
+      KVGMG=2
+      IARG(1)=3
+      DO 1 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         DO 2 L=1,MXNUMEQS
+         RMAX(I,L)=0.D0
+    2    RTOT(I,L)=0.D0
+         IARG(2)=N_COFV(I)
+         IARG(3)=N_DUNKV(I)
+         IARG(4)=N_RESIDV(I)
+         MODACT=I
+         CALL CALLWORK(CVGMGW,IARG)
+      ENDIF
+    1 CONTINUE
+      MODACT=0
+
+$MANY      CALL TIMON(4)
+$MANY      CALL MAXIT($MXMOD*$MXNUMEQ,RMAX)
+$MANY      CALL SUMIT($MXMOD*$MXNUMEQ,RTOT)
+$MANY      CALL TIMOFF(4)
+
+      IF (MYPRC.EQ.0.AND.ITMG.GT.0) THEN
+
+         REDM=0.D0
+         REDT=0.D0
+         DO 6 I=1,$MXMOD
+         IF (MODELON(I)) THEN
+            DO 7 J=1,MODEQS(I)
+            IF (RMAX0(I,J).NE.0.D0) THEN
+               DUB=ABS(RMAX(I,J)/RMAX0(I,J))
+               IF (REDM.EQ.0.D0.OR.DUB.LT.REDM) REDM=DUB
+            ENDIF
+            IF (RTOT0(I,J).NE.0.D0) THEN
+               DUB=ABS(RTOT(I,J)/RTOT0(I,J))
+               IF (REDT.EQ.0.D0.OR.DUB.LT.REDT) REDT=DUB
+            ENDIF
+    7       CONTINUE
+         ENDIF
+    6    CONTINUE
+
+         T=TOLMG
+         IF (ITMG.GT.MAXMGI-3.AND.T.LT..1D0) T=.1D0
+         IF (REDM.LT.T.AND.REDT.LT.2.D0*T.AND.KVGMGW.EQ.1.AND.
+     &      ITMG.GE.(MINMGI+NEWT/2)) THEN
+            KVGMG=1
+            IF (SOROPT) CALL OPTSOR (REDM,REDT)
+         ELSE
+            KVGMG=2
+         ENDIF
+
+      ENDIF
+
+$MANY      IF (NUMPRC.GT.1) THEN
+$MANY          CALL SPREAD(1,KVGMG)
+$MANY          IF (SOROPT)  CALL SPREAD8(2,FLSOR) !GXL ADD
+$MANY      ENDIF 
+
+      IF (LEVELC.AND.BUGKEY(7)) THEN
+         DO 3 I=1,$MXMOD
+         IF (MODELON(I)) THEN
+            WRITE (NFOUT,4) ITMG,I,(RMAX(I,J),J=1,MODEQS(I))
+    4       FORMAT(' IT',I4,' MODEL',I3,' MAX RESIDS',4G12.4/(6G12.4))
+            WRITE (NFOUT,5) ITMG,I,(RTOT(I,J),J=1,MODEQS(I))
+    5       FORMAT(' IT',I4,' MODEL',I3,' TOT RESIDS',4G12.4/(6G12.4))
+         ENDIF
+    3    CONTINUE
+         IF (ITMG.GT.0) WRITE (NFOUT,8) ITMG,REDM,REDT
+    8    FORMAT(' IT',I4,', MAX REDUCTION',G11.4,', TOT REDUCTION',
+     &      G11.4)
+      ENDIF
+
+      END
+C*********************************************************************
+      SUBROUTINE CVGMGW (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,COF,DUNK,RESID)
+C*********************************************************************
+
+C  ROUTINE CALCULATES MAX AND TOTAL RESIDUALS.  THIS IS A WORK ROUTINE.
+
+C  COF(I,J,K,N,L,M)  = JACOBIAN COEFFICIENTS (INPUT, REAL*4)
+
+C  DUNK(I,J,K,L) = UNKNOWNS (INPUT, REAL*8)
+
+C  RESID(I,J,K,L)= RESIDUALS (INPUT, REAL*8)
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM)
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF,*)
+      REAL*8  DUNK(IDIM,JDIM,KDIM,*), RESID(IDIM,JDIM,KDIM,*)
+      REAL*8  DUB1
+
+      MEQ=NUMEQS(NBLK)
+      NM=MODBLK(NBLK)
+
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2
+      IF (KEYOUT(I,J,K).NE.1) GO TO 1
+
+      DO 2 ME=1,MEQ
+      DUB1=RESID(I,J,K,ME)
+      DO 3 MV=1,MEQ
+      M=ME+(MV-1)*MEQ
+      DUB1=DUB1-COF(I,J,K,1,M)*DUNK(I,J,K,MV)
+      IF (I.GT.1) DUB1=DUB1-COF(I,J,K,2,M)*DUNK(I-1,J,K,MV)
+      IF (I.LT.IDIM) DUB1=DUB1-COF(I,J,K,3,M)*DUNK(I+1,J,K,MV)
+      IF (J.GT.1) DUB1=DUB1-COF(I,J,K,4,M)*DUNK(I,J-1,K,MV)
+      IF (J.LT.JDIM) DUB1=DUB1-COF(I,J,K,5,M)*DUNK(I,J+1,K,MV)
+      IF (K.GT.1) DUB1=DUB1-COF(I,J,K,6,M)*DUNK(I,J,K-1,MV)
+      IF (K.LT.KDIM) DUB1=DUB1-COF(I,J,K,7,M)*DUNK(I,J,K+1,MV)
+    3 CONTINUE
+      IF (ABS(DUB1).GT.RMAX(NM,ME)) RMAX(NM,ME)=ABS(DUB1)
+    2 RTOT(NM,ME)=RTOT(NM,ME)+DUB1
+
+    1 CONTINUE
+      END
+C*********************************************************************
+      SUBROUTINE LSORMG()
+C*********************************************************************
+
+C  APPLY LSOR TO 3D EQUATIONS - DRIVER
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER IARG(4)
+      EXTERNAL LSORMGW
+
+      IARG(1)=3
+      IF (ITMG.EQ.1) THEN
+         ITLL=NLSOR(1)
+         FSOR=FLSOR(1)
+      ELSE
+         ITLL=NLSOR(2)
+         FSOR=FLSOR(2)
+      ENDIF
+      IF (ROBUST) FSOR=1.D0
+
+C  START LSOR LOOP
+
+      DO 1 ITL=1,ITLL
+
+C  RED/BLACK LOOP
+
+      DO 2 K=1,0,-1
+      KRB=K
+
+C  RELAX
+
+      DO 3 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         IARG(2)=N_COFV(I)
+         IARG(3)=N_DUNKV(I)
+         IARG(4)=N_RESIDV(I)
+         MODACT=I
+         CALL CALLWORK(LSORMGW,IARG)
+      ENDIF
+    3 CONTINUE
+      MODACT=0
+
+C  UPDATE UNKNOWNS IN THE COMMUNICATION LAYER
+
+CZZZZZZZ
+$DUAL      CALL MDUAL(NERR)
+
+$MANY      CALL TIMON(4)
+$MANY      DO 4 I=1,$MXMOD
+$MANY      IF (MODELON(I)) THEN
+$MANY         MODACT=I
+$MANY         CALL UPDATE(N_DUNKV(I),2)
+$MANY      ENDIF
+$MANY    4 CONTINUE
+$MANY      MODACT=0
+$MANY      CALL TIMOFF(4)
+
+C  TERMINATE LOOPS AND EXIT
+
+    2 CONTINUE
+    1 CONTINUE
+      END
+C*********************************************************************
+      SUBROUTINE LSORMGW (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                    KL1,KL2,KEYOUT,NBLK,COF,DUNK,RESID)
+C*********************************************************************
+ 
+C  ROUTINE MAKES ONE LINE SOR ITERATION.  THIS IS A WORK ROUTINE.
+
+C  COF(I,J,K,N,L,M)  = JACOBIAN COEFFICIENTS (INPUT, REAL*4)
+
+C  DUNK(I,J,K,L) = UNKNOWNS (OUTPUT, REAL*8)
+
+C  RESID(I,J,K,L)= RESIDUALS (INPUT, REAL*8)
+
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(*)
+      REAL*4    COF(*)
+      REAL*8    DUNK(*),RESID(*)
+      REAL*8    DUB1,DUB2,DUB3,A($MXRECX,$MXNUMEQ,3*$MXNUMEQ),
+     &          R($MXRECX,$MXNUMEQ)
+
+C  SET SOME INDEX OFFSETS
+C  OFF=I+(J-1)*IDIM+(K-1)*IDIM*JDIM+(L-1)*IDIM*JDIM*KDIM
+C      +(M-1)*IDIM*JDIM*KDIM*$NUMCOF+(N-1)*IDIM*JDIM*KDIM*$NUMCOF*MEQ
+
+   49 CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+      MEQ=NUMEQS(NBLK)
+      JKO=JOFF+KOFF
+      M2=IDIM
+      M3=M2*JDIM
+      M4=M3*KDIM
+      M5=M4*$NUMCOF
+      M6=M5*MEQ
+      MEQM=MEQ-1
+      MEQP=MEQ+1
+      MEQ2=2*MEQ
+      MEQ3=3*MEQ
+
+C  START ONE HALF OF A LINE SOR ITERATION
+
+      KOF=(KL1-2)*M3
+      DO 1 K=KL1,KL2
+      KK=K+JKO
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      KOF=KOF+M3
+      JOF=KOF+(JL1-2)*M2
+      DO 1 J=JL1,JL2
+      JOF=JOF+M2
+      JJ=J+KK
+      IF (MOD(JJ,2).NE.KRB) GO TO 1
+
+C  SET UP FOR ONE LINE
+
+      N=0
+      IOF=JOF+IL1-1
+      DO 2 I=IL1,IL2
+      IOF=IOF+1
+      IF (KEYOUT(IOF).NE.1) GO TO 2
+      N=N+1
+      LOF=IOF-M5
+      LLOF=IOF-M4
+
+      DO 16 L=1,MEQ
+      LOF=LOF+M5
+      LLOF=LLOF+M4
+      DUB2=RESID(LLOF)
+      MOF=LOF-M6
+      MMOF=IOF-M4
+
+      DO 15 M=1,MEQ
+      MOF=MOF+M6
+      MMOF=MMOF+M4
+
+      A(N,L,M+MEQ)=COF(MOF)
+      DUB2=DUB2-COF(MOF)*DUNK(MMOF)
+
+      MOFC=MOF+M4
+      IF (I.GT.1) THEN
+         A(N,L,M)=COF(MOFC)
+         DUB2=DUB2-COF(MOFC)*DUNK(MMOF-1)
+      ENDIF
+
+      MOFC=MOFC+M4
+      IF (I.LT.IDIM) THEN
+         A(N,L,M+MEQ2)=COF(MOFC)
+         DUB2=DUB2-COF(MOFC)*DUNK(MMOF+1)
+      ENDIF
+
+      MOFC=MOFC+M4
+      IF (J.GT.1) DUB2=DUB2-COF(MOFC)*DUNK(MMOF-M2)
+
+      MOFC=MOFC+M4
+      IF (J.LT.JDIM) DUB2=DUB2-COF(MOFC)*DUNK(MMOF+M2)
+
+      MOFC=MOFC+M4
+      IF (K.GT.1) DUB2=DUB2-COF(MOFC)*DUNK(MMOF-M3)
+
+      MOFC=MOFC+M4
+      IF (K.LT.KDIM) DUB2=DUB2-COF(MOFC)*DUNK(MMOF+M3)
+
+   15 CONTINUE
+   16 R(N,L)=DUB2
+
+    2 CONTINUE
+
+C  SOLVE FOR ONE LINE
+
+      IF (N.EQ.0) GO TO 1
+      NM1=N-1
+
+C  FORWARD ELIMINATION
+
+      DO 17 L=1,MEQM
+      LM=L+MEQ
+      LP=L+MEQP
+      DUB1=A(1,L,LM)
+      DUB3=R(1,L)
+      DO 17 LL=L+1,MEQ
+      DUB2=A(1,LL,LM)/DUB1
+      R(1,LL)=R(1,LL)-DUB2*DUB3
+      DO 17 M=LP,MEQ3
+   17 A(1,LL,M)=A(1,LL,M)-DUB2*A(1,L,M)
+
+      LC=MEQ3
+      DO 18 NN=2,N
+      NNM=NN-1
+
+      DO 19 L=1,MEQ
+      LM=L+MEQ
+      LP=L+1
+      DUB1=A(NNM,L,LM)
+      DUB3=R(NNM,L)
+      DO 19 LL=1,MEQ
+      DUB2=A(NN,LL,L)/DUB1
+      R(NN,LL)=R(NN,LL)-DUB2*DUB3
+      DO 19 M=LP,MEQ2
+   19 A(NN,LL,M)=A(NN,LL,M)-DUB2*A(NNM,L,M+MEQ)
+
+      IF (NN.EQ.N) LC=MEQ2
+      DO 20 L=1,MEQM
+      LM=L+MEQ
+      LP=L+MEQP
+      DUB1=A(NN,L,LM)
+      DUB3=R(NN,L)
+      DO 20 LL=L+1,MEQ
+      DUB2=A(NN,LL,LM)/DUB1
+      R(NN,LL)=R(NN,LL)-DUB2*DUB3
+      DO 20 M=LP,LC
+   20 A(NN,LL,M)=A(NN,LL,M)-DUB2*A(NN,L,M)
+
+   18 CONTINUE
+
+C  BACK SUBSTITUTION
+
+      R(N,MEQ)=R(N,MEQ)/A(N,MEQ,MEQ2)
+      DO 21 L=MEQM,1,-1
+      DUB1=R(N,L)
+      DO 22 M=L+1,MEQ
+   22 DUB1=DUB1-R(N,M)*A(N,L,M+MEQ)
+   21 R(N,L)=DUB1/A(N,L,L+MEQ)
+
+      DO 24 NN=NM1,1,-1
+      NNP=NN+1
+      DO 24 L=MEQ,1,-1
+      DUB1=R(NN,L)
+      DO 25 M=1,MEQ
+   25 DUB1=DUB1-R(NNP,M)*A(NN,L,M+MEQ2)
+      DO 26 M=L+1,MEQ
+   26 DUB1=DUB1-R(NN,M)*A(NN,L,M+MEQ)
+   24 R(NN,L)=DUB1/A(NN,L,L+MEQ)
+
+C  UPDATE
+
+      N=0
+      IOF=JOF+IL1-1
+      DO 9 I=IL1,IL2
+      IOF=IOF+1
+      IF (KEYOUT(IOF).EQ.1) THEN
+         N=N+1
+         LOF=IOF
+         DO 27 L=1,MEQ
+         DUNK(LOF)=DUNK(LOF)+FSOR*R(N,L)
+   27    LOF=LOF+M4
+      ENDIF
+    9 CONTINUE
+
+    1 CONTINUE
+      END
+C*********************************************************************
+      SUBROUTINE MULGRDI (NERR,KINP)
+C*********************************************************************
+ 
+C  ROUTINE INITIALIZES MULTIGRID SOLVER
+
+C  NERR = Error number stepped by 1 on error (input & output, INTEGER)
+
+C  KINP = Input type
+C       = 1 ==> initial data
+C       = 2 ==> transient data
+
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER NYMG($MXMGLV+1,$MXBLKS),NZMG($MXMGLV+1,$MXBLKS)
+      INTEGER N0MAPMG($MXMGLV+1,$MXBLKS),PRCMAPMG($MXCOLS/4,$MXMGLV+1)
+
+      INTEGER IARG(2)
+
+      REAL*8 DUB
+      EXTERNAL GETLEV,MGBUG1I,MGBUG2I
+$MANY      EXTERNAL CORMAPMG,CORKEYMG1,CORKEYMG2
+
+C  SET INITIAL VALUES
+
+      IF (KINP.EQ.1) THEN
+
+         IF (LEVELC) THEN
+            WRITE (NFOUT,*)
+            TITU='******'
+            CALL PRTTIT(TITU)
+            TITU='MULTIGRID SOLVER'
+            CALL PRTTIT(TITU)
+            WRITE (NFOUT,*)
+         ENDIF
+
+         TOLMG=.005D0
+         MONCE(1)=.TRUE.
+         MONCE(2)=.TRUE.
+         SOROPT=.TRUE.
+         NEWOPT=.TRUE.
+
+C  DETERMINE NUMBER OF MULTIGRID LEVELS
+
+         MGLEV=0
+         IARG(1)=0
+         CALL CALLWORK (GETLEV,IARG)
+         IF (MGLEV.GT.$MXMGLV) MGLEV=$MXMGLV
+C  HERE: MY PROCESSOR CONTAINS AT LEAST 1 GRID CELL AT MGLEVth 2D MESH
+C  (1st MESH is the finest 2d mesh)
+
+         DUB=-MGLEV
+$MANY      CALL MAXIT(1,DUB)
+$MANY      CALL SPREAD8(1,DUB)
+$MANY      MGLEV=-DUB+.1D0
+C  HERE: ANY PROCESSOR CONTAINS AT LEAST 1 GRID CELL AT MGLEVth 2D MESH
+C  (1st MESH is the finest 2d mesh). MGLEV IS THE SAME FOR ALL PROCESSORS
+
+C IN ORDER TO MAKE (MGLEV+1)th 2D MESH TO CONTAIN AT LEAST 1 GRID CELL,
+C REDUCE MGLEV.
+C COARSENING IS NOT POSSIBLE IN THE CASE WHERE THERE EXISTS A PROCS
+C SUCH THAT IT DOES NOT CONTAIN ANY ACTIVE CELL!!!
+         MGLEV=MGLEV-1
+
+
+         N=0
+         DO 20 J=1,NUMBLK
+         CALL BLKDIM(J,NX,NY,NZ,KERR)
+         NYMG(1,J)=(NY+1)/2
+         IF (NYMG(1,J).LT.1) NYMG(1,J)=1
+         NZMG(1,J)=(NZ+1)/2
+         IF (NZMG(1,J).LT.1) NZMG(1,J)=1
+         N0MAPMG(1,J) = N
+   20    N=N+NYMG(1,J)*NZMG(1,J)
+         DO J=1,N
+            PRCMAPMG(J,1) = -1
+         END DO
+
+         MM=MGLEV+1
+         DO 21 I=2,MM
+         N=0
+         DO 22 J=1,NUMBLK
+         NYMG(I,J)=(NYMG(I-1,J)+1)/2
+         IF (NYMG(I,J).LT.1) NYMG(I,J)=1
+         NZMG(I,J)=(NZMG(I-1,J)+1)/2
+         IF (NZMG(I,J).LT.1) NZMG(I,J)=1
+         N0MAPMG(I,J) = N
+   22    N=N+NYMG(I,J)*NZMG(I,J)
+         DO J=1,N
+            PRCMAPMG(J,I) = -1
+         END DO
+   21    continue
+
+
+
+C  CREATE MULTIGRID ARRAYS
+
+         CALL ALCMGA(MGLEV,NUMEQS,MYPRC,JOFFMG,KOFFMG,
+     &               NYMG,NZMG,N0MAPMG,PRCMAPMG,$MXCOLS/4,KERR)
+         IF (KERR.GT.0) THEN
+            NERR=NERR+1
+            IF (LEVELC) WRITE (NFOUT,24) KERR
+            WRITE (*,24) KERR
+   24       FORMAT (/' ERROR #',I4,' MULTIGRID MEMORY ALLOCATION ERROR')
+            RETURN
+         ENDIF
+         DO  I=1,MGLEV+1
+          N = N0MAPMG(I,NUMBLK)+NZMG(I,NUMBLK)*NYMG(I,NUMBLK)
+$MANY      CALL MAXITI(N,PRCMAPMG(1,I))
+$MANY      CALL SPREAD(N,PRCMAPMG(1,I))
+         END DO
+C  FILLING IN MG COMMUNICATION FOR ONLY 9 POINT TEMPLATE
+$MANY      CALL FILMSMG(MGLEV+1,NYMG,NZMG,N0MAPMG,PRCMAPMG,2,KERR)
+$MANY      CALL FILMSMGE(MGLEV+1,NYMG,NZMG,N0MAPMG,PRCMAPMG,KERR)
+$MANY      IF (KERR.GT.0) THEN
+$MANY       NERR=NERR+1
+$MANY       IF (LEVELC) WRITE (NFOUT,44) KERR
+$MANY       WRITE (*,44) KERR
+$MANY 44    FORMAT (/' ERROR #',I4,' ERROR IN FILMSMG ')
+$MANY       RETURN
+$MANY      ENDIF
+$MANY      DO 45 I=1,$MXMOD
+$MANY      IF (MODELON(I)) THEN
+$MANY         MODACT=I
+$MANY         DO J=1,MGLEV+1
+$MANY          CALL MGWORK3(CORMAPMG,J)
+$MANY         END DO
+$MANY         CALL MGWORK1(CORKEYMG1,N_COFV(I),N_DUNKV(I),N_RESIDV(I))
+$MANY         DO J=1,MGLEV
+$MANY          CALL MGWORK2(CORKEYMG2,J)
+$MANY         END DO
+$MANY      ENDIF
+$MANY   45 CONTINUE
+$MANY      MODACT=0
+
+C  SOR FACTORS AND NUMBER OF ITERATIONS
+
+         MAXHR=0
+         DO 2 I=1,NUMBLK
+         CALL BLKDIM(I,NX,NY,NZ,KERR)
+    2    MAXHR=MAXHR+NY+NZ
+         DUM1=NUMBLK
+         DUM1=.5*MAXHR/SQRT(DUM1)
+
+         MINMGI=.9*SQRT(DUM1)
+         IF (MINMGI.LT.2) MINMGI=2
+         MAXMGI=10*MINMGI
+
+         DUM2=1.D0-2.*SIN(1.5708/DUM1)**2
+         DUM2=2.D0/(1+SQRT(1.D0-DUM2**2))
+         FLSOR(1)=1.D0
+         FLSOR(2)=1.+.667*(DUM2-1.)
+         NLSOR(1)=1
+         NLSOR(2)=1
+
+         DO 3 I=1,MGLEV+1
+         DUM1=.5*DUM1
+         DUM2=1.D0-2.*SIN(1.5708/DUM1)**2
+         DUM2=2.D0/(1+SQRT(1.D0-DUM2**2))
+         FPSOR(I,1)=1.+.95*(DUM2-1.)
+         FPSOR(I,2)=1.+.95*(DUM2-1.)
+         FPSOR(I,3)=1.+.95*(DUM2-1.)
+         FPSOR(I,4)=1.+.95*(DUM2-1.)
+         NPSOR(I,1)=4.+.5*SQRT(DUM1)
+    3    NPSOR(I,2)=7.+.5*SQRT(DUM1)
+
+      ENDIF
+
+C  INPUT USER OVERRIDES AND PRINT
+
+      CALL GETVAL('MINMGIT ',MINMGI,'I4',0,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1)))
+     &   WRITE (NFOUT,11) MINMGI
+   11 FORMAT(' MIN MULTIGRID ITERATIONS (MINMGIT) =',T50,I7)
+
+      CALL GETVAL('MAXMGIT ',MAXMGI,'I4',0,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1)))
+     &   WRITE (NFOUT,9) MAXMGI
+    9 FORMAT(' MAX MULTIGRID ITERATIONS (MAXMGIT) =',T50,I7)
+
+      CALL GETVAL('LINTOL ',TOLMG,'R8',0,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1)))
+     &   WRITE (NFOUT,4) TOLMG
+    4 FORMAT(' MULTIGRID CONVERGENCE TOLERANCE (LINTOL) =',T49,G12.4)
+
+      IF (LEVELC.AND.(KINP.EQ.1))
+     &   WRITE (NFOUT,10) MGLEV+1
+   10 FORMAT(' NUMBER OF MULTIGRID LEVELS =',T50,I7)
+
+      CALL GETVAL('FACLSOR ',FLSOR,'R8',2,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1)))
+     &   WRITE (NFOUT,87) FLSOR
+   87 FORMAT(' LSOR FQACTOR, 1ST MULTIGRID ITERATION    =',T49,G12.4/
+     &       '    (FACLSOR)  OTHER MULTIGRID ITERATIONS =',T49,G12.4)
+
+      CALL GETVAL('SOROPT ',SOROPT,'L4',0,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1))) THEN
+         IF (SOROPT) THEN
+            WRITE (NFOUT,49)
+   49       FORMAT(' LSOR FACTOR OPTIMISED (SOROPT) =',T53,'TRUE')
+         ELSE
+            WRITE (NFOUT,50)
+   50       FORMAT(' LSOR FACTOR OPTIMISED (SOROPT) =',T52,'FALSE')
+         ENDIF
+      ENDIF
+
+      CALL GETVAL('FACPSOR ',FPSOR,'R8',$MXMGLV,4,0,0,NDUM,NERR)
+      IF (MGLEV.GT.0.AND.LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1))) THEN
+         I=1
+         WRITE (NFOUT,6) I,FPSOR(I,1),FPSOR(I,2),
+     &      I,FPSOR(I,3),FPSOR(I,4)
+         DO 67 I=2,MGLEV+1
+   67    WRITE (NFOUT,6) I,FPSOR(I,1),FPSOR(I,2),
+     &      I,FPSOR(I,3),FPSOR(I,4)
+    6    FORMAT(' PSOR FACTORS,     DOWN, LEVEL',I3,'  =',T49,2G12.4/
+     &          '    (FACPSOR)      UP,   LEVEL',I3,'  =',T49,2G12.4)
+   66    FORMAT('                   DOWN, LEVEL',I3,'  =',T49,2G12.4/
+     &          '                   UP,   LEVEL',I3,'  =',T49,2G12.4)
+      ENDIF
+
+      CALL GETVAL('LSORIT ',NLSOR,'I4',2,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1)))
+     &   WRITE (NFOUT,7) NLSOR
+    7 FORMAT(' LSOR ITERATIONS, 1ST MULTIGRID ITERATION =',T50,I7/
+     &       '    (LSORIT)    OTHER MULTIGRID ITERATIONS =',T50,I7)
+
+      CALL GETVAL('PSORIT ',NPSOR,'I4',$MXMGLV,2,0,0,NDUM,NERR)
+      IF (MGLEV.GT.0.AND.LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1))) THEN
+         I=1
+         WRITE (NFOUT,8) I,NPSOR(I,1),I,NPSOR(I,2)
+         DO 89 I=2,MGLEV+1
+   89    WRITE (NFOUT,88) I,NPSOR(I,1),I,NPSOR(I,2)
+    8    FORMAT(' NUMBER OF PSOR ITERATIONS, DOWN, LEVEL',I3,' =',T50,
+     &     I7/'      (PSORIT)              UP,   LEVEL',I3,' =',T50,I7)
+   88    FORMAT('                            DOWN, LEVEL',I3,' =',T50,
+     &     I7/'                            UP,   LEVEL',I3,' =',T50,I7)
+      ENDIF
+
+C  DEBUG OUTPUT
+
+      IF ((KINP.EQ.1).AND.BUGKEY(7)) THEN
+         DO 30 I=1,$MXMOD
+         IF (MODELON(I)) THEN
+            MODACT=I
+            CALL MGWORK1(MGBUG1I,N_COFV(I),N_DUNKV(I),N_RESIDV(I))
+         ENDIF
+   30    CONTINUE
+         MODACT=0
+         DO 31 I=1,MGLEV
+   31    CALL MGWORK2(MGBUG2I,I)
+      ENDIF
+
+      END
+C*********************************************************************
+      SUBROUTINE GETLEV (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK)
+C*********************************************************************
+
+C  ROUTINE DETERMINES THE NUMBER OF MULTIGRID LEVELS REQUIRED TO REDUCE
+C  THE NUMBER OF ELEMENTS TO ONE IN ALL AREAS ASSIGNED TO A PROCESSOR.
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM)
+
+      IF (JLAY.EQ.0) THEN
+         JD=JDIM-1
+      ELSE
+         JD=JDIM-2*JLAY
+      ENDIF
+      IF (KLAY.EQ.0) THEN
+         KD=KDIM-1
+      ELSE
+         KD=KDIM-2*KLAY
+      ENDIF
+
+      DO 1 I=1,$MXMGLV
+      JD=(JD+1)/2
+      KD=(KD+1)/2
+      IF (JD.LT.2.AND.KD.LT.2) RETURN
+      IF (I.GT.MGLEV) MGLEV=I
+    1 CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE MGBUG1I (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,JMG2,
+     &                  KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C  ROUTINE PRINTS SELECTED INITIAL DATA FOR THE COUPLING BETWEEN THE 3D GRID AND
+C  THE FIRST MULTIGRID LEVEL.  THIS IS A MGWORK1 ROUTINE.
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &   MAPMG(JDMG,KDMG), KEYMG(JDMG,KDMG)
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF,*)
+      REAL*8  DUNK(IDIM,JDIM,KDIM,*), RESID(IDIM,JDIM,KDIM,*),
+     &   DUKMG(JDMG,KDMG,*), RESMG(JDMG,KDMG,*),COFMG(JDMG,KDMG,$NCOFMG,*)
+
+      CALL OPENBUG()
+      IF (.NOT.BUGOPEN) RETURN
+
+      WRITE (NFBUG,1) IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KL1),JL2V(KL1),
+     &   KL1,KL2,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   JOFFMG(1,NBLK),KOFFMG(1,NBLK)
+    1 FORMAT(/' LEVEL  1'//' IDIM,JDIM,KDIM,LDIM,IL1,IL2 =',6I7/
+     & ' JL1V(KL1),JL2V(KL1),KL1,KL2,NBLK =',5I7/
+     & ' JDMG,KDMG,JMG1,JMG2,KMG1,KMG2 =',6I7/
+     & ' JOFFMG,KOFFMG =',2I7)
+
+      J2=MIN(25,JDMG)
+      K2=MIN(25,KDMG)
+      WRITE (NFBUG,4)(J,J=1,J2)
+    4 FORMAT(/' MAPMG ARRAY'/' J= ',25I3)
+      WRITE (NFBUG,3)
+    3 FORMAT('   K')
+      DO 5 K=1,K2
+    5 WRITE (NFBUG,2) K,(MAPMG(J,K),J=1,J2)
+    2 FORMAT(I4,25I3)
+
+      WRITE (NFBUG,6)(J,J=1,J2)
+    6 FORMAT(/' KEYMG ARRAY'/' J= ',25I3)
+      WRITE (NFBUG,3)
+      DO 7 K=1,K2
+    7 WRITE (NFBUG,2) K,(KEYMG(J,K),J=1,J2)
+
+      END
+C*********************************************************************
+      SUBROUTINE MGBUG2I (MGLF,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,JMG1F,JMG2F,
+     &   KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,MAPMG,KEYMGF,KEYMGC,
+     &   COFMGF,COFMGC,DUKMGF,DUKMGC,RESMGF,RESMGC)
+C*********************************************************************
+
+C  ROUTINE PRINTS SELECTED ITITIAL DATA FOR THE COUPLING BETWEEN TWO MULTIGRID
+C  LEVELS.  THIS IS A MGWORK2 ROUTINE.
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER MAPMG(JDMGC,KDMGC), KEYMGF(JDMGF,KDMGF),
+     &   KEYMGC(JDMGC,KDMGC)
+      REAL*8  COFMGF(JDMGF,KDMGF,$NCOFMG,*),COFMGC(JDMGC,KDMGC,$NCOFMG,*),
+     &   DUKMGF(JDMGF,KDMGF,*),DUKMGC(JDMGC,KDMGC,*),
+     &   RESMGF(JDMGF,KDMGF,*),RESMGC(JDMGC,KDMGC,*)
+
+      CALL OPENBUG()
+      IF (.NOT.BUGOPEN) RETURN
+
+      WRITE (NFBUG,1) MGLF,MGLF+1,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,
+     &   JMG1F,JMG2F,KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,
+     &   JOFFMG(MGLF+1,NBLK),KOFFMG(MGLF+1,NBLK)
+    1 FORMAT(/' LEVELS',I3,' AND',I3//
+     &   ' NBLK,JDMGF,KDMGF,JDMGC,KDMGC =',5I7/
+     &   ' JMG1F,JMG2F,KMG1F,KMG2F =',4I7/
+     &   ' JMG1C,JMG2C,KMG1C,KMG2C =',4I7/
+     &   ' JOFFMG,KOFFMG =',2I7)
+
+      J2=MIN(25,JDMGC)
+      K2=MIN(25,KDMGC)
+
+      WRITE (NFBUG,4) MGLF+1,(J,J=1,J2)
+    4 FORMAT(/' MAPMG ARRAY - LEVEL',I3/' J= ',25I3)
+      WRITE (NFBUG,3)
+    3 FORMAT('   K')
+      DO 5 K=1,K2
+    5 WRITE (NFBUG,2) K,(MAPMG(J,K),J=1,J2)
+    2 FORMAT(I4,25I3)
+
+      WRITE (NFBUG,6)(J,J=1,J2)
+    6 FORMAT(/' KEYMG ARRAY - LEVEL',I3/' J= ',25I3)
+      WRITE (NFBUG,3)
+      DO 7 K=1,K2
+    7 WRITE (NFBUG,2) K,(KEYMGC(J,K),J=1,J2)
+
+      END
+C*********************************************************************
+      SUBROUTINE MGBUG3 (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C  ROUTINE PRINTS SELECTED LINEAR SYSTEM DATA AT A SPECIFIED MULTIGRID LEVEL
+C  THIS IS A MGWORK3 ROUTINE.
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*8  COFMG(JDMG,KDMG,$NCOFMG,*),DUKMG(JDMG,KDMG,*),
+     &   RESMG(JDMG,KDMG,*)
+
+      CALL OPENBUG()
+      IF (.NOT.BUGOPEN) RETURN
+
+      WRITE (NFBUG,1) MGLV
+    1 FORMAT(/' LEVEL',I3)
+
+      MEQ=NUMEQS(NBLK)
+      J2=JMG1+MIN(4,JMG2-JMG1)
+      K2=KMG1+MIN(4,KMG2-KMG1)
+
+      WRITE (NFBUG,2)(I,I=1,5)
+    2 FORMAT(/' COF ARRAY'/'  J  K  E  V,  L= ',I4,4I13)
+      DO 3 ME=1,MEQ
+      DO 3 MV=1,MEQ
+      M=ME+(MV-1)*MEQ
+      DO 3 K=KMG1,K2
+      DO 3 J=JMG1,J2
+    3 WRITE (NFBUG,4) J,K,ME,MV,(COFMG(J,K,L,M),L=1,5)
+    4 FORMAT(4I2,5G14.7)
+
+      WRITE (NFBUG,5)(I,I=1,MEQ)
+    5 FORMAT(/' RES ARRAY'/'  J  K,  E=',I4,4I13)
+      DO 6 K=KMG1,K2
+      DO 6 J=JMG1,J2
+    6 WRITE (NFBUG,7) J,K,(RESMG(J,K,L),L=1,MEQ)
+    7 FORMAT(2I3,5G14.7/(6X,5G14.7))
+
+      WRITE (NFBUG,8)(I,I=1,MEQ)
+    8 FORMAT(/' UNK ARRAY'/'  J  K,  E=',I4,4I13)
+      DO 9 K=KMG1,K2
+      DO 9 J=JMG1,J2
+    9 WRITE (NFBUG,7) J,K,(DUKMG(J,K,L),L=1,MEQ)
+
+      END
+C*********************************************************************
+      SUBROUTINE MGBUG1 (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,JMG2,
+     &                  KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C  ROUTINE PRINTS SELECTED DATA FOR THE COUPLING BETWEEN THE 3D GRID AND
+C  THE FIRST MULTIGRID LEVEL.  THIS IS A MGWORK1 ROUTINE.
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &   MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF,*)
+      REAL*8  DUNK(IDIM,JDIM,KDIM,*), RESID(IDIM,JDIM,KDIM,*),
+     &   DUKMG(JDMG,KDMG,*), RESMG(JDMG,KDMG,*),COFMG(JDMG,KDMG,$NCOFMG,*)
+
+      IF (.NOT.MONCE(1)) RETURN
+      MONCE(1)=.FALSE.
+
+      CALL OPENBUG()
+      IF (.NOT.BUGOPEN) RETURN
+      MEQ=NUMEQS(NBLK)
+      MEQS=MEQ*MEQ
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+      JL=JOFFMG(1,NBLK)
+      KL=KOFFMG(1,NBLK)
+
+      JC=JLAY+2
+      IF (JC.GT.JMG2) JC=JMG2
+      JF =2*(JC+JL)-JOFF-1
+      KC=KLAY+2
+      IF (KC.GT.KMG2) KC=KMG2
+      KF =2*(KC+KL)-KOFF-1
+      MP=MAPMG(JC,KC)
+      IF (MP.EQ.0) RETURN
+
+      WRITE (NFBUG,2)(I,I=1,5)
+    2 FORMAT(/' COFMG ARRAY'/' J K E V,  L= ',I4,4I14)
+      DO 3 ME=1,MEQ
+      DO 3 MV=1,MEQ
+      M=ME+(MV-1)*MEQ
+    3 WRITE (NFBUG,4) JC,KC,ME,MV,(COFMG(JC,KC,L,M),L=1,5)
+    4 FORMAT(4I2,5G14.7)
+
+      WRITE (NFBUG,5)(I,I=1,MEQ)
+    5 FORMAT(/' RESMG ARRAY'/'  J  K,  E=',I4,4I14)
+      WRITE (NFBUG,7) JC,KC,(RESMG(JC,KC,L),L=1,MEQ)
+    7 FORMAT(2I3,5G14.7/(6X,5G14.7))
+
+      I2=IL2
+      IF (I2-IL1.GT.5) I2=IL1+5
+      WRITE (NFBUG,11)
+   11 FORMAT(/' COF ARRAY'/' I J K L')
+      DO 8 KK=0,1
+      K=KF+KK
+      DO 8 JJ=0,1
+      J=JF+JJ
+      DO 8 I=IL1,I2
+      DO 8 L=1,7
+      IF (MEQS.LT.5) THEN
+         WRITE (NFBUG,9) I,J,K,L,(COF(I,J,K,L,M),M=1,MEQS)
+      ELSE
+         WRITE (NFBUG,15) I,J,K,L,(COF(I,J,K,L,M),M=1,MEQS)
+      ENDIF
+    8 CONTINUE
+    9 FORMAT (4I2,4G16.7)
+   15 FORMAT (4I2,4G16.7/(8X,4G16.7))
+
+      WRITE (NFBUG,12)
+   12 FORMAT(/' RESID ARRAY'/'  I  J  K')
+      DO 18 KK=0,1
+      K=KF+KK
+      DO 18 JJ=0,1
+      J=JF+JJ
+      DO 18 I=IL1,I2
+   18 WRITE (NFBUG,14) I,J,K,(RESID(I,J,K,LL),LL=1,MEQ)
+   14 FORMAT (3I3,4G16.7/(9X,4G16.7))
+
+      END
+C*********************************************************************
+      SUBROUTINE MGBUGC (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C  ROUTINE PRINTS RESIDUAL DATA AT A SPECIFIED MULTIGRID LEVEL
+C  THIS IS A MGWORK3 ROUTINE.
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*8  COFMG(JDMG,KDMG,$NCOFMG,*),DUKMG(JDMG,KDMG,*),
+     &   RESMG(JDMG,KDMG,*),DUB1,RMX($MXNUMEQ),RTO($MXNUMEQ)
+
+      CALL OPENBUG()
+      IF (.NOT.BUGOPEN) RETURN
+
+      MEQ=NUMEQS(NBLK)
+      NM=MODBLK(NBLK)
+
+      DO 5 ME=1,MEQ
+      RMX(ME)=0.D0
+    5 RTO(ME)=0.D0
+
+      DO 1 K=KMG1,KMG2
+      DO 1 J=JMG1,JMG2
+      IF (KEYMG(J,K).LT.1) GO TO 1
+
+      DO 2 ME=1,MEQ
+      DUB1=RESMG(J,K,ME)
+      DO 3 MV=1,MEQ
+      M=ME+(MV-1)*MEQ
+      DUB1=DUB1-COFMG(J,K,1,M)*DUKMG(J,K,MV)
+      IF (J.GT.1) DUB1=DUB1-COFMG(J,K,2,M)*DUKMG(J-1,K,MV)
+      IF (J.LT.JDMG) DUB1=DUB1-COFMG(J,K,3,M)*DUKMG(J+1,K,MV)
+      IF (K.GT.1) DUB1=DUB1-COFMG(J,K,4,M)*DUKMG(J,K-1,MV)
+      IF (K.LT.KDMG) DUB1=DUB1-COFMG(J,K,5,M)*DUKMG(J,K+1,MV)
+    3 CONTINUE
+      IF (ABS(DUB1).GT.RMX(ME)) RMX(ME)=ABS(DUB1)
+    2 RTO(ME)=RTO(ME)+DUB1
+
+    1 CONTINUE
+
+      WRITE (NFBUG,6) MGLV,NBLK,(RMX(J),J=1,MEQ)
+    6 FORMAT(' LEV',I2,' BLK',I2,' MAX RESID',4G12.4/
+     & (6G12.4))
+      WRITE (NFBUG,7) (RTO(J),J=1,MEQ)
+    7 FORMAT(12X,' TOT RESID',4G12.4/(6G12.4))
+
+      END
+C*********************************************************************
+      SUBROUTINE MGBUGR (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C  ROUTINE PRINTS MAX VARIABLE CHANGES AT A SPECIFIED MULTIGRID LEVEL
+C  THIS IS A MGWORK3 ROUTINE.
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*8  COFMG(JDMG,KDMG,$NCOFMG,*),DUKMG(JDMG,KDMG,*),
+     &   RESMG(JDMG,KDMG,*),DUB1,DMX($MXNUMEQ)
+
+      CALL OPENBUG()
+      IF (.NOT.BUGOPEN) RETURN
+
+      MEQ=NUMEQS(NBLK)
+      NM=MODBLK(NBLK)
+
+      DO 5 MV=1,MEQ
+    5 DMX(MV)=0.D0
+
+      DO 1 K=KMG1,KMG2
+      DO 1 J=JMG1,JMG2
+      IF (KEYMG(J,K).LT.1) GO TO 1
+
+      DO 3 MV=1,MEQ
+      DUB1=ABS(DUKMG(J,K,MV))
+      IF (DUB1.GT.DMX(MV)) THEN
+         DMX(MV)=DUB1
+         JM=J
+         KM=K
+      ENDIF
+    3 CONTINUE
+
+    1 CONTINUE
+
+      WRITE (NFBUG,6) MGLV,NBLK,JM,KM,(DMX(J),J=1,MEQ)
+    6 FORMAT(' LEV',I2,' BLK',I2,' J K',2I3,' MAX CHANG',4G12.4/
+     & (6G12.4))
+
+      END
+
+C*********************************************************************
+      SUBROUTINE MULGRDSO ()
+C*********************************************************************
+ 
+C  ROUTINE PRINTS MULTIGRID STANDARD OUTPUT (IF ANY)
+
+C  NOTE: CALL ONLY IF LEVELC IS TRUE
+C***********************************************************************
+      INCLUDE 'control.h'
+
+      INCLUDE 'mulgrdc.h'
+      COMMON /OPLSOR/ REDUC(4,2,2),FACOP(2),NSTPOP,NEWTEXP
+
+      IF (SOROPT) WRITE (NFOUT,1) FACOP(2)
+    1 FORMAT(' LINE SOR FACTOR (2ND CYCLE+) =',T45,F12.4)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE OPTSOR (REDM,REDT)
+C*********************************************************************
+
+C  ROUTINE OPTIMISES THE SOR FACTOR FOR LSOR
+
+C  REDM = MAX ERROR REDUCTION FOR LAST MILTIGRID CYCLE (REAL*8, INPUT)
+
+C  REDT = TOTAL ERROR REDUCTION FOR LAST MILTIGRID CYCLE (REAL*8, INPUT)
+
+C*********************************************************************
+      INCLUDE 'control.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      COMMON /OPLSOR/ REDUC(4,2,2),FACOP(2),NSTPOP,NEWTEXP
+
+C  REDUC(STEP,NEWT,MX OR TOT)
+
+      REAL*8 REDM,REDT,DUB
+      DIMENSION NS(2)
+      DATA D/.040/
+
+C  INITIALIZE AND ABORT WHEN UNUSUAL CONDITIONS OCCUR
+
+      IF (NEWT.GT.2) RETURN
+
+      IF (NEWOPT) THEN
+         NEWOPT=.FALSE.
+         NEWTEXP=1
+         NSTPOP=1
+         FACOP(1)=FLSOR(2)
+         FACOP(2)=FLSOR(2)+D*(2.-FLSOR(2))
+      ENDIF
+
+      IF (NEWT.NE.NEWTEXP.OR.ITMG.EQ.1) THEN
+         NSTPOP=1
+         NEWTEXP=1
+         FLSOR(2)=FACOP(1)
+         RETURN
+      ENDIF
+
+      IF (NEWTEXP.EQ.1) THEN
+         NEWTEXP=2
+      ELSE
+         NEWTEXP=1
+      ENDIF
+
+C  COLLECT ERROR REDUCTION DATA
+
+      DUB=ITMG
+      REDUC(NSTPOP,NEWT,1)=REDM**(1.D0/DUB)
+      REDUC(NSTPOP,NEWT,2)=REDT**(1.D0/DUB)
+
+C  OPTIMISE LSOR FACTOR
+
+      IF (NSTPOP.EQ.4.AND.NEWT.EQ.2) THEN
+         C=1.01
+         IF (FACOP(1).LT.FACOP(2)) C=1./C
+         NS(1)=0
+         NS(2)=0
+         DO 14 I=1,2
+         DO 14 J=1,2
+         IF (REDUC(1,I,J).LT.C*REDUC(2,I,J)) THEN
+             NS(1)=NS(1)+1
+         ELSE
+             NS(2)=NS(2)+1
+         ENDIF
+         IF (REDUC(3,I,J).LT.C*REDUC(4,I,J)) THEN
+             NS(1)=NS(1)+1
+         ELSE
+             NS(2)=NS(2)+1
+         ENDIF
+   14    CONTINUE
+         
+         NB=0
+         IF (NS(1).GT.NS(2)+5) NB=1
+         IF (NS(2).GT.NS(1)+5) NB=2
+
+         IF (NB.EQ.1) THEN
+            IF (FACOP(1).GT.FACOP(2)) THEN
+               FACOP(2)=FACOP(1)+D*(2.-FACOP(1))
+            ELSE
+               FACOP(2)=FACOP(1)-D*(2.-FACOP(1))
+            ENDIF
+         ENDIF
+         IF (NB.EQ.2) THEN
+            IF (FACOP(2).GT.FACOP(1)) THEN
+               FACOP(1)=FACOP(2)+D*(2.-FACOP(2))
+            ELSE
+               FACOP(1)=FACOP(2)-D*(2.-FACOP(2))
+            ENDIF
+         ENDIF
+         IF (NB.EQ.0) THEN
+            DUM=FACOP(1)
+            FACOP(1)=FACOP(2)
+            FACOP(2)=DUM
+         ENDIF
+
+      ENDIF
+             
+C  SET NEXT LSOR FACTOR
+
+      IF (NEWT.EQ.2) THEN
+         NSTPOP=NSTPOP+1
+         IF (NSTPOP.GT.4) NSTPOP=1
+         IF (NSTPOP.EQ.1.OR.NSTPOP.EQ.3) THEN
+            FLSOR(2)=FACOP(1)
+         ELSE
+            FLSOR(2)=FACOP(2)
+         ENDIF
+      ENDIF
+
+         IF (LEVELC.AND.BUGKEY(7)) WRITE(NFOUT,25) FLSOR(2)
+   25    FORMAT(' LSOR FACTOR (2ND CYCLE+) =',F10.6)
+
+      END

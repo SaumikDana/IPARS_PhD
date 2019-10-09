@@ -1,0 +1,77 @@
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/526/IPARSv3.1/porohex/data/cranfield
+END
+well_schedule_cut.dat
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/repos/csm/!svn/ver/504/IPARSv3.1/porohex/data/cranfield/well_schedule_cut.dat
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/csm/!svn/ver/504/IPARSv3.1/porohex/data/cranfield/IPARS.IN
+END
+perm_cranfield2.dat
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/repos/csm/!svn/ver/520/IPARSv3.1/porohex/data/cranfield/perm_cranfield2.dat
+END
+perm_cranfield2_depth_flatten.dat
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/519/IPARSv3.1/porohex/data/cranfield/perm_cranfield2_depth_flatten.dat
+END
+wellfull_cranfield.dat
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/520/IPARSv3.1/porohex/data/cranfield/wellfull_cranfield.dat
+END
+grid_cranfield2_depth_flatten.dat
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/504/IPARSv3.1/porohex/data/cranfield/grid_cranfield2_depth_flatten.dat
+END
+well_schedule.dat
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/repos/csm/!svn/ver/504/IPARSv3.1/porohex/data/cranfield/well_schedule.dat
+END
+well_schedule_hex.dat
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/repos/csm/!svn/ver/504/IPARSv3.1/porohex/data/cranfield/well_schedule_hex.dat
+END
+perm_cranfield2_small_depth_flatten.dat
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/526/IPARSv3.1/porohex/data/cranfield/perm_cranfield2_small_depth_flatten.dat
+END
+cranfield.dat
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/repos/csm/!svn/ver/521/IPARSv3.1/porohex/data/cranfield/cranfield.dat
+END
+grid_cranfield2_small_depth_flatten.dat
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/526/IPARSv3.1/porohex/data/cranfield/grid_cranfield2_small_depth_flatten.dat
+END
+well_schedule_small.dat
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/repos/csm/!svn/ver/526/IPARSv3.1/porohex/data/cranfield/well_schedule_small.dat
+END

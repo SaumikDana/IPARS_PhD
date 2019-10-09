@@ -1,0 +1,31 @@
+$ ############ BCGs/Multigrid Linear Solver Include File ############
+
+Replace_Symbols
+
+MSOLB   C       $ Model solver as BCGS
+TICAMA  ""       $ Include multigrid linear solver accelerated by BCGstab
+MXMGLV  10       $ Max multigrid levels
+NCOFMG   5       $ Number of Jacobian coefficients in a 2d template
+
+DMXGEI  200      $ Max total number of interface grid elements per processor
+                 $    for all multigrid levels (used by dual approximation)
+DMXFELE 9000     $ Max total number of interface couplings per processor
+                 $    for all multigrid levels (used by dual approximation)
+NKRYLOV 8        $ NUMBER OF VECTORS IN KRYLOV SUBSPACE 
+
+Source_Directory
+../solve/bcgs/
+Source_Files
+
+mulgrdd.dh     .h
+mulgrd.df      .f
+mulgrdc.dh     .h
+mulgrdpp.dh    .h
+mulgrdm.dc     .c
+mulgrdw.df     .f
+mdual.df       .f
+mulgrdp.df     .f
+mlgrdwy.df    .f
+bcgs_la.df    .f
+bcgs_wrkla.df .f
+bcgs.df       .f

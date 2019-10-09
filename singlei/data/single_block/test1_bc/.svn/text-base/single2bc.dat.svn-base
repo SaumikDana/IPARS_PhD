@@ -1,0 +1,129 @@
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ B. Momken, 3/17/99
+TITLE(2)="SINGLE PHASE TEST SMALL"
+
+DESCRIPTION()=
+
+"BLOCK   LENGTH (FT)   WIDTH (FT)   HEIGHT (FT)    SIZE     CORNER"
+"  1        80            80          4           5x4x4      0,0,0"
+
+"DATE : 3/17/99"
+
+BLOCKMODEL(1)="SINGLE_PHASE_IMPLICIT"
+
+TIMEEND = 730.5
+$TIMEEND = 100.5
+$TIMEEND = 1.1
+
+$ I/O OPTIONS
+$MAXNEWT = 100
+
+$ BCGS LINEAR SOLVER OPTIONS
+LINTOL = 1.0E-04
+
+$ GMRES LINEAR SOLVER OPTIONS
+$LSOL_TOL = 1.0E-05
+$GMRES_PREC = 13
+$N_GS_STEP = 5
+
+OUTLEVEL = 2
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ FAULT BLOCK AND MESH DATA
+
+BLOCKNAME(1) = "BLOCK1"
+DOWN(1 TO 3,1) = 1 0 0  
+NX(1) = 5          NY(1) = 4           NZ(1) = 4
+DX(1 TO 5,1) = 10.  DY(1 TO 4,1) = 20.  DZ(1 TO 4,1) = 20.
+$NX(1) = 4          NY(1) = 8           NZ(1) = 8
+$DX(1 TO 4,1) = 1.  DY(1 TO 8,1) = 10.  DZ(1 TO 8,1) = 10.
+XYZ111(,1) = 0. 0. 0.
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ boundary conditions: geometry
+
+NBND_REG = 2
+NBND_SUBREG = 2
+
+$             nreg nblk  x1 y1 z1   x2 y2 z2
+BND_VOL(,1) = 1     1,   0. 0. 0.    50. 0. 80.         $ y = 0, y-
+BND_VOL(,2) = 2     1,   0. 80. 0.   50. 80. 80.        $ y = 80, y+
+
+$ boundary conditions: type and conditions
+
+BOUND_TYPE(1) = 2
+BOUND_RDEP(1) = 0.
+TBOUND(1) Block
+$ this sets the bdary condition at left end to 650 at day 5 and later
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  600. 5. 650.
+EndBlock
+
+BOUND_TYPE(2) = 2
+BOUND_RDEP(2) = 0.
+TBOUND(2) Block
+$ between day 0..5 (see conditions below) Dirichlet condition 300.
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  300.
+EndBlock
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ IPARS data 
+$ INITIAL CONDITIONS
+
+PINIT = 500.  
+
+$ POROSITY
+
+POROSITY1() = .2
+
+$ PERMEABILITIES
+
+XPERM1() = 50.  YPERM1() = 200.
+$XPERM1() = 20.  XPERM1(8,,) = 5.
+$YPERM1() = 200.
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ WELLS
+
+$NUMWELL=2
+
+$WELLNAME(1) = "WELL 1, BLOCK 1"
+$KINDWELL(1) = 1
+$WELLTOP(1 TO 3,1,1) =    0.  5. 5.
+$WELLBOTTOM(1 TO 3,1,1) = 50.  5. 5.
+$WELLPQ(1) Block
+$  Interpolation Linear
+$  Extrapolation Constant
+$  Data  0.  520.
+$EndBlock
+
+$WELLNAME(2) = "WELL 2 BLOCK 2"
+$KINDWELL(2) = 31
+$WELLTOP(1 TO 3,1,2) =    0. 75. 75.
+$WELLBOTTOM(1 TO 3,1,2) = 50. 75. 75.
+$WELLPQ(2) Block
+$  Interpolation Linear
+$  Extrapolation Constant
+$  Data  0.  480., 30.  400.
+$EndBlock
+
+EndInitial
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+DELTIM = 1.   DTIMMUL = 1.1  DTIMMAX = 3.  TIMOUT = 10.  DTIMOUT = 40.
+$DELTIM = 0.01   DTIMMUL = 1.1  DTIMMAX = 3.  TIMOUT = 10.  DTIMOUT = 40.
+$CVTOL = 1.0E-05
+VISOUT = 10.0  DVISOUT = 10.0
+VIS_SCL = 2
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "FLDEN"
+VIS_NVEC = 1
+VIS_VEC_NAMES(1) = "VEL"
+VIS_FNAME = "SINGLE1_"
+VISFLAG = 3
+TIMRES = 40.
+EndTime

@@ -1,0 +1,49 @@
+#! /bin/csh
+#
+# TECCOB
+# 
+# C - shell utility to combine IPARS zone output for Tecplot in one
+# file for ALL prcoessors, invokes TECCO, see the script for details
+# assumptions : rootname is TEC, faultblock is 0
+#
+# MP, 3/25/98
+#
+set rootname = 'TEC'
+set faultblock = 0
+set zonelist = ()
+set number = 0
+#
+foreach arg ($*)
+	@ number ++
+	switch ($number) 
+	case 1:	
+		set nprocessor = $arg
+		breaksw
+	case 2:			
+		set visflag = $arg
+		breaksw 	
+	default:
+		set zonelist = ($zonelist $arg)
+		breaksw
+	endsw
+end			
+#		
+# echo 'number of arguments is ' $number
+#
+if ( $number <= 2 ) then
+	echo 'Too few parameters to TECCOB.'
+	echo "Usage: TECCOB  numprocs visflag zonelist"
+	exit 1
+endif
+#
+##### process the files
+#
+
+set procnum = 0
+while ( $procnum < $nprocessor )	
+  echo "Calling tecco $rootname $faultblock $procnum $visflag $zonelist."
+  tecco $rootname $faultblock $procnum $visflag $zonelist
+  @ procnum++	
+  echo "-----------------------------"
+end
+echo "TECCOB ended OK."

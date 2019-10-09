@@ -1,0 +1,3515 @@
+C MULGRDW.F
+C
+C ROUTINES IN THIS FILE:
+C
+C     SUBROUTINE PEMGW_SETUP(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+C                JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,
+C                EZNMG,EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C
+C     SUBROUTINE PEMGW_BDFACE(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+C                JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,
+C                EZNMG,EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C
+C     SUBROUTINE PEMGW_2DMATRIX0(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+C                JL2V,KL1,KL2,KEYOUT,NBLK,KEYCR2D,BCOF2D,DCOF2D,R2D,X2D,
+C                KEYCR,ZNODE,AB,AD)
+C
+C     SUBROUTINE PEMGW_2DMATRIX1(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+C                JL2V,KL1,KL2,KEYOUT,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+C                JMG1,JMG2,KMG1,KMG2,KEYMG,KEYCRMG,EZNMG,EMDMG,EPSMG,
+C                EBMG,EDMG,ERMG,EUNKMG,KEYCR2D,BCOF2D,DCOF2D,R2D,X2D)
+C
+C     SUBROUTINE PEMGW_2DMATRIX2(MGLV,NBLK,IDMG,JDMG,KDMG,IDMGC,JDMGC,
+C                KDMGC,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,IMGC1,IMGC2,
+C                JMGC1,JMGC2,KMGC1,KMGC2,KEYMG,KEYMGC,KEYCRMG,KEYCRMGC,
+C                EZNMG,EZNMGC,EMDMG,EMDMGC,EPSMG,EPSMGC,EBMG,EBMGC,
+C                EDMG,EDMGC,ERMG,ERMGC,EUNKMG,EUNKMGC)
+C
+C     SUBROUTINE PEMGW_DISP2D(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+C                JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,EZNMG,
+C                EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C
+C     SUBROUTINE PEMGW_DISP_ZERO(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+C                JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,
+C                EZNMG,EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C
+C     SUBROUTINE PEMGW_RELAX2D0(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+C                JL2V,KL1,KL2,KEYOUT,NBLK,KEYCR2D,BCOF2D,DCOF2D,
+C                R2D,X2D)
+C
+C     SUBROUTINE PEMGW_RELAX2D(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+C                JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,
+C                EZNMG,EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C
+C     SUBROUTINE PEMGW_COARSEN0_FW2D(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+C                JL2V,KL1,KL2,KEYOUT,NBLK,KEYCR2D,BCOF2D,DCOF2D,R2D,
+C                X2D,KEYCR,ZNODE,AB,AD,R1,X)
+C
+C     SUBROUTINE PEMGW_COARSEN1_FW2D(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+C                JL2V,KL1,KL2,KEYOUT,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+C                JMG1,JMG2,KMG1,KMG2,KEYMG,KEYCRMG,EZNMG,EMDMG,EPSMG,
+C                EBMG,EDMG,ERMG,EUNKMG,KEYCR2D,BCOF2D,DCOF2D,R2D,X2D)
+C
+C     SUBROUTINE PEMGW_COARSEN2_FW2D(MGLV,NBLK,IDMG,JDMG,KDMG,IDMGC,
+C                JDMGC,KDMGC,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,IMGC1,IMGC2,
+C                JMGC1,JMGC2,KMGC1,KMGC2,KEYMG,KEYMGC,KEYCRMG,KEYCRMGC,
+C                EZNMG,EZNMGC,EMDMG,EMDMGC,EPSMG,EPSMGC,EBMG,EBMGC,
+C                EDMG,EDMGC,ERMG,ERMGC,EUNKMG,EUNKMGC)
+C
+C     SUBROUTINE PEMGW_DIRECT(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+C                JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,EZNMG,
+C                EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C
+C     SUBROUTINE PEMGW_REFINE0_PC2D(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+C                JL2V,KL1,KL2,KEYOUT,NBLK,KEYCR2D,BCOF2D,DCOF2D,
+C                R2D,X2D,KEYCR,ZNODE,X)
+C
+C     SUBROUTINE PEMGW_REFINE1_PC2D(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+C                JL2V,KL1,KL2,KEYOUT,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+C                JMG1,JMG2,KMG1,KMG2,KEYMG,KEYCRMG,EZNMG,EMDMG,EPSMG,
+C                EBMG,EDMG,ERMG,EUNKMG,KEYCR2D,BCOF2D,DCOF2D,R2D,X2D)
+C
+C     SUBROUTINE PEMGW_REFINE2_PC2D(MGLV,NBLK,IDMG,JDMG,KDMG,IDMGC,
+C                JDMGC,KDMGC,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,IMGC1,IMGC2,
+C                JMGC1,JMGC2,KMGC1,KMGC2,KEYMG,KEYMGC,KEYCRMG,KEYCRMGC,
+C                EZNMG,EZNMGC,EMDMG,EMDMGC,EPSMG,EPSMGC,EBMG,EBMGC,EDMG,
+C                EDMGC,ERMG,ERMGC,EUNKMG,EUNKMGC)
+C
+C     SUBROUTINE PEMGW_EUNKMG0(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+C                JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,EZNMG,
+C                EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C
+C     SUBROUTINE PEMG_GETLEV (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                KL1,KL2,KEYOUT,NBLK)
+C
+C CODE HISTORY:
+C     XIULI GAI   06/21/02
+C     BY REFERENCE TO JOHN WHEELER'S MULTIGRID SOLVER
+C
+C***********************************************************************
+      SUBROUTINE PEMGW_SETUP(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+     &              JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,
+     &              EZNMG,EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C***********************************************************************
+C 1. Set keyout values for corner points on a multigrid level
+C 2. Set offset vector of the stencil points for 2D matrix on a mg level
+C 3. Set mapping from local elements to global 2D matrix on a mg level 
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemulgrd.h'
+
+      INTEGER MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,
+     &        KEYMG(IDMG,JDMG,KDMG),KEYCRMG(IDMG,JDMG,KDMG)
+      LOGICAL EZNMG(IDMG,JDMG,KDMG)
+      REAL*8  DXMG(IDMG),DYMG(JDMG),DZMG(KDMG),
+     &        EMDMG(IDMG,JDMG,KDMG),     EPSMG(IDMG,JDMG,KDMG),
+     &        EBMG(9,4,IDMG,JDMG,KDMG), EDMG(6,IDMG,JDMG,KDMG),
+     &        ERMG(3,IDMG,JDMG,KDMG),    EUNKMG(3,IDMG,JDMG,KDMG)
+
+      INTEGER I,J,K,N1P,N2P,N12P,KEY,NOFF,NMAP,LFLAG,KOFFSET(13),
+     &        NX,NY,NZ,FI,FJ,FK
+
+C SETUP KEYOUT VALUES FOR CORNER POINTS
+
+      DO K=1,KDMG
+         DO J=1,JDMG
+            DO I=1,IDMG
+               KEYCRMG(I,J,K)=KEYMG(I,J,K)
+            ENDDO
+         ENDDO
+      ENDDO
+
+      DO K=1,KDMG
+         DO J=1,JDMG
+            DO I=IMG1,IMG2
+               KEY=KEYMG(I,J,K)
+               IF(KEY.EQ.0) CYCLE
+               KEYCRMG(I,J,K)=KEY
+               IF (J.LT.JDMG) KEYCRMG(I,J+1,K)=KEY
+               IF (K.LT.KDMG) KEYCRMG(I,J,K+1)=KEY
+               IF (J.LT.JDMG.AND.K.LT.KDMG) KEYCRMG(I,J+1,K+1)=KEY
+               IF (I.LT.IDMG) THEN
+                   KEYCRMG(I+1,J,K)=KEY
+                   IF(J.LT.JDMG) KEYCRMG(I+1,J+1,K)=KEY
+                   IF(K.LT.KDMG) KEYCRMG(I+1,J,K+1)=KEY
+                   IF(J.LT.JDMG.AND.K.LT.KDMG) KEYCRMG(I+1,J+1,K+1)=KEY
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+
+C SETUP OFFSET VECTOR FOR STENCIL POINTS
+    
+      IF(PE_PREC.EQ.3) THEN
+
+         N1P = JDIMG             
+         IOFFSETMG(1,MGLV,NBLK)=N1P + 1
+         IOFFSETMG(2,MGLV,NBLK)=N1P 
+         IOFFSETMG(3,MGLV,NBLK)=N1P - 1
+         IOFFSETMG(4,MGLV,NBLK)=1
+                           
+         NBEFOREMG(MGLV,NBLK)=13
+         IOFFSETMG(13,MGLV,NBLK) = 1
+         IOFFSETMG(12,MGLV,NBLK) = N1P - 1
+         IOFFSETMG(11,MGLV,NBLK) = N1P
+         IOFFSETMG(10,MGLV,NBLK) = N1P + 1
+         IOFFSETMG(9,MGLV,NBLK) = N12P - N1P -1
+         IOFFSETMG(8,MGLV,NBLK) = N12P - N1P
+         IOFFSETMG(7,MGLV,NBLK) = N12P - N1P +1
+         IOFFSETMG(6,MGLV,NBLK) = N12P - 1
+         IOFFSETMG(5,MGLV,NBLK) = N12P
+         IOFFSETMG(4,MGLV,NBLK) = N12P + 1
+         IOFFSETMG(3,MGLV,NBLK) = N12P + N1P - 1
+         IOFFSETMG(2,MGLV,NBLK) = N12P + N1P
+         IOFFSETMG(1,MGLV,NBLK) = N12P + N1P + 1
+
+         NBANDMG(MGLV,NBLK) = IOFFSETMG(1,MGLV,NBLK)
+
+C SETUP ELASTIC MAPPING FROM LOCAL GO GLOBAL ELEMENT FOR MULTIGRID
+
+         NOFF = 13
+         NMAP = 8
+         IMAPMG(1,1,MGLV,NBLK) = 0
+         IMAPMG(2,2,MGLV,NBLK) = 1
+         IMAPMG(2,1,MGLV,NBLK) = 13
+         IMAPMG(3,3,MGLV,NBLK) = N1P
+         IMAPMG(3,2,MGLV,NBLK) = 12
+         IMAPMG(3,1,MGLV,NBLK) = 11
+         IMAPMG(4,4,MGLV,NBLK) = N1P + 1
+         IMAPMG(4,3,MGLV,NBLK) = 13
+         IMAPMG(4,2,MGLV,NBLK) = 11
+         IMAPMG(4,1,MGLV,NBLK) = 10
+         IMAPMG(5,5,MGLV,NBLK) = N12P
+         IMAPMG(5,4,MGLV,NBLK) = 9
+         IMAPMG(5,3,MGLV,NBLK) = 8
+         IMAPMG(5,2,MGLV,NBLK) = 6
+         IMAPMG(5,1,MGLV,NBLK) = 5
+         IMAPMG(6,6,MGLV,NBLK) = N12P + 1
+         IMAPMG(6,5,MGLV,NBLK) = 13
+         IMAPMG(6,4,MGLV,NBLK) = 8
+         IMAPMG(6,3,MGLV,NBLK) = 7
+         IMAPMG(6,2,MGLV,NBLK) = 5
+         IMAPMG(6,1,MGLV,NBLK) = 4
+         IMAPMG(7,7,MGLV,NBLK) = N12P + N1P
+         IMAPMG(7,6,MGLV,NBLK) = 12
+         IMAPMG(7,5,MGLV,NBLK) = 11
+         IMAPMG(7,4,MGLV,NBLK) = 6
+         IMAPMG(7,3,MGLV,NBLK) = 5
+         IMAPMG(7,2,MGLV,NBLK) = 3
+         IMAPMG(7,1,MGLV,NBLK) = 2
+         IMAPMG(8,8,MGLV,NBLK) = N12P + N1P + 1
+         IMAPMG(8,7,MGLV,NBLK) = 13
+         IMAPMG(8,6,MGLV,NBLK) = 11
+         IMAPMG(8,5,MGLV,NBLK) = 10
+         IMAPMG(8,4,MGLV,NBLK) = 5
+         IMAPMG(8,3,MGLV,NBLK) = 4
+         IMAPMG(8,2,MGLV,NBLK) = 2
+         IMAPMG(8,1,MGLV,NBLK) = 1
+
+C CHECK IOFFET FOR REDUNCANCIES 
+
+         DO I = 1,NOFF
+           KOFFSET(I) = 0
+         ENDDO
+         LFLAG = 0
+ 
+         DO I = 1,NOFF
+            K = IOFFSETMG(I,MGLV,NBLK)
+            DO J = 1,I-1
+               IF(K.EQ.IOFFSETMG(J,MGLV,NBLK)) THEN
+                  KOFFSET(I) = J
+                  LFLAG = 1
+                  EXIT
+               ENDIF
+            ENDDO
+         ENDDO
+
+         IF(LFLAG.EQ.0) GO TO 1
+
+C CONDENSE IOFFET AND  RESET NDIM_BEFORE
+
+         K=0
+         DO I=1,NOFF
+            IF(KOFFSET(I).EQ.0) THEN
+              K=K+1
+              IOFFSETMG(K,MGLV,NBLK)=IOFFSETMG(I,MGLV,NBLK)
+            ENDIF
+         ENDDO
+         DO I=K+1,NDIM_BEFORE
+            IOFFSETMG(I,MGLV,NBLK)=0
+         ENDDO
+         NBEFOREMG(MGLV,NBLK)=K
+         K=0
+         DO I=1,NOFF
+            J=KOFFSET(I)
+            IF(J.EQ.0) THEN
+               K=K +1
+               KOFFSET(I)=K
+            ELSE
+               KOFFSET(I)=KOFFSET(J)
+            ENDIF
+         ENDDO
+         DO J=1,NMAP
+            DO I=J+1,NMAP
+               K=IMAPMG(I,J,MGLV,NBLK)
+               IMAPMG(I,J,MGLV,NBLK)=KOFFSET(K)
+            ENDDO
+         ENDDO
+  1      CONTINUE
+
+      ELSE IF(PESOLV2D.EQ.2) THEN
+         N1P=JDMG
+         IOFFSETMG(1,MGLV,NBLK)=N1P + 1
+         IOFFSETMG(2,MGLV,NBLK)=N1P
+         IOFFSETMG(3,MGLV,NBLK)=N1P - 1
+         IOFFSETMG(4,MGLV,NBLK)=1
+         NBEFOREMG(MGLV,NBLK)=4
+         NBANDMG(MGLV,NBLK) = JDMG+1
+      ENDIF
+
+      END
+C***********************************************************************
+      SUBROUTINE PEMGW_BDFACE(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+     &           JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,EZNMG,
+     &           EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C***********************************************************************
+C Test the exitence of boundary faces on a multigrid level
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'pemulgrd.h'
+
+      INTEGER MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,
+     &        KEYMG(IDMG,JDMG,KDMG),KEYCRMG(*)
+      LOGICAL EZNMG(*)
+      REAL*8  DXMG(IDMG), DYMG(JDMG), DZMG(KDMG),
+     &        EMDMG(IDMG,JDMG,KDMG),  EPSMG(IDMG,JDMG,KDMG),
+     &        EBMG(9,4,*),           EDMG(6,*),
+     &        ERMG(3,IDMG,JDMG,KDMG), EUNKMG(3,IDMG,JDMG,KDMG)
+
+      INTEGER I,J,K
+
+      DO L=1,6
+         IBD_FACEMG(L,MGLV,NBLK)=.FALSE.
+      ENDDO
+
+C Y- SIDE
+
+      DO K=KMG1,KMG2
+         DO I=IMG1,IMG2
+            DO J=JMG1,JMG2
+               IF (KEYMG(I,J,K).NE.0.AND.KEYMG(I,J-1,K).EQ.0) THEN
+                  IBD_FACEMG(3,MGLV,NBLK)=.TRUE.
+                  GO TO 1
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+   1  CONTINUE
+
+      DO K=KMG1,KMG2
+         DO I=IMG1,IMG2
+            DO J=JMG2,JMG1,-1
+               IF (KEYMG(I,J,K).NE.0.AND.KEYMG(I,J+1,K).EQ.0) THEN
+                  IBD_FACEMG(4,MGLV,NBLK)=.TRUE.
+                  GO TO 2
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+   2  CONTINUE
+
+C Z- SIDE
+
+      DO J=JMG1,JMG2
+         DO I=IMG1,IMG2
+            DO K=KMG1,KMG2
+               IF(KEYMG(I,J,K).NE.0.AND.KEYMG(I,J,K-1).EQ.0) THEN
+                  IBD_FACEMG(5,MGLV,NBLK)=.TRUE.
+                  GO TO 3
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+   3  CONTINUE
+
+C Z+ SIDE
+      DO J=JMG1,JMG2
+         DO I=IMG1,IMG2
+            DO K=KMG2,KMG1,-1
+               IF(KEYMG(I,J,K).NE.0.AND.KEYMG(I,J,K+1).EQ.0) THEN
+                  IBD_FACEMG(6,MGLV,NBLK)=.TRUE.
+                  GO TO 4
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+   4  CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE PEMGW_2DMATRIX0(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+     &          JL2V,KL1,KL2,KEYOUT,NBLK,KEYCR2D,BCOF2D,DCOF2D,R2D,X2D,
+     &          KEYCR,ZNODE,AB,AD)
+C***********************************************************************
+C Compute matrix of the 2D grid from the 3D grid matrix.
+C This is PEMGWORK0 routine
+C
+C INPUT:
+C   KCYCR(GJ) = KEYOUT VALUES FOR CORNER POINTS ON THE 3D GRID
+C   ZNODE(GJ) = FLAG OF TURNING ON/OFF ELASTIC CALCULATION ON A 3D 
+C                  GRID NODE
+C   AB(L,M,GJ) = OFF DIAGONAL COEF. OF THE 3D GRID MATRIX
+C   AD(L,GJ) = DIAGONAL COEF. OF THE 3D GRID MATRIX
+C
+C OUTPUT:
+C   BCOF2D(M,L,J,K) = OFF DIAGONAL COEF. OF THE 2D GRID MATRIX
+C   DCOF2D(L,J,K) = DIAGONAL COEF. OF THE 2D GRID MATRIX
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pebdary.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,
+     &        JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &        KEYCR2D(JDIM,KDIM),    KEYCR(IDIM*JDIM*KDIM) 
+      LOGICAL ZNODE(IDIM*JDIM*KDIM)
+      REAL*8  AB(9,13,IDIM*JDIM*KDIM),   AD(6,IDIM*JDIM*KDIM),
+     &        BCOF2D(4,9,JDIM,KDIM),     DCOF2D(6,JDIM,KDIM),
+     &        R2D(JDIM,KDIM,3),          X2D(JDIM,KDIM,3)
+     
+      INTEGER J,K,IB,GI,GJ,N1P,N12P,NB,ND,NEQ,IROW,ICOL,NOFF,
+     &        NOFF2D,IOFF2D(13),LD(6),LB(6)
+      DATA    LD/1,4,7,5,8,9/,LB/1,2,3,5,6,9/
+      
+      NEQ=PE_MEQ
+      NOFF=NDIM_BEFORE
+      ND=NEQ*(NEQ-1)
+      NB=NEQ*NEQ
+      N1P=IDIM
+      N2P=JDIM
+      N12P=N1P*N2P
+      NOFF2D=4
+      IOFF2D(13)=0
+      IOFF2D(12)=4
+      IOFF2D(11)=4
+      IOFF2D(10)=4
+      IOFF2D(9)=3
+      IOFF2D(8)=3
+      IOFF2D(7)=3
+      IOFF2D(6)=2
+      IOFF2D(5)=2
+      IOFF2D(4)=2
+      IOFF2D(3)=1
+      IOFF2D(2)=1
+      IOFF2D(1)=1
+
+      DO K=1,KDIM
+         DO J=1,JDIM
+            DO IOFF=1,NOFF2D
+               DO IB=1,NB
+                  BCOF2D(IOFF,IB,J,K)=0.D0
+               ENDDO
+               DO IB=1,ND
+                  DCOF2D(IB,J,K)=0.D0
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+
+      KOF=-N12P
+      DO K=1,KDIM
+         KOF=KOF+N12P
+         JOF=KOF-N1P
+         DO J=1,JDIM
+            JOF=JOF+N1P
+            GI=JOF
+            DO I=1,IDIM
+               GI=GI+1
+               IF(KEYCR(GI).NE.0) THEN
+                  KEYCR2D(J,K)=KEYCR(GI)
+                  GO TO 1
+               ENDIF
+            ENDDO
+   1        CONTINUE
+         ENDDO
+      ENDDO
+
+      KOF=(KL1-2)*N12P
+      DO K=KL1,KL2+1
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         KOF=KOF+N12P
+         JOF=KOF+(JL1-2)*N1P
+         DO J=JL1,JL2+1
+            JOF=JOF+N1P
+            GI=JOF+IL1-1
+            IROW=(K-1)*N2P+J
+            DO I=IL1,IL2+1
+               GI=GI+1
+               IF(KEYCR(GI).LE.0.OR.ZNODE(GI)) CYCLE
+               DO L=1,ND
+                  DCOF2D(L,J,K)=DCOF2D(L,J,K)+AD(L,GI)
+               ENDDO
+               DO IDIR=1,NOFF
+                  GJ=GI-IOFFSET(IDIR,NBLK)
+                  IF(GJ.LE.0.OR.ZNODE(GJ)) CYCLE
+                  ICOL=IOFF2D(IDIR)
+                  IF(ICOL.EQ.0) THEN
+                     DO L=1,ND
+                        DCOF2D(L,J,K)=DCOF2D(L,J,K)
+     &                                 +AB(LD(L),IDIR,GI)
+                        DCOF2D(L,J,K)=DCOF2D(L,J,K)
+     &                                 +AB(LB(L),IDIR,GI)
+                     ENDDO
+                  ELSE
+                     DO L=1,NB
+                        BCOF2D(ICOL,L,J,K)=BCOF2D(ICOL,L,J,K)
+     &                                 +AB(L,IDIR,GI)
+                     ENDDO
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+
+C SET ZERO BOUNDARY CONDITONS
+C ELIMINATE RIGID BODY DISPLACEMENT
+
+      IF(MYPRC.NE.0) GO TO 7
+      IF(IZEROG(2).LT.0.D0) THEN
+         LOOP1 : DO J=1,JDIM
+            DO K=KL1,KL2+1
+               IF(KEYCR2D(J,K).GT.0.AND.DCOF2D(1,J,K).GT.0.D0) THEN
+                  DCOF2D(2,J,K)=0.D0
+                  DCOF2D(5,J,K)=0.D0
+                  DO M=1,NOFF2D
+                     BCOF2D(M,2,J,K)=0.D0
+                     BCOF2D(M,5,J,K)=0.D0
+                     BCOF2D(M,8,J,K)=0.D0
+                  ENDDO
+                  IF(J+1.LE.JDIM.AND.K+1.LE.KDIM) THEN
+                    BCOF2D(1,4,J+1,K+1)=0.D0
+                    BCOF2D(1,5,J+1,K+1)=0.D0
+                    BCOF2D(1,6,J+1,K+1)=0.D0
+                  ENDIF
+                  IF(K+1.LE.KDIM) THEN
+                     BCOF2D(2,4,J,K+1)=0.D0
+                     BCOF2D(2,5,J,K+1)=0.D0
+                     BCOF2D(2,6,J,K+1)=0.D0
+                  ENDIF
+                  IF(J-1.GT.0.AND.K+1.LE.KDIM) THEN
+                     BCOF2D(3,4,J-1,K+1)=0.D0
+                     BCOF2D(3,5,J-1,K+1)=0.D0
+                     BCOF2D(3,6,J-1,K+1)=0.D0
+                  ENDIF
+                  IF(J+1.LE.JDIM) THEN
+                     BCOF2D(4,4,J+1,K)=0.D0
+                     BCOF2D(4,5,J+1,K)=0.D0
+                     BCOF2D(4,6,J+1,K)=0.D0
+                  ENDIF
+                  EXIT LOOP1
+               ENDIF
+            ENDDO
+         ENDDO LOOP1
+      ENDIF
+   
+      IF(IZEROG(3).LT.0.D0) THEN
+         JJ=0
+         KK=0
+         LOOP2 : DO K = KL1,KL2+1
+            DO J = 1,JDIM
+               IF(KEYCR2D(J,K).GT.0.AND.DCOF2D(1,J,K).GT.0.D0) THEN
+                  DCOF2D(3,J,K)=0.D0
+                  DCOF2D(5,J,K)=0.D0
+                  DO M=1,NOFF2D
+                     BCOF2D(M,3,J,K)=0.D0
+                     BCOF2D(M,6,J,K)=0.D0
+                     BCOF2D(M,9,J,K)=0.D0
+                  ENDDO
+                  IF(J+1.LE.JDIM.AND.K+1.LE.KDIM) THEN
+                     BCOF2D(1,7,J+1,K+1)=0.D0
+                     BCOF2D(1,8,J+1,K+1)=0.D0
+                     BCOF2D(1,9,J+1,K+1)=0.D0
+                  ENDIF
+                  IF(K+1.LE.KDIM) THEN
+                     BCOF2D(2,7,J,K+1)=0.D0
+                     BCOF2D(2,8,J,K+1)=0.D0
+                     BCOF2D(2,9,J,K+1)=0.D0
+                  ENDIF
+                  IF(J-1.GT.0.AND.K+1.LE.KDIM) THEN
+                     BCOF2D(3,7,J-1,K+1)=0.D0
+                     BCOF2D(3,8,J-1,K+1)=0.D0
+                     BCOF2D(3,9,J-1,K+1)=0.D0
+                  ENDIF
+                  IF(J+1.LE.JDIM) THEN
+                     BCOF2D(4,7,J+1,K)=0.D0
+                     BCOF2D(4,8,J+1,K)=0.D0
+                     BCOF2D(4,9,J+1,K)=0.D0
+                  ENDIF
+                  JJ=J
+                  KK=K
+                  EXIT LOOP2
+               ENDIF
+            ENDDO
+         ENDDO LOOP2
+
+         IF(IZEROG(2).LT.0.D0) THEN
+            LOOP3 : DO K = KL1,KL2+1
+               DO J = JL2V(K)+1,JL1V(K),-1
+                  IF(KEYCR2D(J,K).GT.0.AND.DCOF2D(1,J,K).GT.0.D0.AND.
+     &              (J.NE.JJ.OR.K.NE.KK)) THEN
+                     DCOF2D(3,J,K)=0.D0
+                     DCOF2D(5,J,K)=0.D0
+                     DO M=1,NOFF2D
+                        BCOF2D(M,3,J,K)=0.D0
+                        BCOF2D(M,6,J,K)=0.D0
+                        BCOF2D(M,9,J,K)=0.D0
+                     ENDDO
+                     IF(J+1.LE.JDIM.AND.K+1.LE.KDIM) THEN
+                        BCOF2D(1,7,J+1,K+1)=0.D0
+                        BCOF2D(1,8,J+1,K+1)=0.D0
+                        BCOF2D(1,9,J+1,K+1)=0.D0
+                     ENDIF
+                     IF(K+1.LE.KDIM) THEN
+                        BCOF2D(2,7,J,K+1)=0.D0
+                        BCOF2D(2,8,J,K+1)=0.D0
+                        BCOF2D(2,9,J,K+1)=0.D0
+                     ENDIF
+                     IF(J-1.GT.0.AND.K+1.LE.KDIM) THEN
+                        BCOF2D(3,7,J-1,K+1)=0.D0
+                        BCOF2D(3,8,J-1,K+1)=0.D0
+                        BCOF2D(3,9,J-1,K+1)=0.D0
+                     ENDIF
+                     IF(J+1.LE.JDIM) THEN
+                        BCOF2D(4,7,J+1,K)=0.D0
+                        BCOF2D(4,8,J+1,K)=0.D0
+                        BCOF2D(4,9,J+1,K)=0.D0
+                     ENDIF
+                     EXIT LOOP3
+                  ENDIF
+               ENDDO
+            ENDDO LOOP3
+         ENDIF
+      ENDIF
+   7  CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE PEMGW_2DMATRIX1(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+     &           JL2V,KL1,KL2,KEYOUT,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+     &           JMG1,JMG2,KMG1,KMG2,KEYMG,KEYCRMG,EZNMG,EMDMG,EPSMG,
+     &           EBMG,EDMG,ERMG,EUNKMG,KEYCR2D,BCOF2D,DCOF2D,R2D,X2D)
+C***********************************************************************
+C Compute matrix on the first level 2d coarse grid from a 2D grid matrix
+C This is PEMGWORK1 routine
+C
+C INPUT:
+C   KEYCR2D(J,K) = KEYOUT VALUES FOR CORNER POINTS ON THE 2D GRID
+C   BCOF2D(M,L,J,K) = OFF DIAGONAL COEF. OF THE 2D GRID MATRIX
+C   DCOF2D(L,J,K) = DIAGONAL COEF. OF THE 2D GRID MATRIX
+C
+C OUTPUT:
+C   EZNMG(IC,JC,KC) = FLAG OF TURNING ON/OFF ELASTIC CALCULATION ON A
+C                     FIRST LEVEL 2D COARSE GRID NODE
+C   EDMG(L,IC,JC,KC) = DIAGONAL COEF. OF THE FIRST LEVEL 2D COARSE GRID MATRIX
+C   EBMG(L,M,IC,JC,KC) = OFF DIAGONAL COEF. OF THE FIRST LEVEL 2D COARSE 
+C                        GRID MATRIX
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pebdary.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,
+     &        JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &        IDMG,JDMG,KDMG,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,
+     &        KEYMG(IDMG,JDMG,KDMG),KEYCRMG(IDMG,JDMG,KDMG),   
+     &        KEYCR2D(JDIM,KDIM)
+      LOGICAL EZNMG(IDMG,JDMG,KDMG)
+      REAL*8  EMDMG(IDMG,JDMG,KDMG),     EPSMG(IDMG,JDMG,KDMG),
+     &        EBMG(9,4,IDMG,JDMG,KDMG),  EDMG(6,IDMG,JDMG,KDMG),
+     &        ERMG(3,IDMG,JDMG,KDMG),    EUNKMG(3,IDMG,JDMG,KDMG),
+     &        BCOF2D(4,9,JDIM,KDIM),     DCOF2D(6,JDIM,KDIM),
+     &        R2D(JDIM,KDIM,3),          X2D(JDIM,KDIM,3)
+
+      REAL*8  B(25,9,JDMG,KDMG),DUB
+      INTEGER J,K,JC,KC,NB,ND,NEQ,NOFF2D,NX,NY,NZ,IOFF,JOFF,KOFF,
+     &        LA(9),LC(9),LD(6)
+      DATA    LC/1,2,3,2,4,5,3,5,6/,LA/1,4,7,2,5,8,3,6,9/,
+     &        LD/1,4,7,5,8,9/
+
+      PARAMETER (DUB=1.5625D-2)
+
+      NEQ=PE_MEQ
+      NOFF=NDIM_BEFORE
+      ND=NEQ*(NEQ-1)
+      NB=NEQ*NEQ
+      NOFF2D=4
+
+      DO KC=1,KDMG
+         DO JC=1,JDMG
+            DO IOFF=1,NOFF2D 
+               DO IB=1,NB
+                  EBMG(IB,IOFF,IMG1,JC,KC)=0.D0
+               ENDDO
+               DO IB=1,ND
+                  EDMG(IB,IMG1,JC,KC)=0.D0
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+
+
+C COMPUTING COARSE GRID OPERATOR A(2h)=I(h,2h)*A(h)*I(2h,h)
+C COMPUTING B=A(h)*I(2h,h) 
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+      CALL BLKDIM(NBLK,NX,NY,NZ,KERR) 
+      NX=NX+1
+      NY=NY+1
+      NZ=NZ+1
+
+      DO KC=1,KDMG
+         DO JC=1,JDMG
+            DO L=1,NB
+               DO M=1,25
+                  B(M,L,JC,KC)=0.D0
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+
+C FOR INTERNAL COARSE GRID POINTS
+C                      
+C    1 o---+---o---+---o 5
+C      |   |   |   |   |
+C    6 +---+---+---+---+ 10
+C      |   |   |   |   |
+C   11 o---+---X---+---o 15  (o) coarse grid  (+)fine grid    
+C      |   |   |   |   |
+C   16 +---+---+---+---+ 20
+C      |   |   |   |   |
+C   21 o---+---o---+---o 25
+ 
+      KCG=KMG1+PEKOFFMG(1,NBLK)-1
+      IF(KCG.LE.0) THEN
+         KC1=KMG1
+      ELSE
+         KC1=KMG1-1
+      ENDIF
+      KCG=KC1+PEKOFFMG(1,NBLK)
+      KFG=KCG*2-1
+      KOF=KFG-KOFF-2
+      JCG=JMG1+PEJOFFMG(1,NBLK)-1
+      IF(JCG.LE.0) THEN
+         JC1=JMG1
+      ELSE
+         JC1=JMG1-1
+      ENDIF
+      JCG=JC1+PEJOFFMG(1,NBLK)
+      JFG=JCG*2-1
+      JOF=JFG-JOFF-2
+
+      IC=IMG1
+      K=KOF
+      DO KC=KC1,KMG2+1
+         K=K+2
+         IF(K+KOFF.GT.NZ) K=K-1
+         J=JOF
+         DO JC=JC1,JMG2+1
+            J=J+2
+            IF(KEYCRMG(IC,JC,KC).EQ.0) GO TO 1
+            IF(J+JOFF.GT.NY) J=J-1
+            IF(K.GT.0.AND.K.LE.KDIM) THEN
+               IF(J.GT.O.AND.J.LE.JDIM) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(7,M,JC,KC)=B(7,M,JC,KC)+BCOF2D(1,L,J,K)*4.D0
+                     B(8,M,JC,KC)=B(8,M,JC,KC)+BCOF2D(2,L,J,K)*4.D0
+                     B(9,M,JC,KC)=B(9,M,JC,KC)+BCOF2D(3,L,J,K)*4.D0
+                     B(12,M,JC,KC)=B(12,M,JC,KC)+BCOF2D(4,L,J,K)*4.D0
+                     B(13,M,JC,KC)=B(13,M,JC,KC)+BCOF2D(1,M,J,K)
+     &                      +BCOF2D(2,M,J,K)*2.D0
+     &                      +BCOF2D(3,M,J,K)+BCOF2D(4,M,J,K)*2.D0
+     &                      +DCOF2D(LC(M),J,K)*4.D0 
+                  ENDDO
+               ENDIF
+
+C FOR (J-1,K),(J+1,K), AND(J+2,K)
+
+               IF(J-1.GT.0) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(7,M,JC,KC)=B(7,M,JC,KC)+BCOF2D(2,L,J-1,K)*2.D0
+                     B(8,M,JC,KC)=B(8,M,JC,KC)+BCOF2D(3,L,J-1,K)*2.D0
+                     B(12,M,JC,KC)=B(12,M,JC,KC)+BCOF2D(2,M,J-1,K)
+     &                      +BCOF2D(3,M,J-1,K)*2.D0
+     &                      +DCOF2D(LC(M),J-1,K)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J+1.LE.JDIM) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(8,M,JC,KC)=B(8,M,JC,KC)+BCOF2D(1,L,J+1,K)*2.D0
+                     B(9,M,JC,KC)=B(9,M,JC,KC)+BCOF2D(2,L,J+1,K)*2.D0
+                     B(10,M,JC,KC)=B(10,M,JC,KC)+BCOF2D(3,L,J+1,K)*2.D0
+                     B(13,M,JC,KC)=B(13,M,JC,KC)+BCOF2D(4,L,J+1,K)*2.D0
+                     B(14,M,JC,KC)=B(14,M,JC,KC)+BCOF2D(1,M,J+1,K)*2.D0
+     &                      +BCOF2D(2,M,J+1,K)+BCOF2D(4,M,J+1,K)*4.D0
+     &                      +DCOF2D(LC(M),J+1,K)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J+2.LE.JDIM) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(15,M,JC,KC)=B(15,M,JC,KC)+BCOF2D(1,M,J+2,K)
+     &                         +BCOF2D(4,M,J+2,K)*2.D0
+                  ENDDO
+               ENDIF
+            ENDIF
+           
+C FOR (J,K-1),(J-1,K-1),(J+1,K-1),(J+2,K-1)
+
+            IF(K-1.GT.0) THEN     
+               IF(J.GT.0.AND.J.LE.JDIM) THEN              
+                  DO M=1,NB
+                     L=LA(M)
+                     B(7,M,JC,KC)=B(7,M,JC,KC)+BCOF2D(4,L,J,K-1)*2.D0
+                     B(8,M,JC,KC)=B(8,M,JC,KC)+BCOF2D(4,M,J,K-1)
+     &                        +DCOF2D(LC(M),J,K-1)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J-1.GT.0) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(7,M,JC,KC)=B(7,M,JC,KC)+DCOF2D(LC(M),J-1,K-1)
+                  ENDDO 
+               ENDIF
+               IF(J+1.LE.JDIM) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(8,M,JC,KC)=B(8,M,JC,KC)+BCOF2D(4,L,J+1,K-1)
+                     B(9,M,JC,KC)=B(9,M,JC,KC)+BCOF2D(4,M,J+1,K-1)*2.D0
+     &                          +DCOF2D(LC(M),J+1,K-1)
+                  ENDDO
+               ENDIF
+               IF(J+2.LE.JDIM) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(10,M,JC,KC)=B(10,M,JC,KC)+BCOF2D(4,M,J+2,K-1) 
+                  ENDDO
+               ENDIF
+            ENDIF
+
+C FOR (J,K+1),(J-2,K+1),(J-1,K+1),(J+1,K+1),(J+2,K+1)
+
+            IF(K+1.LE.KDIM) THEN
+               IF(J+1.LE.JDIM) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(12,M,JC,KC)=B(12,M,JC,KC)+BCOF2D(1,L,J,K+1)*2.D0
+                     B(13,M,JC,KC)=B(13,M,JC,KC)+BCOF2D(2,L,J,K+1)*2.D0
+                     B(14,M,JC,KC)=B(14,M,JC,KC)+BCOF2D(3,L,J,K+1)*2.D0
+                     B(17,M,JC,KC)=B(17,M,JC,KC)+BCOF2D(4,L,J,K+1)*2.D0
+                     B(18,M,JC,KC)=B(18,M,JC,KC)+BCOF2D(1,M,J,K+1)*2.D0
+     &                         +BCOF2D(2,M,J,K+1)*4.D0+BCOF2D(4,M,J,K+1)
+     &                         +DCOF2D(LC(M),J,K+1)*2.D0
+     &                         +BCOF2D(3,M,J,K+1)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J-2.GT.0) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(16,M,JC,KC)=B(16,M,JC,KC)
+     &                       +BCOF2D(3,M,J-2,K+1)*2.D0
+                   ENDDO
+               ENDIF
+               IF(J-1.GT.0) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(12,M,JC,KC)=B(12,M,JC,KC)+BCOF2D(2,L,J-1,K+1)   
+                     B(13,M,JC,KC)=B(13,M,JC,KC)+BCOF2D(3,L,J-1,K+1)
+                     B(16,M,JC,KC)=B(16,M,JC,KC)+BCOF2D(4,L,J-1,K+1)
+                     B(17,M,JC,KC)=B(17,M,JC,KC)
+     &                            +BCOF2D(2,M,J-1,K+1)*2.D0
+     &                            +BCOF2D(3,M,J-1,K+1)*4.D0
+     &                            +DCOF2D(LC(M),J-1,K+1)
+                  ENDDO
+               ENDIF
+               IF(J+1.LE.JDIM) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(13,M,JC,KC)=B(13,M,JC,KC)+BCOF2D(1,L,J+1,K+1)
+                     B(14,M,JC,KC)=B(14,M,JC,KC)+BCOF2D(2,L,J+1,K+1)
+                     B(15,M,JC,KC)=B(15,M,JC,KC)+BCOF2D(3,L,J+1,K+1)
+                     B(18,M,JC,KC)=B(18,M,JC,KC)+BCOF2D(4,L,J+1,K+1)
+                     B(19,M,JC,KC)=B(19,M,JC,KC)
+     &                            +BCOF2D(1,M,J+1,K+1)*4.D0
+     &                            +BCOF2D(2,M,J+1,K+1)*2.D0
+     &                            +DCOF2D(LC(M),J+1,K+1) 
+     &                            +BCOF2D(4,M,J+1,K+1)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J+2.LE.JDIM) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(20,M,JC,KC)=B(20,M,JC,KC)
+     &                            +BCOF2D(1,M,J+2,K+1)*2.D0
+     &                            +BCOF2D(4,M,J+2,K+1)
+                  ENDDO
+               ENDIF 
+            ENDIF
+ 
+C FOR (J,K+2),(J-2,K+2),(J-1,K+2),(J+1,K+2)
+ 
+            IF(K+2.LE.KDIM) THEN
+               IF(J.GT.0.AND.J.LE.JDIM) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(23,M,JC,KC)=B(23,M,JC,KC)+BCOF2D(1,M,J,K+2)
+     &                           +BCOF2D(2,M,J,K+2)*2.D0
+     &                           +BCOF2D(3,M,J,K+2)
+                  ENDDO
+               ENDIF
+               IF(J-2.GT.0) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(21,M,JC,KC)=B(21,M,JC,KC)+BCOF2D(3,M,J-2,K+2)
+                  ENDDO
+               ENDIF
+               IF(J-1.GT.0) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(22,M,JC,KC)=B(22,M,JC,KC)+BCOF2D(2,M,J-1,K+2)
+     &                            +BCOF2D(3,M,J-1,K+2)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J+1.LE.JDIM) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(24,M,JC,KC)=B(24,M,JC,KC)
+     &                            +BCOF2D(1,M,J+1,K+2)*2.D0
+     &                            +BCOF2D(2,M,J+1,K+2)
+                  ENDDO
+               ENDIF
+               IF(J+2.LE.JDIM) THEN
+                  DO M=1,NB
+                     B(25,M,JC,KC)=B(25,M,JC,KC)+BCOF2D(1,M,J+2,K+2)
+                  ENDDO
+               ENDIF
+            ENDIF
+   1        CONTINUE
+         ENDDO
+      ENDDO
+
+C COMPUTING A(2h)=I(2h,h)B(h,2h)
+C     1        2       3
+C      o---+---o---+---o  
+C      |   |   |   |   |
+C      +---+---+---+---+   
+C      |   |   |   |   |
+C     4o---+---X---+---o     (o) coarse grid  (+)fine grid    
+C      |   |   |   |   |
+C      +---+---+---+---+   
+C      |   |   |   |   |
+C      o---+---o---+---o   
+
+      IC=IMG1
+      DO KC=KC1,KMG2+1
+         IF(K+KOFF.GT.NZ) K=K-1
+         DO JC=JC1,JMG2+1
+            IF(KEYCRMG(IC,JC,KC).EQ.0) GO TO 2
+            DO M=1,ND
+               L=LD(M)
+               EDMG(M,IC,JC,KC)=(B(7,L,JC,KC)+B(8,L,JC,KC)*2.D0
+     &             +B(9,L,JC,KC)+B(12,L,JC,KC)*2.D0
+     &             +B(13,L,JC,KC)*4.D0+B(14,L,JC,KC)*2.D0
+     &             +B(17,L,JC,KC)+B(18,L,JC,KC)*2.D0
+     &             +B(19,L,JC,KC))*DUB
+            ENDDO
+            J=JC-1
+            K=KC-1
+            IF(J.GT.0.AND.K.GT.0) THEN
+               DO M=1,NB
+                  EBMG(M,1,IC,JC,KC)=(B(19,M,J,K)+B(20,M,J,K)*2.D0
+     &                +B(24,M,J,K)*2.D0+B(25,M,J,K)*4.D0)*DUB
+               ENDDO
+            ENDIF
+            J=JC
+            K=KC-1
+            IF(K.GT.0) THEN
+               DO M=1,NB
+                  EBMG(M,2,IC,JC,KC)=(B(17,M,J,K)+B(18,M,J,K)*2.D0
+     &                +B(19,M,J,K)+B(22,M,J,K)*2.D0
+     &                +B(23,M,J,K)*4.D0+B(24,M,J,K)*2.D0)*DUB
+               ENDDO
+            ENDIF
+            J=JC+1
+            K=KC-1
+            IF(J.LE.JDMG.AND.K.GT.0) THEN
+               DO M=1,NB
+                  EBMG(M,3,IC,JC,KC)=(B(16,M,J,K)*2.D0+B(17,M,J,K)
+     &                +B(21,M,J,K)*4.D0+B(22,M,J,K)*2.D0)*DUB
+               ENDDO
+            ENDIF
+            J=JC-1
+            K=KC
+            IF(J.GT.0) THEN
+               DO M=1,NB
+                  EBMG(M,4,IC,JC,KC)=(B(9,M,J,K)+B(10,M,J,K)*2.D0
+     &                +B(14,M,J,K)*2.D0+B(15,M,J,K)*4.D0
+     &                +B(19,M,J,K)+B(20,M,J,K)*2.D0)*DUB
+               ENDDO
+            ENDIF
+  2         CONTINUE
+         ENDDO
+      ENDDO 
+
+      END
+
+C*********************************************************************
+      SUBROUTINE PEMGW_2DMATRIX2(MGLV,NBLK,IDMG,JDMG,KDMG,IDMGC,JDMGC,
+     &           KDMGC,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,IMGC1,IMGC2,
+     &           JMGC1,JMGC2,KMGC1,KMGC2,KEYMG,KEYMGC,KEYCRMG,KEYCRMGC,
+     &           EZNMG,EZNMGC,EMDMG,EMDMGC,EPSMG,EPSMGC,EBMG,EBMGC,
+     &           EDMG,EDMGC,ERMG,ERMGC,EUNKMG,EUNKMGC)
+C***********************************************************************
+C Compute matrix on a 2d coarse grid levlel by coarsening its upper 
+C next level matrix. This is PEWORKMG2 routine.
+C
+C INPUT:
+C   KEYMG(I,J,K) = KEYOUT VALUES FOR CORNER POINTS ON A 2D COARSE GRID  
+C   EZNMG(I,J,K) = FLAG OF TURNING ON/OFF ELASTIC CALCULATION FOR A 2D       
+C                  COARSE GRID NODE
+C   EDMG(L,J,K) = DIAGONAL COEF. OF A 2D COARSE GRID MATRIX 
+C   EBMG(L,M,J,K) = OFF DIAGONAL COEF. OF A 2D COARSE GRID MATRIX
+C
+C OUTPUT:
+C   EZNMGC(IC,JC,KC) = FLAG OF TURNING ON/OFF ELASTIC CALCULATION ON
+C                      A NODE OF THE NEXT 2D COARSER GRID LEVEL            
+C   EDMGC(L,IC,JC,KC) = DIAGONAL COEF. OF THE NEXT 2D COARSER GRID MATRIX     
+C   EBMGC(L,M,IC,JC,KC) = OFF DIAGONAL COEF. OF THE NEXT 2D COARSER 
+C                         GRID MATRIX             
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h' 
+      INCLUDE 'control.h'
+
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pebdary.h'
+      INCLUDE 'pemulgrd.h'
+
+      INTEGER MGLV,NBLK,IDMG,JDMG,KDMG,IDMGC,JDMGC,KDMGC,IMG1,IMG2,
+     &        JMG1,JMG2,KMG1,KMG2,IMGC1,IMGC2,JMGC1,JMGC2,KMGC1,KMGC2,
+     &        KEYMG(IDMG,JDMG,KDMG),     KEYMGC(IDMGC,JDMGC,KDMGC),
+     &        KEYCRMG(IDMG,JDMG,KDMG),   KEYCRMGC(IDMGC,JDMGC,KDMGC)
+      LOGICAL EZNMG(IDMG*JDMG*KDMG),     EZNMGC(IDMGC,JDMGC,KDMGC)
+      REAL*8  EMDMG(IDMG,JDMG,KDMG),     EMDMGC(IDMGC,JDMGC,KDMGC),
+     &        EPSMG(IDMG,JDMG,KDMG),     EPSMGC(IDMGC,JDMGC,KDMGC),
+     &        EBMG(9,4,IDMG,JDMG,KDMG),  EBMGC(9,4,IDMGC,JDMGC,KDMGC),
+     &        EDMG(6,IDMG,JDMG,KDMG),    EDMGC(6,IDMGC,JDMGC,KDMGC),
+     &        ERMG(3,IDMG,JDMG,KDMG),    ERMGC(3,IDMGC,JDMGC,KDMGC),
+     &        EUNKMG(3,IDMG,JDMG,KDMG),  EUNKMGC(3,IDMGC,JDMGC,KDMGC)
+
+      REAL*8  B(25,9,JDMGC,KDMGC),DUB
+      INTEGER I,J,K,JC,KC,KOF,JOF,IB,NB,ND,NEQ,N,LA(9),LC(9),LD(6),
+     &        NOFF2D,MGLVC
+      DATA    LA/1,4,7,2,5,8,3,6,9/,LC/1,2,3,2,4,5,3,5,6/,
+     &        LD/1,4,7,5,8,9/
+      PARAMETER (DUB=1.5625D-2)
+
+      NEQ=PE_MEQ
+      NOFF2D=4
+      ND=NEQ*(NEQ-1)
+      NB=NEQ*NEQ
+      IOFF=PEIOFFMG(MGLV,NBLK)
+      JOFF=PEJOFFMG(MGLV,NBLK)
+      KOFF=PEKOFFMG(MGLV,NBLK)
+      NX=PENXMG(MGLV,NBLK)+1
+      NY=PENYMG(MGLV,NBLK)+1
+      NZ=PENZMG(MGLV,NBLK)+1
+      
+      MGLVC=MGLV+1
+      I=IMG1
+      IC=IMGC1
+      DO K=1,KDMG
+         DO J=1,JDMG
+            IF(KEYCRMG(I,J,K).LE.0) THEN
+               DO IOFF=1,NOFF2D
+                  DO IB=1,NB
+                     EBMG(IB,IOFF,I,J,K)=0.D0
+                  ENDDO
+                  DO IB=1,ND
+                     EDMG(IB,I,J,K)=0.D0
+                  ENDDO
+               ENDDO
+            ENDIF
+         ENDDO
+      ENDDO
+
+      DO KC=1,KDMGC
+         DO JC=1,JDMGC
+            DO IOFF=1,NOFF2D
+               DO IB=1,NB
+                  EBMGC(IB,IOFF,IC,JC,KC)=0.D0
+               ENDDO
+               DO IB=1,ND
+                  EDMGC(IB,IC,JC,KC)=0.D0
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+
+      DO KC=1,KDMGC
+         DO JC=1,JDMGC
+            DO L=1,NB
+               DO M=1,25
+                  B(M,L,JC,KC)=0.D0
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+
+C FOR INTERNAL COARSE GRID POINTS
+C                    
+C    1 o---+---o---+---o 5
+C      |   |   |   |   |
+C    6 +---+---+---+---+ 10
+C      |   |   |   |   |
+C   11 o---+---X---+---o 15  (o) coarse grid  (+)fine grid
+C      |   |   |   |   |
+C   16 +---+---+---+---+ 20
+C      |   |   |   |   |
+C   21 o---+---o---+---o 25
+
+      KCG=KMGC1+PEKOFFMG(MGLVC,NBLK)-1
+      IF(KCG.LE.0) THEN
+         KC1=KMGC1
+      ELSE
+         KC1=KMGC1-1
+      ENDIF
+      KCG=KC1+PEKOFFMG(MGLVC,NBLK)
+      KFG=KCG*2-1
+      KOF=KFG-KOFF-2
+      JCG=JMGC1+PEJOFFMG(MGLVC,NBLK)-1
+      IF(JCG.LE.0) THEN
+         JC1=JMGC1
+      ELSE
+         JC1=JMGC1-1
+      ENDIF
+      JCG=JC1+PEJOFFMG(MGLVC,NBLK)
+      JFG=JCG*2-1
+      JOF=JFG-JOFF-2
+
+      I=IMG1
+      IC=IMGC1  
+      K=KOF
+      DO KC=KC1,KMGC2+1
+         K=K+2
+         IF(K+KOFF.GT.NZ) K=K-1
+         J=JOF
+         DO JC=JC1,JMGC2+1
+            J=J+2
+            IF(KEYCRMGC(IC,JC,KC).EQ.0) GO TO 1 
+            IF(J+JOFF.GT.NY) J=J-1
+            IF(K.GT.0.AND.K.LE.KDMG) THEN
+               IF(J.GT.0.AND.J.LE.JDMG) THEN        
+                  DO M=1,NB
+                     L=LA(M)
+                     B(7,M,JC,KC)=B(7,M,JC,KC)+EBMG(L,1,I,J,K)*4.D0
+                     B(8,M,JC,KC)=B(8,M,JC,KC)+EBMG(L,2,I,J,K)*4.D0
+                     B(9,M,JC,KC)=B(9,M,JC,KC)+EBMG(L,3,I,J,K)*4.D0
+                     B(12,M,JC,KC)=B(12,M,JC,KC)+EBMG(L,4,I,J,K)*4.D0
+                     B(13,M,JC,KC)=B(13,M,JC,KC)+EBMG(M,1,I,J,K)
+     &                     +EBMG(M,2,I,J,K)*2.D0
+     &                     +EBMG(M,3,I,J,K)+EBMG(M,4,I,J,K)*2.D0
+     &                     +EDMG(LC(M),I,J,K)*4.D0
+                  ENDDO
+               ENDIF
+               IF(J-1.GT.0) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(7,M,JC,KC)=B(7,M,JC,KC)+EBMG(L,2,I,J-1,K)*2.D0
+                     B(8,M,JC,KC)=B(8,M,JC,KC)+EBMG(L,3,I,J-1,K)*2.D0
+                     B(12,M,JC,KC)=B(12,M,JC,KC)+EBMG(M,2,I,J-1,K)
+     &                  +EBMG(M,3,I,J-1,K)*2.D0
+     &                  +EDMG(LC(M),I,J-1,K)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J+1.LE.JDMG) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(8,M,JC,KC)=B(8,M,JC,KC)+EBMG(L,1,I,J+1,K)*2.D0
+                     B(9,M,JC,KC)=B(9,M,JC,KC)+EBMG(L,2,I,J+1,K)*2.D0
+                     B(10,M,JC,KC)=B(10,M,JC,KC)+EBMG(L,3,I,J+1,K)*2.D0
+                     B(13,M,JC,KC)=B(13,M,JC,KC)+EBMG(L,4,I,J+1,K)*2.D0
+                     B(14,M,JC,KC)=B(14,M,JC,KC)+EBMG(M,1,I,J+1,K)*2.D0
+     &                  +EBMG(M,2,I,J+1,K)+EBMG(M,4,I,J+1,K)*4.D0
+     &                  +EDMG(LC(M),I,J+1,K)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J+2.LE.JDMG) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(15,M,JC,KC)=B(15,M,JC,KC)+EBMG(M,1,I,J+2,K)
+     &                  +EBMG(M,4,I,J+2,K)*2.D0
+                  ENDDO
+               ENDIF
+            ENDIF
+
+C FOR (J,K-1),(J-1,K-1),(J+1,K-1),(J+2,K-1)
+
+            IF(K-1.GT.0) THEN
+               IF(J.GT.0.AND.J.LE.JDMG) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(7,M,JC,KC)=B(7,M,JC,KC)+EBMG(L,4,I,J,K-1)*2.D0
+                     B(8,M,JC,KC)=B(8,M,JC,KC)+EBMG(M,4,I,J,K-1)
+     &                        +EDMG(LC(M),I,J,K-1)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J-1.GT.0) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(7,M,JC,KC)=B(7,M,JC,KC)+EDMG(LC(M),I,J-1,K-1)
+                  ENDDO
+               ENDIF
+               IF(J+1.LE.JDMG) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(8,M,JC,KC)=B(8,M,JC,KC)+EBMG(L,4,I,J+1,K-1)
+                    B(9,M,JC,KC)=B(9,M,JC,KC)+EBMG(M,4,I,J+1,K-1)*2.D0
+     &                          +EDMG(LC(M),I,J+1,K-1)
+                  ENDDO
+               ENDIF
+               IF(J+2.LE.JDMG) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(10,M,JC,KC)=B(10,M,JC,KC)+EBMG(M,4,I,J+2,K-1)
+                  ENDDO
+               ENDIF
+            ENDIF
+
+c FOR (J,K+1),(J-2,K+1),(J-1,K+1),(J+1,K+1),(J+2,K+1)
+
+            IF(K+1.LE.KDMG) THEN
+               IF(J.GT.0.AND.J+1.LE.JDMG) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(12,M,JC,KC)=B(12,M,JC,KC)+EBMG(L,1,I,J,K+1)*2.D0
+                     B(13,M,JC,KC)=B(13,M,JC,KC)+EBMG(L,2,I,J,K+1)*2.D0
+                     B(14,M,JC,KC)=B(14,M,JC,KC)+EBMG(L,3,I,J,K+1)*2.D0
+                     B(17,M,JC,KC)=B(17,M,JC,KC)+EBMG(L,4,I,J,K+1)*2.D0
+                     B(18,M,JC,KC)=B(18,M,JC,KC)+EBMG(M,1,I,J,K+1)*2.D0
+     &                      +EBMG(M,2,I,J,K+1)*4.D0+EBMG(M,4,I,J,K+1)
+     &                      +EDMG(LC(M),I,J,K+1)*2.D0
+     &                      +EBMG(M,3,I,J,K+1)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J-2.GT.0) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(16,M,JC,KC)=B(16,M,JC,KC)
+     &                      +EBMG(M,3,I,J-2,K+1)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J-1.GT.0) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(12,M,JC,KC)=B(12,M,JC,KC)+EBMG(L,2,I,J-1,K+1)   
+                    B(13,M,JC,KC)=B(13,M,JC,KC)+EBMG(L,3,I,J-1,K+1)
+                    B(16,M,JC,KC)=B(16,M,JC,KC)+EBMG(L,4,I,J-1,K+1)
+                    B(17,M,JC,KC)=B(17,M,JC,KC)
+     &                           +EBMG(M,2,I,J-1,K+1)*2.D0
+     &                           +EBMG(M,3,I,J-1,K+1)*4.D0
+     &                           +EDMG(LC(M),I,J-1,K+1)
+                  ENDDO
+               ENDIF
+               IF(J+1.LE.JDMG) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(13,M,JC,KC)=B(13,M,JC,KC)+EBMG(L,1,I,J+1,K+1)
+                    B(14,M,JC,KC)=B(14,M,JC,KC)+EBMG(L,2,I,J+1,K+1)
+                    B(15,M,JC,KC)=B(15,M,JC,KC)+EBMG(L,3,I,J+1,K+1)
+                    B(18,M,JC,KC)=B(18,M,JC,KC)+EBMG(L,4,I,J+1,K+1)
+                    B(19,M,JC,KC)=B(19,M,JC,KC)
+     &                           +EBMG(M,1,I,J+1,K+1)*4.D0
+     &                           +EBMG(M,2,I,J+1,K+1)*2.D0
+     &                           +EDMG(LC(M),I,J+1,K+1)
+     &                           +EBMG(M,4,I,J+1,K+1)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J+2.LE.JDMG) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(20,M,JC,KC)=B(20,M,JC,KC)
+     &                           +EBMG(M,1,I,J+2,K+1)*2.D0
+     &                           +EBMG(M,4,I,J+2,K+1)
+                  ENDDO
+               ENDIF
+            ENDIF
+
+C FOR (J,K+2),(J-2,K+2),(J-1,K+2),(J+1,K+2)
+
+            IF(K+2.LE.KDMG) THEN
+               IF(J.GT.0.AND.J.LE.JDMG) THEN
+                  DO M=1,NB
+                     L=LA(M)
+                     B(23,M,JC,KC)=B(23,M,JC,KC)+EBMG(M,1,I,J,K+2)
+     &                   +EBMG(M,2,I,J,K+2)*2.D0+EBMG(M,3,I,J,K+2)
+                  ENDDO
+               ENDIF
+               IF(J-2.GT.0) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(21,M,JC,KC)=B(21,M,JC,KC)+EBMG(M,3,I,J-2,K+2)
+                  ENDDO
+               ENDIF
+               IF(J-1.GT.0) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(22,M,JC,KC)=B(22,M,JC,KC)+EBMG(M,2,I,J-1,K+2)
+     &                  +EBMG(M,3,I,J-1,K+2)*2.D0
+                  ENDDO
+               ENDIF
+               IF(J+1.LE.JDMG) THEN
+                  DO M=1,NB
+                    L=LA(M)
+                    B(24,M,JC,KC)=B(24,M,JC,KC)+EBMG(M,1,I,J+1,K+2)*2.D0
+     &                  +EBMG(M,2,I,J+1,K+2)
+                  ENDDO
+               ENDIF
+               IF(J+2.LE.JDMG) THEN
+                  DO M=1,NB
+                    B(25,M,JC,KC)=B(25,M,JC,KC)+EBMG(M,1,I,J+2,K+2)
+                  ENDDO
+               ENDIF
+            ENDIF
+   1        CONTINUE
+         ENDDO
+      ENDDO
+
+C COMPUTING A(2h)=I(2h,h)B(h,2h)
+C     1        2       3
+C      o---+---o---+---o
+C      |   |   |   |   |
+C      +---+---+---+---+
+C      |   |   |   |   |
+C     4o---+---X---+---o     (o) coarse grid  (+)fine grid
+C      |   |   |   |   |
+C      +---+---+---+---+
+C      |   |   |   |   |
+C      o---+---o---+---o
+
+      I=IMG1
+      IC=IMGC1
+      K=KOF
+      DO KC=KC1,KMGC2+1
+         K=K+2
+         IF(K+KOFF.GT.NZ) K=K-1
+         J=JOF
+         DO JC=JC1,JMGC2+1
+            J=J+2
+            IF(KEYCRMGC(IC,JC,KC).EQ.0) GO TO 3
+            IF(J+JOFF.GT.NY) J=J-1
+            DO M=1,ND
+               L=LD(M)
+               EDMGC(M,IC,JC,KC)=(B(7,L,JC,KC)+B(8,L,JC,KC)*2.D0
+     &              +B(9,L,JC,KC)+B(12,L,JC,KC)*2.D0
+     &              +B(13,L,JC,KC)*4.D0+B(14,L,JC,KC)*2.D0
+     &              +B(17,L,JC,KC)+B(18,L,JC,KC)*2.D0
+     &              +B(19,L,JC,KC))*DUB
+            ENDDO
+            J=JC-1
+            K=KC-1
+            IF(J.GT.0.AND.K.GT.0) THEN
+               DO M=1,NB
+                  EBMGC(M,1,IC,JC,KC)=(B(19,M,J,K)+B(20,M,J,K)*2.D0
+     &                 +B(24,M,J,K)*2.D0+B(25,M,J,K)*4.D0)*DUB
+               ENDDO
+            ENDIF
+            J=JC
+            K=KC-1
+            IF(K.GT.0) THEN
+               DO M=1,NB
+                  EBMGC(M,2,IC,JC,KC)=(B(17,M,J,K)+B(18,M,J,K)*2.D0
+     &                 +B(19,M,J,K)+B(22,M,J,K)*2.D0
+     &                 +B(23,M,J,K)*4.D0+B(24,M,J,K)*2.D0)*DUB
+               ENDDO
+            ENDIF
+            J=JC+1
+            K=KC-1
+            IF(J.LE.JDMGC.AND.K.GT.0) THEN
+               DO M=1,NB
+                  EBMGC(M,3,IC,JC,KC)=(B(16,M,J,K)*2.D0+B(17,M,J,K)
+     &                 +B(21,M,J,K)*4.D0+B(22,M,J,K)*2.D0)*DUB
+               ENDDO
+            ENDIF
+            J=JC-1
+            K=KC
+            IF(J.GT.0) THEN
+               DO M=1,NB
+                  EBMGC(M,4,IC,JC,KC)=(B(9,M,J,K)+B(10,M,J,K)*2.D0
+     &                         +B(14,M,J,K)*2.D0+B(15,M,J,K)*4.D0
+     &                         +B(19,M,J,K)+B(20,M,J,K)*2.D0)*DUB
+               ENDDO
+            ENDIF
+   3        CONTINUE
+         ENDDO
+      ENDDO
+
+      END
+C***********************************************************************
+      SUBROUTINE PEMGW_DISP2D(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+     &           JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,EZNMG,
+     &           EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C***********************************************************************
+C Enforce zero displacement boundary condition for a 2D coarse grid 
+C matrix. Modify matrix coefficients, EDMG and EBMG. This is a PEWORKMG3 
+C routine.
+CC***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'pebdary.h'
+      INCLUDE 'pemulgrd.h'
+   
+      INTEGER MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,
+     &        KEYMG(IDMG,JDMG,KDMG),     KEYCRMG(IDMG,JDMG,KDMG) 
+      LOGICAL EZNMG(IDMG,JDMG,KDMG)
+      REAL*8  EMDMG(IDMG,JDMG,KDMG),     EPSMG(IDMG,JDMG,KDMG),           
+     &        EDMG(6,IDMG,JDMG,KDMG),    EBMG(9,4,IDMG,JDMG,KDMG),  
+     &        ERMG(3,IDMG,JDMG,KDMG),    EUNKMG(3,IDMG,JDMG,KDMG) 
+      REAL*8  DXMG(IDMG),DYMG(JDMG),DZMG(KDMG) 
+      INTEGER I,J,K,L,M,NOFF2D,LL(4,3)
+      LOGICAL BD_NODE
+      DATA    LL/2,3,1,1,2,5,2,4,3,5,3,7/                      
+
+      NOFF2D=4
+
+C SET UP ZERO NODE
+      
+      DO K=1,KDMG
+         DO J=1,JDMG
+            DO I=1,IDMG
+               EZNMG(I,J,K)=.TRUE.
+               IF(EDMG(1,I,J,K).NE.0.D0) EZNMG(I,J,K)=.FALSE.
+            ENDDO
+         ENDDO
+      ENDDO
+
+C SET UP ZERO BOUNDARY CONDITIONS
+C SET UP -Y SIDE
+
+      I=IMG1
+      DO L = 1,3
+         IF(IBD_FACEMG(3,MGLV,NBLK).AND.
+     &     ITYPE_BOUNDARY(3,L,NBLK).LE.1) THEN
+            L1 = LL(1,L)
+            L2 = LL(2,L)
+            K1 = LL(3,L)
+            M1 = LL(4,L)
+            DO K = KMG1-1,KMG2 + 1
+               DO J=JMG1,JMG2
+                  BD_NODE=.FALSE.
+                  IF(KEYMG(I,J,K).NE.0.AND.KEYMG(I,J-1,K).EQ.0)
+     &               BD_NODE = .TRUE.
+                  IF(KEYMG(I,J,K).EQ.0.AND.KEYCRMG(I,J,K).NE.0.AND.
+     &               KEYCRMG(I,J-1,K).EQ.0)
+     &               BD_NODE = .TRUE.
+                  IF(BD_NODE) THEN
+                     ermg(l,i,j,k)=0.d0
+                     EDMG(L1,I,J,K) = 0.D0
+                     EDMG(L2,I,J,K) = 0.D0
+                     DO M = 1,NOFF2D
+                        EBMG(K1,M,I,J,K) = 0.D0
+                        EBMG(K1+3,M,I,J,K) = 0.D0
+                        EBMG(K1+6,M,I,J,K) = 0.D0
+                     ENDDO
+                     IF(J+1.LE.JDMG) THEN
+                        EBMG(M1,4,I,J+1,K) = 0.D0
+                        EBMG(M1+1,4,I,J+1,K) = 0.D0
+                        EBMG(M1+2,4,I,J+1,K) = 0.D0
+                     ENDIF
+                     IF(K+1.LE.KDMG) THEN
+                        EBMG(M1,1,I,J+1,K+1) = 0.D0
+                        EBMG(M1+1,1,I,J+1,K+1) = 0.D0
+                        EBMG(M1+2,1,I,J+1,K+1) = 0.D0
+                     ENDIF
+                     IF(J+1.LE.JDMG.AND.K+1.LE.KDMG) THEN
+                        EBMG(M1,2,I,J,K+1) = 0.D0
+                        EBMG(M1+1,2,I,J,K+1) = 0.D0
+                        EBMG(M1+2,2,I,J,K+1) = 0.D0
+                     ENDIF 
+                     GO TO 3
+                  ENDIF
+               ENDDO
+   3        CONTINUE
+            ENDDO
+         ENDIF
+      ENDDO
+
+C +Y SIDE
+
+      DO L = 1,3
+         IF(IBD_FACEMG(4,MGLV,NBLK).AND.
+     &      ITYPE_BOUNDARY(4,L,NBLK).LE.1) THEN
+            L1 = LL(1,L)
+            L2 = LL(2,L)
+            K1 = LL(3,L)
+            M1 = LL(4,L)
+            DO K = KMG1-1,KMG2 + 1
+               DO J=JMG2+1,JMG1,-1
+                  BD_NODE = .FALSE.
+                  IF(KEYMG(I,J,K).EQ.0.AND.KEYCRMG(I,J,K).NE.0)    
+     &               BD_NODE = .TRUE.
+                  IF(BD_NODE) THEN
+                     ermg(l,i,j,k)=0.d0
+                     EDMG(L1,I,J,K) = 0.D0
+                     EDMG(L2,I,J,K) = 0.D0
+                     DO M = 1,NOFF2D
+                        EBMG(K1,M,I,J,K) = 0.D0
+                        EBMG(K1+3,M,I,J,K) = 0.D0
+                        EBMG(K1+6,M,I,J,K) = 0.D0
+                     ENDDO
+                     IF(K+1.LE.KDMG) THEN
+                        EBMG(M1,2,I,J,K+1) = 0.D0
+                        EBMG(M1+1,2,I,J,K+1) = 0.D0
+                        EBMG(M1+2,2,I,J,K+1) = 0.D0
+                     ENDIF
+                     IF(J-1.GT.0.AND.K+1.LE.KDMG) THEN
+                        EBMG(M1,3,I,J-1,K+1) = 0.D0
+                        EBMG(M1+1,3,I,J-1,K+1) = 0.D0
+                        EBMG(M1+2,3,I,J-1,K+1) = 0.D0
+                     ENDIF 
+                     GO TO 4
+                  ENDIF
+               ENDDO
+   4        CONTINUE
+            ENDDO
+         ENDIF
+      ENDDO
+
+C SET UP -Z SIDE OF RECTANGLE
+
+      DO L = 1,3
+         IF(IBD_FACEMG(5,MGLV,NBLK).AND.
+     &      ITYPE_BOUNDARY(5,L,NBLK).LE.1) THEN
+            L1 = LL(1,L)
+            L2 = LL(2,L)
+            K1 = LL(3,L)
+            M1 = LL(4,L)
+            DO J = JMG1-1,JMG2+1
+               DO K = KMG1,KMG2
+                  BD_NODE = .FALSE.
+                  IF(KEYMG(I,J,K).NE.0.AND.KEYMG(I,J,K-1).EQ.0)
+     &               BD_NODE = .TRUE.
+                  IF(KEYMG(I,J,K).EQ.0.AND.KEYCRMG(I,J,K).NE.0)
+     &               BD_NODE = .TRUE.
+                  IF(BD_NODE) THEN
+                     ERMG(L,I,J,K)=0.d0
+                     EDMG(L1,I,J,K) = 0.D0
+                     EDMG(L2,I,J,K) = 0.D0
+                     DO M = 1,NOFF2D
+                        EBMG(K1,M,I,J,K) = 0.D0
+                        EBMG(K1+3,M,I,J,K) = 0.D0
+                        EBMG(K1+6,M,I,J,K) = 0.D0
+                     ENDDO
+                     IF(J+1.LE.JDMG) THEN
+                        EBMG(M1,4,I,J+1,K) = 0.D0
+                        EBMG(M1+1,4,I,J+1,K) = 0.D0
+                        EBMG(M1+2,4,I,J+1,K) = 0.D0
+                     ENDIF
+                     IF(K+1.LE.KDMG) THEN
+                        EBMG(M1,2,I,J,K+1) = 0.D0
+                        EBMG(M1+1,2,I,J,K+1) = 0.D0
+                        EBMG(M1+2,2,I,J,K+1) = 0.D0
+                        IF(J-1.GT.0) THEN
+                           EBMG(M1,3,I,J-1,K+1) = 0.D0
+                           EBMG(M1+1,3,I,J-1,K+1) = 0.D0
+                           EBMG(M1+2,3,I,J-1,K+1) = 0.D0
+                        ENDIF
+                        IF(J+1.LE.JDMG) THEN
+                           EBMG(M1,1,I,J+1,K+1) = 0.D0
+                           EBMG(M1+1,1,I,J+1,K+1) = 0.D0
+                           EBMG(M1+2,1,I,J+1,K+1) = 0.D0
+                        ENDIF
+                     ENDIF
+                     GO TO 5
+                  ENDIF
+               ENDDO
+   5           CONTINUE
+            ENDDO
+         ENDIF
+      ENDDO
+
+C +Z SIDE OF RECTANGLE
+
+      DO L = 1,3
+         IF(IBD_FACEMG(6,MGLV,NBLK).AND.
+     &      ITYPE_BOUNDARY(6,L,NBLK).LE.1) THEN
+            L1 = LL(1,L)
+            L2 = LL(2,L)
+            K1 = LL(3,L)
+            M1 = LL(4,L)
+            DO J = JMG1-1,JMG2+1
+               DO  K = KMG2+1,KMG1,-1
+                  BD_NODE = .FALSE.
+                  IF(KEYMG(I,J,K).EQ.0.AND.KEYCRMG(I,J,K).NE.0)
+     &               BD_NODE = .TRUE.
+                  IF(BD_NODE) THEN
+                     ermg(l,i,j,k)=0.d0
+                     EDMG(L1,I,J,K) = 0.D0
+                     EDMG(L2,I,J,K) = 0.D0
+                     DO M = 1,NOFF2D
+                        EBMG(K1,M,I,J,K) = 0.D0
+                        EBMG(K1+3,M,I,J,K) = 0.D0
+                        EBMG(K1+6,M,I,J,K) = 0.D0
+                     ENDDO
+                     IF(J+1.LE.JDMG) THEN
+                        EBMG(M1,4,I,J+1,K) = 0.D0
+                        EBMG(M1+1,4,I,J+1,K) = 0.D0
+                        EBMG(M1+2,4,I,J+1,K) = 0.D0
+                     ENDIF
+                     GO TO 6
+                  ENDIF
+               ENDDO
+   6           CONTINUE
+            ENDDO
+         ENDIF
+      ENDDO
+
+C ELIMINATE RIGID BODY DISPLACEMENT
+
+      IF(MYPRC.NE.0) GO TO 7
+      I=IMG1
+      IF(IZEROG(2).LT.0.D0) THEN
+         JJ = 0
+         KK = 0
+         LOOP1 : DO J=JMG1,JMG2+1
+            DO K=KMG1,KMG2+1
+               IF(KEYCRMG(I,J,K).GT.0.AND.EDMG(1,I,J,K).GT.0.D0) THEN
+                  EDMG(2,I,J,K)=0.D0
+                  EDMG(5,I,J,K)=0.D0
+                  DO M=1,NOFF2D
+                     EBMG(2,M,I,J,K)=0.D0
+                     EBMG(5,M,I,J,K)=0.D0
+                     EBMG(8,M,I,J,K)=0.D0	
+                  ENDDO
+                  IF(J+1.LE.JDMG.AND.K+1.LE.KDMG) THEN
+                     EBMG(4,1,I,J+1,K+1)=0.D0
+                     EBMG(5,1,I,J+1,K+1)=0.D0
+                     EBMG(6,1,I,J+1,K+1)=0.D0
+                  ENDIF
+                  IF(K+1.LE.KDMG) THEN
+                     EBMG(4,2,I,J,K+1)=0.D0
+                     EBMG(5,2,I,J,K+1)=0.D0
+                     EBMG(6,2,I,J,K+1)=0.D0
+                  ENDIF
+                  IF(J-1.GT.0.AND.K+1.LE.KDMG) THEN
+                     EBMG(4,3,I,J-1,K+1)=0.D0
+                     EBMG(5,3,I,J-1,K+1)=0.D0
+                     EBMG(6,3,I,J-1,K+1)=0.D0
+                  ENDIF
+                  IF(J+1.LE.JDMG) THEN
+                     EBMG(4,4,I,J+1,K)=0.D0
+                     EBMG(5,4,I,J+1,K)=0.D0
+                     EBMG(6,4,I,J+1,K)=0.D0
+                  ENDIF
+                  EXIT LOOP1                  
+               ENDIF
+            ENDDO
+         ENDDO LOOP1
+      ENDIF
+ 
+      IF(IZEROG(3).LT.0.D0) THEN
+         JJ=0
+         KK=0
+         LOOP2 : DO K = KMG1,KMG2+1
+            DO J=JMG1,JMG2+1
+               IF(KEYCRMG(I,J,K).GT.0.AND.EDMG(1,I,J,K).GT.0.D0) THEN
+                  EDMG(3,I,J,K)=0.D0
+                  EDMG(5,I,J,K)=0.D0
+                  DO M=1,NOFF2D
+                     EBMG(3,M,I,J,K)=0.D0
+                     EBMG(6,M,I,J,K)=0.D0
+                     EBMG(9,M,I,J,K)=0.D0
+                  ENDDO
+                  IF(J+1.LE.JDMG.AND.K+1.LE.KDMG) THEN
+                     EBMG(7,1,I,J+1,K+1)=0.D0
+                     EBMG(8,1,I,J+1,K+1)=0.D0
+                     EBMG(9,1,I,J+1,K+1)=0.D0
+                  ENDIF
+                  IF(K+1.LE.KDMG) THEN
+                     EBMG(7,2,I,J,K+1)=0.D0
+                     EBMG(8,2,I,J,K+1)=0.D0
+                     EBMG(9,2,I,J,K+1)=0.D0
+                  ENDIF
+                  IF(J-1.GT.0.AND.K+1.LE.KDMG) THEN
+                     EBMG(7,3,I,J-1,K+1)=0.D0
+                     EBMG(8,3,I,J-1,K+1)=0.D0
+                     EBMG(9,3,I,J-1,K+1)=0.D0
+                  ENDIF
+                  IF(J+1.LE.JDMG) THEN
+                     EBMG(7,4,I,J+1,K)=0.D0
+                     EBMG(8,4,I,J+1,K)=0.D0
+                     EBMG(9,4,I,J+1,K)=0.D0
+                  ENDIF
+                  JJ=J
+                  KK=K
+                  EXIT LOOP2
+               ENDIF
+            ENDDO
+         ENDDO LOOP2
+ 
+         IF(IZEROG(2).LT.0.D0) THEN
+            LOOP3 : DO K=KMG1,KMG2+1
+               DO J = JMG2+1,JMG1,-1
+                  IF(KEYCRMG(I,J,K).GT.0.AND.EDMG(1,I,J,K).GT.0.D0.AND.
+     &               (J.NE.JJ.OR.K.NE.KK)) THEN
+                     EDMG(3,I,J,K)=0.D0
+                     EDMG(5,I,J,K)=0.D0
+                     DO M=1,NOFF2D
+                        EBMG(3,M,I,J,K)=0.D0
+                        EBMG(6,M,I,J,K)=0.D0
+                        EBMG(9,M,I,J,K)=0.D0
+                     ENDDO
+                     IF(J+1.LE.JDMG.AND.K+1.LE.KDMG) THEN
+                        EBMG(7,1,I,J+1,K+1)=0.D0
+                        EBMG(8,1,I,J+1,K+1)=0.D0
+                        EBMG(9,1,I,J+1,K+1)=0.D0
+                     ENDIF
+                     IF(K+1.LE.KDMG) THEN
+                        EBMG(7,2,I,J,K+1)=0.D0
+                        EBMG(8,2,I,J,K+1)=0.D0
+                        EBMG(9,2,I,J,K+1)=0.D0
+                     ENDIF
+                     IF(J-1.GT.0.AND.K+1.LE.KDMG) THEN
+                        EBMG(7,3,I,J-1,K+1)=0.D0
+                        EBMG(8,3,I,J-1,K+1)=0.D0
+                        EBMG(9,3,I,J-1,K+1)=0.D0
+                     ENDIF
+                     IF(J+1.LE.JDMG) THEN
+                        EBMG(7,4,I,J+1,K)=0.D0
+                        EBMG(8,4,I,J+1,K)=0.D0
+                        EBMG(9,4,I,J+1,K)=0.D0
+                     ENDIF
+                     EXIT LOOP3
+                  ENDIF
+               ENDDO
+            ENDDO LOOP3
+         ENDIF
+      ENDIF      
+      
+  7   CONTINUE
+      END
+C***********************************************************************
+      SUBROUTINE PEMGW_DISP_ZERO(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+     &           JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,EZNMG,
+     &           EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C***********************************************************************
+C Enforce zero displacement boundary conditions for a 2D coarse grid matrix
+C Modify residuals, ERMG. This is a PEWORKMG3 routine.
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'pebdary.h'
+      INCLUDE 'pemulgrd.h'
+
+      INTEGER MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,
+     &        KEYMG(IDMG,JDMG,KDMG),     KEYCRMG(IDMG,JDMG,KDMG)
+      LOGICAL EZNMG(IDMG,JDMG,KDMG)
+      REAL*8  EMDMG(IDMG,JDMG,KDMG),     EPSMG(IDMG,JDMG,KDMG),
+     &        EDMG(6,IDMG,JDMG,KDMG),    EBMG(9,4,IDMG,JDMG,KDMG),
+     &        ERMG(3,IDMG,JDMG,KDMG),    EUNKMG(3,IDMG,JDMG,KDMG) 
+      REAL*8  DXMG(IDMG),DYMG(JDMG),DZMG(KDMG) 
+      INTEGER I,J,K,L,M
+      LOGICAL BD_NODE
+
+C SET UP ZERO DISPLACEMENT BOUNDARY CONDITIONS
+C -Y SIDE OF RECTANBLE
+
+      N1P=IDMG
+      N12P=N1P*JDMG
+
+      IC=IMG1
+      DO L = 1,3
+         IF(IBD_FACEMG(3,MGLV,NBLK).AND.
+     &       ITYPE_BOUNDARY(3,L,NBLK).LE.1) THEN
+            DO KC = KMG1-1,KMG2 + 1
+               DO JC=JMG1,JMG2
+                  BD_NODE=.FALSE.
+                  IF(KEYMG(IC,JC,KC).NE.0.AND.KEYMG(IC,JC-1,KC).EQ.0)
+     &               BD_NODE = .TRUE.
+                  IF(KEYMG(IC,JC,KC).EQ.0.AND.KEYCRMG(IC,JC,KC).NE.0)
+     &               BD_NODE = .TRUE.
+                  IF(BD_NODE) THEN
+                     ERMG(L,IC,JC,KC) = 0.D0
+                     GO TO 3
+                  ENDIF
+               ENDDO
+   3           CONTINUE
+            ENDDO
+         ENDIF
+      ENDDO
+
+C +Y SIDE OF RECTANGLE
+
+      DO L = 1,3
+        IF(IBD_FACEMG(4,MGLV,NBLK).AND.
+     &      ITYPE_BOUNDARY(4,L,NBLK).LE.1) THEN
+            DO KC = KMG1-1,KMG2 + 1
+               DO JC = JMG2+1,JMG1,-1
+                  BD_NODE = .FALSE.
+                  IF(KEYMG(IC,JC,KC).EQ.0.AND.KEYCRMG(IC,JC,KC).NE.0)
+     &               BD_NODE = .TRUE.
+                  IF(BD_NODE) THEN
+                     ERMG(L,IC,JC,KC) = 0.D0
+                     GO TO 4
+                  ENDIF
+               ENDDO
+   4           CONTINUE
+            ENDDO
+        ENDIF
+      ENDDO
+
+C SET UP -Z SIDE OF RECTANGLE
+
+      DO L = 1,3
+        IF(IBD_FACEMG(5,MGLV,NBLK).AND.
+     &      ITYPE_BOUNDARY(5,L,NBLK).LE.1) THEN
+            DO JC = JMG1-1,JMG2+1
+               DO KC = KMG1,KMG2
+                  BD_NODE = .FALSE.
+                  IF(KEYMG(IC,JC,KC).NE.0.AND.KEYMG(IC,JC,KC-1).EQ.0)
+     &               BD_NODE = .TRUE.
+                  IF(KEYMG(IC,JC,KC).EQ.0.AND.KEYCRMG(IC,JC,KC).NE.0)
+     &               BD_NODE = .TRUE.
+                  IF(BD_NODE) THEN
+                     ERMG(L,IC,JC,KC) = 0.D0
+                     GO TO 5
+                  ENDIF
+               ENDDO
+   5           CONTINUE
+            ENDDO
+        ENDIF
+      ENDDO
+
+C SETUP +Z SIDE OF RECTANGLE
+
+      DO L = 1,3
+        IF(IBD_FACEMG(6,MGLV,NBLK).AND.
+     &     ITYPE_BOUNDARY(6,L,NBLK).LE.1) THEN
+            DO JC = JMG1-1,JMG2+1
+               DO KC = KMG2+1,KMG1,-1
+                  BD_NODE = .FALSE.
+                  IF(KEYMG(IC,JC,KC).EQ.0.AND.KEYCRMG(IC,JC,KC).NE.0)
+     &               BD_NODE = .TRUE.
+                  IF(BD_NODE) THEN
+                     ERMG(L,IC,JC,KC)=0.D0
+                     GO TO 6
+                  ENDIF
+               ENDDO
+   6           CONTINUE
+            ENDDO
+        ENDIF
+      ENDDO
+
+      
+C ELIMINATE RIGID BODY DISPLACEMENT
+
+      IF(MYPRC.NE.0) GO TO 7
+      I=IMG1
+      IF(IZEROG(2).LT.0.D0) THEN
+         LOOP1 : DO J=JMG1,JMG2+1
+            DO K=KMG1,KMG2+1
+               IF(KEYCRMG(I,J,K).GT.0.AND.EDMG(1,I,J,K).GT.0.D0) THEN
+                  ERMG(2,I,J,K)=0.D0
+                  EXIT LOOP1
+               ENDIF
+            ENDDO
+         ENDDO LOOP1
+      ENDIF
+      IF(IZEROG(3).LT.0.D0) THEN
+         JJ=0
+         KK=0
+         LOOP2 : DO K = KMG1,KMG2+1
+            DO J=JMG1,JMG2+1
+               IF(KEYCRMG(I,J,K).GT.0.AND.EDMG(1,I,J,K).GT.0.D0) THEN
+                  ERMG(3,I,J,K)=0.D0
+                  JJ=J
+                  KK=K
+                  EXIT LOOP2
+               ENDIF
+            ENDDO
+         ENDDO LOOP2
+
+         IF(IZEROG(3).LT.0.D0) THEN
+            LOOP3 : DO K=KMG1,KMG2+1
+               DO J = JMG2+1,JMG1,-1
+                  IF(KEYCRMG(I,J,K).GT.0.AND.EDMG(1,I,J,K).GT.0.D0.AND.
+     &               (J.NE.JJ.OR.K.NE.KK)) THEN
+                     ERMG(3,I,J,K)=0.D0
+                     EXIT LOOP3
+                  ENDIF
+               ENDDO
+            ENDDO LOOP3
+         ENDIF
+      ENDIF
+
+  7   CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE PEMGW_RELAX2D0(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+     &           JL2V,KL1,KL2,KEYOUT,NBLK,KEYCR2D,BCOF2D,DCOF2D,
+     &           R2D,X2D)
+C***********************************************************************
+C Perform one sweep of RB Gauss-seidel relaxation on the 2D grid
+C This is a PEWORKMG0 routine.
+C
+C INPUT:
+C   KEYCR2D(GJ) = KEYOUT VALUES FOR CORNERS POINTS ON THE 2D GRID
+C   BCOF2D(M,L,GJ) = OFF DIAGONAL COEF. OF THE 2D GRID MATRIX
+C   DCOF2D(L,GJ) = DIAGONAL COEF. OF THE 2D GRID MATRIX
+C   R2D(GJ,L) = RHS OF THE LINEAR SYSTEM ON THE 2D GRID
+C   X2D(GJ,K) = UNKNOWN VALUES ON THE 2D GRID BEFORE RELAXATION
+C
+C OUTPUT: 
+C   X2D(GJ,L) = UNKNOWN VALUES ON THE 2D GRID AFTER RELAXATION
+C***********************************************************************
+
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,
+     &        JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &        KEYCR2D(*)
+      LOGICAL ZNODE(IDIM*JDIM*KDIM)
+      REAL*8  BCOF2D(4,9,*),             DCOF2D(6,*),
+     &        R2D(JDIM*KDIM,3),          X2D(JDIM*KDIM,3)
+      
+      REAL*8  DX(3,JDIM,KDIM),R(3),C(6),DUB1,DUB2,DUB3,DUB
+      INTEGER J,K,GI,GJ,N1P,N12P,NB,ND,NEQ,IOFF,JOFF,KOFF,
+     &        NOFF2D,ID(3,3),IB(3,3),IOFF2D(4)
+      DATA ID/1,2,3,2,4,5,3,5,6/,IB/1,4,7,2,5,8,3,6,9/
+
+      MEQ=PE_MEQ
+      NOFF2D=4
+      N1P=JDIM
+      N12P=N1P*KDIM
+      IOFF2D(1)=N1P+1
+      IOFF2D(2)=N1P
+      IOFF2D(3)=N1P-1
+      IOFF2D(4)=1
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+      DO K=1,KDIM 
+         DO J=1,JDIM 
+            DX(1,J,K)=0.D0
+            DX(2,J,K)=0.D0
+            DX(3,J,K)=0.D0
+         ENDDO
+      ENDDO
+    
+      KOF=(KL1-2)*N1P    
+      DO I3=KL1,KL2+1  
+         JL1=JL1V(I3)
+         JL2=JL2V(I3)
+         KK=I3+KOFF
+         KOF=KOF+N1P
+         I=KOF+JL1-1
+         DO I2=JL1,JL2+1    
+            JJ=I2+JOFF
+            I=I+1
+            IF(MOD(JJ,2).NE.KRBJ.OR.MOD(KK,2).NE.KRBK) CYCLE
+            IF(KEYCR2D(I).LE.0.OR.DCOF2D(1,I).EQ.0.D0) CYCLE
+            R(1)=R2D(I,1)
+            R(2)=R2D(I,2)
+            R(3)=R2D(I,3)
+            IF(DCOF2D(1,I).GT.0.D0) THEN
+               DO L=1,MEQ
+                  DO M=1,MEQ
+                     R(L)=R(L)-DCOF2D(ID(M,L),I)*X2D(I,M)
+                  ENDDO
+               ENDDO
+            ENDIF
+
+            DO K=1,NOFF2D
+               J=I-IOFF2D(K)
+               IF(J.GT.0.AND.KEYCR2D(J).NE.0.AND.
+     &            DCOF2D(1,J).NE.0.D0) THEN
+                  DO L=1,MEQ
+                     DO M=1,MEQ
+                        R(L)=R(L)-BCOF2D(K,IB(M,L),I)*X2D(J,M)
+                     ENDDO
+                  ENDDO
+               ENDIF
+               J=I+IOFF2D(K)
+               IF(J.LE.N12P.AND.KEYCR2D(J).NE.0.AND.
+     &            DCOF2D(1,J).NE.0.D0) THEN
+                  DO L=1,MEQ
+                     DO M=1,MEQ
+                        R(L)=R(L)-BCOF2D(K,IB(L,M),J)*X2D(J,M)
+                     ENDDO
+                  ENDDO
+               ENDIF
+            ENDDO
+
+            DUB1=DCOF2D(4,I)*DCOF2D(6,I)-DCOF2D(5,I)*DCOF2D(5,I)
+            DUB2=DCOF2D(3,I)*DCOF2D(5,I)-DCOF2D(2,I)*DCOF2D(6,I)
+            DUB3=DCOF2D(2,I)*DCOF2D(5,I)-DCOF2D(3,I)*DCOF2D(4,I)
+            DUB=DCOF2D(1,I)*DUB1+DCOF2D(2,I)*DUB2+DCOF2D(3,I)*DUB3
+            C(1)=DUB1/DUB
+            C(2)=DUB2/DUB
+            C(3)=DUB3/DUB
+            C(4)=(DCOF2D(1,I)*DCOF2D(6,I)-DCOF2D(3,I)*DCOF2D(3,I))/DUB
+            C(5)=(DCOF2D(3,I)*DCOF2D(2,I)-DCOF2D(5,I)*DCOF2D(1,I))/DUB
+            C(6)=(DCOF2D(1,I)*DCOF2D(4,I)-DCOF2D(2,I)*DCOF2D(2,I))/DUB
+            DO L=1,MEQ
+               DO M=1,MEQ
+                  DX(L,I2,I3)=DX(L,I2,I3)+C(ID(M,L))*R(M)
+               ENDDO
+            ENDDO
+            X2D(I,1)=X2D(I,1)+DX(1,I2,I3)
+            X2D(I,2)=X2D(I,2)+DX(2,I2,I3)
+            X2D(I,3)=X2D(I,3)+DX(3,I2,I3)
+         ENDDO
+      ENDDO
+
+      END
+C***********************************************************************
+      SUBROUTINE PEMGW_RELAX2D(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+     &              JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,
+     &              EZNMG,EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C***********************************************************************
+C Perform one sweep of RB Gauss-Seidel relaxation on a 2D coarse grid.
+C This is a PEWORKMG3 routine.
+C
+C INPUT:
+C   KEYMG(GJ) = KEYOUT VALUES FOR CORNERS POINTS ON A 2D COARSE GRID
+C   EBMG(L,M,GJ) = OFF DIAGONAL COEF. OF A 2D COARSE GRID MATRIX
+C   EDMG(L,GJ) = DIAGONAL COEF. OF A 2D COARSE GRID MATRIX
+C   ERMG(L,GJ) = RHS OF THE LINEAR SYSTEM ON A 2D COARSE GRID
+C   EUNKMG(L,GJ) = UNKNOWN VALUES ON A 2D COARSE GRID BEFORE RELAXATION
+C
+C OUTPUT:
+C   EUNKMG(L,GJ) = UNKNOWN VALUES ON A 2D COARSE GRID AFTER RELAXATION
+C***********************************************************************
+      INCLUDE 'control.h'
+
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,
+     &        KEYMG(*), KEYCRMG(*)
+      LOGICAL EZNMG(*)
+      REAL*8  DXMG(IDMG),DYMG(JDMG),DZMG(KDMG),
+     &        EMDMG(*),EPSMG(*),EBMG(9,4,*),EDMG(6,*),
+     &        ERMG(3,IDMG*JDMG*KDMG),EUNKMG(3,IDMG*JDMG*KDMG)
+
+      REAL*8  DX(3,JDMG,KDMG),R(3),C(6)
+      REAL*8  DUB,DUB1,DUB2,DUB3
+      INTEGER I,J,K,L,GI,GJ,IOFF,JOFF,KOFF,KERR,NOFF,JOF,KOF
+      INTEGER JJ,KK,JL1,JL2,N1P,N12P,NT,NOFF2D,IOFF2D(4)
+      INTEGER LC,MEQ,ID(3,3),IB(3,3),IM
+      DATA ID/1,2,3,2,4,5,3,5,6/,IB/1,4,7,2,5,8,3,6,9/
+
+      MEQ=PE_MEQ
+      NOFF2D=4
+      N1P=IDMG
+      N12P=IDMG*JDMG
+      NT=N12P*KDMG
+      IOFF2D(1)=N12P+N1P
+      IOFF2D(2)=N12P
+      IOFF2D(3)=N12P-N1P
+      IOFF2D(4)=N1P
+      JOFF=PEJOFFMG(MGLV,NBLK)
+      KOFF=PEKOFFMG(MGLV,NBLK)
+ 
+      DO K=1,KDMG
+         DO J=1,JDMG
+            DX(1,J,K)=0.D0
+            DX(2,J,K)=0.D0
+            DX(3,J,K)=0.D0
+         ENDDO
+      ENDDO
+
+      I1=IMG1
+      KOF=(KMG1-2)*N12P
+      DO I3=KMG1,KMG2+1
+         KK=I3+KOFF
+         KOF=KOF+N12P
+         I=KOF+IMG1+(JMG1-2)*N1P
+         DO I2=JMG1,JMG2+1
+            JJ=I2+JOFF
+            I=I+N1P
+            IF(MOD(JJ,2).NE.KRBJ.OR.MOD(KK,2).NE.KRBK) CYCLE
+            IF(KEYCRMG(I).EQ.0.OR.EZNMG(I)) CYCLE
+            R(1)=ERMG(1,I)
+            R(2)=ERMG(2,I)
+            R(3)=ERMG(3,I)
+            IF(EDMG(1,I).GT.0.D0) THEN
+               DO L=1,MEQ
+                  DO M=1,MEQ
+                     R(L)=R(L)-EDMG(ID(M,L),I)*EUNKMG(M,I) 
+                  ENDDO
+               ENDDO
+            ENDIF
+            IF(EDMG(1,I).NE.0.D0) THEN
+               DO K=1,NOFF2D
+                  J=I-IOFF2D(K)
+                  IF(J.GT.0.AND.KEYCRMG(J).NE.0.AND..NOT.EZNMG(J)) THEN
+                     DO L=1,MEQ
+                        DO M=1,MEQ
+                           R(L)=R(L)-EBMG(IB(M,L),K,I)*EUNKMG(M,J)
+                        ENDDO
+                     ENDDO
+                  ENDIF
+                  J=I+IOFF2D(K)
+                  IF(J.LE.NT.AND.KEYCRMG(J).NE.0.AND..NOT.EZNMG(J)) THEN
+                     DO L=1,MEQ
+                        DO M=1,MEQ
+                           R(L)=R(L)-EBMG(IB(L,M),K,J)*EUNKMG(M,J)
+                        ENDDO
+                     ENDDO
+                  ENDIF
+               ENDDO
+               DUB1=EDMG(4,I)*EDMG(6,I)-EDMG(5,I)*EDMG(5,I)
+               DUB2=EDMG(3,I)*EDMG(5,I)-EDMG(2,I)*EDMG(6,I)
+               DUB3=EDMG(2,I)*EDMG(5,I)-EDMG(3,I)*EDMG(4,I)
+               DUB=EDMG(1,I)*DUB1+EDMG(2,I)*DUB2+EDMG(3,I)*DUB3
+               C(1)=DUB1/DUB
+               C(2)=DUB2/DUB
+               C(3)=DUB3/DUB
+               C(4)=(EDMG(1,I)*EDMG(6,I)-EDMG(3,I)*EDMG(3,I))/DUB
+               C(5)=(EDMG(3,I)*EDMG(2,I)-EDMG(5,I)*EDMG(1,I))/DUB
+               C(6)=(EDMG(1,I)*EDMG(4,I)-EDMG(2,I)*EDMG(2,I))/DUB
+               DO L=1,MEQ
+                  DO M=1,MEQ
+                     DX(L,I2,I3)=DX(L,I2,I3)+C(ID(M,L))*R(M)
+                  ENDDO
+               ENDDO
+            ELSE
+               DX(1,I2,I3)=0.D0
+               DX(2,I2,I3)=0.D0
+               DX(3,I2,I3)=0.D0
+            ENDIF
+            EUNKMG(1,I)=EUNKMG(1,I)+DX(1,I2,I3)
+            EUNKMG(2,I)=EUNKMG(2,I)+DX(2,I2,I3)
+            EUNKMG(3,I)=EUNKMG(3,I)+DX(3,I2,I3)
+         ENDDO
+      ENDDO         
+
+      END
+
+C*********************************************************************
+      SUBROUTINE PEMGW_COARSEN0_FW2D(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+     &           JL2V,KL1,KL2,KEYOUT,NBLK,KEYCR2D,BCOF2D,DCOF2D,R2D,
+     &           X2D,KEYCR,ZNODE,AB,AD,R1,X)
+C***********************************************************************
+C Coarsen residuals from a 3D grid to a 2D grid.
+C This is a PEWORKMG0 routine.
+C
+C INPUT:
+C   KEYCR(GJ) = KEYOUT VALUES FOR CORNER POINTS ON A 3D GRID
+C   ZNODE(GJ) = FLAG OF TURNING ON/OFF ELASTIC CALCULATION ON A NODE
+C               OF 3D GRID
+C   AB(L,M,GJ) = OFF DIAGONAL COEF. OF A 3D GRID MATRIX
+C   AD(L,GJ) = DIAGONAL COEF. OF A 3D GRID MATRIX
+C   R1(GJ,L) = RHS OF THE LINEAR SYSTEM ON A 3D GRID
+C   X(GJ,L) = UNKNOWN VALUES ON A 3D GRID
+C
+C OUTPUT:
+C   R2D(J,K,L) = RHS OF THE LINEAR SYSTEM ON THE 2D GRID
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pebdary.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,
+     &        JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM*JDIM*KDIM),
+     &        KEYCR(IDIM*JDIM*KDIM), KEYCR2D(JDIM,KDIM)
+      LOGICAL ZNODE(IDIM*JDIM*KDIM)
+      REAL*8  BCOF2D(4,9,*),             DCOF2D(6,*),
+     &        R2D(JDIM,KDIM,3),          X2D(JDIM,KDIM,3),
+     &        AB(9,13,*),                AD(6,*),
+     &        R1(IDIM*JDIM*KDIM,3),      X(IDIM*JDIM*KDIM,3)
+
+      REAL*8  R(3,IDIM*JDIM*KDIM)
+      INTEGER I,J,L,MEQ,N1P,N12P,N123P,ID(3,3),IB(3,3),GI,GJ
+      DATA    ID/1,2,3, 2,4,5, 3,5,6/    
+      DATA    IB/1,4,7, 2,5,8, 3,6,9/    
+
+      MEQ=PE_MEQ
+      NOFF=NDIM_BEFORE
+
+      N1P=IDIM
+      N12P=N1P*JDIM
+      N123P=N12P*KDIM
+
+      DO J=1,N123P
+         IF(KEYCR(J).GT.0) THEN
+            R(1,J)=R1(J,1)
+            R(2,J)=R1(J,2)
+            R(3,J)=R1(J,3)
+         ELSE
+            R(1,J)=0.D0
+            R(2,J)=0.D0
+            R(3,J)=0.D0
+         ENDIF
+      ENDDO
+
+c     DO I3 = KL1,KL2+1
+c        JL1=JL1V(I3)
+c        JL2=JL2V(I3)
+c        DO I2=JL1,JL2+1
+c           X2D(I2,I3,1)=0.D0
+c           X2D(I2,I3,2)=0.D0
+c           X2D(I2,I3,3)=0.D0
+c        ENDDO
+c     ENDDO
+
+      DO I3 = 1,KDIM       
+         DO I2=1,JDIM       
+            X2D(I2,I3,1)=0.D0
+            X2D(I2,I3,2)=0.D0
+            X2D(I2,I3,3)=0.D0
+         ENDDO
+      ENDDO
+
+C CALCULATE RESIDUAL R=R1-A*X
+
+c     KOF = (KL1 - 2) * N12P
+c     DO I3 = KL1,KL2+1
+c        JL1=JL1V(I3)
+c        JL2=JL2V(I3)
+c        KOF = KOF + N12P
+c        JOF = KOF + (JL1 - 2) * N1P
+c        DO I2 = JL1,JL2 + 1
+c           JOF = JOF + N1P
+c           I = JOF + IL1 - 1
+c           DO I1 = IL1, IL2 + 1
+c              I = I + 1
+c              IF(KEYCR(I).LE.0.OR.AD(1,I).LE.0.D0) CYCLE
+c              DO L=1,MEQ
+c                 DO M=1,MEQ
+c                    R(L,I)=R(L,I)-AD(ID(M,L),I)*X(I,M)
+c                 ENDDO
+c              ENDDO
+c           ENDDO
+c        ENDDO
+c     ENDDO
+c 
+c     KOF = (KL1 - 3) * N12P
+c     DO I3 = KL1-1,KL2+1
+c        IF(I3.EQ.KL1-1) THEN
+c           JL1=JL1V(KL1-1)
+c           JL2=JL2V(KL1-1)
+c        ELSE IF(I3.EQ.KL2+1) THEN
+c           JL1=JL1V(KL2)
+c           JL2=JL2V(KL2)
+c        ELSE
+c           JL1=MIN(JL1V(I3),JL1V(I3-1),JL1V(I3+1))
+c           JL2=MAX(JL2V(I3),JL2V(I3-1),JL2V(I3+1))
+c        ENDIF
+c        KOF = KOF + N12P
+c        JOF = KOF + (JL1 - 3) * N1P
+c        DO I2 = JL1-1,JL2 + 1
+c           JOF = JOF + N1P
+c           I = JOF + IL1 - 1
+c           DO I1 = IL1, IL2 + 1
+c              I = I + 1
+c              IF(KEYCR(I).EQ.0.OR.ZNODE(I)) CYCLE
+c              DO K=1,NOFF
+c                 J=I-IOFFSET(K,NBLK)
+c                 IF(J.LE.0.OR.KEYCR(J).EQ.0.OR.ZNODE(J)) CYCLE
+c                 IF(KEYCR(I).GT.0) THEN
+c                    DO L=1,MEQ
+c                       DO M=1,MEQ
+c                          R(L,I)=R(L,I)-AB(IB(M,L),K,I)*X(J,M)
+c                       ENDDO
+c                    ENDDO
+c                 ENDIF
+c                 IF(KEYCR(J).GT.0) THEN
+c                    DO L=1,MEQ
+c                       DO M=1,MEQ
+c                          R(L,J)=R(L,J)-AB(IB(L,M),K,I)*X(I,M)
+c                       ENDDO
+c                    ENDDO
+c                 ENDIF
+c              ENDDO
+c           ENDDO
+c        ENDDO
+c     ENDDO
+c
+C SUM OVER COLUMNS
+
+      DO I3=1,KDIM
+         DO I2=1,JDIM
+            R2D(I2,I3,1)=0.D0
+            R2D(I2,I3,2)=0.D0
+            R2D(I2,I3,3)=0.D0
+         ENDDO
+      ENDDO
+
+      KOF=(KL1-2)*N12P
+      DO I3=KL1,KL2+1
+         JL1=JL1V(I3)
+         JL2=JL2V(I3)
+         KOF=KOF+N12P
+         JOF=KOF+(JL1-2)*N1P
+         DO I2=JL1,JL2+1
+            JOF=JOF+N1P
+            I=JOF+IL1-1
+            DO I1=IL1,IL2+1
+               I=I+1
+               IF(KEYCR(I).LE.0.OR.ZNODE(I)) CYCLE
+               R2D(I2,I3,1)=R2D(I2,I3,1)+R(1,I)
+               R2D(I2,I3,2)=R2D(I2,I3,2)+R(2,I)
+               R2D(I2,I3,3)=R2D(I2,I3,3)+R(3,I)
+            ENDDO
+         ENDDO
+      ENDDO
+
+C NEED SETUP ZERO DISPLACEMENT BOUNDARY CONDITIONS
+C ELIMINATE RIGID BODY DISPLACEMENT
+
+      IF(MYPRC.NE.0) GO TO 7
+      IF(IZEROG(2).LT.0.D0) THEN
+         LOOP1 : DO J=1,JDIM
+            DO K=KL1,KL2+1
+               DO I=IL1,IL2+1
+                  GI=(K-1)*IDIM*JDIM+(J-1)*IDIM+I
+                  IF(KEYCR(GI).GT.0.AND.AD(1,GI).GT.0.D0) THEN
+                     R2D(J,K,2)=0.D0
+                     EXIT LOOP1
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDDO LOOP1
+      ENDIF
+      IF(IZEROG(3).LT.0.D0) THEN
+         JJ=0
+         KK=0
+         LOOP2 : DO K = KL1,KL2+1
+            DO J = 1,JDIM
+               DO I=IL1,IL2
+                  GI=(K-1)*IDIM*JDIM+(J-1)*IDIM+I
+                  IF(KEYCR(GI).GT.0.AND.AD(1,GI).GT.0.D0) THEN
+                     R2D(J,K,3)=0.D0
+                     JJ=J
+                     KK=K
+                     EXIT LOOP2
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDDO LOOP2
+ 
+         IF(IZEROG(2).LT.0.D0) THEN
+            LOOP3 : DO K=KL1,KL2+1
+               DO J = JL2V(K)+1,JL1V(K),-1
+                  DO I=IL1,IL2+1
+                     GI=(K-1)*IDIM*JDIM+(J-1)*IDIM+I
+                     IF(KEYCR(GI).GT.0.AND.AD(1,GI).GT.0.D0.AND.
+     &               (J.NE.JJ.OR.K.NE.KK)) THEN
+                        R2D(J,K,3)=0.D0
+                        EXIT LOOP3
+                     ENDIF
+                  ENDDO
+               ENDDO
+            ENDDO LOOP3
+         ENDIF
+      ENDIF
+ 
+   7  CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE PEMGW_COARSEN1_FW2D(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+     &           JL2V,KL1,KL2,KEYOUT,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+     &           JMG1,JMG2,KMG1,KMG2,KEYMG,KEYCRMG,EZNMG,
+     &           EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG,KEYCR2D,BCOF2D,
+     &           DCOF2D,R2D,X2D)
+C***********************************************************************
+C Coarsen from a 2d grid to the 1st level 2d coarse grid
+C This is a PEWORKMG1 routine.
+C
+C INPUT:
+C   KEYCR2D(GJ) = KEYOUT VALUES FOR CORNER POINTS ON THE 2D GRID
+C   BCOF2D(M,L,GJ) = OFF DIAGONAL COEF. OF THE 2D GRID MATRIX
+C   DCOF2D(L,GJ) = DIAGONAL COEF. OF THE 2D GRID MATRIX
+C   R2D(J,K,L) = RHS OF THE LINEAR SYSTEM ON THE 2D GRID
+C   X2D(GJ,L) = UNKNOWN VALUES ON THE 2D GRID
+C
+C OUTPUT:
+C   ERMG(3,IC,JC,KC) = RHS OF THE LINEAR SYSTEM ON THE FIRST LEVEL
+C                      2D COARSE GRID
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pebdary.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,
+     &        JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM*JDIM*KDIM),
+     &        IDMG,JDMG,KDMG,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,
+     &        KEYMG(IDMG,JDMG,KDMG),     KEYCRMG(IDMG,JDMG,KDMG),
+     &        KEYCR2D(JDIM*KDIM)
+      LOGICAL EZNMG(IDMG,JDMG,KDMG),     ZNODE(IDIM*JDIM*KDIM)
+      REAL*8  EMDMG(IDMG,JDMG,KDMG),     EPSMG(IDMG,JDMG,KDMG),
+     &        EBMG(9,4,IDMG,JDMG,KDMG),  EDMG(6,IDMG,JDMG,KDMG),
+     &        ERMG(3,IDMG,JDMG,KDMG),    EUNKMG(3,IDMG,JDMG,KDMG),
+     &        BCOF2D(4,9,*),             DCOF2D(6,*),
+     &        R2D(JDIM,KDIM,3),          X2D(JDIM*KDIM,3)
+
+      REAL*8  DUB
+      INTEGER IC,JC,KC,ICG,JCG,KCG,IFG,JFG,KFG,I,J,L,MEQ,N1P,
+     &        N12P,NT,IOFF,JOFF,KOFF
+      PARAMETER (DUB=6.25D-2)
+
+      MEQ=PE_MEQ
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+      CALL BLKDIM(NBLK,NX,NY,NZ,KERR)
+
+      NX=NX+1      
+      NY=NY+1
+      NZ=NZ+1
+
+C 2D COARSEN
+      
+      DO KC=1,KDMG
+         DO JC=1,JDMG
+            DO IC=1,IDMG
+               ERMG(1,IC,JC,KC)=0.D0
+               ERMG(2,IC,JC,KC)=0.D0
+               ERMG(3,IC,JC,KC)=0.D0
+            ENDDO
+         ENDDO
+      ENDDO
+
+      KCG=KMG1+PEKOFFMG(1,NBLK)-1
+      IF(KCG.LE.0) THEN
+         KC1=KMG1
+      ELSE
+         KC1=KMG1-1
+      ENDIF
+      KCG=KC1+PEKOFFMG(1,NBLK)
+      KFG=KCG*2-1
+      KOF=KFG-KOFF-2
+      JCG=JMG1+PEJOFFMG(1,NBLK)-1
+      IF(JCG.LE.0) THEN
+         JC1=JMG1
+      ELSE
+         JC1=JMG1-1
+      ENDIF
+      JCG=JC1+PEJOFFMG(1,NBLK)
+      JFG=JCG*2-1
+      JOF=JFG-JOFF-2
+
+      IC=IMG1
+      K=KOF
+      DO KC=KC1,KMG2+1
+         K=K+2
+         IF(K+KOFF.GT.NZ) K=K-1
+         IF(K.GT.0.AND.K.LE.KDIM) THEN
+            J=JOF
+            DO JC=JC1,JMG2+1
+               J=J+2
+               IF(J+JOFF.GT.NY) J=J-1
+               IF(KEYCRMG(IC,JC,KC).EQ.0.OR.EZNMG(IC,JC,KC)) GO TO 1
+               IF(J.GT.0.AND.J.LE.JDIM) THEN
+                  ERMG(1,IC,JC,KC)=R2D(J,K,1)*4.D0
+                  ERMG(2,IC,JC,KC)=R2D(J,K,2)*4.D0
+                  ERMG(3,IC,JC,KC)=R2D(J,K,3)*4.D0
+                  IF(J-1.GT.0) THEN
+                     ERMG(1,IC,JC,KC)=ERMG(1,IC,JC,KC)+R2D(J-1,K,1)*2.D0
+                     ERMG(2,IC,JC,KC)=ERMG(2,IC,JC,KC)+R2D(J-1,K,2)*2.D0
+                     ERMG(3,IC,JC,KC)=ERMG(3,IC,JC,KC)+R2D(J-1,K,3)*2.D0
+                  ENDIF
+                  IF(J+1.LE.JDIM) THEN
+                     ERMG(1,IC,JC,KC)=ERMG(1,IC,JC,KC)+R2D(J+1,K,1)*2.D0
+                     ERMG(2,IC,JC,KC)=ERMG(2,IC,JC,KC)+R2D(J+1,K,2)*2.D0
+                     ERMG(3,IC,JC,KC)=ERMG(3,IC,JC,KC)+R2D(J+1,K,3)*2.D0
+                  ENDIF
+                  IF(K-1.GT.0) THEN
+                    ERMG(1,IC,JC,KC)=ERMG(1,IC,JC,KC)+R2D(J,K-1,1)*2.D0
+                    ERMG(2,IC,JC,KC)=ERMG(2,IC,JC,KC)+R2D(J,K-1,2)*2.D0
+                    ERMG(3,IC,JC,KC)=ERMG(3,IC,JC,KC)+R2D(J,K-1,3)*2.D0
+                    IF(J-1.GT.0) THEN
+                       ERMG(1,IC,JC,KC)=ERMG(1,IC,JC,KC)+R2D(J-1,K-1,1)
+                       ERMG(2,IC,JC,KC)=ERMG(2,IC,JC,KC)+R2D(J-1,K-1,2)
+                       ERMG(3,IC,JC,KC)=ERMG(3,IC,JC,KC)+R2D(J-1,K-1,3)
+                    ENDIF
+                    IF(J+1.LE.JDIM) THEN
+                       ERMG(1,IC,JC,KC)=ERMG(1,IC,JC,KC)+R2D(J+1,K-1,1)
+                       ERMG(2,IC,JC,KC)=ERMG(2,IC,JC,KC)+R2D(J+1,K-1,2)
+                       ERMG(3,IC,JC,KC)=ERMG(3,IC,JC,KC)+R2D(J+1,K-1,3)
+                    ENDIF
+                  ENDIF
+                  IF(K+1.LE.KDIM) THEN
+                    ERMG(1,IC,JC,KC)=ERMG(1,IC,JC,KC)+R2D(J,K+1,1)*2.D0
+                    ERMG(2,IC,JC,KC)=ERMG(2,IC,JC,KC)+R2D(J,K+1,2)*2.D0
+                    ERMG(3,IC,JC,KC)=ERMG(3,IC,JC,KC)+R2D(J,K+1,3)*2.D0
+                    IF(J-1.GT.0) THEN
+                       ERMG(1,IC,JC,KC)=ERMG(1,IC,JC,KC)+R2D(J-1,K+1,1)
+                       ERMG(2,IC,JC,KC)=ERMG(2,IC,JC,KC)+R2D(J-1,K+1,2)
+                       ERMG(3,IC,JC,KC)=ERMG(3,IC,JC,KC)+R2D(J-1,K+1,3)
+                    ENDIF
+                    IF(J+1.LE.JDIM) THEN
+                       ERMG(1,IC,JC,KC)=ERMG(1,IC,JC,KC)+R2D(J+1,K+1,1)
+                       ERMG(2,IC,JC,KC)=ERMG(2,IC,JC,KC)+R2D(J+1,K+1,2)
+                       ERMG(3,IC,JC,KC)=ERMG(3,IC,JC,KC)+R2D(J+1,K+1,3)
+                    ENDIF
+                  ENDIF
+                  ERMG(1,IC,JC,KC)=ERMG(1,IC,JC,KC)*DUB
+                  ERMG(2,IC,JC,KC)=ERMG(2,IC,JC,KC)*DUB  
+                  ERMG(3,IC,JC,KC)=ERMG(3,IC,JC,KC)*DUB    
+               ENDIF
+   1           CONTINUE
+            ENDDO
+         ENDIF
+      ENDDO
+
+      END
+C*********************************************************************
+      SUBROUTINE PEMGW_COARSEN2_FW2D(MGLV,NBLK,IDMG,JDMG,KDMG,IDMGC,
+     &           JDMGC,KDMGC,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,IMGC1,IMGC2,
+     &           JMGC1,JMGC2,KMGC1,KMGC2,KEYMG,KEYMGC,KEYCRMG,KEYCRMGC,
+     &           EZNMG,EZNMGC,EMDMG,EMDMGC,EPSMG,EPSMGC,EBMG,EBMGC,
+     &           EDMG,EDMGC,ERMG,ERMGC,EUNKMG,EUNKMGC)
+C*********************************************************************
+C Coarsen from one 2d coarse grid to the next (Full weighting).
+C This is a PEMGWORK2 routine.
+C
+C INPUT:
+C   KEYCRMG(GJ) = KEYOUT VALUES FOR CORNER POINTS ON A 2D COARSE GRID
+C   EZNMG(GJ) = FLAG OF TURNING ON/OFF ELASTIC CALCULATION FOR A NODE
+C   EBMG(L,M,GJ) = OFF DIAGONAL COEF. OF A 2D COARSE GRID MATRIX
+C   EDMG(L,GJ) = DIAGONAL COEF. OF A 2D COARSE GRID MATRIX
+C   ERMG(L,I,J,K) = RHS OF THE LINEAR SYSTEM ON A 2D COARSE GRID
+C   EUNKMG(L,GJ) = UNKNOWN VALUES ON A 2D COARSE GRID
+C
+C OUTPUT:
+C   ERMGC(L,IC,JC,KC) = RHS OF THE LINEAR SYSTEM ON THE NEXT 2D COARSER 
+C                       LEVEL GRID
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+                
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pebdary.h'
+
+      INTEGER MGLV,NBLK,IDMG,JDMG,KDMG,IDMGC,JDMGC,KDMGC,IMG1,IMG2,
+     &        JMG1,JMG2,KMG1,KMG2,IMGC1,IMGC2,JMGC1,JMGC2,KMGC1,KMGC2,
+     &        KEYMG(IDMG*JDMG*KDMG),     KEYMGC(IDMGC,JDMGC,KDMGC),
+     &        KEYCRMG(IDMG*JDMG*KDMG),   KEYCRMGC(IDMGC,JDMGC,KDMGC)
+      LOGICAL EZNMG(IDMG*JDMG*KDMG),     EZNMGC(IDMGC,JDMGC,KDMGC)
+      REAL*8  EMDMG(IDMG,JDMG,KDMG),     EMDMGC(IDMGC,JDMGC,KDMGC),
+     &        EPSMG(IDMG,JDMG,KDMG),     EPSMGC(IDMGC,JDMGC,KDMGC),
+     &        EBMG(9,4,IDMG*JDMG*KDMG),  EBMGC(9,4,IDMGC,JDMGC,KDMGC),
+     &        EDMG(6,IDMG*JDMG*KDMG),    EDMGC(6,IDMGC,JDMGC,KDMGC),
+     &        ERMG(3,IDMG,JDMG,KDMG),    ERMGC(3,IDMGC,JDMGC,KDMGC),
+     &        EUNKMG(3,IDMG*JDMG*KDMG),  EUNKMGC(3,IDMGC,JDMGC,KDMGC)
+
+      INTEGER IC,JC,KC,ICG,JCG,KCG,IFG,JFG,KFG,I,J,K,L,MEQ,IOFF2D(4),
+     &        IOFF,JOFF,KOFF,IOF,JOF,KOF,KC1,JC1,MGLVC,ID(3,3),IB(3,3)
+      REAL*8  DUB,R(3,JDMG,KDMG)
+      DATA    ID/1,2,3, 2,4,5, 3,5,6/
+      DATA    IB/1,4,7, 2,5,8, 3,6,9/
+
+      MEQ=PE_MEQ
+      MGLVC = MGLV+1
+
+      NX=PENXMG(MGLV,NBLK)+1
+      NY=PENYMG(MGLV,NBLK)+1
+      NZ=PENZMG(MGLV,NBLK)+1
+
+      IOFF = PEIOFFMG(MGLV,NBLK)
+      JOFF = PEJOFFMG(MGLV,NBLK)
+      KOFF = PEKOFFMG(MGLV,NBLK)
+
+      N1P=IDMG
+      N12P=IDMG*JDMG
+      NT=N12P*KDMG
+      IOFF2D(1)=N1P+N12P
+      IOFF2D(2)=N12P
+      IOFF2D(3)=N12P-N1P
+      IOFF2D(4)=N1P
+      NOFF2D=4
+
+C CALCULATE RESIDUAL
+
+      I1=IMG1
+      DO I3=1,KDMG
+         DO I2=1,JDMG
+            R(1,I2,I3)=0.D0
+            R(2,I2,I3)=0.D0
+            R(3,I2,I3)=0.D0
+         ENDDO
+      ENDDO
+
+      KOF = (KMG1 - 2) * N12P
+      DO I3 = KMG1,KMG2+1
+         KOF=KOF+N12P
+         I=KOF+IMG1+(JMG1-2)*N1P  
+         DO I2 = JMG1,JMG2 + 1
+            I = I + N1P
+            IF(KEYCRMG(I).LE.0.OR.EZNMG(I)) CYCLE
+            R(1,I2,I3)=ERMG(1,I1,I2,I3)
+            R(2,I2,I3)=ERMG(2,I1,I2,I3)
+            R(3,I2,I3)=ERMG(3,I1,I2,I3)
+            IF(EDMG(1,I).GT.0.D0) THEN
+               DO L=1,MEQ
+                  DO M=1,MEQ
+                     R(L,I2,I3)=R(L,I2,I3)
+     &                         -EDMG(ID(M,L),I)*EUNKMG(M,I)
+                  ENDDO
+               ENDDO
+            ENDIF
+            DO K=1,NOFF2D
+               J=I-IOFF2D(K)
+               IF(J.GT.0.AND.KEYCRMG(J).NE.0.AND..NOT.EZNMG(J)) THEN     
+                  DO L=1,MEQ
+                     DO M=1,MEQ
+                        R(L,I2,I3)=R(L,I2,I3)
+     &                            -EBMG(IB(M,L),K,I)*EUNKMG(M,J)
+                     ENDDO
+                  ENDDO
+               ENDIF
+               J=I+IOFF2D(K)
+               IF(J.LE.NT.AND.KEYCRMG(J).NE.0.AND..NOT.EZNMG(J)) THEN
+                  DO L=1,MEQ
+                     DO M=1,MEQ
+                        R(L,I2,I3)=R(L,I2,I3)
+     &                            -EBMG(IB(L,M),K,J)*EUNKMG(M,J)
+                     ENDDO
+                  ENDDO
+               ENDIF 
+            ENDDO
+         ENDDO
+      ENDDO
+               
+c 2D COARSEN
+
+      DO KC=1,KDMGC
+         DO JC=1,JDMGC
+            DO IC=1,IDMGC
+               ERMGC(1,IC,JC,KC)=0.D0
+               ERMGC(2,IC,JC,KC)=0.D0
+               ERMGC(3,IC,JC,KC)=0.D0
+            ENDDO
+         ENDDO
+      ENDDO
+
+      KCG=KMGC1+PEKOFFMG(MGLVC,NBLK)-1
+      IF(KCG.LE.0) THEN
+         KC1=KMGC1
+      ELSE
+         KC1=KMGC1-1
+      ENDIF
+      KCG=KC1+PEKOFFMG(MGLVC,NBLK)
+      KFG=KCG*2-1
+      KOF=KFG-KOFF-2
+
+      JCG=JMGC1+PEJOFFMG(MGLVC,NBLK)-1
+      IF(JCG.LE.0) THEN
+         JC1=JMGC1
+      ELSE
+         JC1=JMGC1-1
+      ENDIF
+      JCG=JC1+PEJOFFMG(MGLVC,NBLK)
+      JFG=JCG*2-1
+      JOF=JFG-JOFF-2
+
+      IC=IMGC1
+      I=IMG1
+      K=KOF
+      DO KC=KC1,KMGC2+1
+         K=K+2
+         IF(K+KOFF.GT.NZ) K=K-1
+         IF(K.GT.0.AND.K.LE.KDMG) THEN
+            J=JOF
+            DO JC=JC1,JMGC2+1
+               J=J+2
+               IF(J+JOFF.GT.NY) J=J-1
+               IF(KEYCRMGC(IC,JC,KC).EQ.0.OR.EZNMGC(IC,JC,KC)) GO TO 1
+               IF(J.GT.0.AND.J.LE.JDMG) THEN
+                  ERMGC(1,IC,JC,KC)=R(1,J,K)*4.D0
+                  ERMGC(2,IC,JC,KC)=R(2,J,K)*4.D0
+                  ERMGC(3,IC,JC,KC)=R(3,J,K)*4.D0
+                  IF(J-1.GT.0) THEN
+                     ERMGC(1,IC,JC,KC)=ERMGC(1,IC,JC,KC)
+     &                  +R(1,J-1,K)*2.D0
+                     ERMGC(2,IC,JC,KC)=ERMGC(2,IC,JC,KC)
+     &                  +R(2,J-1,K)*2.D0
+                     ERMGC(3,IC,JC,KC)=ERMGC(3,IC,JC,KC)
+     &                  +R(3,J-1,K)*2.D0
+                  ENDIF
+                  IF(J+1.LE.JDMG) THEN
+                     ERMGC(1,IC,JC,KC)=ERMGC(1,IC,JC,KC)
+     &                  +R(1,J+1,K)*2.D0
+                     ERMGC(2,IC,JC,KC)=ERMGC(2,IC,JC,KC)
+     &                  +R(2,J+1,K)*2.D0
+                     ERMGC(3,IC,JC,KC)=ERMGC(3,IC,JC,KC)
+     &                  +R(3,J+1,K)*2.D0
+                  ENDIF
+                  IF(K-1.GT.0) THEN
+                     ERMGC(1,IC,JC,KC)=ERMGC(1,IC,JC,KC)
+     &                  +R(1,J,K-1)*2.D0
+                     ERMGC(2,IC,JC,KC)=ERMGC(2,IC,JC,KC)
+     &                  +R(2,J,K-1)*2.D0
+                     ERMGC(3,IC,JC,KC)=ERMGC(3,IC,JC,KC)
+     &                  +R(3,J,K-1)*2.D0
+                     IF(J-1.GT.0) THEN
+                        ERMGC(1,IC,JC,KC)=ERMGC(1,IC,JC,KC)
+     &                     +R(1,J-1,K-1)
+                        ERMGC(2,IC,JC,KC)=ERMGC(2,IC,JC,KC)
+     &                     +R(2,J-1,K-1)
+                        ERMGC(3,IC,JC,KC)=ERMGC(3,IC,JC,KC)
+     &                     +R(3,J-1,K-1)
+                     ENDIF
+                     IF(J+1.LE.JDMG) THEN
+                        ERMGC(1,IC,JC,KC)=ERMGC(1,IC,JC,KC)
+     &                     +R(1,J+1,K-1)
+                        ERMGC(2,IC,JC,KC)=ERMGC(2,IC,JC,KC)
+     &                     +R(2,J+1,K-1)
+                        ERMGC(3,IC,JC,KC)=ERMGC(3,IC,JC,KC)
+     &                     +R(3,J+1,K-1)
+                     ENDIF
+                  ENDIF
+                  IF(K+1.LE.KDMG) THEN
+                     ERMGC(1,IC,JC,KC)=ERMGC(1,IC,JC,KC)
+     &                  +R(1,J,K+1)*2.D0
+                     ERMGC(2,IC,JC,KC)=ERMGC(2,IC,JC,KC)
+     &                  +R(2,J,K+1)*2.D0
+                     ERMGC(3,IC,JC,KC)=ERMGC(3,IC,JC,KC)
+     &                  +R(3,J,K+1)*2.D0
+                     IF(J-1.GT.0) THEN
+                        ERMGC(1,IC,JC,KC)=ERMGC(1,IC,JC,KC)
+     &                     +R(1,J-1,K+1)
+                        ERMGC(2,IC,JC,KC)=ERMGC(2,IC,JC,KC)
+     &                     +R(2,J-1,K+1)
+                        ERMGC(3,IC,JC,KC)=ERMGC(3,IC,JC,KC)
+     &                     +R(3,J-1,K+1)
+                     ENDIF
+                     IF(J+1.LE.JDMG) THEN
+                        ERMGC(1,IC,JC,KC)=ERMGC(1,IC,JC,KC)
+     &                 +    R(1,J+1,K+1)
+                        ERMGC(2,IC,JC,KC)=ERMGC(2,IC,JC,KC)
+     &                 +    R(2,J+1,K+1)
+                        ERMGC(3,IC,JC,KC)=ERMGC(3,IC,JC,KC)
+     &                     +R(3,J+1,K+1)
+                     ENDIF
+                  ENDIF
+                  ERMGC(1,IC,JC,KC)=ERMGC(1,IC,JC,KC)/16.D0
+                  ERMGC(2,IC,JC,KC)=ERMGC(2,IC,JC,KC)/16.D0
+                  ERMGC(3,IC,JC,KC)=ERMGC(3,IC,JC,KC)/16.D0
+               ENDIF
+   1        CONTINUE
+         ENDDO
+        ENDIF
+      ENDDO
+
+      END
+
+C***********************************************************************
+      SUBROUTINE PEMGW_DIRECT(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+     &             JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,
+     &             EZNMG,EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C***********************************************************************
+C LU factorization for solutions on a 2d coarse grid. 
+C This is PEMGWORK3 routine.
+C***********************************************************************
+
+      INCLUDE 'control.h'
+
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemulgrd.h'
+
+      INTEGER MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,
+     &        KEYMG(*), KEYCRMG(*)
+      LOGICAL EZNMG(IDMG*JDMG*KDMG)
+      REAL*8  DXMG(IDMG),DYMG(JDMG),DZMG(KDMG),
+     &        EMDMG(*),  EPSMG(*),  EBMG(9,4,*), EDMG(6,*),
+     &        ERMG(3,IDMG*JDMG*KDMG),EUNKMG(3,IDMG*JDMG*KDMG),
+     &        EFMG(9,$MXBANDC,IDMG*JDMG*KDMG)
+
+      INTEGER I,J,K,L,IDIR,ICOL,IROW,N123P,NOFF
+      REAL*8  DTMP(6,IDMG*JDMG*KDMG),
+     &        DILU(6,IDMG*JDMG*KDMG),DL_PROD(9,$MXBANDC),X1,X2,X3,
+     &        D11,D21,D31,D22,D32,D33,U1,U2,U3,L11,L21,L31,L12,L22,L32,
+     &        L13,L23,L33,DET,ZERO,ONE
+      PARAMETER(ZERO = 0.0D0, ONE = 1.0D0)
+
+      N123P=IDMG*JDMG*KDMG
+      NOFF=4
+     
+C INITIALIZE DTMP AND DL_PROD TO ZERO
+
+      DO J = 1,N123P
+         DO K = 1,6
+            DTMP(K,J) = ZERO
+            DILU(K,J) = ZERO
+         ENDDO
+         DO I = 1,$MXBANDC
+            DO K = 1,9
+               EFMG(K,I,J) = ZERO
+            ENDDO
+         ENDDO
+         DO K=1,3
+            EUNKMG(K,J)=0.D0
+         ENDDO
+      ENDDO
+      DO I = 1,$MXBANDC
+         DO K = 1,9
+            DL_PROD(K,I) = ZERO
+         ENDDO
+      ENDDO
+
+C PUT EBEFORE VALUE INTO EFACTOR
+
+      DO J = 1,N123P
+         IF(KEYCRMG(J).LE.0) CYCLE
+         DO IDIR = 1,NOFF
+            I = IOFFSETMG(IDIR,MGLV,NBLK)
+            DO K = 1,9
+               EFMG(K,I,J) = EBMG(K,IDIR,J)
+            ENDDO
+         ENDDO
+      ENDDO
+
+C PERFORM FACTORIZATION BY COLUMNS
+
+      DO J = 1,N123P
+         IF(KEYCRMG(J).LE.0) CYCLE
+         IF(EDMG(1,J).LE.ZERO) THEN
+            DO K = 1,6
+               DTMP(K,J) = ZERO
+               DILU(K,J) = ZERO
+            ENDDO
+            CYCLE
+         ENDIF
+
+
+         K = 1
+         DO ICOL = J - 1,MAX(1,J-NBANDMG(MGLV,NBLK)),-1
+            IF(KEYCRMG(ICOL).LE.0) GO TO 1
+            DL_PROD(1,K) = DTMP(1,ICOL) * EFMG(1,K,J)
+     &                   + DTMP(2,ICOL) * EFMG(4,K,J)
+     &                   + DTMP(3,ICOL) * EFMG(7,K,J)
+            DL_PROD(2,K) = DTMP(2,ICOL) * EFMG(1,K,J)
+     &                   + DTMP(4,ICOL) * EFMG(4,K,J)
+     &                   + DTMP(5,ICOL) * EFMG(7,K,J)
+            DL_PROD(3,K) = DTMP(3,ICOL) * EFMG(1,K,J)
+     &                   + DTMP(5,ICOL) * EFMG(4,K,J)
+     &                   + DTMP(6,ICOL) * EFMG(7,K,J)
+            DL_PROD(4,K) = DTMP(1,ICOL) * EFMG(2,K,J)
+     &                   + DTMP(2,ICOL) * EFMG(5,K,J)
+     &                   + DTMP(3,ICOL) * EFMG(8,K,J)
+            DL_PROD(5,K) = DTMP(2,ICOL) * EFMG(2,K,J)
+     &                   + DTMP(4,ICOL) * EFMG(5,K,J)
+     &                   + DTMP(5,ICOL) * EFMG(8,K,J)
+            DL_PROD(6,K) = DTMP(3,ICOL) * EFMG(2,K,J)
+     &                   + DTMP(5,ICOL) * EFMG(5,K,J)
+     &                   + DTMP(6,ICOL) * EFMG(8,K,J)
+            DL_PROD(7,K) = DTMP(1,ICOL) * EFMG(3,K,J)
+     &                   + DTMP(2,ICOL) * EFMG(6,K,J)
+     &                   + DTMP(3,ICOL) * EFMG(9,K,J)
+            DL_PROD(8,K) = DTMP(2,ICOL) * EFMG(3,K,J)
+     &                   + DTMP(4,ICOL) * EFMG(6,K,J)
+     &                   + DTMP(5,ICOL) * EFMG(9,K,J)
+            DL_PROD(9,K) = DTMP(3,ICOL) * EFMG(3,K,J)
+     &                   + DTMP(5,ICOL) * EFMG(6,K,J)
+     &                   + DTMP(6,ICOL) * EFMG(9,K,J)
+
+   1        K = K + 1
+         ENDDO
+         D11 = EDMG(1,J)
+         D21 = EDMG(2,J)
+         D31 = EDMG(3,J)
+         D22 = EDMG(4,J)
+         D32 = EDMG(5,J)
+         D33 = EDMG(6,J)
+
+C CALCULATE DILU FOR DIAGONAL ENTRY J
+
+         DO K = 1,MIN(J - 1,NBANDMG(MGLV,NBLK))
+            IF(KEYCRMG(J-K).LE.0) CYCLE
+            D11 = D11 - EFMG(1,K,J) * DL_PROD(1,K)
+     &                - EFMG(4,K,J) * DL_PROD(2,K)
+     &                - EFMG(7,K,J) * DL_PROD(3,K)
+            D21 = D21 - EFMG(2,K,J) * DL_PROD(1,K)
+     &                - EFMG(5,K,J) * DL_PROD(2,K)
+     &                - EFMG(8,K,J) * DL_PROD(3,K)
+            D31 = D31 - EFMG(3,K,J) * DL_PROD(1,K)
+     &                - EFMG(6,K,J) * DL_PROD(2,K)
+     &                - EFMG(9,K,J) * DL_PROD(3,K)
+            D22 = D22 - EFMG(2,K,J) * DL_PROD(4,K)
+     &                - EFMG(5,K,J) * DL_PROD(5,K)
+     &                - EFMG(8,K,J) * DL_PROD(6,K)
+            D32 = D32 - EFMG(3,K,J) * DL_PROD(4,K)
+     &                - EFMG(6,K,J) * DL_PROD(5,K)
+     &                - EFMG(9,K,J) * DL_PROD(6,K)
+            D33 = D33 - EFMG(3,K,J) * DL_PROD(7,K)
+     &                - EFMG(6,K,J) * DL_PROD(8,K)
+     &                - EFMG(9,K,J) * DL_PROD(9,K)
+         ENDDO
+
+C CREATE INVERSE AND PUT VALUE IN DILU
+
+         U1 = D22 * D33 - D32 * D32
+         U2 = D32 * D31 - D21 * D33
+         U3 = D21 * D32 - D22 * D31
+         DET = ONE / (D11 * U1 + D21 * U2 + D31 * U3)
+         DILU(1,J) = U1 * DET
+         DILU(2,J) = U2 * DET
+         DILU(3,J) = U3 * DET
+         DILU(4,J) = (D11 * D33 - D31 * D31) * DET
+         DILU(5,J) = (D21 * D31 - D11 * D32) * DET
+         DILU(6,J) = (D11 * D22 - D21 * D21) * DET
+         DTMP(1,J) = D11
+         DTMP(2,J) = D21
+         DTMP(3,J) = D31
+         DTMP(4,J) = D22
+         DTMP(5,J) = D32
+         DTMP(6,J) = D33
+         D11 = DILU(1,J)
+         D21 = DILU(2,J)
+         D31 = DILU(3,J)
+         D22 = DILU(4,J)
+         D32 = DILU(5,J)
+         D33 = DILU(6,J)
+
+C PROCESS EACH ENTRY L(J,:,J+IROW) IN COLUMN J
+
+         DO IROW = 1,MIN(NBANDMG(MGLV,NBLK),N123P-J)
+            I = J + IROW
+            IF(KEYCRMG(I).LE.0) CYCLE
+            L11 = EFMG(1,IROW,I)
+            L21 = EFMG(2,IROW,I)
+            L31 = EFMG(3,IROW,I)
+            L12 = EFMG(4,IROW,I)
+            L22 = EFMG(5,IROW,I)
+            L32 = EFMG(6,IROW,I)
+            L13 = EFMG(7,IROW,I)
+            L23 = EFMG(8,IROW,I)
+            L33 = EFMG(9,IROW,I)
+            L = 1
+            DO K = IROW+1,MIN(I-1,NBANDMG(MGLV,NBLK))
+               IF(KEYCRMG(I-K).LE.0) GO TO 2
+               L11 = L11 - EFMG(1,K,I) * DL_PROD(1,L)
+     &                   - EFMG(4,K,I) * DL_PROD(2,L)
+     &                   - EFMG(7,K,I) * DL_PROD(3,L)
+               L21 = L21 - EFMG(2,K,I) * DL_PROD(1,L)
+     &                   - EFMG(5,K,I) * DL_PROD(2,L)
+     &                   - EFMG(8,K,I) * DL_PROD(3,L)
+               L31 = L31 - EFMG(3,K,I) * DL_PROD(1,L)
+     &                   - EFMG(6,K,I) * DL_PROD(2,L)
+     &                   - EFMG(9,K,I) * DL_PROD(3,L)
+               L12 = L12 - EFMG(1,K,I) * DL_PROD(4,L)
+     &                   - EFMG(4,K,I) * DL_PROD(5,L)
+     &                   - EFMG(7,K,I) * DL_PROD(6,L)
+               L22 = L22 - EFMG(2,K,I) * DL_PROD(4,L)
+     &                   - EFMG(5,K,I) * DL_PROD(5,L)
+     &                   - EFMG(8,K,I) * DL_PROD(6,L)
+               L32 = L32 - EFMG(3,K,I) * DL_PROD(4,L)
+     &                   - EFMG(6,K,I) * DL_PROD(5,L)
+     &                   - EFMG(9,K,I) * DL_PROD(6,L)
+               L13 = L13 - EFMG(1,K,I) * DL_PROD(7,L)
+     &                   - EFMG(4,K,I) * DL_PROD(8,L)
+     &                   - EFMG(7,K,I) * DL_PROD(9,L)
+               L23 = L23 - EFMG(2,K,I) * DL_PROD(7,L)
+     &                   - EFMG(5,K,I) * DL_PROD(8,L)
+     &                   - EFMG(8,K,I) * DL_PROD(9,L)
+               L33 = L33 - EFMG(3,K,I) * DL_PROD(7,L)
+     &                   - EFMG(6,K,I) * DL_PROD(8,L)
+     &                   - EFMG(9,K,I) * DL_PROD(9,L)
+  2            L = L + 1
+            ENDDO
+
+C TRIANGULAR PORTION OF MATRIX TIMES INVERSE(DIAGONAL)
+
+            EFMG(1,IROW,I) = L11 * D11 + L12 * D21 + L13 * D31
+            EFMG(2,IROW,I) = L21 * D11 + L22 * D21 + L23 * D31
+            EFMG(3,IROW,I) = L31 * D11 + L32 * D21 + L33 * D31
+            EFMG(4,IROW,I) = L11 * D21 + L12 * D22 + L13 * D32
+            EFMG(5,IROW,I) = L21 * D21 + L22 * D22 + L23 * D32
+            EFMG(6,IROW,I) = L31 * D21 + L32 * D22 + L33 * D32
+            EFMG(7,IROW,I) = L11 * D31 + L12 * D32 + L13 * D33
+            EFMG(8,IROW,I) = L21 * D31 + L22 * D32 + L23 * D33
+            EFMG(9,IROW,I) = L31 * D31 + L32 * D32 + L33 * D33
+         ENDDO
+      ENDDO
+
+C BACK SOLVE
+
+      DO J = 1,N123P
+         IF(KEYCRMG(J).LE.0) CYCLE
+         IF(EZNMG(J)) THEN
+            EUNKMG(1,J) = ZERO
+            EUNKMG(2,J) = ZERO
+            EUNKMG(3,J) = ZERO
+         ELSE
+            X1 = ERMG(1,J)
+            X2 = ERMG(2,J)
+            X3 = ERMG(3,J)
+            L = J - 1
+            DO I = 1,MIN(NBANDMG(MGLV,NBLK),J-1)
+               IF(KEYCRMG(L).LE.0) GO TO 3
+               X1 = X1 - EFMG(1,I,J) * EUNKMG(1,L)
+     &                 - EFMG(4,I,J) * EUNKMG(2,L)
+     &                 - EFMG(7,I,J) * EUNKMG(3,L)
+               X2 = X2 - EFMG(2,I,J) * EUNKMG(1,L)
+     &                 - EFMG(5,I,J) * EUNKMG(2,L)
+     &                 - EFMG(8,I,J) * EUNKMG(3,L)
+               X3 = X3 - EFMG(3,I,J) * EUNKMG(1,L)
+     &                 - EFMG(6,I,J) * EUNKMG(2,L)
+     &                 - EFMG(9,I,J) * EUNKMG(3,L)
+   3           L = L - 1
+            ENDDO
+            EUNKMG(1,J) = X1
+            EUNKMG(2,J) = X2
+            EUNKMG(3,J) = X3
+         ENDIF
+      ENDDO
+
+C MULTIPLY BY INVERSE DIAGONAL
+
+      DO J= 1,N123P
+         IF(KEYCRMG(J).LE.0.OR.EZNMG(J)) CYCLE
+         X1 = EUNKMG(1,J)
+         X2 = EUNKMG(2,J)
+         X3 = EUNKMG(3,J)
+         EUNKMG(1,J) = DILU(1,J) * X1 + DILU(2,J) * X2
+     &               + DILU(3,J) * X3
+         EUNKMG(2,J) = DILU(2,J) * X1 + DILU(4,J) * X2
+     &               + DILU(5,J) * X3
+         EUNKMG(3,J) = DILU(3,J) * X1 + DILU(5,J) * X2
+     &               + DILU(6,J) * X3
+      ENDDO
+
+
+C PERFORM BACKSOLVE FOR UPPER TRIANGULAR MATRIX (L-TRANSPOSE)
+
+      DO J = N123P,1,-1
+         IF(KEYCRMG(J).LE.0.OR.EZNMG(J)) CYCLE
+         X1 = EUNKMG(1,J)
+         X2 = EUNKMG(2,J)
+         X3 = EUNKMG(3,J)
+         L = J - 1
+         DO I = 1,MIN(NBANDMG(MGLV,NBLK),J-1)
+            IF(KEYCRMG(L).LE.0) GO TO 4
+            EUNKMG(1,L) = EUNKMG(1,L) - EFMG(1,I,J) * X1
+     &                                - EFMG(2,I,J) * X2
+     &                                - EFMG(3,I,J) * X3
+            EUNKMG(2,L) = EUNKMG(2,L) - EFMG(4,I,J) * X1
+     &                                - EFMG(5,I,J) * X2
+     &                                - EFMG(6,I,J) * X3
+            EUNKMG(3,L) = EUNKMG(3,L) - EFMG(7,I,J) * X1
+     &                                - EFMG(8,I,J) * X2
+     &                                - EFMG(9,I,J) * X3
+   4        L = L - 1
+         ENDDO
+      ENDDO
+
+      END
+
+C*********************************************************************
+      SUBROUTINE PEMGW_REFINE0_PC2D(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+     &           JL2V,KL1,KL2,KEYOUT,NBLK,KEYCR2D,BCOF2D,DCOF2D,
+     &           R2D,X2D,KEYCR,ZNODE,X)
+C***********************************************************************
+C Refine from the 2d grid to the 3d grid.
+C This is PEMGWORK0 routine
+C 
+C INPUT:
+C   KEYCR(I,J,K) = KEYOUT VALUES FOR CORNER POINTS ON A 3D GRID
+C   ZNODE(I,J,K) = FLAG OF TURNING ON/OFF ELASTIC CALCULATION ON A NODE
+C                  OF A 3D GRID
+C   X2D(J,K,L) = UNKNOWN VALUES ON THE 2D GRID
+C
+C OUTPUT:
+C   X(I,J,K,L) = UNKNOWN VALUES ON A 3D GRID
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,
+     &        JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &        KEYCR2D(JDIM,KDIM),    KEYCR(IDIM,JDIM,KDIM)
+      LOGICAL ZNODE(IDIM,JDIM,KDIM)
+      REAL*8  BCOF2D(4,9,*),         DCOF2D(6,*),
+     &        R2D(JDIM,KDIM,3),      X2D(JDIM,KDIM,3),
+     *        X(IDIM,JDIM,KDIM,3)
+
+      INTEGER I,J,K,L
+
+C REFINE IN COLOUMN
+
+      DO K=KL1,KL2+1
+         DO J=JL1V(K),JL2V(K)+1
+            DO I=IL1,IL2+1
+               IF(KEYCR(I,J,K).GT.0.AND..NOT.ZNODE(I,J,K)) THEN
+                  X(I,J,K,1)=X(I,J,K,1)+X2D(J,K,1)
+                  X(I,J,K,2)=X(I,J,K,2)+X2D(J,K,2)
+                  X(I,J,K,3)=X(I,J,K,3)+X2D(J,K,3)
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+
+
+C*********************************************************************
+      SUBROUTINE PEMGW_REFINE1_PC2D(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+     &           JL2V,KL1,KL2,KEYOUT,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+     &           JMG1,JMG2,KMG1,KMG2,KEYMG,KEYCRMG,EZNMG,EMDMG,EPSMG,
+     &           EBMG,EDMG,ERMG,EUNKMG,KEYCR2D,BCOF2D,DCOF2D,R2D,X2D)
+C***********************************************************************
+C Refine from the first level 2d coarse grid to the 2d grid
+C This is PEMGWORK1 routine
+C
+C INPUT:
+C   KEYCR2D(J,K) = KEYOUT VALUES FOR CORNER POINTS ON THE 2D GRID
+C   EUNKMG(L,IC,JC,KC) = UNKNOWN VALUES ON THE FIRST LEVEL 2D COARSE GRID
+C
+C OUTPUT:
+C   X2D(J,K,L) = UNKNOWN VALUES ON THE 2D GRID
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,
+     &        JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &        IDMG,JDMG,KDMG,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,
+     &        KEYMG(IDMG,JDMG,KDMG),     KEYCRMG(IDMG,JDMG,KDMG),
+     &        KEYCR2D(JDIM,KDIM)
+      LOGICAL EZNMG(IDMG,JDMG,KDMG)
+      REAL*8  EMDMG(IDMG,JDMG,KDMG),     EPSMG(IDMG,JDMG,KDMG),
+     &        EBMG(9,4,IDMG,JDMG,KDMG),  EDMG(6,IDMG,JDMG,KDMG),
+     &        ERMG(3,IDMG,JDMG,KDMG),    EUNKMG(3,IDMG,JDMG,KDMG),
+     &        BCOF2D(4,9,*),             DCOF2D(6,*),
+     &        R2D(JDIM,KDIM,3),          X2D(JDIM,KDIM,3)
+
+      INTEGER IC,JC,KC,ICG,JCG,KCG,IFG,JFG,KFG,I,J,K,L,MEQ,NX,NY,NZ,
+     &        IOFF,JOFF,KOFF
+
+      MEQ=PE_MEQ
+      CALL BLKDIM(NBLK,NX,NY,NZ,KERR)
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+      
+      NX=NX+1
+      NY=NY+1
+      NZ=NZ+1
+ 
+      KCG=KMG1+PEKOFFMG(1,NBLK)-1
+      IF(KCG.LE.0) THEN
+         KC1=KMG1
+      ELSE
+         KC1=KMG1-1
+      ENDIF
+      KCG=KC1+PEKOFFMG(1,NBLK)
+      KFG=KCG*2-1
+      KOF=KFG-KOFF-2
+      JCG=JMG1+PEJOFFMG(1,NBLK)-1
+      IF(JCG.LE.0) THEN
+         JC1=JMG1
+      ELSE
+         JC1=JMG1-1
+      ENDIF
+      JCG=JC1+PEJOFFMG(1,NBLK)
+      JFG=JCG*2-1
+      JOF=JFG-JOFF-2
+
+      IC=IMG1
+      K=KOF
+      DO KC=KC1,KMG2+1
+         K=K+2
+         IF(K+KOFF.GT.NZ) K=K-1
+         IF(K.GT.0.AND.K.LE.KDIM) THEN
+            J=JOF
+            DO JC=JC1,JMG2+1
+               J=J+2
+               IF(J+JOFF.GT.NY) J=J-1
+               IF(J.GT.0.AND.J.LE.JDIM) THEN
+                  IF(KEYCR2D(J,K).NE.0) THEN
+                     X2D(J,K,1)=X2D(J,K,1)+EUNKMG(1,IC,JC,KC)
+                     X2D(J,K,2)=X2D(J,K,2)+EUNKMG(2,IC,JC,KC)
+                     X2D(J,K,3)=X2D(J,K,3)+EUNKMG(3,IC,JC,KC)
+                  ENDIF
+               ENDIF
+            ENDDO
+         ENDIF        
+      ENDDO
+
+      K=KOF
+      DO KC=KC1,KMG2+1 
+         K=K+2
+         IF(K+KOFF.GT.NZ) K=K-1
+         IF(K.GT.0.AND.K.LE.KDIM) THEN        
+            J=JOF
+            DO JC=JC1,JMG2
+               J=J+2
+               IF(J+JOFF+1.LT.NY) THEN         
+                  IF(KEYCR2D(J,K).NE.0) THEN
+                     X2D(J+1,K,1)=X2D(J+1,K,1)+0.5D0*(EUNKMG(1,IC,JC,KC)
+     &             + EUNKMG(1,IC,JC+1,KC))
+                     X2D(J+1,K,2)=X2D(J+1,K,2)+0.5D0*(EUNKMG(2,IC,JC,KC)
+     &             + EUNKMG(2,IC,JC+1,KC))
+                     X2D(J+1,K,3)=X2D(J+1,K,3)+0.5D0*(EUNKMG(3,IC,JC,KC)
+     &             + EUNKMG(3,IC,JC+1,KC))
+                  ENDIF
+               ENDIF
+            ENDDO
+         ENDIF         
+      ENDDO
+
+      K=KOF
+      DO KC=KC1,KMG2
+         K=K+2
+         IF(K+KOFF+1.LT.NZ) THEN
+            J=JOF               
+            DO JC=JC1,JMG2+1
+               J=J+2                       
+               IF(J+JOFF.GT.NY) J=J-1
+               IF(J.GT.0.AND.J.LE.JDIM) THEN       
+                  IF(KEYCR2D(J,K).NE.0) THEN
+                     X2D(J,K+1,1)=X2D(J,K+1,1)+0.5D0*(EUNKMG(1,IC,JC,KC)
+     &             + EUNKMG(1,IC,JC,KC+1))
+                     X2D(J,K+1,2)=X2D(J,K+1,2)+0.5D0*(EUNKMG(2,IC,JC,KC)
+     &             + EUNKMG(2,IC,JC,KC+1))
+                     X2D(J,K+1,3)=X2D(J,K+1,3)+0.5D0*(EUNKMG(3,IC,JC,KC)
+     &             + EUNKMG(3,IC,JC,KC+1))
+                  ENDIF
+               ENDIF
+            ENDDO
+         ENDIF        
+      ENDDO
+
+      K=KOF
+      DO KC=KC1,KMG2
+         K=K+2
+         IF(K+KOFF+1.LT.NZ) THEN     
+            J=JOF     
+            DO JC=JC1,JMG2
+               J=J+2
+               IF(J+JOFF+1.LT.NY) THEN    
+                  IF(KEYCR2D(J,K).NE.0) THEN
+                     X2D(J+1,K+1,1)=0.25D0*(EUNKMG(1,IC,JC,KC)
+     &             + EUNKMG(1,IC,JC+1,KC)+EUNKMG(1,IC,JC,KC+1)
+     &             + EUNKMG(1,IC,JC+1,KC+1))+X2D(J+1,K+1,1)
+                     X2D(J+1,K+1,2)=0.25D0*(EUNKMG(2,IC,JC,KC)
+     &             + EUNKMG(2,IC,JC+1,KC)+EUNKMG(2,IC,JC,KC+1)
+     &             + EUNKMG(2,IC,JC+1,KC+1))+X2D(J+1,K+1,2)
+                     X2D(J+1,K+1,3)=0.25D0*(EUNKMG(3,IC,JC,KC)
+     &             + EUNKMG(3,IC,JC+1,KC)+EUNKMG(3,IC,JC,KC+1)
+     &             + EUNKMG(3,IC,JC+1,KC+1))+X2D(J+1,K+1,3)
+                  ENDIF
+               ENDIF
+            ENDDO
+         ENDIF
+      ENDDO
+
+      END
+C*********************************************************************
+      SUBROUTINE PEMGW_REFINE2_PC2D(MGLV,NBLK,IDMG,JDMG,KDMG,IDMGC,
+     &           JDMGC,KDMGC,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,IMGC1,IMGC2,
+     &           JMGC1,JMGC2,KMGC1,KMGC2,KEYMG,KEYMGC,KEYCRMG,KEYCRMGC,
+     &           EZNMG,EZNMGC,EMDMG,EMDMGC,EPSMG,EPSMGC,EBMG,EBMGC,
+     &           EDMG,EDMGC,ERMG,ERMGC,EUNKMG,EUNKMGC)
+C***********************************************************************
+C Refine from one 2d coarser grid to the next upper level grid
+C This is PEMGWORK2 routine
+C
+C INPUT:
+C   KEYCRMG(I,J,K) = KEYOUT VALUES FOR CORNER POINTS ON A 2D COARSE GRID
+C   EUNKMGC(L,IC,JC,KC) = UNKNOWN VALUES ON THE NEXT 2D COARSER GRID
+C
+C OUTPUT:
+C   EUNKMG(L,I,K,L) = UNKNOWN VALUES ON A 2D COARSE GRID
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemulgrd.h'
+
+      INTEGER MGLV,NBLK,IDMG,JDMG,KDMG,IDMGC,JDMGC,KDMGC,IMG1,IMG2,
+     &        JMG1,JMG2,KMG1,KMG2,IMGC1,IMGC2,JMGC1,JMGC2,KMGC1,KMGC2,
+     &        KEYMG(IDMG,JDMG,KDMG),     KEYMGC(IDMGC,JDMGC,KDMGC),
+     &        KEYCRMG(IDMG,JDMG,KDMG),   KEYCRMGC(IDMGC,JDMGC,KDMGC)
+      LOGICAL EZNMG(IDMG*JDMG*KDMG),     EZNMGC(IDMGC,JDMGC,KDMGC)
+      REAL*8  EMDMG(IDMG,JDMG,KDMG),     EMDMGC(IDMGC,JDMGC,KDMGC),
+     &        EPSMG(IDMG,JDMG,KDMG),     EPSMGC(IDMGC,JDMGC,KDMGC),
+     &        EBMG(9,4,IDMG,JDMG,KDMG),  EBMGC(9,4,IDMGC,JDMGC,KDMGC),
+     &        EDMG(6,IDMG,JDMG,KDMG),    EDMGC(6,IDMGC,JDMGC,KDMGC),
+     &        ERMG(3,IDMG,JDMG,KDMG),    ERMGC(3,IDMGC,JDMGC,KDMGC),
+     &        EUNKMG(3,IDMG,JDMG,KDMG),  EUNKMGC(3,IDMGC,JDMGC,KDMGC)
+
+      INTEGER IC,JC,KC,ICG,JCG,KCG,IFG,JFG,KFG,I,J,K,L,MEQ,NX,NY,NZ,
+     &        IOFF,JOFF,KOFF
+      REAL*8  DX(3,JDMG,KDMG)
+
+      MEQ=PE_MEQ
+      MGLVC = MGLV+1
+      NX = PENXMG(MGLV,NBLK)+1
+      NY = PENYMG(MGLV,NBLK)+1
+      NZ = PENZMG(MGLV,NBLK)+1
+      IOFF = PEIOFFMG(MGLV,NBLK)
+      JOFF = PEJOFFMG(MGLV,NBLK)
+      KOFF = PEKOFFMG(MGLV,NBLK)
+
+      DO K=1,KDMG
+         DO J=1,JDMG
+            DX(1,J,K)=0.D0
+            DX(2,J,K)=0.D0
+            DX(3,J,K)=0.D0
+         ENDDO
+      ENDDO
+
+      KCG=KMG1+PEKOFFMG(MGLVC,NBLK)-1
+      IF(KCG.LE.0) THEN
+         KC1=KMG1
+      ELSE
+         KC1=KMG1-1
+      ENDIF
+      KCG=KC1+PEKOFFMG(MGLVC,NBLK)
+      KFG=KCG*2-1
+      KOF=KFG-KOFF-2
+
+      JCG=JMG1+PEJOFFMG(MGLVC,NBLK)-1
+      IF(JCG.LE.0) THEN
+         JC1=JMG1
+      ELSE
+         JC1=JMG1-1
+      ENDIF
+      JCG=JC1+PEJOFFMG(MGLVC,NBLK)
+      JFG=JCG*2-1
+      JOF=JFG-JOFF-2
+
+      I=IMG1
+      IC=IMGC1
+      K=KOF
+     
+      DO KC=KC1,KMGC2+1
+         K=K+2
+         IF(K+KOFF.GT.NZ) K=K-1
+         IF(K.GT.0.AND.K.LE.KDMG) THEN
+            J=JOF
+            DO JC=JC1,JMGC2+1
+               J=J+2
+               IF(J+JOFF.GT.NY) J=J-1
+               IF(J.GT.0.AND.J.LE.JDMG) THEN
+                  DO I=IMG1,IMG2+1
+                     IF(KEYCRMG(I,J,K).NE.0) THEN
+                        DX(1,J,K)=EUNKMGC(1,IC,JC,KC)
+                        DX(2,J,K)=EUNKMGC(2,IC,JC,KC)
+                        DX(3,J,K)=EUNKMGC(3,IC,JC,KC)
+                        GO TO 1
+                     ENDIF
+                  ENDDO
+   1              CONTINUE
+               ENDIF
+            ENDDO
+         ENDIF
+      ENDDO
+
+      K=KOF
+      DO KC=KC1,KMGC2+1
+         K=K+2
+         IF(K+KOFF.GT.NZ) K=K-1
+         IF(K.GT.0.AND.K.LE.KDMG) THEN 
+            J=JOF
+            DO JC=JC1,JMGC2
+               J=J+2
+               IF(J+JOFF+1.LT.NY) THEN
+                  DO I=IMG1,IMG2+1
+                     IF(KEYCRMG(I,J,K).NE.0) THEN
+                        DX(1,J+1,K)=0.5D0*(EUNKMGC(1,IC,JC,KC)
+     &                + EUNKMGC(1,IC,JC+1,KC))
+                        DX(2,J+1,K)=0.5D0*(EUNKMGC(2,IC,JC,KC)
+     &                + EUNKMGC(2,IC,JC+1,KC))
+                        DX(3,J+1,K)=0.5D0*(EUNKMGC(3,IC,JC,KC)
+     &                + EUNKMGC(3,IC,JC+1,KC))
+                        GO TO 2
+                     ENDIF
+                  ENDDO
+   2              CONTINUE
+               ENDIF
+            ENDDO
+         ENDIF
+      ENDDO
+
+      K=KOF
+      DO KC=KC1,KMGC2
+         K=K+2
+         IF(K+KOFF+1.LT.NZ) THEN
+            J=JOF
+            DO JC=JC1,JMGC2+1
+               J=J+2
+               IF(J+JOFF.GT.NY) J=J-1
+               IF(J.GT.0.AND.J.LE.JDMG) THEN
+                  DO I=IMG1,IMG2+1
+                     IF(KEYCRMG(I,J,K).NE.0) THEN
+                        DX(1,J,K+1)=0.5D0*(EUNKMGC(1,IC,JC,KC)
+     &                + EUNKMGC(1,IC,JC,KC+1))
+                        DX(2,J,K+1)=0.5D0*(EUNKMGC(2,IC,JC,KC)
+     &                + EUNKMGC(2,IC,JC,KC+1))
+                        DX(3,J,K+1)=0.5D0*(EUNKMGC(3,IC,JC,KC)
+     &                + EUNKMGC(3,IC,JC,KC+1))
+                        GO TO 3
+                     ENDIF
+                  ENDDO
+   3              CONTINUE 
+               ENDIF
+            ENDDO
+         ENDIF
+      ENDDO
+
+      K=KOF
+      DO KC=KC1,KMGC2
+         K=K+2
+         IF(K+KOFF+1.LT.NZ) THEN
+            J=JOF
+            DO JC=JC1,JMGC2
+               J=J+2           
+               IF(J+JOFF+1.LT.NY) THEN
+                  DO I=IMG1,IMG2+1
+                     IF(KEYCRMG(I,J,K).NE.0) THEN
+                        DX(1,J+1,K+1)=0.25D0*(EUNKMGC(1,IC,JC,KC)
+     &                + EUNKMGC(1,IC,JC+1,KC)+EUNKMGC(1,IC,JC,KC+1)
+     &                + EUNKMGC(1,IC,JC+1,KC+1))
+                        DX(2,J+1,K+1)=0.25D0*(EUNKMGC(2,IC,JC,KC)
+     &                + EUNKMGC(2,IC,JC+1,KC)+EUNKMGC(2,IC,JC,KC+1)
+     &                + EUNKMGC(2,IC,JC+1,KC+1))
+                        DX(3,J+1,K+1)=0.25D0*(EUNKMGC(3,IC,JC,KC)
+     &                + EUNKMGC(3,IC,JC+1,KC)+EUNKMGC(3,IC,JC,KC+1)
+     &                + EUNKMGC(3,IC,JC+1,KC+1))
+                        GO TO 4
+                     ENDIF
+                  ENDDO
+   4              CONTINUE
+               ENDIF
+            ENDDO
+         ENDIF
+      ENDDO
+
+      I=IMG1
+      DO K=KMG1-1,KMG2+1
+          DO J=JMG1-1,JMG2+1
+             IF(KEYCRMG(I,J,K).NE.0) THEN
+                EUNKMG(1,I,J,K)=EUNKMG(1,I,J,K)+DX(1,J,K)
+                EUNKMG(2,I,J,K)=EUNKMG(2,I,J,K)+DX(2,J,K)
+                EUNKMG(3,I,J,K)=EUNKMG(3,I,J,K)+DX(3,J,K)
+             ENDIF        
+          ENDDO
+      ENDDO
+
+      END
+
+C***********************************************************************
+      SUBROUTINE PEMGW_EUNKMG0(MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,
+     &              JMG1,JMG2,KMG1,KMG2,DXMG,DYMG,DZMG,KEYMG,KEYCRMG,
+     &              EZNMG,EMDMG,EPSMG,EBMG,EDMG,ERMG,EUNKMG)
+C***********************************************************************
+C Initialize EUNKMG to zero on a 2d coarse grid level
+C This is PEMGWORK3 routine
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemulgrd.h'
+
+
+      INTEGER MGLV,NBLK,IDMG,JDMG,KDMG,IMG1,IMG2,JMG1,JMG2,KMG1,KMG2,
+     &        KEYMG(IDMG,JDMG,KDMG),KEYCRMG(IDMG,JDMG,KDMG)
+      LOGICAL EZNMG(IDMG,JDMG,KDMG)
+      REAL*8  DXMG(IDMG),DYMG(JDMG),DZMG(KDMG),
+     &        EMDMG(IDMG,JDMG,KDMG),     EPSMG(IDMG,JDMG,KDMG),
+     &        EBMG(9,4,IDMG,JDMG,KDMG),  EDMG(6,IDMG,JDMG,KDMG),
+     &        ERMG(3,IDMG,JDMG,KDMG),    EUNKMG(3,IDMG,JDMG,KDMG)
+
+       I=IMG1
+       DO K=1,KDMG
+          DO J=1,JDMG
+             EUNKMG(1,I,J,K)=0.d0
+             EUNKMG(2,I,J,K)=0.d0
+             EUNKMG(3,I,J,K)=0.d0
+          ENDDO
+       ENDDO
+
+      END      
+C*********************************************************************
+      SUBROUTINE PEMG_GETLEV (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                       KL1,KL2,KEYOUT,NBLK)
+C*********************************************************************
+C Routine determines the number of multigrid levels required to reduce
+C the number of elements to 4 (2x2). Call this routine to make sure
+C there is no idle processors during a coarsening process.
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'pemulgrd.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM)
+
+      IF (ILAY.EQ.0) THEN
+         ID=IDIM-1
+      ELSE
+         ID=IDIM-2*ILAY
+      ENDIF
+      IF (JLAY.EQ.0) THEN
+         JD=JDIM-1
+      ELSE
+         JD=JDIM-2*JLAY
+      ENDIF
+      IF (KLAY.EQ.0) THEN
+         KD=KDIM-1
+      ELSE
+         KD=KDIM-2*KLAY
+      ENDIF
+      DO 1 I=1,$MXPEMGL
+      ID=(ID+1)/2
+      JD=(JD+1)/2
+      KD=(KD+1)/2
+      IF (ID.LT.2.AND.JD.LT.2.AND.KD.LT.2) RETURN
+      IF (I.GT.PEMGLEV) PEMGLEV=I
+    1 CONTINUE
+
+      END
+
+C************************************************************************
+C                    END OF PEMULGRDW.DF
+C***********************************************************************

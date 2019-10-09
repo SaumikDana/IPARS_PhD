@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/repos/csm/!svn/ver/123/IPARSv3.1/singlei/data/multi_block/test1
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/repos/csm/!svn/ver/12/IPARSv3.1/singlei/data/multi_block/test1/IPARS.IN
+END
+tmb2b.dat
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/repos/csm/!svn/ver/123/IPARSv3.1/singlei/data/multi_block/test1/tmb2b.dat
+END

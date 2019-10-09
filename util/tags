@@ -1,0 +1,717 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.6	//
+1	bdaryin.df	/^    1 FORMAT (\/' ERROR # 403; TOO MANY EXTERNAL VARIABLES')$/;"	l	subroutine:BDPROG	file:
+1	bdaryin.df	/^ 1       CONTINUE$/;"	l	subroutine:DOBDARYW	file:
+1	bdaryin.df	/^ 1    CONTINUE$/;"	l	subroutine:MAKNAM	file:
+1	comp.df	/^    1       FORMAT (' ERROR #',I4,', ',A40)$/;"	l	subroutine:CMPDRV	file:
+1	comp.df	/^    1    R(J)=(FLOAT(IX1)+FLOAT(IX2)*RM2)*RM1$/;"	l	function:RANDOM	file:
+1	comp.df	/^    1 CONTINUE$/;"	l	subroutine:GETNAM	file:
+1	comp.df	/^    1 CONTINUE$/;"	l	subroutine:GETSTG	file:
+1	comp.df	/^    1 I=I+1$/;"	l	subroutine:CPEXP	file:
+1	comp.df	/^    1 R(I)=0.D0$/;"	l	subroutine:CPINIT	file:
+1	comp.df	/^    1 R(K)=R(I)+R(J)$/;"	l	subroutine:EXEC	file:
+1	initial.df	/^    1 CONTINUE   $/;"	l	subroutine:SETARYI4P	file:
+1	initial.df	/^    1 CONTINUE$/;"	l	subroutine:COUNTE	file:
+1	initial.df	/^    1 CONTINUE$/;"	l	subroutine:TRANC1	file:
+1	initial.df	/^    1 DEPTH(I-1,J-1,K-1)=DOWN(1,NBLK)*X+DOWN(2,NBLK)*Y+DOWN(3,NBLK)*Z$/;"	l	subroutine:DEPTH2	file:
+1	initial.df	/^    1 IARY(I,J,K)=I4$/;"	l	subroutine:SETARYI4	file:
+1	initial.df	/^    1 IARY2(I,J,K)=IARY1(I,J,K)$/;"	l	subroutine:CPYARYI4	file:
+1	initial.df	/^    1 RARY(I,J,K)=R4$/;"	l	subroutine:SETARYR4	file:
+1	initial.df	/^    1 RARY(I,J,K)=R8$/;"	l	subroutine:SETARYR8	file:
+1	initial.df	/^    1 RARY(K)=R4$/;"	l	subroutine:SETARYR4N	file:
+1	initial.df	/^    1 RARY(K)=R8$/;"	l	subroutine:SETARYR8N	file:
+1	initial.df	/^    1 RARY(K)=R8$/;"	l	subroutine:SETMPFAARYR8N	file:
+1	initial.df	/^    1 RARY(K)=RARY(K)*R8$/;"	l	subroutine:SCLARYR8N	file:
+1	initial.df	/^    1 RARY2(I,J,K)=RARY1(I,J,K)$/;"	l	subroutine:CPYARYR4	file:
+1	initial.df	/^    1 RARY2(I,J,K)=RARY1(I,J,K)$/;"	l	subroutine:CPYARYR8	file:
+1	initial.df	/^   1     CONTINUE$/;"	l	subroutine:APPENDMAP	file:
+1	prop.df	/^    1 CALL LOOKUP (NKOSW(KR),SW,RO,ROSW)$/;"	l	subroutine:RELPERM3	file:
+1	prop.df	/^    1 CONTINUE$/;"	l	subroutine:DODEPTH	file:
+1	prop.df	/^    1 CONTINUE$/;"	l	subroutine:DOROCK	file:
+1	prop.df	/^    1 CONTINUE$/;"	l	subroutine:SETREL3	file:
+1	prop.df	/^    1 FORMAT (\/' ERROR # 403; TOO MANY EXTERNAL VARIABLES')$/;"	l	subroutine:ROCKPROG	file:
+1	rockutil.df	/^    1 RARY2(I,J,K)=RARY1(I,J,K)*PERM_HTOV$/;"	l	subroutine:PERMSCALE	file:
+1	table.df	/^    1 CONTINUE$/;"	l	subroutine:LINSOV	file:
+1	table.df	/^    1 CONTINUE$/;"	l	subroutine:NUMBR	file:
+1	table.df	/^    1 CONTINUE$/;"	l	subroutine:TABUNT	file:
+1	table.df	/^    1 FORMAT (\/' ERROR # 401; MAX TABLES EXCEEDED')$/;"	l	subroutine:TABLE	file:
+1	table.df	/^    1 FORMAT(\/' SPLINE FUNCTION WITH X = ',A8,' AND Y = ',A8)$/;"	l	subroutine:PRTSPL	file:
+1	table.df	/^    1 IF (NENTY.EQ.I1) GO TO 5$/;"	l	subroutine:LOOKUP	file:
+1	table.df	/^    1 MFILE(I)=MF(I)$/;"	l	subroutine:IUTIL	file:
+1	table.df	/^    1 W(I,J)=0.D0$/;"	l	subroutine:SPLINE	file:
+1	timer.df	/^    1 CONTINUE$/;"	l	subroutine:TIMOUT	file:
+1	timer.df	/^    1 TIMKLS(I)=0$/;"	l	subroutine:TIMSET	file:
+10	comp.df	/^   10 IF (NDOU.GT.0) THEN$/;"	l	subroutine:CPPRG	file:
+10	comp.df	/^   10 IF (NS.GT.0) RETURN$/;"	l	subroutine:NUMGET	file:
+10	comp.df	/^   10 IF (R(I).GE.R(J)) THEN$/;"	l	subroutine:EXEC	file:
+10	comp.df	/^   10 IL=0$/;"	l	subroutine:CPEXP	file:
+10	prop.df	/^   10    FORMAT(\/' TYPICAL VALUES:'\/' ROCK  MODEL     Sw        Sg',$/;"	l	subroutine:SETREL3	file:
+10	table.df	/^   10    R8V(J)=(VALS(I)-FACAU(1))\/FACMU(1)$/;"	l	subroutine:PRTTAB	file:
+10	table.df	/^   10 DLB1=DLB1*X$/;"	l	subroutine:SPLINE	file:
+10	table.df	/^   10 I=NENTY-I1+1$/;"	l	subroutine:LOOKUP	file:
+10	table.df	/^   10 KEY=2$/;"	l	subroutine:NUMBR	file:
+10	table.df	/^   10 NC=NC+1$/;"	l	subroutine:TABLE	file:
+100	bdaryin.df	/^ 100  FORMAT(8(F8.2,1X))$/;"	l	subroutine:BDARYIN	file:
+1000	comp.df	/^ 1000 NSTGU=NSTGU+1$/;"	l	subroutine:CPPRG	file:
+1001	comp.df	/^ 1001 CARRAY(K)=PROG(I)$/;"	l	subroutine:CPPRG	file:
+101	bdaryin.df	/^ 101  FORMAT(A,\/,$/;"	l	subroutine:BDARYIN	file:
+1010	comp.df	/^ 1010 CONTINUE$/;"	l	subroutine:CPPRG	file:
+1020	comp.df	/^ 1020 IF (NDOU.GT.0) GO TO 817$/;"	l	subroutine:CPPRG	file:
+1030	comp.df	/^ 1030 IF (NDOU.GT.0) GO TO 817$/;"	l	subroutine:CPPRG	file:
+1040	comp.df	/^ 1040 DO 1041 I=IC1,IC2$/;"	l	subroutine:CPPRG	file:
+1041	comp.df	/^ 1041 CONTINUE$/;"	l	subroutine:CPPRG	file:
+1042	comp.df	/^ 1042 IF (IC1.GT.IC2) GO TO 10$/;"	l	subroutine:CPPRG	file:
+1050	comp.df	/^ 1050 KSTG=.TRUE.$/;"	l	subroutine:CPPRG	file:
+1060	comp.df	/^ 1060 CALL CPEXP(PROG,IC1,IC2,KODE,R,VNAM,KVDAT,CARRAY,LCSTG,KERR,$/;"	l	subroutine:CPPRG	file:
+1070	comp.df	/^ 1070 L=NKODU+1$/;"	l	subroutine:CPPRG	file:
+1071	comp.df	/^ 1071 KODE(J,L)=VREGR(I)$/;"	l	subroutine:CPPRG	file:
+1072	comp.df	/^ 1072 CONTINUE$/;"	l	subroutine:CPPRG	file:
+11	bdaryin.df	/^ 11            CONTINUE$/;"	l	subroutine:FINDBELSW	file:
+11	bdaryout.df	/^ 11   FORMAT(A6,F6.2,1X,A10,I2,$MXNUMEQ(A5,I1,A1,F8.1,1X)) $/;"	l	subroutine:BND_OUT	file:
+11	comp.df	/^   11 CONTINUE$/;"	l	subroutine:CPEXP	file:
+11	comp.df	/^   11 CONTINUE$/;"	l	subroutine:CPPRG	file:
+11	comp.df	/^   11 IF (R(I).LE.R(J)) THEN$/;"	l	subroutine:EXEC	file:
+11	comp.df	/^   11 NEX=10*NEX+K-1$/;"	l	subroutine:NUMGET	file:
+11	prop.df	/^   11    CONTINUE$/;"	l	subroutine:SETREL3	file:
+11	table.df	/^   11    R8V(J)=(VALS(I)-FACAU(2))\/FACMU(2)$/;"	l	subroutine:PRTTAB	file:
+11	table.df	/^   11 CONTINUE$/;"	l	subroutine:NUMBR	file:
+11	table.df	/^   11 CONTINUE$/;"	l	subroutine:SPLINE	file:
+11	table.df	/^   11 DUM1=VALUES(NENTY)$/;"	l	subroutine:LOOKUP	file:
+11	table.df	/^   11 IF (NC.GT.LSORC) GO TO 30$/;"	l	subroutine:TABLE	file:
+11	timer.df	/^   11 CONTINUE$/;"	l	subroutine:TIMOUT	file:
+12	bdaryin.df	/^ 12            CONTINUE$/;"	l	subroutine:FINDBELSW	file:
+12	comp.df	/^   12 IC=IL$/;"	l	subroutine:CPEXP	file:
+12	comp.df	/^   12 IF (R(I).NE.R(J)) THEN$/;"	l	subroutine:EXEC	file:
+12	prop.df	/^   12    CONTINUE$/;"	l	subroutine:SETREL3	file:
+12	table.df	/^   12    BUF1(I)=C$/;"	l	subroutine:TABLE	file:
+12	table.df	/^   12 DUM1=1.D0\/(XX-TRANC1(NTAB))$/;"	l	subroutine:LOOKUP	file:
+12	table.df	/^   12 FORMAT(1X,A8,' HAS UNITS OF ',A50)$/;"	l	subroutine:PRTTAB	file:
+12	table.df	/^   12 W(I,J)=W(J,I)$/;"	l	subroutine:SPLINE	file:
+12	timer.df	/^   12 FORMAT(1X,A35,3F11.3)$/;"	l	subroutine:TIMOUT	file:
+1212	bdaryin.df	/^ 1212 CONTINUE$/;"	l	subroutine:BDARYIN	file:
+13	bdaryin.df	/^   13 NERR=NERR+1$/;"	l	subroutine:BDPROG	file:
+13	bdaryin.df	/^ 13            CONTINUE$/;"	l	subroutine:FINDBELSW	file:
+13	bdaryin.df	/^ 13      KE = KE +1$/;"	l	subroutine:DOBDARYW	file:
+13	comp.df	/^   13 IF (R(I).EQ.0.D0) THEN$/;"	l	subroutine:EXEC	file:
+13	prop.df	/^   13 NERR=NERR+1$/;"	l	subroutine:ROCKPROG	file:
+13	table.df	/^   13 CALL PUTERR(KODRET,E,A(L),M,1)$/;"	l	subroutine:NUMBR	file:
+13	table.df	/^   13 NERR=NERR+1$/;"	l	subroutine:TABLE	file:
+13	table.df	/^   13 STOP 13$/;"	l	subroutine:LOOKUP	file:
+130	comp.df	/^  130 ASTG1(L-M+1)=CARRAY(L)$/;"	l	subroutine:EXEC	file:
+131	comp.df	/^  131 ASTG1(L-M+201)=CARRAY(L)$/;"	l	subroutine:EXEC	file:
+14	bdaryin.df	/^ 14            CONTINUE$/;"	l	subroutine:FINDBELSW	file:
+14	comp.df	/^   14 IC=IC+1$/;"	l	subroutine:CPEXP	file:
+14	comp.df	/^   14 IF (R(I).NE.0.D0.AND.R(J).NE.0.D0) THEN$/;"	l	subroutine:EXEC	file:
+14	table.df	/^   14       FORMAT(\/' ERROR #',I4,'; ',A50)$/;"	l	subroutine:NUMBR	file:
+14	table.df	/^   14    DO 15 I=1,KEYAT$/;"	l	subroutine:TABLE	file:
+14	table.df	/^   14 FORMAT (\/' ERROR # 406; LOG INTERPOLATION WITH X =',G14.6)$/;"	l	subroutine:LOOKUP	file:
+14	table.df	/^   14 FORMAT(1X,A8,' IS DIMENSIONLESS')$/;"	l	subroutine:PRTTAB	file:
+14	table.df	/^   14 W(I,1)=BB(I)$/;"	l	subroutine:SPLINE	file:
+14	timer.df	/^   14 FORMAT(\/T11,'TIMER',T41,'AVERAGE',T52,'MINIMUM',T63,'MAXIMUM'\/)$/;"	l	subroutine:TIMOUT	file:
+142	comp.df	/^  142 ASTG1(II-II1+1)=CARRAY(II)$/;"	l	subroutine:EXEC	file:
+143	comp.df	/^  143    R(L)=RW(II)$/;"	l	subroutine:EXEC	file:
+146	comp.df	/^  146 ASTG1(II-II1+1)=CARRAY(II)$/;"	l	subroutine:EXEC	file:
+147	comp.df	/^  147    RW(II)=R(L)$/;"	l	subroutine:EXEC	file:
+15	bdaryin.df	/^ 15            CONTINUE$/;"	l	subroutine:FINDBELSW	file:
+15	comp.df	/^   15 CALL NUMGET(PROG(IC1),IC2-IC1+1,N,VAL,K)$/;"	l	subroutine:CPPRG	file:
+15	comp.df	/^   15 CONTINUE$/;"	l	subroutine:CPEXP	file:
+15	comp.df	/^   15 IF (R(I).NE.0.D0.OR.R(J).NE.0.D0) THEN$/;"	l	subroutine:EXEC	file:
+15	table.df	/^   15       FORMAT(' IN UNITS ',$MAXULA1)$/;"	l	subroutine:NUMBR	file:
+15	table.df	/^   15    CONTINUE$/;"	l	subroutine:TABLE	file:
+15	table.df	/^   15 W(L,1)=W(L-NP,1)+DLB1$/;"	l	subroutine:SPLINE	file:
+15	table.df	/^   15 WRITE (NFOUT,*) ' '$/;"	l	subroutine:PRTTAB	file:
+15	timer.df	/^   15    N2=N1+3$/;"	l	subroutine:TIMOUT	file:
+16	bdaryin.df	/^ 16            CONTINUE$/;"	l	subroutine:FINDBELSW	file:
+16	comp.df	/^   16    A(I+IC-1)=BLK$/;"	l	subroutine:CPEXP	file:
+16	comp.df	/^   16 DO 24 J=1,NKEYW$/;"	l	subroutine:CPPRG	file:
+16	comp.df	/^   16 IF (R(I).LT.0.D0) GO TO 403$/;"	l	subroutine:EXEC	file:
+16	table.df	/^   16    FORMAT (\/' ERROR # 410; ILLEGAL KEYWORD ',A15)$/;"	l	subroutine:TABLE	file:
+16	table.df	/^   16 CONTINUE$/;"	l	subroutine:PRTTAB	file:
+16	table.df	/^   16 KEY=3$/;"	l	subroutine:NUMBR	file:
+16	table.df	/^   16 L=0$/;"	l	subroutine:SPLINE	file:
+16	timer.df	/^   16    FORMAT(\/T22,'PROCESSOR =',T34,4I10)$/;"	l	subroutine:TIMOUT	file:
+17	comp.df	/^   17    CONTINUE$/;"	l	subroutine:CPEXP	file:
+17	table.df	/^   17    CONTINUE$/;"	l	subroutine:NUMBR	file:
+17	table.df	/^   17    IF (K.EQ.20) THEN$/;"	l	subroutine:TABLE	file:
+17	table.df	/^   17 A(J,I)=W(L,1)$/;"	l	subroutine:SPLINE	file:
+17	table.df	/^   17 IF (NUMX.LT.3) THEN$/;"	l	subroutine:PRTTAB	file:
+17	timer.df	/^   17    FORMAT(1X,A35,4F10.2)$/;"	l	subroutine:TIMOUT	file:
+18	comp.df	/^   18    DO 16 I=1,J$/;"	l	subroutine:CPEXP	file:
+18	table.df	/^   18          FORMAT (\/' ERROR # 412; WRONG CONTEXT FOR KEYWORD ',A15)$/;"	l	subroutine:TABLE	file:
+18	table.df	/^   18 FORMAT(' SINGULAR MATRIX IN SPLINE DETERMINATION')$/;"	l	subroutine:SPLINE	file:
+18	timer.df	/^   18    CONTINUE$/;"	l	subroutine:TIMOUT	file:
+19	table.df	/^   19       FORMAT (\/' ERROR # 413; EXCESS TABLE DATA AT ',G15.8)$/;"	l	subroutine:TABLE	file:
+19	table.df	/^   19 FORMAT (' INSUFFICIENT DATA TO DETERMINE SPLINE FUNCTION')$/;"	l	subroutine:SPLINE	file:
+19	timer.df	/^   19    FORMAT(\/' ********************  DETAILS  ********************')$/;"	l	subroutine:TIMOUT	file:
+2	bdaryin.df	/^ 2          DEPTH(I,J,K)=DEP$/;"	l	subroutine:DOBDARYW	file:
+2	comp.df	/^    2 IF (A(K).LT.AAA.OR.A(K).GT.ZZZ) RETURN$/;"	l	subroutine:GETNAM	file:
+2	comp.df	/^    2 KODE(I,J)=0$/;"	l	subroutine:CPINIT	file:
+2	comp.df	/^    2 NCHR=NCHR+1+IEQ$/;"	l	subroutine:CPEXP	file:
+2	comp.df	/^    2 NSTG=-1$/;"	l	subroutine:GETSTG	file:
+2	comp.df	/^    2 R(K)=R(I)-R(J)$/;"	l	subroutine:EXEC	file:
+2	initial.df	/^    2 CONTINUE$/;"	l	subroutine:TRANC1	file:
+2	prop.df	/^    2    CONTINUE$/;"	l	subroutine:DODEPTH	file:
+2	prop.df	/^    2    CONTINUE$/;"	l	subroutine:DOROCK	file:
+2	prop.df	/^    2 CALL LOOKUP (NKOSW(KR),SW,RO,ROSW)$/;"	l	subroutine:RELPERM3	file:
+2	prop.df	/^    2 CONTINUE$/;"	l	subroutine:SETREL3	file:
+2	prop.df	/^    2 ELEDEP(J,I)=DEP$/;"	l	subroutine:ROCKPROG	file:
+2	table.df	/^    2 CONTINUE$/;"	l	subroutine:PRTSPL	file:
+2	table.df	/^    2 CONTINUE$/;"	l	subroutine:SPLINE	file:
+2	table.df	/^    2 IF (A(I,I).EQ.0.0) GO TO 1$/;"	l	subroutine:LINSOV	file:
+2	table.df	/^    2 NENTY=I$/;"	l	subroutine:LOOKUP	file:
+2	table.df	/^    2 SGN=.FALSE.$/;"	l	subroutine:NUMBR	file:
+2	table.df	/^    2 UNTI(2)=' '$/;"	l	subroutine:TABUNT	file:
+2	table.df	/^    2 XYNAM1(I,1)=XNAM(I)$/;"	l	subroutine:TABLE	file:
+2	timer.df	/^    2 CONTINUE$/;"	l	subroutine:TIMOUT	file:
+20	comp.df	/^   20 A(I+IC-1)=BLK$/;"	l	subroutine:CPEXP	file:
+20	comp.df	/^   20 CONTINUE$/;"	l	subroutine:CPPRG	file:
+20	prop.df	/^   20 IF (RO.LT.1.D-6) RO=0.D0$/;"	l	subroutine:RELPERM3	file:
+20	table.df	/^   20          FORMAT (\/' ERROR # 414; EXCESS CONSTRAINTS')$/;"	l	subroutine:TABLE	file:
+20	table.df	/^   20 CONTINUE$/;"	l	subroutine:SPLINE	file:
+200	comp.df	/^  200 DO 202 I=1,NKODU$/;"	l	subroutine:CPPRG	file:
+201	comp.df	/^  201    CONTINUE$/;"	l	subroutine:CPPRG	file:
+202	comp.df	/^  202 CONTINUE$/;"	l	subroutine:CPPRG	file:
+21	comp.df	/^   21 IF (KVDAT(4,NV).LT.-1000) THEN$/;"	l	subroutine:CPEXP	file:
+21	comp.df	/^   21 NN=KVDAT(4,I)$/;"	l	subroutine:EXEC	file:
+21	table.df	/^   21       FORMAT (\/' ERROR # 415; EXCESS SPLINE NODES')$/;"	l	subroutine:TABLE	file:
+21	table.df	/^   21 CONTINUE$/;"	l	subroutine:SPLINE	file:
+22	comp.df	/^   22    CONTINUE$/;"	l	subroutine:CPEXP	file:
+22	comp.df	/^   22 NN=KVDAT(4,I)$/;"	l	subroutine:EXEC	file:
+22	table.df	/^   22 DLB1=DLB1+BB(I)*DLB2$/;"	l	subroutine:SPLINE	file:
+22	table.df	/^   22 FORMAT (\/' ERROR # 416; UNEXPECTED NUMBER ',G15.8)$/;"	l	subroutine:TABLE	file:
+23	comp.df	/^   23 CONTINUE$/;"	l	subroutine:CPEXP	file:
+23	comp.df	/^   23 N=N+1$/;"	l	subroutine:CPPRG	file:
+23	comp.df	/^   23 NN=KVDAT(4,K)$/;"	l	subroutine:EXEC	file:
+23	table.df	/^   23    DLB1=DLB1+BB(J+NP)*(DLB2**NDEG)$/;"	l	subroutine:SPLINE	file:
+24	comp.df	/^   24    N=IREG(NL)$/;"	l	subroutine:CPEXP	file:
+24	comp.df	/^   24 CONTINUE$/;"	l	subroutine:CPPRG	file:
+24	comp.df	/^   24 NN=KVDAT(4,K)$/;"	l	subroutine:EXEC	file:
+24	table.df	/^   24 DLB3=DLB3+(DLB1-Y)**2$/;"	l	subroutine:SPLINE	file:
+25	comp.df	/^   25    I=I+1$/;"	l	subroutine:CPEXP	file:
+25	comp.df	/^   25 KERR=0$/;"	l	subroutine:EXEC	file:
+25	comp.df	/^   25 NRU2=NREGL+1$/;"	l	subroutine:CPPRG	file:
+25	table.df	/^   25    BBB(I)=B(I)$/;"	l	subroutine:SPLINE	file:
+26	comp.df	/^   26 CONTINUE$/;"	l	subroutine:CPEXP	file:
+26	comp.df	/^   26 NI=I$/;"	l	subroutine:EXEC	file:
+26	table.df	/^   26    BCF(I)=BB(I)$/;"	l	subroutine:SPLINE	file:
+27	comp.df	/^   27 IF (R(J).EQ.0.D0) NI=I-1$/;"	l	subroutine:EXEC	file:
+27	table.df	/^   27    BB(I)=BCF(I)$/;"	l	subroutine:SPLINE	file:
+28	comp.df	/^   28 L1DO=.TRUE.$/;"	l	subroutine:EXEC	file:
+28	table.df	/^   28 DO 14 I=1,NP$/;"	l	subroutine:SPLINE	file:
+29	comp.df	/^   29 GO TO 301$/;"	l	subroutine:EXEC	file:
+3	bdaryin.df	/^ 3             FORMAT(' ERROR # 418, USER PROGRAM ERROR IN DEPTHMOD')$/;"	l	subroutine:DOBDARYW	file:
+3	comp.df	/^    3    CONTINUE$/;"	l	subroutine:CPEXP	file:
+3	comp.df	/^    3 CARRAY(I)=AA(N)$/;"	l	subroutine:GETSTG	file:
+3	comp.df	/^    3 N2=N$/;"	l	subroutine:NUMGET	file:
+3	comp.df	/^    3 NAMS1(J)=A(I)$/;"	l	subroutine:GETNAM	file:
+3	comp.df	/^    3 R(K)=R(I)*R(J)$/;"	l	subroutine:EXEC	file:
+3	initial.df	/^    3 DUM1=DUM2$/;"	l	subroutine:TRANC1	file:
+3	prop.df	/^    3       CONTINUE$/;"	l	subroutine:DODEPTH	file:
+3	prop.df	/^    3       CONTINUE$/;"	l	subroutine:DOROCK	file:
+3	prop.df	/^    3    FORMAT (\/' ERROR 509; INSUFFICIENT RELATIVE PERMEABILITY DATA',$/;"	l	subroutine:SETREL3	file:
+3	prop.df	/^    3    FORMAT(' ERROR # 418, USER PROGRAM ERROR IN DEPTHMOD')$/;"	l	subroutine:ROCKPROG	file:
+3	prop.df	/^    3 CALL LOOKUP (NKOSW(KR),SW,RO,ROSW)$/;"	l	subroutine:RELPERM3	file:
+3	table.df	/^    3 A(J,K)=DUM$/;"	l	subroutine:LINSOV	file:
+3	table.df	/^    3 CONTINUE$/;"	l	subroutine:TABUNT	file:
+3	table.df	/^    3 DLB1=DLB1*X$/;"	l	subroutine:SPLINE	file:
+3	table.df	/^    3 DO 4 I=J,$MAXUL$/;"	l	subroutine:TABLE	file:
+3	table.df	/^    3 IF (A(J).EQ.POINT) THEN$/;"	l	subroutine:NUMBR	file:
+3	table.df	/^    3 INDEXL(NTAB)=NENTY$/;"	l	subroutine:LOOKUP	file:
+3	table.df	/^    3 N1=N2+2$/;"	l	subroutine:PRTTAB	file:
+3	timer.df	/^    3 WRITE (NFOUT,*)$/;"	l	subroutine:TIMOUT	file:
+30	comp.df	/^   30 II=R(I)+.5D0$/;"	l	subroutine:EXEC	file:
+30	table.df	/^   30 NUM=NEXFRE-NDAT1$/;"	l	subroutine:TABLE	file:
+301	comp.df	/^  301 NI=NI+1$/;"	l	subroutine:EXEC	file:
+302	comp.df	/^  302 KOP=KODE(1,NI)$/;"	l	subroutine:EXEC	file:
+31	comp.df	/^   31 N=R(I)+.5$/;"	l	subroutine:EXEC	file:
+31	table.df	/^   31 FORMAT (\/' ERROR # 402; INCOMPLETE PAIR IN TABLE')$/;"	l	subroutine:TABLE	file:
+313	comp.df	/^  313 ERRMSG=ERRS(KERR)$/;"	l	subroutine:EXEC	file:
+313	table.df	/^  313       FORMAT(' ERROR # 418, USER PROGRAM ERROR IN A TABLE')$/;"	l	subroutine:LOOKUP	file:
+314	comp.df	/^  314 FORMAT(' ERROR AT CODE LINE',I5)$/;"	l	subroutine:EXEC	file:
+32	table.df	/^   32 FORMAT (\/' ERROR # 417; NO DATA IN TABLE')$/;"	l	subroutine:TABLE	file:
+33	comp.df	/^   33 CONTINUE$/;"	l	subroutine:CPEXP	file:
+34	comp.df	/^   34 CONTINUE$/;"	l	subroutine:CPEXP	file:
+36	table.df	/^   36 DATS(I)=VALUES(I+I1-1)$/;"	l	subroutine:TABLE	file:
+37	table.df	/^   37    FORMAT (\/' ERROR # 404; INVALID TRANSFORM OF TABLE '\/1X,A50)$/;"	l	subroutine:TABLE	file:
+38	table.df	/^   38    VALUES(I)=VALUES(I)*(VALUES(I-1)-TRANC1(NTBU))$/;"	l	subroutine:TABLE	file:
+39	table.df	/^   39    FORMAT(\/' Y TRANSFORMED TO Ys\/(X -',F8.4,')')$/;"	l	subroutine:TABLE	file:
+4	bdaryin.df	/^ 4    FORMAT(' ERROR # 418, USER PROGRAM ERROR IN BDMOD')$/;"	l	subroutine:BDMOD	file:
+4	comp.df	/^    4    CONTINUE$/;"	l	subroutine:CPEXP	file:
+4	comp.df	/^    4 CONTINUE$/;"	l	subroutine:NUMGET	file:
+4	comp.df	/^    4 IF (R(J).EQ.0.D0) GO TO 401$/;"	l	subroutine:EXEC	file:
+4	comp.df	/^    4 KRET=1$/;"	l	subroutine:GETNAM	file:
+4	comp.df	/^    4 OPPS(I+6)=SUB2(I)$/;"	l	subroutine:CPINIT	file:
+4	initial.df	/^    4 CONTINUE$/;"	l	subroutine:DEPTH1	file:
+4	initial.df	/^    4 CONTINUE$/;"	l	subroutine:DEPTH1_TOP	file:
+4	initial.df	/^    4 CONTINUE$/;"	l	subroutine:TRANC1	file:
+4	prop.df	/^    4          FORMAT(' ERROR # 418, USER PROGRAM ERROR IN DEPTHMOD')$/;"	l	subroutine:DODEPTH	file:
+4	prop.df	/^    4          FORMAT(' ERROR # 418, USER PROGRAM ERROR IN ROCKMOD')$/;"	l	subroutine:DOROCK	file:
+4	prop.df	/^    4 CONTINUE$/;"	l	subroutine:SETREL3	file:
+4	prop.df	/^    4 F1=SW+AREL(1,KR)*SG$/;"	l	subroutine:RELPERM3	file:
+4	prop.df	/^    4 NAMPROG='ROCKMOD '$/;"	l	subroutine:ROCKPROG	file:
+4	table.df	/^    4 A(J,K)=A(J,K)-A(I,K)*DUM$/;"	l	subroutine:LINSOV	file:
+4	table.df	/^    4 CONTINUE$/;"	l	subroutine:NUMBR	file:
+4	table.df	/^    4 CONTINUE$/;"	l	subroutine:TABLE	file:
+4	table.df	/^    4 DLB2=DLB2*X$/;"	l	subroutine:SPLINE	file:
+4	table.df	/^    4 FORMAT (\/' ERROR # 407; INDEPENDENT VARIABLE',G14.6,$/;"	l	subroutine:LOOKUP	file:
+4	table.df	/^    4 FORMAT('  ')$/;"	l	subroutine:PRTTAB	file:
+40	comp.df	/^   40 J1=1$/;"	l	subroutine:CPEXP	file:
+40	comp.df	/^   40 NN=KVDAT(4,I)$/;"	l	subroutine:EXEC	file:
+40	table.df	/^   40 FORMAT (\/' INTERPOLATION = ',A18,'        EXTRAPOLATION = ',A18)$/;"	l	subroutine:TABLE	file:
+401	comp.df	/^  401 KERR=1$/;"	l	subroutine:EXEC	file:
+402	comp.df	/^  402 KERR=2$/;"	l	subroutine:EXEC	file:
+403	comp.df	/^  403 KERR=3$/;"	l	subroutine:EXEC	file:
+404	comp.df	/^  404 KERR=4$/;"	l	subroutine:EXEC	file:
+405	comp.df	/^  405 KERR=5$/;"	l	subroutine:EXEC	file:
+406	comp.df	/^  406 KERR=6$/;"	l	subroutine:EXEC	file:
+407	comp.df	/^  407 KERR=7$/;"	l	subroutine:EXEC	file:
+408	comp.df	/^  408 KERR=8$/;"	l	subroutine:EXEC	file:
+41	comp.df	/^   41 J2=J1$/;"	l	subroutine:CPEXP	file:
+41	comp.df	/^   41 NN=KVDAT(4,I)$/;"	l	subroutine:EXEC	file:
+41	table.df	/^   41    CONTINUE$/;"	l	subroutine:TABLE	file:
+42	comp.df	/^   42 CONTINUE$/;"	l	subroutine:CPEXP	file:
+42	comp.df	/^   42 NN=KVDAT(4,K)$/;"	l	subroutine:EXEC	file:
+42	table.df	/^   42    FORMAT(\/' ERROR # 405; NON-POSITIVE VALUE IN LOG TABLE:',$/;"	l	subroutine:TABLE	file:
+43	comp.df	/^   43 IF (A(I).EQ.TAG) THEN$/;"	l	subroutine:CPEXP	file:
+43	comp.df	/^   43 NN=KVDAT(4,K)$/;"	l	subroutine:EXEC	file:
+43	table.df	/^   43     CONTINUE$/;"	l	subroutine:TABLE	file:
+44	comp.df	/^   44    CONTINUE$/;"	l	subroutine:CPEXP	file:
+44	comp.df	/^   44 IF (L1DO) THEN$/;"	l	subroutine:EXEC	file:
+44	table.df	/^   44 FORMAT (\/' CONSTRAIN Y TO',G14.6,' AT X =',G14.6)$/;"	l	subroutine:TABLE	file:
+45	comp.df	/^   45 I=I+1$/;"	l	subroutine:CPEXP	file:
+45	comp.df	/^   45 II1=LCSTG(I-1)+1$/;"	l	subroutine:EXEC	file:
+45	table.df	/^   45 FORMAT (\/' CONSTRAIN DY\/DX TO',G14.6,' AT X =',G14.6)$/;"	l	subroutine:TABLE	file:
+46	comp.df	/^   46 II1=LCSTG(I-1)+1$/;"	l	subroutine:EXEC	file:
+46	table.df	/^   46 FORMAT (\/' CONSTRAINT AT X =',G14.7\/' (',G14.7,') Y + (',G14.7,$/;"	l	subroutine:TABLE	file:
+47	comp.df	/^   47       A(I)=BLK$/;"	l	subroutine:CPEXP	file:
+47	table.df	/^   47    NUM=NUM+2$/;"	l	subroutine:TABLE	file:
+48	table.df	/^   48 VALUES(NUM)=SCOF(K,I)$/;"	l	subroutine:TABLE	file:
+49	table.df	/^   49 J=J+2$/;"	l	subroutine:TABLE	file:
+5	comp.df	/^    5 IF (K.LT.11) GO TO 7$/;"	l	subroutine:NUMGET	file:
+5	comp.df	/^    5 KVDAT(4,NVU+I)=-1000-I$/;"	l	subroutine:CPINIT	file:
+5	comp.df	/^    5 NCHR=NCHR+2$/;"	l	subroutine:CPEXP	file:
+5	comp.df	/^    5 R(K)=R(I)$/;"	l	subroutine:EXEC	file:
+5	initial.df	/^    5    CONTINUE$/;"	l	subroutine:DEPTH1	file:
+5	initial.df	/^    5    CONTINUE$/;"	l	subroutine:DEPTH1_TOP	file:
+5	initial.df	/^    5 DUM1=DUM2$/;"	l	subroutine:TRANC1	file:
+5	prop.df	/^    5 CONTINUE$/;"	l	subroutine:SETREL3	file:
+5	prop.df	/^    5 F5=SW-AREL(3,KR)$/;"	l	subroutine:RELPERM3	file:
+5	table.df	/^    5 D=D*A(I,I)$/;"	l	subroutine:LINSOV	file:
+5	table.df	/^    5 DO 6 I=1,10$/;"	l	subroutine:NUMBR	file:
+5	table.df	/^    5 FORMAT (\/' FOR X GREATER THAN OR EQUAL TO',G15.8,$/;"	l	subroutine:PRTSPL	file:
+5	table.df	/^    5 FORMAT(\/1X,A8,'=',G15.8,' (CONSTANT)')$/;"	l	subroutine:PRTTAB	file:
+5	table.df	/^    5 IF (I2.EQ.I1) THEN$/;"	l	subroutine:LOOKUP	file:
+5	table.df	/^    5 W(I,L)=W(I,L)+DLB1*(DLB2**NDEG)$/;"	l	subroutine:SPLINE	file:
+5	table.df	/^    5 XYNAM(2)=' '$/;"	l	subroutine:TABLE	file:
+5	timer.df	/^    5    CONTINUE$/;"	l	subroutine:TIMOUT	file:
+50	comp.df	/^   50 L=NKODU$/;"	l	subroutine:CPEXP	file:
+50	table.df	/^   50 BSTEP(I)=.1$/;"	l	subroutine:SPLINE	file:
+50	table.df	/^   50 FORMAT (\/' SPLINE STANDARD DEVIATION =',G12.5)$/;"	l	subroutine:TABLE	file:
+55	table.df	/^   55 IF (LEVELB) THEN$/;"	l	subroutine:TABLE	file:
+56	table.df	/^   56 FORMAT(\/' USER PROGRAMMED FUNCTION')$/;"	l	subroutine:TABLE	file:
+57	table.df	/^   57    FORMAT (\/' ERROR # 403; TOO MANY EXTERNAL VARIABLES')$/;"	l	subroutine:TABLE	file:
+58	table.df	/^   58 NC=NC+1$/;"	l	subroutine:TABLE	file:
+59	table.df	/^   59 NC=NC+1$/;"	l	subroutine:TABLE	file:
+6	comp.df	/^    6 IF (NN.EQ.0.OR.NEXS.EQ.1) RETURN$/;"	l	subroutine:NUMGET	file:
+6	comp.df	/^    6 R(K)=-R(I)$/;"	l	subroutine:EXEC	file:
+6	initial.df	/^    6       CONTINUE$/;"	l	subroutine:DEPTH1	file:
+6	initial.df	/^    6       CONTINUE$/;"	l	subroutine:DEPTH1_TOP	file:
+6	initial.df	/^    6 CONTINUE$/;"	l	subroutine:TRANC1	file:
+6	prop.df	/^    6 AREL(J,I)=0.D0$/;"	l	subroutine:SETREL3	file:
+6	table.df	/^    6 CONTINUE$/;"	l	subroutine:LOOKUP	file:
+6	table.df	/^    6 CONTINUE$/;"	l	subroutine:NUMBR	file:
+6	table.df	/^    6 CONTINUE$/;"	l	subroutine:SPLINE	file:
+6	table.df	/^    6 XYNAM1(I,2)=YNAM(I)$/;"	l	subroutine:TABLE	file:
+6	timer.df	/^    6    FORMAT(\/1X,A35,5X,F12.3)$/;"	l	subroutine:TIMOUT	file:
+60	comp.df	/^   60 KERR=0$/;"	l	subroutine:CPEXP	file:
+60	table.df	/^   60 FORMAT (\/' ERROR # 411; NO PROGRAM')$/;"	l	subroutine:TABLE	file:
+61	comp.df	/^   61 I=I+1$/;"	l	subroutine:CPEXP	file:
+61	comp.df	/^   61 R(K)=DEXP(R(I))$/;"	l	subroutine:EXEC	file:
+62	comp.df	/^   62 IF (R(I).LT.0.D0) GO TO 405$/;"	l	subroutine:EXEC	file:
+63	comp.df	/^   63 R(K)=DABS(R(I))$/;"	l	subroutine:EXEC	file:
+64	comp.df	/^   64 IF (R(I).LT.0.D0) GO TO 404$/;"	l	subroutine:EXEC	file:
+65	comp.df	/^   65 R(K)=DSIN(R(I))$/;"	l	subroutine:EXEC	file:
+66	comp.df	/^   66 R(K)=DCOS(R(I))$/;"	l	subroutine:EXEC	file:
+67	comp.df	/^   67 R(K)=DTAN(R(I))$/;"	l	subroutine:EXEC	file:
+68	comp.df	/^   68 LL=R(I)$/;"	l	subroutine:EXEC	file:
+69	comp.df	/^   69 R(K)=DASIN(R(I))$/;"	l	subroutine:EXEC	file:
+7	comp.df	/^    7 IF (R(I).EQ.R(J)) THEN$/;"	l	subroutine:EXEC	file:
+7	comp.df	/^    7 NN=1$/;"	l	subroutine:NUMGET	file:
+7	initial.df	/^    7 CONTINUE$/;"	l	subroutine:DEPTH1_TOP	file:
+7	initial.df	/^    7 CONTINUE$/;"	l	subroutine:TRANC1	file:
+7	prop.df	/^    7    FORMAT(\/' ROCK  MODEL    Sorw      Sorg     RELC1     RELC2',$/;"	l	subroutine:SETREL3	file:
+7	table.df	/^    7     FMB(K)=' '$/;"	l	subroutine:PRTSPL	file:
+7	table.df	/^    7 B(IS-1)=(A(IS-1,NP)-DUM)\/A(IS-1,IS-1)$/;"	l	subroutine:LINSOV	file:
+7	table.df	/^    7 DO 8 I=J,$MAXUL$/;"	l	subroutine:TABLE	file:
+7	table.df	/^    7 FORMAT (\/' ERROR # 408; INDEPENDENT VARIABLE',G14.6,$/;"	l	subroutine:LOOKUP	file:
+7	table.df	/^    7 IF (ISUNTDT) THEN$/;"	l	subroutine:NUMBR	file:
+7	table.df	/^    7 LL=LL+1$/;"	l	subroutine:SPLINE	file:
+7	timer.df	/^    7       TIMAVE(I)=TIMCUR(I)$/;"	l	subroutine:TIMOUT	file:
+70	comp.df	/^   70 R(K)=DATAN(R(I))$/;"	l	subroutine:EXEC	file:
+71	comp.df	/^   71 R(K)=DSINH(R(I))$/;"	l	subroutine:EXEC	file:
+72	comp.df	/^   72 R(K)=DCOSH(R(I))$/;"	l	subroutine:EXEC	file:
+73	comp.df	/^   73 R(K)=RANDOM(0)$/;"	l	subroutine:EXEC	file:
+74	comp.df	/^   74 LL=R(I)+.00001D0$/;"	l	subroutine:EXEC	file:
+77	table.df	/^   77 CONTINUE$/;"	l	subroutine:TABLE	file:
+8	comp.df	/^    8 IF (ND.GT.0.OR.NEE.GT.0) RETURN$/;"	l	subroutine:NUMGET	file:
+8	comp.df	/^    8 IF (R(I).GT.R(J)) THEN$/;"	l	subroutine:EXEC	file:
+8	initial.df	/^    8    CONTINUE$/;"	l	subroutine:DEPTH1_TOP	file:
+8	initial.df	/^    8 DUM1=DUM2$/;"	l	subroutine:TRANC1	file:
+8	prop.df	/^    8    CONTINUE$/;"	l	subroutine:SETREL3	file:
+8	table.df	/^    8    CONTINUE$/;"	l	subroutine:NUMBR	file:
+8	table.df	/^    8 CONTINUE$/;"	l	subroutine:TABLE	file:
+8	table.df	/^    8 DO 12 I=2,NMJ$/;"	l	subroutine:SPLINE	file:
+8	table.df	/^    8 DUM1=VALUES(NENTY)$/;"	l	subroutine:LOOKUP	file:
+8	table.df	/^    8 DUM=DUM+B(J)*A(IS-1,J)$/;"	l	subroutine:LINSOV	file:
+8	timer.df	/^    8       TIMAVE(J)=TIMAVE(J)+TIMCUR(J)$/;"	l	subroutine:TIMOUT	file:
+801	comp.df	/^  801 KERR=1$/;"	l	subroutine:CPPRG	file:
+802	comp.df	/^  802 KERR=2$/;"	l	subroutine:CPPRG	file:
+803	comp.df	/^  803 KERR=3$/;"	l	subroutine:CPPRG	file:
+804	comp.df	/^  804 KERR=4$/;"	l	subroutine:CPPRG	file:
+805	comp.df	/^  805 KERR=5$/;"	l	subroutine:CPPRG	file:
+806	comp.df	/^  806 KERR=6$/;"	l	subroutine:CPPRG	file:
+807	comp.df	/^  807 KERR=7$/;"	l	subroutine:CPPRG	file:
+808	comp.df	/^  808 KERR=8$/;"	l	subroutine:CPPRG	file:
+809	comp.df	/^  809 KERR=9$/;"	l	subroutine:CPPRG	file:
+810	comp.df	/^  810 KERR=10$/;"	l	subroutine:CPPRG	file:
+811	comp.df	/^  811 KERR=11$/;"	l	subroutine:CPPRG	file:
+812	comp.df	/^  812 KERR=12$/;"	l	subroutine:CPPRG	file:
+813	comp.df	/^  813 KERR=13$/;"	l	subroutine:CPPRG	file:
+814	comp.df	/^  814 KERR=14$/;"	l	subroutine:CPPRG	file:
+815	comp.df	/^  815 KERR=15$/;"	l	subroutine:CPPRG	file:
+816	comp.df	/^  816 KERR=16$/;"	l	subroutine:CPPRG	file:
+817	comp.df	/^  817 KERR=17$/;"	l	subroutine:CPPRG	file:
+818	comp.df	/^  818 KERR=18$/;"	l	subroutine:CPPRG	file:
+893	comp.df	/^  893    FORMAT(I5,2X,A6,3I5,I6)$/;"	l	subroutine:CPPRG	file:
+894	comp.df	/^  894    WRITE (NFOUT,893) J,VNAM(J),(KVDAT(L,J),L=1,4)$/;"	l	subroutine:CPPRG	file:
+895	comp.df	/^  895    FORMAT(7I5)$/;"	l	subroutine:CPPRG	file:
+896	comp.df	/^  896    WRITE (NFOUT,895) J,(KODE(L,J),L=1,4)$/;"	l	subroutine:CPPRG	file:
+897	comp.df	/^  897 IF (DEBUG) THEN$/;"	l	subroutine:CPPRG	file:
+898	comp.df	/^  898 LINERR=NSTAT$/;"	l	subroutine:CPPRG	file:
+899	comp.df	/^  899 ERRMSG=ERRS(KERR)$/;"	l	subroutine:CPPRG	file:
+9	comp.df	/^    9 IF (NEE.GT.0) RETURN$/;"	l	subroutine:NUMGET	file:
+9	comp.df	/^    9 IF (R(I).LT.R(J)) THEN$/;"	l	subroutine:EXEC	file:
+9	prop.df	/^    9    FORMAT(I4,I6,6F10.4)$/;"	l	subroutine:SETREL3	file:
+9	table.df	/^    9    CALL CONVRT(A(J),UNTS(KXYU),FACMU(KXYU),FACAU(KXYU),KODRET,E)$/;"	l	subroutine:NUMBR	file:
+9	table.df	/^    9 CONTINUE$/;"	l	subroutine:SPLINE	file:
+9	table.df	/^    9 FORMAT(1X,A8,5G14.7)$/;"	l	subroutine:PRTTAB	file:
+9	table.df	/^    9 I=I2+NENTY-I1+1$/;"	l	subroutine:LOOKUP	file:
+9	table.df	/^    9 NP=N+1$/;"	l	subroutine:LINSOV	file:
+9	table.df	/^    9 NUMDAT=0 $/;"	l	subroutine:TABLE	file:
+900	comp.df	/^  900 CALL CPEXP(PROG,IC1,IC2,KODE,R,VNAM,KVDAT,CARRAY,LCSTG,KERR,$/;"	l	subroutine:CPPRG	file:
+901	comp.df	/^  901 KERR=1$/;"	l	subroutine:CPEXP	file:
+902	comp.df	/^  902 KERR=2$/;"	l	subroutine:CPEXP	file:
+903	comp.df	/^  903 KERR=3$/;"	l	subroutine:CPEXP	file:
+904	comp.df	/^  904 KERR=4$/;"	l	subroutine:CPEXP	file:
+905	comp.df	/^  905 KERR=5$/;"	l	subroutine:CPEXP	file:
+906	comp.df	/^  906 KERR=6$/;"	l	subroutine:CPEXP	file:
+907	comp.df	/^  907 KERR=7$/;"	l	subroutine:CPEXP	file:
+908	comp.df	/^  908 KERR=8$/;"	l	subroutine:CPEXP	file:
+909	comp.df	/^  909 KERR=9$/;"	l	subroutine:CPEXP	file:
+910	comp.df	/^  910 KDIM=.TRUE.$/;"	l	subroutine:CPPRG	file:
+910	comp.df	/^  910 KERR=10$/;"	l	subroutine:CPEXP	file:
+911	comp.df	/^  911 KERR=11$/;"	l	subroutine:CPEXP	file:
+912	comp.df	/^  912 KERR=12$/;"	l	subroutine:CPEXP	file:
+913	comp.df	/^  913 KERR=13$/;"	l	subroutine:CPEXP	file:
+914	comp.df	/^  914 KERR=14$/;"	l	subroutine:CPEXP	file:
+915	comp.df	/^  915 KERR=15$/;"	l	subroutine:CPEXP	file:
+916	comp.df	/^  916 KERR=16$/;"	l	subroutine:CPEXP	file:
+920	comp.df	/^  920 CALL NUMGET(PROG(IC1),IC2-IC1+1,N,VAL,K)$/;"	l	subroutine:CPPRG	file:
+930	comp.df	/^  930 NKODU=NKODU+1$/;"	l	subroutine:CPPRG	file:
+940	comp.df	/^  940 J=1$/;"	l	subroutine:CPPRG	file:
+941	comp.df	/^  941 L=I$/;"	l	subroutine:CPPRG	file:
+942	comp.df	/^  942 CALL CPEXP(PROG,IC1,L,KODE,R,VNAM,KVDAT,CARRAY,LCSTG,KERR,$/;"	l	subroutine:CPPRG	file:
+950	comp.df	/^  950 NDOU=NDOU+1$/;"	l	subroutine:CPPRG	file:
+951	comp.df	/^  951 IC1=IC1+1$/;"	l	subroutine:CPPRG	file:
+952	comp.df	/^  952 CONTINUE$/;"	l	subroutine:CPPRG	file:
+953	comp.df	/^  953    CONTINUE$/;"	l	subroutine:CPPRG	file:
+954	comp.df	/^  954 CONTINUE$/;"	l	subroutine:CPPRG	file:
+955	comp.df	/^  955 KODE(1,NKODU-2)=28$/;"	l	subroutine:CPPRG	file:
+960	comp.df	/^  960 GO TO 10$/;"	l	subroutine:CPPRG	file:
+970	comp.df	/^  970 IF (NIFU.EQ.0.OR.KNDIF(NIFU).NE.1) GO TO 813$/;"	l	subroutine:CPPRG	file:
+980	comp.df	/^  980 IF (NIFU.EQ.0.OR.KNDIF(NIFU).EQ.0) GO TO 813$/;"	l	subroutine:CPPRG	file:
+990	comp.df	/^  990 CALL CPEXP(PROG,IC1,IC2,KODE,R,VNAM,KVDAT,CARRAY,LCSTG,KERR,$/;"	l	subroutine:CPPRG	file:
+991	comp.df	/^  991 KODE(J,NKODU)=VREGR(I)$/;"	l	subroutine:CPPRG	file:
+999	comp.df	/^  999 ERRMSG=ERRS(KERR)$/;"	l	subroutine:CPEXP	file:
+AHYDROI	moddefs.dh	/^     &	TRCHEM,POROHEX,CMFMFE,SIMFMFE,HIMFMFE,AHYDROI$/;"	v
+AIR	moddefs.dh	/^     &	unknown8, SINGLEE, unknown10, AIR,/;"	v
+ALL	moddefs.dh	/^      integer ALL$/;"	v
+ALLTIMES	times.dh	/^      LOGICAL TIMRUN,ALLTIMES$/;"	v
+APPENDMAP	initial.df	/^      SUBROUTINE APPENDMAP(/;"	s
+BAREA	boundary.dh	/^     &     BAREA(/;"	v
+BD1	boundary.dh	84;"	c
+BD2	bdaryin.df	809;"	c	subroutine:BDPROG
+BD2	bdaryin.df	873;"	c	subroutine:BDMOD
+BDAREA_EPS	boundary.dh	/^      real*4 BDAREA_EPS$/;"	v
+BDARYIN	bdaryin.df	/^      SUBROUTINE BDARYIN /;"	s
+BDBAL	boundary.dh	75;"	c
+BDCLEARFLUX	bdaryout.df	/^      SUBROUTINE BDCLEARFLUX(/;"	s
+BDMOD	bdaryin.df	/^      SUBROUTINE BDMOD /;"	s
+BDPROG	bdaryin.df	/^      SUBROUTINE BDPROG /;"	s
+BLACKI	moddefs.dh	/^      integer BLACKP, BLACKI,/;"	v
+BLACKP	moddefs.dh	/^      integer BLACKP,/;"	v
+BNDMMOD	boundary.dh	78;"	c
+BNDOUT	boundary.dh	/^      LOGICAL BNDOUT /;"	v
+BNDRMOD	boundary.dh	/^      INTEGER BNDRMOD(/;"	v
+BND_DEP	boundary.dh	/^     &     BND_VOL(8,$MXSUBREG), ! Boundary volume geometry data $/;"	v
+BND_FLUX	boundary.dh	/^     &     BND_FLUX(/;"	v
+BND_OUT	bdaryout.df	/^      SUBROUTINE BND_OUT(/;"	s
+BND_VOL	boundary.dh	/^     &     BND_VOL(/;"	v
+BOUNDARY	boundary.dh	45;"	c
+BOUNDSET	bdaryin.df	/^      SUBROUTINE BOUNDSET(/;"	s
+CHEM	moddefs.dh	/^      integer BLACKP, BLACKI, COMP, CHEM,/;"	v
+CMFMFE	moddefs.dh	/^     &	TRCHEM,POROHEX,CMFMFE,/;"	v
+CMPDRV	comp.df	/^      SUBROUTINE CMPDRV(/;"	s
+CMPSPC	comp.df	286;"	c	subroutine:CMPDRV
+COMP	moddefs.dh	/^      integer BLACKP, BLACKI, COMP,/;"	v
+COUNTE	initial.df	/^      SUBROUTINE COUNTE /;"	s
+CPEXP	comp.df	/^      SUBROUTINE CPEXP(/;"	s
+CPINIT	comp.df	/^      SUBROUTINE CPINIT(/;"	s
+CPPRG	comp.df	/^      SUBROUTINE CPPRG(/;"	s
+CPYARYI4	initial.df	/^      SUBROUTINE CPYARYI4 /;"	s
+CPYARYR4	initial.df	/^      SUBROUTINE CPYARYR4 /;"	s
+CPYARYR8	initial.df	/^      SUBROUTINE CPYARYR8 /;"	s
+CPYARYR8N	initial.df	/^      SUBROUTINE CPYARYR8N(/;"	s
+DEP	rockpg.h	/^      COMMON \/ROCKPG\/ RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP,$/;"	v
+DEP	rockpg.h	/^      REAL*8 RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP$/;"	v
+DEPMP	bdaryin.df	996;"	c	subroutine:DOBDARYW
+DEPTH1	initial.df	/^      SUBROUTINE DEPTH1 /;"	s
+DEPTH1_TOP	initial.df	/^      SUBROUTINE DEPTH1_TOP /;"	s
+DEPTH2	initial.df	/^      SUBROUTINE DEPTH2 /;"	s
+DOBDARY	bdaryin.df	/^      SUBROUTINE DOBDARY(/;"	s
+DOBDARYW	bdaryin.df	/^      SUBROUTINE DOBDARYW(/;"	s
+DODEPTH	prop.df	/^      SUBROUTINE DODEPTH /;"	s
+DOROCK	prop.df	/^      SUBROUTINE DOROCK /;"	s
+DYDX	utldat.dh	/^      REAL*8 TABX,TABY,DYDX,/;"	v
+EXCDRV	comp.df	/^      ENTRY EXCDRV(/;"	e	subroutine:CMPDRV
+EXEC	comp.df	/^      SUBROUTINE EXEC(/;"	s
+FILL_N_MYPRC	initial.df	/^      SUBROUTINE FILL_N_MYPRC(/;"	s
+FINDBELSW	bdaryin.df	/^      SUBROUTINE FINDBELSW(/;"	s
+FIND_AREA	bdaryin.df	/^      REAL*4 FUNCTION FIND_AREA(/;"	f
+FRACCOM	fracture.dh	14;"	c
+FRACFACE	fracture.dh	/^      INTEGER NUMFRACFACE(/;"	v
+FRACFACEPROC	fracture.dh	/^      INTEGER NUMFRACFACE(MXFRAC),FRACFACE(4,MXFRACFACE,MXFRAC),$/;"	v
+FRACWIDTH	fracture.dh	/^      REAL*8  PFN(MXFRACFACE,MXFRAC),FRACWIDTH(/;"	v
+FRACWIDTH_TMP	fracture.dh	/^      REAL*8  PFN(MXFRACFACE,MXFRAC),FRACWIDTH(MXFRACFACE,MXFRAC),$/;"	v
+GETNAM	comp.df	/^      SUBROUTINE GETNAM /;"	s
+GETPOR	rockutil.df	/^      SUBROUTINE GETPOR /;"	s
+GETSOURCEINDEX	bdaryin.df	/^      SUBROUTINE GETSOURCEINDEX(/;"	s
+GETSTG	comp.df	/^      SUBROUTINE GETSTG /;"	s
+HDEPMOD	rockpg.h	/^      LOGICAL HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+HDEPMOD	rockpg.h	/^     &   NPGD,NPGR,KE,HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+HIMFMFE	moddefs.dh	/^     &	TRCHEM,POROHEX,CMFMFE,SIMFMFE,HIMFMFE,/;"	v
+HPORMOD	rockpg.h	/^      LOGICAL HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+HPORMOD	rockpg.h	/^     &   NPGD,NPGR,KE,HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+HXPRMOD	rockpg.h	/^      LOGICAL HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+HXPRMOD	rockpg.h	/^     &   NPGD,NPGR,KE,HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+HYDROE	moddefs.dh	/^      integer BLACKP, BLACKI, COMP, CHEM, HYDROI, HYDROE,/;"	v
+HYDROI	moddefs.dh	/^      integer BLACKP, BLACKI, COMP, CHEM, HYDROI,/;"	v
+HYPRMOD	rockpg.h	/^      LOGICAL HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+HYPRMOD	rockpg.h	/^     &   NPGD,NPGR,KE,HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+INDEX1	utldat.dh	/^      INTEGER NTBU,NEXFRE,INTRPS,KXTRPS,INDEX1,/;"	v
+INDEX2	utldat.dh	/^      INTEGER NTBU,NEXFRE,INTRPS,KXTRPS,INDEX1,INDEX2,/;"	v
+INDEXL	utldat.dh	/^      INTEGER NTBU,NEXFRE,INTRPS,KXTRPS,INDEX1,INDEX2,INDEXL,/;"	v
+INTRPS	utldat.dh	/^      INTEGER NTBU,NEXFRE,INTRPS,/;"	v
+IREG	compc.h	/^     & IREG,NUMVAL,NUMLOC,VREGR,NUMDO,LOCDO,TAG,STAG,SUB2,OPPS,A$/;"	v
+ISUNTDT	utldat.dh	/^      LOGICAL ISUNTDT$/;"	v
+IUTIL	table.df	/^      SUBROUTINE IUTIL /;"	s
+KBND_BLK	boundary.dh	/^     &     NBND_SUBREG, ! Number of boundary subregions (input).$/;"	v
+KDIM	compc.h	/^      LOGICAL KDIM,KSTG,LSUBR$/;"	v
+KDIM	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+KE	rockpg.h	/^     &   NPGD,NPGR,KE,HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+KSTG	compc.h	/^      LOGICAL KDIM,KSTG,LSUBR$/;"	v
+KSTG	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+KTRANS	utldat.dh	/^      INTEGER NTBU,NEXFRE,INTRPS,KXTRPS,INDEX1,INDEX2,INDEXL,KTRANS$/;"	v
+KXTRPS	utldat.dh	/^      INTEGER NTBU,NEXFRE,INTRPS,KXTRPS,/;"	v
+LINSOV	table.df	/^      SUBROUTINE LINSOV /;"	s
+LOCBND	boundary.dh	/^     &     LOCBND(/;"	v
+LOCDO	compc.h	/^     & IREG,NUMVAL,NUMLOC,VREGR,NUMDO,LOCDO,TAG,STAG,SUB2,OPPS,A$/;"	v
+LOFFBND	boundary.dh	/^     &     LOCBND(4,$MXBELE), ! Boundary element location and face number$/;"	v
+LOOKUP	table.df	/^      SUBROUTINE LOOKUP /;"	s
+LSTFUN	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+LSUBR	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+MAKNAM	bdaryin.df	/^      SUBROUTINE MAKNAM(/;"	s
+MMODEL	moddefs.dh	/^      integer BLACKP, BLACKI, COMP, CHEM, HYDROI, HYDROE, MMODEL,/;"	v
+MXFRAC	fracture.dh	/^      INTEGER MXFRAC,/;"	v
+MXFRACFACE	fracture.dh	/^      INTEGER MXFRAC, MXFRACFACE,/;"	v
+Model_Names	moddefs.dh	/^      character*50      Model_Names(/;"	v
+N1KVD	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+NBDPROG	boundary.dh	/^      INTEGER NBDPROG(/;"	v
+NBND_REG	boundary.dh	/^      INTEGER $/;"	v
+NBND_SUBREG	boundary.dh	/^     &     NBND_REG,    ! Number of boundary regions.$/;"	v
+NBND_type	boundary.dh	/^     &     NBND_type(/;"	v
+NCHRL	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+NDOU	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+NEXFRE	utldat.dh	/^      INTEGER NTBU,NEXFRE,/;"	v
+NIFU	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+NIRU	compc.h	/^      COMMON \/COMPC\/NKODU,NKODL,NRU1,NRU2,NREGL,NVU,NVL,NIRU,NRONE,$/;"	v
+NKODL	compc.h	/^      COMMON \/COMPC\/NKODU,NKODL,NRU1,NRU2,NREGL,NVU,NVL,NIRU,NRONE,$/;"	v
+NKODU	compc.h	/^      COMMON \/COMPC\/NKODU,NKODL,NRU1,NRU2,NREGL,NVU,NVL,NIRU,NRONE,$/;"	v
+NPGD	rockpg.h	/^     &   NPGD,NPGR,KE,HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+NPGR	rockpg.h	/^     &   NPGD,NPGR,KE,HDEPMOD,HPORMOD,HXPRMOD,HYPRMOD,HZPRMOD$/;"	v
+NREGL	compc.h	/^      COMMON \/COMPC\/NKODU,NKODL,NRU1,NRU2,NREGL,NVU,NVL,NIRU,NRONE,$/;"	v
+NREGR	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+NRONE	compc.h	/^      COMMON \/COMPC\/NKODU,NKODL,NRU1,NRU2,NREGL,NVU,NVL,NIRU,NRONE,$/;"	v
+NRU1	compc.h	/^      COMMON \/COMPC\/NKODU,NKODL,NRU1,NRU2,NREGL,NVU,NVL,NIRU,NRONE,$/;"	v
+NRU2	compc.h	/^      COMMON \/COMPC\/NKODU,NKODL,NRU1,NRU2,NREGL,NVU,NVL,NIRU,NRONE,$/;"	v
+NSTGL	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+NSTGU	compc.h	/^     & NIFU,NREGR,NSTGU,KDIM,KSTG,NDOU,LSTFUN,LSUBR,N1KVD,NSTGL,NCHRL,$/;"	v
+NTABBND	boundary.dh	/^     &     NBND_type($MXBREG), ! Type of boundary condition (defined by model)$/;"	v
+NTBU	utldat.dh	/^      INTEGER NTBU,/;"	v
+NUMBR	table.df	/^      SUBROUTINE NUMBR /;"	s
+NUMDO	compc.h	/^     & IREG,NUMVAL,NUMLOC,VREGR,NUMDO,LOCDO,TAG,STAG,SUB2,OPPS,A$/;"	v
+NUMFRAC	fracture.dh	/^      INTEGER MXFRAC, MXFRACFACE, NUMFRAC$/;"	v
+NUMFRACFACE	fracture.dh	/^      INTEGER NUMFRACFACE(/;"	v
+NUMGET	comp.df	/^      SUBROUTINE NUMGET /;"	s
+NUMLOC	compc.h	/^     & IREG,NUMVAL,NUMLOC,VREGR,NUMDO,LOCDO,TAG,STAG,SUB2,OPPS,A$/;"	v
+NUMTIM	times.dh	/^      INTEGER NUMTIM,/;"	v
+NUMVAL	compc.h	/^     & IREG,NUMVAL,NUMLOC,VREGR,NUMDO,LOCDO,TAG,STAG,SUB2,OPPS,A$/;"	v
+NVL	compc.h	/^      COMMON \/COMPC\/NKODU,NKODL,NRU1,NRU2,NREGL,NVU,NVL,NIRU,NRONE,$/;"	v
+NVU	compc.h	/^      COMMON \/COMPC\/NKODU,NKODL,NRU1,NRU2,NREGL,NVU,NVL,NIRU,NRONE,$/;"	v
+OPPS	compc.h	/^     & IREG,NUMVAL,NUMLOC,VREGR,NUMDO,LOCDO,TAG,STAG,SUB2,OPPS,A$/;"	v
+PERMSCALE	rockutil.df	/^      SUBROUTINE PERMSCALE$/;"	s
+PFN	fracture.dh	/^      REAL*8  PFN(/;"	v
+POROHEX	moddefs.dh	/^     &	TRCHEM,POROHEX,/;"	v
+PORP	rockpg.h	/^      COMMON \/ROCKPG\/ RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP,$/;"	v
+PORP	rockpg.h	/^      REAL*8 RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP$/;"	v
+PRTSPL	table.df	/^      SUBROUTINE PRTSPL /;"	s
+PRTTAB	table.df	/^      SUBROUTINE PRTTAB /;"	s
+Phase_Names	moddefs.dh	/^      character*10      Phase_Names(/;"	v
+RANDOM	comp.df	/^      FUNCTION RANDOM(/;"	f
+RELPERM3	prop.df	/^      SUBROUTINE RELPERM3 /;"	s
+RNBLK	rockpg.h	/^      REAL*8 RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP$/;"	v
+RNBLK	rockpg.h	/^C  RNBLK   = PROGRAM EXTERNAL VARIABLES     BLOCK NUMBER$/;"	v
+ROCKPROG	prop.df	/^      SUBROUTINE ROCKPROG /;"	s
+SCLARYR8N	initial.df	/^      SUBROUTINE SCLARYR8N /;"	s
+SETARYI4	initial.df	/^      SUBROUTINE SETARYI4 /;"	s
+SETARYI4P	initial.df	/^      SUBROUTINE SETARYI4P /;"	s
+SETARYR4	initial.df	/^      SUBROUTINE SETARYR4 /;"	s
+SETARYR4N	initial.df	/^      SUBROUTINE SETARYR4N /;"	s
+SETARYR8	initial.df	/^      SUBROUTINE SETARYR8 /;"	s
+SETARYR8N	initial.df	/^      SUBROUTINE SETARYR8N /;"	s
+SETMPFAARYR8N	initial.df	/^      SUBROUTINE SETMPFAARYR8N /;"	s
+SETREL3	prop.df	/^      SUBROUTINE SETREL3 /;"	s
+SIMFMFE	moddefs.dh	/^     &	TRCHEM,POROHEX,CMFMFE,SIMFMFE,/;"	v
+SINGLEE	moddefs.dh	/^     &	unknown8, SINGLEE,/;"	v
+SINGLEI	moddefs.dh	/^     &	unknown8, SINGLEE, unknown10, AIR, unknown12, SINGLEI,/;"	v
+SPLINE	table.df	/^      SUBROUTINE SPLINE(/;"	s
+STAG	compc.h	/^      CHARACTER*1 A(NSTML),TAG,STAG,SUB2(9),OPPS(16)$/;"	v
+STAG	compc.h	/^     & IREG,NUMVAL,NUMLOC,VREGR,NUMDO,LOCDO,TAG,STAG,SUB2,OPPS,A$/;"	v
+SUB2	compc.h	/^     & IREG,NUMVAL,NUMLOC,VREGR,NUMDO,LOCDO,TAG,STAG,SUB2,OPPS,A$/;"	v
+TABLE	table.df	/^      SUBROUTINE TABLE(/;"	s
+TABLES	utldat.dh	7;"	c
+TABUNT	table.df	/^      SUBROUTINE TABUNT /;"	s
+TABX	utldat.dh	/^      REAL*8 TABX,/;"	v
+TABY	utldat.dh	/^      REAL*8 TABX,TABY,/;"	v
+TAG	compc.h	/^      CHARACTER*1 A(NSTML),TAG,STAG,SUB2(9),OPPS(16)$/;"	v
+TAG	compc.h	/^     & IREG,NUMVAL,NUMLOC,VREGR,NUMDO,LOCDO,TAG,STAG,SUB2,OPPS,A$/;"	v
+TIMESD	times.dh	3;"	c
+TIMGET	timer.df	/^      SUBROUTINE TIMGET /;"	s
+TIMIN	times.dh	/^      REAL*8 TIMTOT,TIMIN$/;"	v
+TIMKLS	times.dh	/^      INTEGER NUMTIM,TIMKLS$/;"	v
+TIMNAM	times.dh	/^      CHARACTER*40 TIMNAM$/;"	v
+TIMOFF	timer.df	/^      SUBROUTINE TIMOFF /;"	s
+TIMON	timer.df	/^      SUBROUTINE TIMON /;"	s
+TIMOUT	timer.df	/^      SUBROUTINE TIMOUT /;"	s
+TIMRUN	times.dh	/^      LOGICAL TIMRUN,/;"	v
+TIMSET	timer.df	/^      SUBROUTINE TIMSET /;"	s
+TIMTOT	times.dh	/^      REAL*8 TIMTOT,/;"	v
+TRANC1	initial.df	/^      SUBROUTINE TRANC1 /;"	s
+TRANC1	utldat.dh	/^      REAL*8 TABX,TABY,DYDX,TRANC1,/;"	v
+TRCHEM	moddefs.dh	/^     &	unknown8, SINGLEE, unknown10, AIR, unknown12, SINGLEI,                 &$/;"	v
+UNPACK_VOL	bdaryin.df	/^      SUBROUTINE UNPACK_VOL(/;"	s
+VALUES	utldat.dh	/^      REAL*8 TABX,TABY,DYDX,TRANC1,VALUES,/;"	v
+VREGR	compc.h	/^     & IREG,NUMVAL,NUMLOC,VREGR,NUMDO,LOCDO,TAG,STAG,SUB2,OPPS,A$/;"	v
+X	rockpg.h	/^      COMMON \/ROCKPG\/ RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP,$/;"	v
+X	rockpg.h	/^      REAL*8 RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP$/;"	v
+XPERMP	rockpg.h	/^      COMMON \/ROCKPG\/ RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP,$/;"	v
+XPERMP	rockpg.h	/^      REAL*8 RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP$/;"	v
+XYZERO	utldat.dh	/^      REAL*8 TABX,TABY,DYDX,TRANC1,VALUES,XYZERO$/;"	v
+Y	rockpg.h	/^      COMMON \/ROCKPG\/ RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP,$/;"	v
+Y	rockpg.h	/^      REAL*8 RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP$/;"	v
+Y	rockpg.h	/^C  X,Y,Z                                    LOCATION$/;"	v
+YPERMP	rockpg.h	/^      COMMON \/ROCKPG\/ RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP,$/;"	v
+YPERMP	rockpg.h	/^      REAL*8 RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP$/;"	v
+Z	rockpg.h	/^      COMMON \/ROCKPG\/ RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP,$/;"	v
+Z	rockpg.h	/^      REAL*8 RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP$/;"	v
+ZPERMP	rockpg.h	/^      COMMON \/ROCKPG\/ RNBLK,X,Y,Z,DEP,PORP,XPERMP,YPERMP,ZPERMP,$/;"	v
+_F_CHARACTER	cfsimple.h	43;"	d
+_F_COMPLEX	cfsimple.h	114;"	d
+_F_COMPLEX	cfsimple.h	119;"	d
+_F_COMPLEX	cfsimple.h	52;"	d
+_F_DOUBLE_COMPLEX	cfsimple.h	116;"	d
+_F_DOUBLE_COMPLEX	cfsimple.h	53;"	d
+_F_DOUBLE_PRECISION	cfsimple.h	115;"	d
+_F_DOUBLE_PRECISION	cfsimple.h	51;"	d
+_F_EXTERN_	cfsimple.h	126;"	d
+_F_EXTERN_	cfsimple.h	128;"	d
+_F_EXTERN_	cfsimple.h	130;"	d
+_F_EXTERN_	cfsimple.h	59;"	d
+_F_EXTERN_	cfsimple.h	61;"	d
+_F_INTEGER	cfsimple.h	47;"	d
+_F_INTEGER_1	cfsimple.h	110;"	d
+_F_INTEGER_1	cfsimple.h	44;"	d
+_F_INTEGER_2	cfsimple.h	111;"	d
+_F_INTEGER_2	cfsimple.h	45;"	d
+_F_INTEGER_4	cfsimple.h	112;"	d
+_F_INTEGER_4	cfsimple.h	117;"	d
+_F_INTEGER_4	cfsimple.h	46;"	d
+_F_NAME_	cfsimple.h	178;"	d
+_F_NAME_	cfsimple.h	182;"	d
+_F_NAME_	cfsimple.h	186;"	d
+_F_NAME_LOWER_CASE_	cfsimple.h	18;"	d
+_F_NAME_LOWER_CASE_TRAILING_UNDERSCORE_	cfsimple.h	22;"	d
+_F_NAME_OPTION_	cfsimple.h	101;"	d
+_F_NAME_OPTION_	cfsimple.h	107;"	d
+_F_NAME_OPTION_	cfsimple.h	123;"	d
+_F_NAME_OPTION_	cfsimple.h	136;"	d
+_F_NAME_OPTION_	cfsimple.h	142;"	d
+_F_NAME_OPTION_	cfsimple.h	148;"	d
+_F_NAME_OPTION_	cfsimple.h	153;"	d
+_F_NAME_OPTION_	cfsimple.h	70;"	d
+_F_NAME_OPTION_	cfsimple.h	76;"	d
+_F_NAME_OPTION_	cfsimple.h	83;"	d
+_F_NAME_OPTION_	cfsimple.h	89;"	d
+_F_NAME_OPTION_	cfsimple.h	95;"	d
+_F_NAME_UPPER_CASE_	cfsimple.h	14;"	d
+_F_REAL	cfsimple.h	113;"	d
+_F_REAL	cfsimple.h	118;"	d
+_F_REAL	cfsimple.h	48;"	d
+_F_REAL_4	cfsimple.h	49;"	d
+_F_REAL_8	cfsimple.h	50;"	d
+_F_STRING_HIDE_ADJACENT_INT_	cfsimple.h	33;"	d
+_F_STRING_HIDE_TRAILING_INT_	cfsimple.h	29;"	d
+_F_STRING_OPTION_	cfsimple.h	102;"	d
+_F_STRING_OPTION_	cfsimple.h	108;"	d
+_F_STRING_OPTION_	cfsimple.h	124;"	d
+_F_STRING_OPTION_	cfsimple.h	137;"	d
+_F_STRING_OPTION_	cfsimple.h	143;"	d
+_F_STRING_OPTION_	cfsimple.h	149;"	d
+_F_STRING_OPTION_	cfsimple.h	154;"	d
+_F_STRING_OPTION_	cfsimple.h	71;"	d
+_F_STRING_OPTION_	cfsimple.h	77;"	d
+_F_STRING_OPTION_	cfsimple.h	84;"	d
+_F_STRING_OPTION_	cfsimple.h	90;"	d
+_F_STRING_OPTION_	cfsimple.h	96;"	d
+_F_STRING_VMS_STRUCTURE_	cfsimple.h	37;"	d
+_PASTE_	cfsimple.h	8;"	d
+_PASTE__	cfsimple.h	7;"	d
+__F_NAMES_AND_TYPES__	cfsimple.h	2;"	d
+_find_segment	bdutil.c	/^void _find_segment (_F_REAL_4 *aa,_F_REAL_4 *bb, _F_REAL_4 *cc, _F_REAL_4 *dd,$/;"	f
+_find_segment	bdutil.c	12;"	d	file:
+bdeps	boundary.dh	67;"	c
+bdutil	boundary.dh	64;"	c
+myblkdim	ccallc.df	/^         subroutine myblkdim(/;"	s
+myblkoff	ccallc.df	/^        subroutine myblkoff(/;"	s
+mycallwork	ccallc.df	/^         subroutine mycallwork(/;"	s
+mynblk	boundary.dh	/^      integer mynblk /;"	v
+myreg	boundary.dh	/^      integer myreg /;"	v
+nbel	boundary.dh	/^      integer nbel /;"	v
+unknown10	moddefs.dh	/^     &	unknown8, SINGLEE, unknown10,/;"	v
+unknown12	moddefs.dh	/^     &	unknown8, SINGLEE, unknown10, AIR, unknown12,/;"	v
+unknown8	moddefs.dh	/^      integer BLACKP, BLACKI, COMP, CHEM, HYDROI, HYDROE, MMODEL,              &$/;"	v
+vvol	boundary.dh	/^      real*4 vvol(/;"	v

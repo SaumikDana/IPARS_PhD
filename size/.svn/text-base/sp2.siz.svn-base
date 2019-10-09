@@ -1,0 +1,51 @@
+$ ############ SP2 Include File ############
+
+Replace_Symbols
+
+UPPER NO             $ Do convert c procedure names to uppercase
+
+CALLUP NO            $ C routines called by fortran must be uppercase
+
+$ IBMPC  ""          $ Invoke IBM PC, Microsoft Visual C 4.0
+IBMPC  "//"          $ Remove IBM PC, Microsoft Visual C 4.0
+
+$ POWER  ""          $ Invoke IBM PC, Microsoft Powerstation Fortran 4.0
+POWER  "C"           $ Remove IBM PC, Microsoft Powerstation Fortran 4.0
+
+ATTRIB  "$ATTRIB"    $ Fix for IBM PC, Microsoft Powerstation Fortran 4.0
+
+$ CRT3E  ""          $ Invoke Cray T3E  UNIX (C routines)
+CRT3E    "//"        $ Remove Cray T3E  UNIX (C routines)
+
+RS6UN  ""            $ Invoke IBM RS600 UNIX (C routines)
+$ RS6UN    "//"      $ Remove IBM RS600 UNIX (C routines)
+
+RS6UNF  ""           $ Invoke IBM RS600 UNIX (F routines)
+$ RS6UNF  C          $ Remove IBM RS600 UNIX (F routines)
+
+$ SGI64  ""            $ Invoke SGI  UNIX (C routines)
+SGI64    "//"        $ Remove SGI  UNIX (C routines)
+
+$ USAN    "_"        $ Put underscore after routine names in C code
+USAN    ""           $ Remove underscore after routine names in C code
+
+$ NOFLOAT "$NOFLOAT" $ Invoke Microsoft compiler directive (IBMPC)
+NOFLOAT "C"          $ Remove Microsoft compiler directive (IBMPC)
+
+MANY  ""             $ Invoke multiprocessor code
+$ MANY   C           $ Remove multiprocessor code
+
+$ T3D   ""           $ Invoke T3D specific code
+T3D    C             $ Remove T3D specific code
+
+MPI   ""             $ Invoke MPI specific code
+$ MPI    C           $ Remove MPI specific code
+
+$ UXTIM ""           $ Invoke unix timer (single processor only)
+UXTIM   C            $ Remove unix timer (single processor only)
+
+$ FCD2CP "_fcdtocp(" $ Convert Fortran character ptr to C char ptr
+FCD2CP  ""           $ Don't convert Fortran character ptr to C char ptr
+
+$ PAREND  ")"        $ Append closed parenthesis
+PAREND   ""          $ Don't append closed parenthesis

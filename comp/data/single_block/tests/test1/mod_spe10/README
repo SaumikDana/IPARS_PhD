@@ -1,0 +1,8 @@
+For compactness the three permeability fields are not 
+included here. To generate Kxx, Kyy and Kzz permeability 
+fields for the 40x160x160 grid, use spe10perm.dat (SPE10 
+permeability field) and the program from source speUpsc.f 
+and name appropriately to include in spe5_v2.dat 
+
+Note: Copies of the permeability can be also be found in 
+/org/centers/csm/sgthomas/SPE10/spe10_40x160x160_K

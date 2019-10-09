@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/repos/csm/!svn/ver/599/IPARSv3.1/solve/trilinos
+END
+trilinos.xml
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/csm/!svn/ver/599/IPARSv3.1/solve/trilinos/trilinos.xml
+END
+trilinos.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/csm/!svn/ver/599/IPARSv3.1/solve/trilinos/trilinos.cpp
+END
+trilinos_driver.df
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/repos/csm/!svn/ver/599/IPARSv3.1/solve/trilinos/trilinos_driver.df
+END
+makefile
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/599/IPARSv3.1/solve/trilinos/makefile
+END
+trilinos.dh
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/repos/csm/!svn/ver/599/IPARSv3.1/solve/trilinos/trilinos.dh
+END

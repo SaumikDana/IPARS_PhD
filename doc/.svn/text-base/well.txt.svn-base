@@ -1,0 +1,542 @@
+                              Appendix G
+                      Well/Reservoir Interaction
+
+                      John Wheeler       1/27/99
+
+  I.  General
+
+      A.  Well/reservoir interaction relates bottom-hole conditions in
+          the wellbore to the conditions in grid elements that the
+          wellbore penetrates.  Well management relates bottom-hole
+          conditions to surface facility conditions. This appendix
+          deals only with well/reservoir interaction.
+
+      B.  The next section defines the theory.  The third section
+          expounds on the use of oil-field units in simulators. The
+          forth section defines input and calculations provided by the
+          framework for all physical models. The fifth section defines
+          some utility routines for outputing production data.
+
+ II.  Theory
+
+      A.  The volume rate of flow of a phase f from the wellbore to a
+          grid element i is
+                                        _
+          Q    = G  L  K  k    (P     - P   ) / VIS
+           f,i    i  i  i  f,i   WB,i    f,i       f,i
+
+          The mass rate of flow of phase f is
+
+          q    = RHO    Q
+           f,i      f,i  f,i
+
+      B.  L  = Length of the open wellbore penetrating element i.
+           i
+
+      C.  K  = Permeability of element i normal to the wellbore.
+           i
+
+      D.  k    = Relative permeability of phase f in element i.
+           f,i
+
+      E.  RHO    = Density of phase f in element i.
+             f,i
+
+      F.  VIS    = Viscosity of phase f in element i.
+             f,i
+
+      G.  P     = Wellbore pressure at the center of the open
+           WB,i   interval in element i.  This quanity is related to
+                  bottom hole pressure by
+
+          1.  P     = P   + RHO   g (D     - D  )
+               WB,i    BH      WB     WB,i    BH
+
+          2.  P   = Bottom hole pressure.
+               BH
+
+          3.  RHO   = Average fluid density in the wellbore.
+                 WB
+
+          4.  g = gravitational constant.
+
+          5.  D     = Depth at the center of the wellbore open
+               WB,i   interval in element i.
+          _
+      H.  P    = Formation pressure of phase f in element i at the
+           f,i   depth of the center of the open interval in element i.
+                 It may be necessary to adjust the element center
+                 pressure for depth using
+              _
+          1.  P    = P    + RHO    g (D     - D )
+               f,i    f,i      f,i     WB,i    i
+
+          2.  P    = Phase pressure at the center of element i.
+               f,i
+
+          3.  D  = Depth at the center of element i.
+               i
+
+      I.  G  = Dimensionless geometric factor
+           i
+
+             = 2 * 3.14159 / (ln(r   / r ) + s)
+                                  eq    w      i
+
+          1.  r   = Equivalent radius of the grid element center
+               eq
+
+                  = .208 * length of a block edge in a plane normal to
+                     the wellbore (isotropic permeabilities, square
+                     grid elements, single-phase flow, well at the
+                     center of an interior grid element). This quantity
+                     is a strong function of grid and well
+                     configuration.  See III.C.10 below.
+
+          2.  r  = Wellbore radius.
+               w
+
+          3.  s = Skin factor.
+
+      J.  Computation quantities.
+
+          1.  The following definitions are introduced for
+              computational convenience; no new physical quantities or
+              equations are
+              involved.  Note that none of the sums S   require a
+                                                     fi
+              knowledge of wellbore density or bottom hole pressure.
+
+          2.  F  = G  L  K
+               i    i  i  i
+
+          3.  S   = Sum (F  k    / VIS   )   =  sum one for phase f
+               f1    i    i  f,i      f,i
+
+          4.  S   = Sum (F  k    (D     - D  ) / VIS   )
+               f2    i    i  f,i   WB,i    BH       f,i
+
+          5.  S   = Sum (F  k    (P    +
+               f3    i    i  f,i   f,i
+
+                    RHO    g (D     - D )) / VIS   )
+                       f,i     WB,i    i        f,i
+
+          6.  S   = Sum (F  k    RHO    / VIS   )
+               f4    i    i  f,i    f,i      f,i
+
+          7.  S   = Sum (F  k    RHO    (D     - D  ) / VIS   )
+               f5    i    i  f,i    f,i   WB,i    BH       f,i
+
+
+          8.  S   = Sum (F  k    RHO    (P    +
+               f6    i    i  f,i    f,i   f,i
+
+                         RHO    g (D     - D )) / VIS   )
+                            f,i     WB,i    i        f,i
+
+          9.  Q  = Sum Q    = S   P   + S   g RHO   - S
+               f    i   f,i    f1  BH    f2      WB    f3
+
+         10.  q  = Sum q    = S   P   + S   g RHO   - S
+               f    i   f,i    f4  BH    f5      WB    f6
+
+         11.  S  = Sum S
+               m    f   fm
+
+         12.  Q  = Sum Q  = S  P   + S  g RHO   - S
+               T    f   f    1  BH    2      WB    3
+
+         13.  q  = Sum q  = S  P   + S  g RHO   - S
+               T    f   f    4  BH    5      WB    6
+
+      K.  Single phase injection.
+
+          1.  If k    < .01 then set k    = .01 so that phase f can be
+                  f,i                 f,i
+              injected into blocks where the phase is immobile.
+              Incidentally, the well treatment purposed here is
+              unstable if k    is set to 1.
+                  f,i
+
+          2.  Wellbore density.
+
+              a.  RHO   = RHO  (P   + g RHO   D   )
+                     WB      f   BH        WB  WC
+
+              b.  D   = Difference in depth between the wellbore center
+                   WC   and the bottom of hole.
+
+              c.  Note that RHO  is a function and that D   is normally
+                               f                         WC
+                  negative.
+
+              d.  For liquids, successive replacement is more than
+                  adequate for evaluating II.K.2.a.
+
+              e.  On the first time step, a wellbore density value is
+                  required to start successive replacement.  I use
+
+                  RHO   = S   / S
+                     WB    f4    f1
+
+          3.  The total rate from the well should be checked with
+              equation II.J.9 to insure net flow into the formation.
+
+          4.  Injection wells with specified P
+                                              BH
+
+              Injection rates to well elements can be calculated
+              explicitly using equation II.A.  One recalculation of
+              RHO   per Newtonian iteration is sufficient for liquids.
+                 WB
+
+          5.  Injection wells with specified mass rate, q
+                                                         f
+              a.  It is difficult to obtain an accurate distribution of
+                  fluid along the wellbore when mass rate rather than
+                  bottom-hole pressure is specified.  The problem lies
+                  in the high covariance between bottom-hole and
+                  formation pressures.  In theory, bottom-hole pressure
+                  can be made a primary variable in the Newtonian
+                  iteration but this requires a linear solver
+                  capability we do not have.
+
+              b.  One approach, mentioned in the literature, is to
+                  calculate the injected fluid distribution along the
+                  wellbore at the beginning of the time step and then
+                  to freeze that distribution during Newtonian
+                  iteration. My experience with this approach has been
+                  that the distribution oscillates from one time step
+                  to the next causing excessive Newtonian iterations to
+                  recalculate the distribution each time step.  The
+                  oscillation also shows up in the calculated
+                  bottom-hole pressure.
+
+              c.  My approach is to recalculate the distribution
+                  initially and after the first Newtonian iteration
+                  before freezing it.  This eliminates the oscillation
+                  for the tests I have run to date; it would not
+                  surprise me if under some conditions the distribution
+                  should be recalculated three times.  The wellbore
+                  density is also frozen when the distribution is
+                  frozen but the bottom-hole pressure is recalculated
+                  each Newtonian iteration.  Note that until the
+                  distribution is frozen, the Jacobian contributions of
+                  the wellbore must be included.  After the
+                  distribution is frozen there is no wellbore
+                  contribution to the Jacobian.  Failure to synchronize
+                  the Jocobian calculation with the residual
+                  calculation results in slow convergence or failure of
+                  the Newtonian iteration.
+
+      L.  Production
+
+          1.  Note that by definition, the production rate q is
+          negative.
+
+          2.  Wellbore density.
+
+              a.  RHO   = q  / Sum (q  / RHO )
+                     WB    T    f    f      f
+
+                  where RHO  = RHO  (P   + g RHO   D   )
+                           f      f   BH        WB  WC
+
+              b.  D   = Difference in depth between the wellbore center
+                   WC   and the bottom of hole.
+
+          3.  Production wells with specified P
+                                               BH
+
+              a.  Phase densities, RHO , can be evaluated by successive
+                                      f
+                  replacement using a value of RHO   from the previous
+                                                  WB
+                  Newtonian iteration or time step in equation
+                  II.L.2.a. At the beginning of the first time step the
+                  wellbore density required for this purpose can be
+                  obtained from
+
+                  RHO   = S  / S
+                     WB    4    1
+
+              b.  Wellbore density can not be calculated directly from
+                  II.L.2.a since we do not know the flow rates.  The
+                  flow rates can be eliminated by the following
+                  manipulation
+                  which results in a quadratic equation for wellbore
+                  density.
+
+              c.  From II.L.2.a , II.J.10 , and II.J.13 we have
+
+                  RHO   Sum (S   P   + S   g RHO   - S  ) / RHO
+                     WB  f    f4  BH    f5      WB    f6       f
+
+                  = S  P   + S  g RHO   - S
+                     4  BH    5      WB    6
+
+              d.  Let
+
+                  A = g Sum (S   / RHO )
+                         f    f5      f
+
+                  B = - g S  + Sum (S   P   - S  ) / RHO
+                           5    f    f4  BH    f6       f
+
+                  C = - S  P   + S
+                         4  BH    6
+
+              e.  Then
+                                       2
+                  RHO   = (- B + SQRT(B  - 4 A C)) / 2 A
+                     WB
+
+              f.  Production rates from well elements can now be
+                  calculated explicitly using equation II.A.
+
+              g.  Total phase rates from the well must be checked with
+                  equation II.J.9 to insure net flow of each phase out
+                  of the formation.  If the net flow of a phase is into
+                  the formation (physically impossible for a production
+                  well), then flow of that phase should be set to zero
+                  in all well elements and the wellbore density and
+                  bottom-hole pressure should be recalculated.
+
+          4.  Production wells with specified total mass rate, q
+                                                                T
+
+              a.  The comments make above in II.K.5 for injection wells
+                  with specified mass rate apply equally well to
+                  production wells with specified mass rate.  Here,
+                  there is the added complication of multiple phases
+                  but this does not change the basic procedure.
+
+              b.  As usual phase rate must be checked to insure net
+              flow
+                  of each phase from the formation.
+
+III.  Well flow units
+
+      A.  It is relatively easy to become confused by the question: Is
+          a stock-tank volume a mass unit or a volume unit?  I maintain
+          that it is a unit of mass.  If we place a fixed amount of
+          fluid in a system closed to mass flow then no matter how we
+          change the pressure and temperature, the number of stock-tank
+          volumes remains the same.  This is true even if phase changes
+          occur in the system.  On the other hand, the volume of the
+          system may change radically as pressure and temperature are
+          varied.  Thus stock-tank volume behaves like a unit of mass
+          not a unit of volume.
+
+      B.  A reservoir volume is a unit of volume since it is sensitive
+          to insitu conditions.
+
+      C.  Unfortunately, oil-field convention is to use different units
+          of mass for various components and even different units for
+          the same component from one field to the next.  Thus a
+          stock-tank barrel of oil has a different weight in pounds
+          from a stock-tank barrel of water.  This is analogous to
+          using pounds to measure oil mass and kilograms to measure
+          water mass.
+
+      D.  Fortunately, the system of oil-field units is consistant.  If
+          a reservoir simulator uses oil-field units both internally
+          and externally, then there is little problem with units
+          conversion. If, on the other hand, a simulator uses oil-field
+          units externally for well rates and pounds internally for
+          mass then great care must be exercised to insure proper units
+          conversion. The Black-Oil Model uses oil-field units both
+          internally and externally.  The Hydrology Model uses
+          oil-field units externally and pounds internally.
+
+      E.  Stock-tank density provides the essential conversion factor
+          for converting between oil-field units and classical systems
+          of units.  The IPARS framework inputs (or defaults)
+          stock-tank densities and uses these values to modify its
+          units conversion tables.  This allows the framework to extend
+          its automated units conversion capability to include
+          oil-field units.  Field units currently supported by IPARS
+          and the corresponding stock-tank densities in the keyword
+          input are as follows:
+
+          [stbo] ==> stock-tank barrels of oil
+          STDENO ==> stock-tank density of oil
+
+          [stbw] ==> stock-tank barrels of water
+          STDENW ==> stock-tank density of water
+
+          [scf] ==> stock-tank standard cubic feet of gas
+          [scm] ==> stock-tank standard cubic meters of gas
+          STDENG ==> stock-tank density of gas
+
+          [stb] ==> stock-tank barrels of oil plus water
+          STDENW ==> stock-tank density of water
+
+          Note that [stb] is a problem unit since the relative amounts
+          of oil and water must be known before a conversion can be
+          made to classical units.  I handle the problem by telling the
+          units conversion system to use the stock-tank density of
+          water to define the unit and then correct this assumption
+          later when the relative amounts of the two phases are known.
+
+ IV.  Framework well input and calculations
+
+      A.  The framework calculates the geometric factor G , inputs the
+                                                         i
+          well type, and inputs bottom hole pressure or flow rate. 
+          Other well input and calculations are the responsibility of
+          the individual physical model.
+
+      B.  Each well can be divided into a number of completion
+          intervals that share a common wellbore.  A completion
+          interval must occur in a single fault block but a well may
+          extend over more than one fault block.
+
+      C.  Keyword variables.
+
+          1.  NUMWELL = Number of wells (default 0).
+
+          2.  WELLNAME(n) = Name of well n (default "WELL").
+
+          3.  INTERVALS(n)= Number of completion intervals in well
+                            n (default 1).
+
+          4.  WELLBLOCK(i,n) = Fault block containing interval i of
+                               well n (default 1).
+
+          5.  KINDWELL(n) = Well type (default 0)
+                          = 0 ==> Well undrilled or shut in.
+                          = 1 ==> Water Injection well, bhp specified.
+                          = 2 ==> Water Injection well, rate specified.
+                          = 3 ==> Production well, bhp specified.
+                          = 4 ==> Production well, total rate
+                          specified.
+
+          6.  WELLTOP(3,i,n) = X,Y,Z coordinates of the top of interval
+                               i of well n (no default)
+
+          7.  WELLBOTTOM(3,i,n) = X,Y,Z coordinates of the bottom of
+                                  interval i of well n (no default)
+
+          8.  DIAMETER(i,n) = Wellbore diameter of interval i of
+                              well n (default .5 feet)
+
+          9.  SKIN(i,n) = Wellbore skin factor of interval i of
+                          well n (default 0)
+
+         10.  WELLGEOM(6,m) = I, J, K, NBLK, NWELL, and G of the m th
+                          user-specified geometric factor.  NBLK is the
+                          fault block number, NWELL is the well number,
+                          and G is geometric factor defined in section
+                          II.  The first five numbers for a given value
+                          of m must be equal to or greater than 1 and
+                          the sixth number must be greater than 0;
+                          otherwise the entire set of six numbers is
+                          ignored (defaults 0).  If the user does not
+                          specify the geometric factor for a grid
+                          element, then the formular in II.I is applied
+                          with
+                              r   = .208 * square root (element
+                               eq   volume / wellbore length in the
+                                    grid element)
+
+         11.  WELLPQ(n) = Table input of either well mass rate or
+                          bottom hole pressure versus time depending on
+                          well type (no default).
+
+         12.  WELLOUTKEY = Well data output key (default 0).
+                         = 0 ==> Discard (do not collect well data)
+                         = 1 ==> Print in standard output
+                         = 2 ==> Output to disk
+                         = 3 ==> Both print and disk output
+
+         13.  WELLFILE   = File name for well output (default
+                           WELLS.OUT) (30 characters max)
+
+         14.  TYPICAL    = Number of wells at which an initial
+                           formation profile is to be output (default
+                           is the minimum of 4 or the number of wells).
+
+      D.  Some well data can be input only in the initial data; other
+          well data can be input in both the initial and transient
+          data.
+
+              NUMWELL        initial only
+              WELLNAME       initial only
+              INTERVALS      both
+              WELLBLOCK      both
+              KINDWELL       both
+              WELLTOP        both
+              WELLBOTTOM     both
+              DIAMETER       both
+              SKIN           both
+              TYPICAL        initial only
+              WELLGEOM       initial only
+              WELLPQ         both
+              WELLOUTKEY     both
+              WELLFILE       both
+
+      E.  Internal variables for well/reservoir interaction are
+          documented in the include file wells.h .
+
+      F.  SUBROUTINE WELSUM (NW, NVAL, VEC)
+
+          1.  Forms one or more sums with each processor that has
+              elements of a well contributing to each sum.  This
+              routine is intended primarily for calculating average
+              densities in the wellbore and total well rates. All
+              processors must call this routine but only processors
+              that share elements of a well will exchange messages.
+              Note that this routine should be called from an executive
+              routine.
+
+          2.  NW    = Well number (input, INTEGER*4)
+
+          3.  NVAL  = Number of values in VEC (input, INTEGER*4) (10
+              MAX) (Must be the same on all processors)
+
+          4.  VEC() = Current processor contributions to sums on input.
+              Sum for all processors on output (REAL*8)
+
+  V.  Production data output
+
+      1.  Well production data for a large number of wells and
+          processors presents a serious logistics problem.  The
+          framework provides a passable solution to the problem.
+
+      2.  At the end of each time step, each processor can store one
+          value of production (or injection) data using
+
+          CALL WELLOUT(N,K,V)
+
+          where
+
+          N = Well number (input, INTEGER*4)
+          K = Data identification key (input, INTEGER*4)
+          V = Data value (input, REAL*8)
+
+      3.  Up to $MXHISQ values can be stored each time step.
+
+      4.  Definition of the data identification key is a responsibility
+          of the specific physical model but the framework does provide
+          the following defaults:
+
+          1 ==> WATER INJECTION RATE
+          2 ==> OIL PRODUCTION RATE
+          3 ==> WATER PRODUCTION RATE
+          4 ==> GAS PRODUCTION RATE
+          5 ==> WATER/OIL RATIO
+          6 ==> GAS/OIL RATIO
+
+          Up to $MXHISD identification keys may be used.  To define or
+          redefine key 5, for example, insert the code line
+
+          TITHIS(5)='CO2 INJECTION RATE'
+
+          in subroutine xWDATA or some other model specific routine.
+
+      5.  Every $MXHIST time steps and at the end of the simulation,
+          the framework will output the collected data either to the
+          standard printout or to a disk file (or both).  The form of
+          the output is determined by the keyword WELLOUTKEY.

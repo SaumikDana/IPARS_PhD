@@ -1,0 +1,280 @@
+C  TRWELL.F - TRANSPORT - WELL ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE TRWELL
+C  SUBROUTINE TRWELLW
+C  SUBROUTINE TRSAVEWELLS
+C  SUBROUTINE TRCOMPWELLS
+C  SUBROUTINE TRWELOUT
+
+C  CODE HISTORY:
+
+C M. PESZYNSKA, 2/01    INITIAL VERSION
+C ******************************************************
+      SUBROUTINE TRWELL(NALPHA,NERR)
+C ******************************************************
+      IMPLICIT NONE
+      INTEGER NALPHA,NERR
+      INCLUDE 'trarydat.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'wells.h'
+      
+      INTEGER IADV(8),IW
+      EXTERNAL TRWELLW
+      DATA IADV /8*0/
+C -----------------------------------------------------
+      IADV (1) = 3
+      IADV (2) = N_CONCARR (NALPHA)
+      IADV (3) = N_CONCOLD
+      IADV (4) = N_PHIS
+      
+      CALPHA = NALPHA 
+
+C SAVE CONCENTRATIONS TO CONCOLD AND INITIALIZE CONC<-CONC*PHISOLD
+      DO IW=1,NUMWEL
+         IF(ICSTEP.EQ.1) TRXWALL(CALPHA,IW)=0.D0
+         TRXW(IW) = 0.D0
+      ENDDO
+
+      CFLERR=.FALSE.
+
+      CALL CALLWORK (TRWELLW,IADV)
+
+      IF(CFLERR) THEN
+         NERR = NERR + 1
+         RETURN
+      ENDIF
+
+C ADD THE CURRENT STEP INJECTION/PRODUCTION RATE TO TOTAL RATE
+
+      DO IW=1,NUMWEL
+         TRXWALL(CALPHA,IW) = TRXWALL(CALPHA,IW) + TRXW(IW)
+         CIN(CALPHA) = CIN(CALPHA) + TRXW(IW)
+      ENDDO
+
+      END
+
+C********************************************************
+      SUBROUTINE TRWELLW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,CONC,CONCOLD,PHIS)
+C********************************************************
+      IMPLICIT NONE
+      INTEGER IDIM,JDIM,KDIM,LDIM,NBLK,IL1,IL2,KL1,KL2
+      INTEGER JL1V(KDIM),JL2V(KDIM),     KEYOUT(IDIM,JDIM,KDIM)
+
+      REAL*8 CONC(IDIM,JDIM,KDIM), PHIS(IDIM,JDIM,KDIM)
+      REAL*8 CONCOLD(IDIM,JDIM,KDIM)
+
+      INCLUDE 'wells.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INTEGER IOFF,JOFF,KOFF,IG,JG,KG,I,J,K,MERR,IW,L
+      REAL*8 CWELL,CADD,DUM,VOL,VOLR
+
+C---------------------------
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C LOOP OVER WELLS 
+
+      DO IW=1,NUMWEL
+
+         TRXW(IW)=0.D0
+
+C  LOOK UP CONCENTRATION AT WELL 
+
+         CWELL=0.D0
+
+         IF(NTRXTAB(IW,CALPHA).NE.0) THEN
+
+            CALL LOOKUP(NTRXTAB(IW,CALPHA),CONCTIM_NEW,CWELL,DUM)
+            IF(CWELL.LE.0.D0) CWELL = 0.D0
+
+         ENDIF
+
+         DO L=1,NUMELE(IW)
+
+$MMODEL      IF (LOCWEL(6,L,IW).EQ.MYPRC_ALL.AND.LOCWEL(1,L,IW).EQ.NBLK) THEN
+$NOMMOD      IF (LOCWEL(6,L,IW).EQ.MYPRC.AND.LOCWEL(1,L,IW).EQ.NBLK) THEN
+
+C            WRITE(*,*) 'WELL ELEMENT ',L,' TYPE ',KWELL(IW)
+
+            IG=LOCWEL(3,L,IW)
+            JG=LOCWEL(4,L,IW)
+            KG=LOCWEL(5,L,IW)
+
+            I=IG-IOFF
+            J=JG-JOFF
+            K=KG-KOFF
+
+            IF(KWELL(IW).GT.0) THEN ! CONNECT TO FLOW RATES FROM FLOW MODEL
+
+               VOLR = 0.5D0*(VOLARATEN(L,IW)+VOLARATE(L,IW))
+
+C     CHECK CFL CONDITION TO PREVENT INSTABILITIES 
+
+               IF(.NOT.NO_CFL_CHECK) THEN
+                  IF(CDELTIM.GT.DABS(PHIS(I,J,K)/VOLR)) THEN
+                     CFLERR = .TRUE.
+                     CFLTSTEP = DABS(PHIS(I,J,K)/VOLR)
+                     RETURN
+                  ENDIF
+               ENDIF
+
+               IF(VOLR.GT.0D0) THEN
+C     INJECTION: USE INJECTION QUANTITY CWELL
+                  CADD = CWELL
+               ELSE
+C     PRODUCTION: USE CONCENTRATION IN THE CELL
+                  CADD = CONC(I,J,K)/PHIS(I,J,K)
+               ENDIF
+
+               CADD = CADD *VOLR * CDELTIM
+
+            ELSE ! USE THE WELL RATE AS POINT SOURCE / SINK 
+               CADD = CWELL * CDELTIM
+     &               * DXREC(IG,NBLK)*DYREC(JG,NBLK)*DZREC(KG,NBLK)
+               
+            ENDIF
+
+            CONC(I,J,K) = CONC(I,J,K)+CADD
+
+            TRXW(IW)=TRXW(IW)+CADD
+
+          ENDIF
+            
+         ENDDO
+      ENDDO
+      
+      END
+
+
+C ****************************************
+      SUBROUTINE TRSAVEWELLS()
+C ****************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'wells.h'
+      
+      INTEGER IW,L,NPH
+C ---------------------------------------
+      IF(NSTEP.EQ.1.AND.ICSTEP.EQ.1) THEN
+         DO IW=1,NUMWEL
+            DO L= 1,NUMELE(IW)
+               DO NPH=1,NPHASES
+                  VOLRATE(NPH,L,IW) = 0.D0
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDIF
+      
+      DO IW=1,NUMWEL
+         DO L= 1,NUMELE(IW)
+            DO NPH=1,NPHASES
+               VOLRATEN(NPH,L,IW) = VOLRATE(NPH,L,IW)  
+            ENDDO
+         ENDDO
+      ENDDO
+       
+      END
+
+C ****************************************
+      SUBROUTINE TRCOMPWELLS (NALPHA)
+C ****************************************
+      IMPLICIT NONE
+      INTEGER NALPHA
+
+      INCLUDE 'control.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'wells.h'
+
+      INTEGER    OIL,WATER
+      PARAMETER  (OIL=2, WATER=1)    
+
+      REAL*8 COF(2),VAL1,VAL2,VAL,CFAC1,CFAC2
+      INTEGER IW,L,NPH
+C ---------------------------------------
+      CFAC1 = CONCTIM - FLOWTIM
+      CFAC1 = CFAC1 / DELTIM
+      CFAC2 = CONCTIM_NEW - FLOWTIM
+      CFAC2 = CFAC2 / DELTIM
+
+      COF(1) = EQLBCOEF(WATER,NALPHA)
+      COF(2) = EQLBCOEF(OIL,NALPHA)
+
+      DO IW=1,NUMWEL
+         DO L= 1,NUMELE(IW)
+            VOLARATE(L,IW)=0.D0
+            VOLARATEN(L,IW)=0.D0
+         ENDDO
+      ENDDO
+
+      DO IW=1,NUMWEL
+         DO L= 1,NUMELE(IW)
+            DO NPH=1,NPHASES
+
+               VAL1 = VOLRATEN(NPH,L,IW)
+               VAL2 = VOLRATE(NPH,L,IW)
+               
+               VOLARATEN(L,IW)= VOLARATEN(L,IW) +
+     &              ( VAL1 + CFAC1*(VAL2-VAL1))*COF(NPH)
+
+               VOLARATE(L,IW)= VOLARATE(L,IW) +
+     &              ( VAL1 + CFAC2*(VAL2-VAL1))*COF(NPH)
+
+            ENDDO
+
+         ENDDO
+      ENDDO
+
+      IF(SKIP_FLOW) THEN
+         DO IW=1,NUMWEL
+            DO L= 1,NUMELE(IW)
+               VOLARATEN(L,IW)= VOLARATE(L,IW)
+            ENDDO
+         ENDDO
+      ENDIF
+
+      END
+
+C********************************************************
+      SUBROUTINE TRWELOUT()
+C*******************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'wells.h'
+      INTEGER IW,NC, NS_BAL
+
+$MANY      CALL TIMON(23)
+$MANY      DO 4 IW=1,NUMWEL
+$MANY    4 CALL WELSUM(IW,NSPECIES,TRXWALL(1,IW))
+$MANY      CALL WELGET(NSPECIES,TRXWALL)
+$MANY      CALL TIMOFF(23)
+C  NOTE:  CANNOT PUT PARALLEL COMMUNICATION INSIDE OF IF(LEVELC) ... ENDIF
+
+      IF(LEVELC.AND.(MYPRC.EQ.0)) THEN    
+         DO IW=1,NUMWEL
+            IF (REPORT_BAL_ALL) THEN
+               NS_BAL = NSPECIES
+            ELSE
+               NS_BAL = 1
+            ENDIF
+            DO NC = 1, NS_BAL            
+               WRITE(*,200) NSTEP, CONCTIM_NEW,IW,NC,
+     &              TRXWALL(NC,IW)/DELTIM
+               CALL WELLOUT(IW,$MXFHIS+NC,
+     &              TRXWALL(NC,IW)/DELTIM)
+            ENDDO
+         ENDDO
+      ENDIF
+ 200  FORMAT(' STEP',I6,' TIME',F8.2,' WELL(',I2,')',
+     &     ' COMP(',I2,')',F18.7)
+
+
+      END
+

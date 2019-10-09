@@ -1,0 +1,123 @@
+                      VTK visualization
+                ---------------------------
+
+VTK data formats for visualization are becoming popular nowadays 
+in software such as paraview, visit, etc. The capability to output 
+visual data in vtk formats has been integrated into IPARS for all 
+possible simulation scenarios - parallel, single-block, multi-block, 
+(and when available, multi-model). Two approaches are possible when 
+trying to output visual data in vtk formats. One is to study the 
+format carefully and write out visual data in that format explicitly 
+as and when such data becomes available. This involves no additional 
+resources, other than a knowledge of the vtk formats. The second is 
+to download, build and install the free (open-source) VTK libraries 
+available at: http://www.vtk.org/VTK/resources/software.html and 
+link to IPARS build. The latter approach is followed even though it 
+may be somewhat harder to build and install the VTK libraries on 
+different platforms. This allows the user to use an object-oriented 
+approach to assembling and writing data without any presumption on 
+knowledge of the formats and is quite intuitive to use. The VTK libs 
+have been built and installed and successfully linked to IPARS on 
+the IBM Blue Gene P cluster (Watson-Shaheen). On other systems such 
+as ICES, bevo2 or TACC (ranger), the vtk libs have already been 
+installed and the visualization has been tested successfully on all 
+of these.
+
+The VTK libraries comes with a rich class heirarchy available at: 
+http://www.vtk.org/doc/release/5.4/html/  The basic idea is that 
+all aspects of the problem are treated as objects (the grid, points, 
+data, writer, etc.) that can be declared, allocated, assigned and 
+written as and when specified in the input file. The most general 
+implementation has been taken care of in IPARS, i.e., that of 
+visualizing scalars and vectors on unstructured grids (and even 
+corner point grids in a separate implementation in the MPFA project). 
+To this end, some of the interface visualization subroutines in the 
+models were given different names (removed "TEC" from the subroutine 
+names since they have nothing to do with tecplot at that point). For 
+problems running multi-block (EVMFEM) in IPARSv3.1, velocity has been 
+computed on fault-block interfaces to enable such visualization (for 
+most models). The interface routines calls VIS_OUTPUT which then 
+branches to either tecplot or vtk visualization.
+
+The code for vtk visualization implementation can be found in: 
+
+IPARSv3.1/visual/vtk/ 
+
+The other necessary changes (structure re-organization or otherwise) 
+were in 
+
+IPARSv3.1/visual/source/
+IPARSv3.1/visual/includes/
+IPARSv3.1/visual/tecplot/
+IPARSv3.1/memman/
+
+and in all the model visual files, e.g. for hydroi
+
+IPARSv3.1/hydroi/hvisual.df
+
+Compiling and running
+----------------------
+
+New makefile for vtk visualization is: 
+
+IPARSv3.1/make/visvtk.mak
+
+and sizefile modification (keywords for VTK, TEC, etc):
+
+IPARSv3.1/size/visual.siz
+
+The procedure to invoke vtk visualization is to include the 
+visvtk.mak in your makefile (in the compile directory) and 
+to make sure visual.siz is suitably edited to reflect your 
+choice (i.e. VTK = "", TEC = C) and issue a "make" command. 
+Then run the problem in your run directory. This results in  
+vtk output (in *.vtu and *.pvtu file formats). The *.pvtu 
+are time step "driver" files for the actual visual data 
+(*.vtu files) specifying which blocks and processors share 
+a given portion of the visual output for that time step. 
+The *.vtu files can be output in ascii or binary format. 
+Currently the code writes out to binary format, while the 
+ascii writer is commented out (this could be activated 
+via a flag directed from the input file if desired). No 
+additional scripts, etc. are needed. These *.pvtu files 
+can be directly loaded in paraview to view the solution. 
+The user can write out in ascii and view the resulting 
+*.vtu files to study the formats closely. The basic idea 
+is still the same as in any visualization framework for 
+unstructured grids - list point co-ordinates, scalar and 
+vector field data, element connectivity and element types. 
+In principle, the resulting output from the run can also 
+be rendered in parallel (multi-panel displays, etc.). Note:
+In the input file, VISFLAG >= 7 is understood reserved for
+vtk visoutputs in the current implementation. The other
+features w.r.t input file remain the same.
+
+Loading in paraview
+--------------------
+
+A good source of information for paraview is the tutorial 
+at: http://www.itk.org/Wiki/ParaView 
+Most of us are still finding our way around using paraview 
+efficiently. But it is fairly easy to understand. You can 
+open paraview, say, from the directory where you completed 
+a run and have vtk visualization output. Use the command: 
+
+module load paraview 
+
+to load all requisity libraries. Then launch paraview using 
+
+paraview &
+
+From here: 
+
+File -> Open -> *.pvtu
+
+Click Apply to see the grid. Then use the drop down list 
+on the top to navigate to the variable of interest, clicking 
+Apply as when it appears highlighted.
+
+For vector visualization, click the glyph icon and use it 
+to load the vector field of interest. Animations have a 
+separate button on the top right hand side of the tool bar. 
+Pictures and animations can be saved using the "Save snapshot" 
+or "Save animation" button under the File option.

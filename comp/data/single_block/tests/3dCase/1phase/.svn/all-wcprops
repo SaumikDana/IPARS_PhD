@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/repos/csm/!svn/ver/123/IPARSv3.1/comp/data/single_block/tests/3dCase/1phase
+END
+perm3d.dat
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/1phase/perm3d.dat
+END
+3dTempTest.dat
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/repos/csm/!svn/ver/123/IPARSv3.1/comp/data/single_block/tests/3dCase/1phase/3dTempTest.dat
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/1phase/IPARS.IN
+END
+poro3d.dat
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/1phase/poro3d.dat
+END

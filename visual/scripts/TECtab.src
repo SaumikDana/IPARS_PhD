@@ -1,0 +1,22 @@
+#!MC 700
+## TECtab.src
+##################### read *.plt files for the given table
+$!VarSet |mydir| = 
+$!READDATASET  
+  READDATAOPTION = NEW
+  RESETSTYLE = YES
+$!RemoveVar |mydir|
+####################### set the common options
+$!XYLAYERS SHOWSYMBOLS = YES
+$!ACTIVEXYMAPS += [1-2]
+$!XYMAP [1]  LINES{SHOW = NO}
+$!XYMAP [2]  SYMBOLS{SHOW = NO}
+$!XYMAP [1-2]  SYMBOLS{ISFILLED = YES}
+$!XYMAP [1-2]  LINES{LINETHICKNESS = 0.4}
+$!VIEW AXISFIT
+  AXIS = 'Y' 
+  AXISNUM = 1
+$!VIEW AXISFIT
+  AXIS = 'X' 
+  AXISNUM = 1
+$!REDRAW 

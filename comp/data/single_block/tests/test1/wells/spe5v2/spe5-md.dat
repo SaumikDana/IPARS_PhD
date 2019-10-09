@@ -1,0 +1,210 @@
+**--------------------------------------------------------------------**
+** GMSPR002.DAT:  WAG Process Model.  5th SPE Problem                 **
+**--------------------------------------------------------------------**
+**--------------------------------------------------------------------**
+**                                                                    **
+** FILE:  GMSPR002.DAT                                                **
+**                                                                    **
+** MODEL: CART 7x7x3 GRID          INTERFACIAL TENSION DEPENDENT KR'S **
+**        6 COMPONENTS             PRIMARY FOLLOWED BY WAG PROCESS    **
+**        SPE5 COMPOSITIONAL RUN   USER SPECIFIED INITIALIZATION      **
+**        FIELD UNITS              5TH SPE COMPARATIVE PROBLEM        **
+**                                                                    **
+**--------------------------------------------------------------------**
+**                                                                    **
+** This template is based on the SPE 5 problem.  It models primary    **
+** production and a WAG process.  User specified initial conditions   **
+** and interfacial tension effects on relative permeability curves    **
+** are modelled.                                                      **
+**                                                                    **
+**--------------------------------------------------------------------**
+** CONTACT CMG at (403)531-1300 or support@cmgl.ca                    **
+**--------------------------------------------------------------------**
+
+*RESULTS *SIMULATOR *GEM
+*FILENAMES *OUTPUT *SRFOUT *RESTARTOUT  *INDEXOUT *MAINRESULTSOUT
+*TITLE1 'SPE5 :  SPE5 COMPOSITIONAL RUN 1'
+*TITLE2 'WAG process with 1 year cycle'
+*INUNIT  *FIELD
+
+*WSRF *GRID *TIME
+*WSRF *WELL 1
+*OUTSRF *GRID *SO *SW *SG *PRES
+*OUTPRN *GRID *PRES *SO *SG *SW *SIG
+*OUTSRF *WELL *PAVG
+
+**--------------------------------------------------RESERVOIR DATA------
+*GRID *CART 7 7 3
+*DEPTH *TOP 1 1 1 975.0
+*DI *CON 500.0
+*DJ *CON 500.0
+*DK *KVAR 50.0 30.0 20.0
+*POR *CON 0.30
+*PERMI *KVAR 200.0 50.0 500.0
+*PERMJ *EQUALSI
+*PERMK *KVAR  25.0 50.0  50.0
+*CPOR  5.0E-06
+*PRPOR  3990.30
+**--------------------------------------------------FLUID COMPONENT DATA
+*MODEL *PR
+*NC 6 6
+*TRES  160.0
+*PHASEID *DEN
+*HCFLAG       0         0         0         0         0         0
+*PCRIT    45.44     41.94     29.73     20.69     13.61     11.02
+*VCRIT 0.099800  0.200500  0.369800  0.629700    1.0423    1.3412
+*TCRIT    190.6     369.8     507.4     617.7     705.6     766.7
+*AC      0.0130    0.1524    0.3007    0.4885    0.6500    0.8500
+*MW       16.04     44.10     86.18    142.29    206.00    282.00
+*COMPNAME  'C1'      'C3'      'C6'     'C10'     'C15'     'C20'
+*BIN         0.
+           2*0.
+           3*0.
+           0.05     0.005      2*0.
+           0.05     0.005      3*0.
+*RHOW    1571.10
+*CW      3.3E-06
+*REFPW   14.6960
+*VISW    0.70
+**--------------------------------------------------ROCK FLUID----------
+*ROCKFLUID
+*SIGMA      0.1   1.0   0.00001
+*RPT
+*SGT
+       0.0       0.0   1.00000       0.0
+ 0.0500000       0.0 0.8800000       0.0
+ 0.0889000 0.0010000 0.7023000       0.0
+ 0.1778000 0.0100000 0.4705000       0.0
+ 0.2667000 0.0300000 0.2963000 0.0010000
+ 0.3556000 0.0500000 0.1715000 0.0100000
+ 0.4444000 0.1000000 0.0878000 0.0300000
+ 0.5333000 0.2000000 0.0370000 0.8000000
+ 0.6222000 0.3500000 0.0110000 3.0000000
+ 0.6500000 0.3900000       0.0   4.00000
+ 0.7111000 0.5600000       0.0   8.00000
+ 0.8000000   1.00000       0.0  30.00000
+*SWT
+ 0.2000000       0.0   1.00000  45.00000
+ 0.2899000 0.0022000 0.6769000  19.03000
+ 0.3778000 0.0180000 0.4153000  10.07000
+ 0.4667000 0.0607000 0.2178000   4.90000
+ 0.5556000 0.1438000 0.0835000   1.80000
+ 0.6444000 0.2809000 0.0123000 0.5000000
+ 0.7000000 0.4089000       0.0 0.0500000
+ 0.7333000 0.4855000       0.0 0.0100000
+ 0.8222000 0.7709000       0.0       0.0
+ 0.9111000   1.00000       0.0       0.0
+   1.00000   1.00000       0.0       0.0
+**--------------------------------------------------INITIAL CONDITION---
+*INITIAL
+*VERTICAL *OFF
+*PRES *KVAR 4000.0  3990.3  3984.3
+*SW   *CON     0.2
+*ZGLOBALC 'C10' CON          0.2
+*ZGLOBALC 'C6' CON         0.07
+*ZGLOBALC 'C3' CON         0.03
+*ZGLOBALC 'C1' CON          0.5
+*ZGLOBALC 'C20' CON         0.05
+*ZGLOBALC 'C15' CON         0.15
+**--------------------------------------------------NUMERICAL-----------
+*NUMERICAL
+*NORM  *PRESS  1000.0
+*NORM  *SATUR  0.15
+*NORM  *GMOLAR 0.15
+**--------------------------------------------------WELL DATA-----------
+*RUN
+*DATE  1986 1 1
+   *DTMAX  125.0
+   *DTMIN    0.1
+   *DTWELL   1.0
+   *AIMWELL *WELLN
+   *WELL 1 'PROD'
+   *PRODUCER 1                              ** First year primary prod.
+      *OPERATE *MAX *STO  12000.0
+      *OPERATE *MIN *BHP   1000.0
+**      *MONITOR *MAX *WCUT    0.833 *STOP
+**     *MONITOR *MAX *GOR  10000.0  *STOP
+
+   *GEOMETRY *K  0.25  0.34  1.0  0.0
+      *PERF *GEO 1
+      7 7 1  1.0
+
+*DATE 1987 1 1
+   *AIMSET  *CON 0
+   *AIMWELL *WELLN                          ** Second year primary prod.
+*DATE 1988 1 1
+   *DTWELL 2.0
+   *AIMSET  *CON 0
+   *AIMWELL *WELLN
+   *WELL 2 'INJ-H2O'
+   *INJECTOR 2
+      *INCOMP  *WATER                       ** Water injection
+      *OPERATE *MAX *STW 12000.0            ** WAG of 1 year cycle
+
+      *PERF *GEO 2
+      1 1 3 1.0
+
+   *WELL 3 'INJ-GAS'
+   *INJECTOR 3
+      *INCOMP *SOLVENT  0.77  0.20  0.03  0.0  0.0  0.0
+      *OPERATE *MAX *STG 1.20E+7
+
+      *PERF *GEO 3
+      1 1 3 1.0
+
+   *SHUTIN 3
+
+*DATE 1989 1 1
+   *DTWELL 5.0
+   *SHUTIN 2
+   *OPEN   3                                ** Solvent injection
+*DATE 1990 1 1
+   *SHUTIN 3
+   *OPEN   2
+*DATE 1991 1 1
+   *SHUTIN 2
+   *OPEN   3
+*DATE 1992 1 1
+   *SHUTIN 3
+   *OPEN   2
+*DATE 1993 1 1
+   *SHUTIN 2
+   *OPEN   3
+*DATE 1994 1 1
+   *SHUTIN 3
+   *OPEN   2
+*DATE 1995 1 1
+   *SHUTIN 2
+   *OPEN   3
+*DATE 1996 1 1
+   *SHUTIN 3
+   *OPEN   2
+*DATE 1997 1 1
+   *SHUTIN 2
+   *OPEN   3
+*DATE 1998 1 1
+   *SHUTIN 3
+   *OPEN   2
+*DATE 1999 1 1
+   *SHUTIN 2
+   *OPEN   3
+*DATE 2000 1 1
+   *SHUTIN 3
+   *OPEN   2
+*DATE 2001 1 1
+   *SHUTIN 2
+   *OPEN   3
+*DATE 2002 1 1
+   *SHUTIN 3
+   *OPEN   2
+*DATE 2003 1 1
+   *SHUTIN 2
+   *OPEN   3
+*DATE 2004 1 1
+   *SHUTIN 3
+   *OPEN   2
+*DATE 2005 1 1
+   *SHUTIN 2
+   *OPEN   3
+*DATE 2006 1 1
+*STOP

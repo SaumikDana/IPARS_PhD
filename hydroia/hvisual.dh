@@ -1,0 +1,64 @@
+c file: HVISUAL.H
+c contains glossary for visualization variables
+c for hydrology model
+c 
+c can be modified/expanded etc.
+c
+c MPeszynska, 5/26/98
+c MPeszynska, 11/29/01: added potential, etc. 
+c -----------------------------------
+      integer ipars_nscl, ipars_nvec
+      parameter (ipars_nscl = 9)
+      parameter (ipars_nvec =2)
+
+      character*$MXANAM ipars_SCL_names(3,ipars_nscl)
+
+c auxiliary variables to keep info on requested output of head or pot.
+      INTEGER HEADPOSO, POTPOSO, HEADPOSW, POTPOSW
+      PARAMETER (HEADPOSO = 7, POTPOSO =6, HEADPOSW = 9, POTPOSW =8)
+      LOGICAL HEADOUTO, POTOUTO, HEADOUTW, POTOUTW
+      COMMON /HVIS/ HEADOUTO, POTOUTO, HEADOUTW, POTOUTW
+c --------------------------
+c name in input file,  in TEC file, IPARS name
+
+      data ipars_SCL_names /
+     &     'POIL', 'POIL', 'OILPRES',
+     &     'PWAT', 'PWAT', 'WATPRES',
+     &     'COIL', 'COIL', 'OILCONC',
+     &     'SWAT', 'SWAT', 'COILN',
+     &     'RELW', 'RELW', 'RELPERM',
+     &     'POTENTIALO', 'POTENTIALO', 'DPCSW',
+     &     'PRESHEADO', 'PRESHEADO', 'DPCSW',
+     &     'POTENTIALW', 'POTENTIALW', 'CWATN',
+     &     'PRESHEADW', 'PRESHEADW', 'CWATN'
+     &     /      
+      integer ipars_scl_offsets (ipars_nscl) 
+      data ipars_scl_offsets /
+     &     1,
+     &     1,
+     &     1,
+     &     1,
+     &     3,
+     &     1,
+     &     1,
+     &     1,
+     &     1
+     &     /
+
+      
+      character*$MXANAM ipars_VEC_names(7,ipars_nvec)
+c --------------------------
+c name in input file,  in TEC file (XYZ) , IPARS name of (XYZ)
+      data ipars_VEC_names /
+     &     'VEL_OIL', 'VOX', 'VOY', 'VOZ', 'VEL', 'VEL', 'VEL',
+     &     'VEL_WAT', 'VWX', 'VWY', 'VWZ', 'VEL', 'VEL', 'VEL'
+     &     /
+      
+      integer ipars_vec_offsets (3,ipars_nvec) 
+      data ipars_VEC_offsets /
+     &     1,3,5,
+     &     2,4,6
+     &     /
+
+c ----------------------------------------------------------------
+

@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/repos/csm/!svn/ver/382/IPARSv3.1/comp/Benchmark/Foam/heterfoam_WAG_2D
+END
+cran1foam_dat
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/repos/csm/!svn/ver/382/IPARSv3.1/comp/Benchmark/Foam/heterfoam_WAG_2D/cran1foam_dat
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/382/IPARSv3.1/comp/Benchmark/Foam/heterfoam_WAG_2D/IPARS.IN
+END
+permx100.dat
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/repos/csm/!svn/ver/382/IPARSv3.1/comp/Benchmark/Foam/heterfoam_WAG_2D/permx100.dat
+END
+permy100.dat
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/repos/csm/!svn/ver/382/IPARSv3.1/comp/Benchmark/Foam/heterfoam_WAG_2D/permy100.dat
+END
+permz100.dat
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/repos/csm/!svn/ver/382/IPARSv3.1/comp/Benchmark/Foam/heterfoam_WAG_2D/permz100.dat
+END
+perm.lay
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/382/IPARSv3.1/comp/Benchmark/Foam/heterfoam_WAG_2D/perm.lay
+END
+wellh_cranfield.dat
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/382/IPARSv3.1/comp/Benchmark/Foam/heterfoam_WAG_2D/wellh_cranfield.dat
+END
+job
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/repos/csm/!svn/ver/382/IPARSv3.1/comp/Benchmark/Foam/heterfoam_WAG_2D/job
+END
+cran1foam_tracer.dat
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/repos/csm/!svn/ver/382/IPARSv3.1/comp/Benchmark/Foam/heterfoam_WAG_2D/cran1foam_tracer.dat
+END

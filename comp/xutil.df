@@ -1,0 +1,785 @@
+C XUTIL.F   UTILITY COMPOSITIONAL FUNCTIONS
+
+C ROUTINES IN THIS MODULE:
+
+C SUBROUTINE XRELPERM2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                      KL2,KEYOUT,NBLK,KROCK,XVISC,SAT,MOB)
+C SUBROUTINE XHYSRLPRM2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,KROCK,XVISC,SAT,SGT,MOB)
+C SUBROUTINE XMASSFRAC_ALL (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                           KL1,KL2,KEYOUT,NBLK,PMD,MASSFRAC)
+C SUBROUTINE XCO2INPL()
+C SUBROUTINE XCO2INPLW (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,PV,PMDEN,KSI,SAT)
+C SUBROUTINE XCO2DIST()
+C SUBROUTINE XCO2DISTW (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,KROCK,PV,PMDEN,KSI,SAT)
+C SUBROUTINE XHCO2DISTW (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                        KL2,KEYOUT,NBLK,KROCK,PV,PMDEN,KSI,SAT,SGT)
+
+C CODE HISTORY
+
+C SUNIL G. THOMAS  09/01/2007  ADDED UTILITY FUNCTIONS FOR THERMAL,
+C                              HYSTERESIS 
+C*********************************************************************
+      SUBROUTINE XRELPERM2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                     KL2,KEYOUT,NBLK,KROCK,XVISC,SAT,MOB)
+C*********************************************************************
+
+C  ROUTINE EVALUATES MOBILITIES. THIS IS A WORK ROUTINE OR IS CALLED
+C  FROM A WORK ROUTINE.
+C  THIS ROUTINE ASSUMES:
+C                         PHASE 1 = WATER
+C                         PHASE 2 = LIQUID
+C                         PHASE 3 = VAPOR
+
+C  INPUT:
+C     KROCK(I,J,K) = ROCK CURVE (INTEGER)
+C     XVISC(I,J,K,IPH) = VISCOSITY FOR PHASE IPH (REAL*8)
+C     SAT(I,J,K,IPH) = SATURATION FOR PHASE IPH (REAL*8)
+
+C  INPUT/OUTPUT:
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xresprop.h'
+      INCLUDE 'rock.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8 MOB(IDIM,JDIM,KDIM,NPH),SAT(IDIM,JDIM,KDIM,NPH),
+     &       XVISC(IDIM,JDIM,KDIM,NPH)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,KR
+      REAL*8 SW,SG,VW,VO,VG,RELW,RELO,RELG,DKWSW,DKOSW,DKOSG,DKGSG,P
+C-----------------------------------------------------------------------
+C     THREE-PHASE
+C-----------------------------------------------------------------------
+      IF(NPH == 3) THEN
+         IF(IREFPRES == 1) THEN
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     SW = SAT(I,J,K,1)
+                     SG = SAT(I,J,K,3)
+                     IF(XVISC(I,J,K,1) >= TEN_M15) THEN
+                        VW = ONE/XVISC(I,J,K,1)
+                     ELSE
+                        VW = TEN_P15
+                     ENDIF
+                     IF(XVISC(I,J,K,2) >= TEN_M15) THEN
+                        VO = ONE/XVISC(I,J,K,2)
+                     ELSE
+                        VO = TEN_P15
+                     ENDIF
+                     IF(XVISC(I,J,K,3) >= TEN_M15) THEN
+                        VG = ONE/XVISC(I,J,K,3)
+                     ELSE
+                        VG = TEN_P15
+                     ENDIF
+
+                     CALL RELPERM3(KR,SW,SG,RELW,RELG,RELO,DKWSW,
+     &                             DKOSW,DKOSG,DKGSG)
+                     MOB(I,J,K,1) = RELW * VW
+                     MOB(I,J,K,2) = RELO * VO
+                     MOB(I,J,K,3) = RELG * VG
+                  END DO
+               END DO
+            END DO
+         ELSEIF(IREFPRES == 2) THEN
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     SW = SAT(I,J,K,1)
+                     SG = SAT(I,J,K,3)
+                     IF(XVISC(I,J,K,1) >= TEN_M15) THEN
+                        VW = ONE/XVISC(I,J,K,1)
+                     ELSE
+                        VW = TEN_P15
+                     ENDIF
+                     IF(XVISC(I,J,K,2) >= TEN_M15) THEN
+                        VO = ONE/XVISC(I,J,K,2)
+                     ELSE
+                        VO = TEN_P15
+                     ENDIF
+                     IF(XVISC(I,J,K,3) >= TEN_M15) THEN
+                        VG = ONE/XVISC(I,J,K,3)
+                     ELSE
+                        VG = TEN_P15
+                     ENDIF
+
+                     CALL RELPERM3(KR,SW,SG,RELW,RELG,RELO,DKWSW,
+     &                             DKOSW,DKOSG,DKGSG)
+                     MOB(I,J,K,1) = RELW * VW
+                     MOB(I,J,K,2) = RELO * VO
+                     MOB(I,J,K,3) = RELG * VG
+                  END DO
+               END DO
+            END DO
+         ELSE
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     SW = SAT(I,J,K,1)
+                     SG = SAT(I,J,K,3)
+                     IF(XVISC(I,J,K,1) >= TEN_M15) THEN
+                        VW = ONE/XVISC(I,J,K,1)
+                     ELSE
+                        VW = TEN_P15
+                     ENDIF
+                     IF(XVISC(I,J,K,2) >= TEN_M15) THEN
+                        VO = ONE/XVISC(I,J,K,2)
+                     ELSE
+                        VO = TEN_P15
+                     ENDIF
+                     IF(XVISC(I,J,K,3) >= TEN_M15) THEN
+                        VG = ONE/XVISC(I,J,K,3)
+                     ELSE
+                        VG = TEN_P15
+                     ENDIF
+
+                     CALL RELPERM3(KR,SW,SG,RELW,RELG,RELO,DKWSW,
+     &                             DKOSW,DKOSG,DKGSG)
+                     MOB(I,J,K,1) = RELW * VW
+                     MOB(I,J,K,2) = RELO * VO
+                     MOB(I,J,K,3) = RELG * VG
+                  END DO
+               END DO
+            END DO
+         ENDIF
+C-----------------------------------------------------------------------
+C     TWO-PHASE
+C-----------------------------------------------------------------------
+      ELSEIF(NPH == 2) THEN
+         IF(IREFPRES == 1) THEN
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     SW = SAT(I,J,K,1)
+                     SG = ZERO
+                     IF(XVISC(I,J,K,1) >= TEN_M15) THEN
+                        VW = ONE/XVISC(I,J,K,1)
+                     ELSE
+                        VW = TEN_P15
+                     ENDIF
+                     IF(XVISC(I,J,K,2) >= TEN_M15) THEN
+                        VO = ONE/XVISC(I,J,K,2)
+                     ELSE
+                        VO = TEN_P15
+                     ENDIF
+
+                     CALL RELPERM3(KR,SW,SG,RELW,RELG,RELO,DKWSW,
+     &                             DKOSW,DKOSG,DKGSG)
+                     MOB(I,J,K,1) = RELW * VW
+                     MOB(I,J,K,2) = RELO * VO
+                  END DO
+               END DO
+            END DO
+         ELSE
+            DO K = KL1,KL2
+               DO  J = JL1V(K),JL2V(K)
+                  DO  I = IL1,IL2
+                     IF (KEYOUT(I,J,K) /= 1) CYCLE
+                     KR = KROCK(I,J,K)
+                     SW = SAT(I,J,K,1)
+                     SG = ZERO
+                     IF(XVISC(I,J,K,1) >= TEN_M15) THEN
+                        VW = ONE/XVISC(I,J,K,1)
+                     ELSE
+                        VW = TEN_P15
+                     ENDIF
+                     IF(XVISC(I,J,K,2) >= TEN_M15) THEN
+                        VO = ONE/XVISC(I,J,K,2)
+                     ELSE
+                        VO = TEN_P15
+                     ENDIF
+
+                     CALL RELPERM3(KR,SW,SG,RELW,RELG,RELO,DKWSW,
+     &                             DKOSW,DKOSG,DKGSG)
+                     MOB(I,J,K,1) = RELW * VW
+                     MOB(I,J,K,2) = RELO * VO
+                  END DO
+               END DO
+            END DO
+         ENDIF
+
+
+C-----------------------------------------------------------------------
+C     SINGLE-PHASE
+C-----------------------------------------------------------------------
+      ELSEIF(NPH == 1) THEN
+         DO K = KL1,KL2
+            DO  J = JL1V(K),JL2V(K)
+               DO  I = IL1,IL2
+                  IF(XVISC(I,J,K,1) >= TEN_M15) THEN
+                     MOB(I,J,K,1) = ONE/XVISC(I,J,K,1)
+                  ELSE
+                     MOB(I,J,K,1) = TEN_P15
+                  ENDIF
+               END DO
+            END DO
+         END DO
+      ENDIF
+      END
+
+C*********************************************************************
+      SUBROUTINE XHYSRLPRM2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                      KL2,KEYOUT,NBLK,KROCK,XVISC,SAT,SGT,MOB)
+C*********************************************************************
+
+C  ROUTINE EVALUATES MOBILITIES WHEN HYSTERESIS IS ACTIVE. THIS IS A 
+C  WORK ROUTINE 
+C  THIS ROUTINE ASSUMES:
+C                         PHASE 1 = WATER
+C                         PHASE 2 = LIQUID
+C                         PHASE 3 = VAPOR
+
+C  INPUT:
+C     KROCK(I,J,K) = ROCK CURVE (INTEGER)
+C     XVISC(I,J,K,IPH) = VISCOSITY FOR PHASE IPH (REAL*8)
+C     SAT(I,J,K,IPH) = SATURATION FOR PHASE IPH (REAL*8)
+
+C  INPUT/OUTPUT:
+C     SGT(I,J,K) = EFFECTIVE TRAPPED NON-WETTING PHASE SATURATION 
+C                  (REAL*8)
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xresprop.h'
+      INCLUDE 'rock.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,IL1,IL2,KL1,KL2,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8 MOB(IDIM,JDIM,KDIM,NPH),SAT(IDIM,JDIM,KDIM,NPH),
+     &       XVISC(IDIM,JDIM,KDIM,NPH),SGT(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,KR
+      REAL*8 VW,VNW,SW,SNW,PCNW,RELW,RELN,WKSP,RTERM,SWBAR,SWNORM,STNORM
+
+      DO K = KL1,KL2
+         DO  J = JL1V(K),JL2V(K)
+            DO  I = IL1,IL2
+               IF (KEYOUT(I,J,K) /= 1) CYCLE
+               KR = KROCK(I,J,K)
+
+               IF (AQPHSWTCH) THEN
+                  SNW = SAT(I,J,K,3)
+                  SW = SAT(I,J,K,2)
+                  SWNORM = (SAT(I,J,K,2)-SORES(KR))
+     &                   / (ONE-SORES(KR))
+                  IF (XVISC(I,J,K,2) >= TEN_M15) THEN
+                     VW = ONE/XVISC(I,J,K,2)
+                  ELSE
+                     VW = TEN_P15
+                  ENDIF
+                  IF (XVISC(I,J,K,3) >= TEN_M15) THEN
+                     VNW = ONE/XVISC(I,J,K,3)
+                  ELSE
+                     VNW = TEN_P15
+                  ENDIF
+               ELSE
+                  SNW = SAT(I,J,K,2)
+                  SW = SAT(I,J,K,1)
+                  SWNORM = (SAT(I,J,K,1)-SWRES(KR)) 
+     &                   / (ONE-SWRES(KR))
+                  IF (XVISC(I,J,K,1) >= TEN_M15) THEN
+                     VW = ONE/XVISC(I,J,K,1)
+                  ELSE
+                     VW = TEN_P15
+                  ENDIF
+                  IF (XVISC(I,J,K,2) >= TEN_M15) THEN
+                     VNW = ONE/XVISC(I,J,K,2)
+                  ELSE
+                     VNW = TEN_P15
+                  ENDIF
+               ENDIF
+               SWNORM = MAX(ZERO,SWNORM)
+               SWNORM = MIN(ONE,SWNORM)
+
+C              COMPUTE APPARENT WETTING PHASE (WATER) SATURATION
+               SWBAR = SWNORM+SGT(I,J,K)
+               SWBAR = MIN(ONE,SWBAR)
+
+C              COMPUTE WETTING PHASE (WATER) RELATIVE PERMEABILITY
+C              USING BURDINE'S EQUATION
+               RELW = SWNORM**((TWO+THREE*RPLMDA(KR))/RPLMDA(KR))
+               IF (SW >= ONE) GOTO 20
+
+               IF (AQPHSWTCH) THEN
+                  MOB(I,J,K,1) = ZERO
+                  MOB(I,J,K,2) = RELW * VW
+               ELSE
+                  MOB(I,J,K,1) = RELW * VW
+               ENDIF
+
+   20          CONTINUE
+C              COMPUTE NON-WETTING PHASE (OIL/GAS) RELATIVE PERMEABILITY 
+               IF (SNW > TEN_M6) THEN
+
+                  IF (AQPHSWTCH) THEN
+                     STNORM = SWNORM+SNW/(ONE-SORES(KR))
+                  ELSE
+                     STNORM = SWNORM+SNW/(ONE-SWRES(KR))
+                  ENDIF
+                  STNORM = MIN(ONE,STNORM)
+                  IF (STNORM <= SWBAR) THEN
+                     RELN = ZERO
+                  ELSE
+                     RELN = KRNW0(KR)*((ONE-SWBAR)**TWO)
+     &                    * (ONE-(SWBAR**(ONE+TWO/RPLMDA(KR))))
+                     IF (AQPHSWTCH) THEN
+                        MOB(I,J,K,3) = RELN * VNW
+                     ELSE
+                        MOB(I,J,K,2) = RELN * VNW
+                     ENDIF
+                  ENDIF
+
+C              CASE WHEN ONLY WETTING (AQUEOUS) PHASE ACTUALLY EXISTS
+               ELSE
+
+                  RELN = ZERO
+                  IF (AQPHSWTCH) THEN
+                     MOB(I,J,K,3) = ZERO
+                     MOB(I,J,K,4) = ZERO
+                  ELSE
+                     MOB(I,J,K,2) = ZERO
+                  ENDIF
+
+               ENDIF
+
+C              RE-CHECK FOR SINGLE PHASE CELLS AGAIN
+               IF (SW >= ONE) THEN
+                  RELW = ONE
+                  RELN = ZERO
+                  IF (AQPHSWTCH) THEN
+                     MOB(I,J,K,1) = ZERO
+                     MOB(I,J,K,2) = RELW * VW
+                     MOB(I,J,K,3) = ZERO
+                  ELSE
+                     MOB(I,J,K,1) = RELW * VW
+                     MOB(I,J,K,2) = ZERO
+                  ENDIF
+               ENDIF
+
+               IF (SNW >= ONE) THEN
+                  RELN = KRNW0(KR)
+                  IF (AQPHSWTCH) THEN
+                     MOB(I,J,K,3) = RELN * VNW
+                  ELSE
+                     MOB(I,J,K,2) = RELN * VNW
+                  ENDIF
+               ENDIF
+
+            ENDDO
+         ENDDO
+      ENDDO
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE XMASSFRAC_ALL (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                          KL1,KL2,KEYOUT,NBLK,PMD,MASSFRAC)
+C*********************************************************************
+
+C  COMPUTES CURRENT MASS FRACTION FOR COMPONENTS IN EACH PHASE IPH FROM 
+C  PMD ARRAY. THIS IS A WORK ROUTINE.
+
+C  PMD(I,J,K,J)= PRODUCT OF MOLAR DENSITY AND MOLE FRACTION (INPUT, REAL*8)
+
+C  MASSFRAC(I,J,K,L)= MASS FRACTION OF COMPONENT (OUTPUT, REAL*8)
+
+C*********************************************************************
+      USE xgendat
+      IMPLICIT NONE
+      INCLUDE 'xresprop.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,IPH
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 MASSFRAC(IDIM,JDIM,KDIM,NCINPH),PMD(IDIM,JDIM,KDIM,NCINPH),
+     &       MOLWT
+      INTEGER I,J,K,IC,L,M,IERR
+
+! bag8 : cleaned up someone's mess
+      REAL*8, ALLOCATABLE :: MASSSUM(:,:,:,:)
+
+      ALLOCATE(MASSSUM(IDIM,JDIM,KDIM,NPH),STAT=IERR)
+      IF (IERR.NE.0) STOP 'Problem in XMASSFRAC_ALL'
+
+      DO IPH=1,NPH
+         DO K = KL1,KL2
+            DO J = JL1V(K),JL2V(K)
+               DO I = IL1,IL2
+                  MASSSUM(I,J,K,IPH) = SMALL
+               END DO
+            END DO
+         END DO
+      END DO
+      DO IPH=1,NPH
+         DO IC = 1,NC
+            L = ICINPH(IC,IPH)
+            IF(L == 0) CYCLE
+            IF(IC == 1) THEN
+               MOLWT = WATMOLW
+            ELSE
+               MOLWT = WMOL(IC-1)
+            ENDIF
+            DO K = KL1,KL2
+               DO J = JL1V(K),JL2V(K)
+                  DO I = IL1,IL2
+                     MASSSUM(I,J,K,IPH) = MASSSUM(I,J,K,IPH) +
+     &                                   PMD(I,J,K,L)*MOLWT
+                  END DO
+               END DO
+            END DO
+         END DO
+         DO K = KL1,KL2
+            DO J = JL1V(K),JL2V(K)
+               DO I = IL1,IL2
+                  MASSSUM(I,J,K,IPH) = ONE / MASSSUM(I,J,K,IPH)
+               END DO
+            END DO
+         END DO
+         DO IC = 1,NC
+            L = ICINPH(IC,IPH)
+            IF(L == 0) CYCLE
+            IF(IC == 1) THEN
+               MOLWT = WATMOLW
+            ELSE
+               MOLWT = WMOL(IC-1)
+            ENDIF
+            DO K = KL1,KL2
+               DO J = JL1V(K),JL2V(K)
+                  DO I = IL1,IL2
+                     MASSFRAC(I,J,K,L) =
+     &               PMD(I,J,K,L)*MOLWT*MASSSUM(I,J,K,IPH)
+                  END DO
+               END DO
+            END DO
+         END DO
+      END DO
+
+      DEALLOCATE(MASSSUM)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE XCO2INPL()
+C*********************************************************************
+C  DRIVER TO WORK ROUTINE XCO2GASINPLW THAT OUTPUTS CO2 MOLES IN PLACE
+C  IN THE NON-AQUEOUS PHASES
+      IMPLICIT NONE
+      INCLUDE 'xarydat.h'
+      INCLUDE 'xthermal.h'
+      INTEGER IARG(5),IMFR(3),IPHDNS(3)
+      LOGICAL ONCEONLY
+      EXTERNAL XCO2INPLW,XMASSFRAC_ALL,XPHDENS
+      DATA IARG/5*0/,IMFR/3*0/,IPHDNS/3*0/,ONCEONLY/.TRUE./
+
+      IF(ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IMFR(1)=2
+         IMFR(2)=N_PMD
+         IMFR(3)=N_KSI
+
+         IPHDNS(1)=2
+         IPHDNS(2)=N_PMD
+         IPHDNS(3)=N_PMDEN
+
+         IARG(1)=4
+         IARG(2)=N_PV
+         IARG(3)=N_PMDEN
+         IARG(4)=N_KSI
+         IARG(5)=N_SAT
+
+      ENDIF
+
+      IF(.NOT.XTHERMAL) THEN
+         CALL CALLWORK(XMASSFRAC_ALL,IMFR)
+         CALL CALLWORK(XPHDENS,IPHDNS)
+      ENDIF
+
+      CALL CALLWORK(XCO2INPLW,IARG)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE XCO2INPLW (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                         KL1,KL2,KEYOUT,NBLK,PV,PMDEN,KSI,SAT)
+C*********************************************************************
+C COMPUTES CO2 MOLAR MASS IN PLACE IN NON-AQUEOUS PHASES FROM COMPONENT 
+C MASS FRACTIONS, PHASE MASS DENSITIES AND PHASE SATURATIONS
+      USE xgendat
+      IMPLICIT NONE
+      INCLUDE 'xparam.h'
+      INCLUDE 'xresprop.h'
+      INCLUDE 'xmodel.h'
+
+      INTEGER I,IC,IL1,IL2,IPH,J,K,IDIM,JDIM,KDIM,LDIM,KL1,KL2,NBLK
+      INTEGER LC1,LC2
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 PV(IDIM,JDIM,KDIM),PMDEN(IDIM,JDIM,KDIM,NPH),
+     &       KSI(IDIM,JDIM,KDIM,NCINPH),SAT(IDIM,JDIM,KDIM,NPH)
+
+C UPDATE CO2 MOLES IN PLACE IN NON-AQUEOUS PHASES
+
+      CO2GMOL=ZERO
+      CO2LMOL=ZERO
+      DO K=KL1,KL2
+         DO J=JL1V(K),JL2V(K)
+            DO I=IL1,IL2
+               IF(KEYOUT(I,J,K) <= 0) CYCLE
+               DO IC=1,NC
+                  IF(CMPNAM(IC)(1:3) /= 'CO2') CYCLE
+                  IF(NPH >= 2) THEN
+                     LC1=ICINPH(IC,2)
+                     IF(LC1 /= 0) THEN
+                        CO2LMOL=CO2LMOL+KSI(I,J,K,LC1)*PMDEN(I,J,K,2)
+     &                         *SAT(I,J,K,2)*PV(I,J,K)/WMOL(IC-1)
+                     ENDIF
+                  ENDIF
+                  IF(NPH > 2) THEN
+                     LC2=ICINPH(IC,3)
+                     IF(LC2 /= 0) THEN
+                        CO2GMOL=CO2GMOL+KSI(I,J,K,LC2)*PMDEN(I,J,K,3)
+     &                         *SAT(I,J,K,3)*PV(I,J,K)/WMOL(IC-1)
+                     ENDIF
+                  ENDIF
+               END DO
+            END DO
+         END DO
+      END DO
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE XCO2DIST()
+C*********************************************************************
+C  DRIVER TO WORK ROUTINE XCO2GASINPLW THAT OUTPUTS DISTRIBUTION OF CO2 
+C  IN FREE, TRAPPED GAS AND DISSOLVED FORMS.
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'xarydat.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xthermal.h'
+      INTEGER IARG(6),IHARG(7),IMFR(3),IPHDNS(3)
+      LOGICAL ONCEONLY
+      EXTERNAL XCO2DISTW,XHCO2DISTW,XMASSFRAC_ALL,XPHDENS
+      DATA IARG/6*0/,IHARG/7*0/,IMFR/3*0/,IPHDNS/3*0/,ONCEONLY/.TRUE./
+
+      IF(ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IMFR(1)=2
+         IMFR(2)=N_PMD
+         IMFR(3)=N_KSI
+
+         IPHDNS(1)=2
+         IPHDNS(2)=N_PMD
+         IPHDNS(3)=N_PMDEN
+
+         IARG(1)=5
+         IARG(2)=N_ROCK
+         IARG(3)=N_PV
+         IARG(4)=N_PMDEN
+         IARG(5)=N_KSI
+         IARG(6)=N_SAT
+
+         IHARG(1)=6
+         IHARG(2)=N_ROCK
+         IHARG(3)=N_PV
+         IHARG(4)=N_PMDEN
+         IHARG(5)=N_KSI
+         IHARG(6)=N_SAT
+         IHARG(7)=N_SGT
+
+      ENDIF
+
+      IF(.NOT.XTHERMAL) THEN
+         CALL CALLWORK(XMASSFRAC_ALL,IMFR)
+         CALL CALLWORK(XPHDENS,IPHDNS)
+      ENDIF
+
+      IF (HYSTERESIS.AND.(((NPH > 2).AND.AQPHSWTCH).OR.(NPH == 2)))
+     &THEN
+         CALL CALLWORK(XHCO2DISTW,IHARG)
+      ELSE
+         CALL CALLWORK(XCO2DISTW,IARG)
+      ENDIF
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE XCO2DISTW (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                      KL2,KEYOUT,NBLK,KROCK,PV,PMDEN,KSI,SAT)
+C*********************************************************************
+C COMPUTES CO2 MOLAR MASS IN PLACE IN NON-AQUEOUS PHASES FROM COMPONENT 
+C MASS FRACTIONS, PHASE MASS DENSITIES AND PHASE SATURATIONS
+      USE xgendat
+      IMPLICIT NONE
+      INCLUDE 'rock.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xresprop.h'
+      INCLUDE 'xmodel.h'
+
+      INTEGER I,IC,IL1,IL2,IPH,J,K,IDIM,JDIM,KDIM,LDIM,KL1,KL2,NBLK
+      INTEGER LC1,LC2,KRCK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM),
+     &        KROCK(IDIM,JDIM,KDIM)
+      REAL*8 PV(IDIM,JDIM,KDIM),PMDEN(IDIM,JDIM,KDIM,NPH),
+     &       KSI(IDIM,JDIM,KDIM,NCINPH),SAT(IDIM,JDIM,KDIM,NPH)
+
+C UPDATE DISTRIBUTION OF CO2 MOLES IN PLACE IN NON-AQUEOUS PHASES, 
+C TRAPPED GAS, FREE GAS AND DISSOLVED
+
+      CO2FRGMOL=ZERO
+      CO2TRGMOL=ZERO
+      CO2DSSMOL=ZERO
+      DO K=KL1,KL2
+         DO J=JL1V(K),JL2V(K)
+            DO I=IL1,IL2
+               IF(KEYOUT(I,J,K) <= 0) CYCLE
+               KRCK=KROCK(I,J,K)
+               DO IC=1,NC
+                  IF(CMPNAM(IC)(1:3) /= 'CO2') CYCLE
+                  IF(NPH >= 2) THEN
+                     LC1=ICINPH(IC,2)
+                     IF(LC1 /= 0) THEN
+                        CO2DSSMOL=CO2DSSMOL
+     &                          +KSI(I,J,K,LC1)*PMDEN(I,J,K,2)
+     &                          *SAT(I,J,K,2)*PV(I,J,K)/WMOL(IC-1)
+                     ENDIF
+                  ENDIF
+                  IF(NPH > 2) THEN
+                     LC2=ICINPH(IC,3)
+                     IF(LC2 /= 0) THEN
+                        IF(SAT(I,J,K,3) > SGRES(KRCK)) THEN
+                           CO2FRGMOL=CO2FRGMOL
+     &                         +KSI(I,J,K,LC2)*PMDEN(I,J,K,3)
+     &                         *(SAT(I,J,K,3)-SGRES(KRCK))*PV(I,J,K)
+     &                         /WMOL(IC-1)
+                           CO2TRGMOL=CO2TRGMOL
+     &                         +KSI(I,J,K,LC2)*PMDEN(I,J,K,3)
+     &                         *SGRES(KRCK)*PV(I,J,K)/WMOL(IC-1)
+                        ELSE
+                           CO2TRGMOL=CO2TRGMOL
+     &                         +KSI(I,J,K,LC2)*PMDEN(I,J,K,3)
+     &                         *SAT(I,J,K,3)*PV(I,J,K)/WMOL(IC-1)
+                        ENDIF 
+                     ENDIF
+                  ENDIF
+               END DO
+            END DO
+         END DO
+      END DO
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE XHCO2DISTW (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                      KL2,KEYOUT,NBLK,KROCK,PV,PMDEN,KSI,SAT,SGT)
+C*********************************************************************
+C COMPUTES CO2 MOLAR MASS IN PLACE IN NON-AQUEOUS PHASES FROM COMPONENT 
+C MASS FRACTIONS, PHASE MASS DENSITIES AND PHASE SATURATIONS
+      USE xgendat
+      IMPLICIT NONE
+      INCLUDE 'rock.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xresprop.h'
+      INCLUDE 'xmodel.h'
+
+      INTEGER I,IC,IL1,IL2,IPH,J,K,IDIM,JDIM,KDIM,LDIM,KL1,KL2,NBLK
+      INTEGER LC1,LC2,KRCK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM),
+     &        KROCK(IDIM,JDIM,KDIM)
+      REAL*8 PV(IDIM,JDIM,KDIM),PMDEN(IDIM,JDIM,KDIM,NPH),
+     &       KSI(IDIM,JDIM,KDIM,NCINPH),SAT(IDIM,JDIM,KDIM,NPH),
+     &       SGT(IDIM,JDIM,KDIM),SGTRP
+
+C UPDATE DISTRIBUTION OF CO2 MOLES IN PLACE IN NON-AQUEOUS PHASES, 
+C TRAPPED GAS, FREE GAS AND DISSOLVED
+
+      CO2FRGMOL=ZERO
+      CO2TRGMOL=ZERO
+      CO2DSSMOL=ZERO
+
+      DO K=KL1,KL2
+         DO J=JL1V(K),JL2V(K)
+            DO I=IL1,IL2
+               IF(KEYOUT(I,J,K) <= 0) CYCLE
+               KRCK=KROCK(I,J,K)
+               IF(AQPHSWTCH) THEN
+                  SGTRP=SGT(I,J,K)*(ONE-SORES(KRCK))
+               ELSE
+                  SGTRP=SGT(I,J,K)*(ONE-SWRES(KRCK))
+               ENDIF
+               DO IC=1,NC
+                  IF(CMPNAM(IC)(1:3) /= 'CO2') CYCLE
+                  IF(NPH >= 2) THEN
+                     LC1=ICINPH(IC,2)
+                     IF(LC1 /= 0) THEN
+                        CO2DSSMOL=CO2DSSMOL
+     &                          +KSI(I,J,K,LC1)*PMDEN(I,J,K,2)
+     &                          *SAT(I,J,K,2)*PV(I,J,K)/WMOL(IC-1)
+                     ENDIF
+                  ENDIF
+                  IF(NPH > 2) THEN
+                     LC2=ICINPH(IC,3)
+                     IF(LC2 /= 0) THEN
+                        IF(SAT(I,J,K,3) > SGTRP) THEN
+                           CO2FRGMOL=CO2FRGMOL
+     &                         +KSI(I,J,K,LC2)*PMDEN(I,J,K,3)
+     &                         *(SAT(I,J,K,3)-SGTRP)*PV(I,J,K)
+     &                         /WMOL(IC-1)
+                           CO2TRGMOL=CO2TRGMOL
+     &                         +KSI(I,J,K,LC2)*PMDEN(I,J,K,3)
+     &                         *SGTRP*PV(I,J,K)/WMOL(IC-1)
+                        ELSE
+                           CO2TRGMOL=CO2TRGMOL
+     &                         +KSI(I,J,K,LC2)*PMDEN(I,J,K,3)
+     &                         *SAT(I,J,K,3)*PV(I,J,K)/WMOL(IC-1)
+                        ENDIF 
+                     ENDIF
+                  ENDIF
+               END DO
+            END DO
+         END DO
+      END DO
+
+      RETURN
+      END
+

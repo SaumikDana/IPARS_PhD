@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/2D_brick_diff
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/2D_brick_diff/IPARS.IN
+END
+mesh.dat
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/2D_brick_diff/mesh.dat
+END
+spe5.dat
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/2D_brick_diff/spe5.dat
+END
+spe5_t.dat
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/2D_brick_diff/spe5_t.dat
+END
+well.f
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/2D_brick_diff/well.f
+END
+spe5_f1.dat
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/2D_brick_diff/spe5_f1.dat
+END
+wellinput.dat
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/2D_brick_diff/wellinput.dat
+END
+randmesh3d.f
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/2D_brick_diff/randmesh3d.f
+END
+genmeshwell.f
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/2D_brick_diff/genmeshwell.f
+END

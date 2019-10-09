@@ -1,0 +1,1027 @@
+C  MULGRIDW.F - MULTIGRID LINEAR SOLVER
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE COURSEN1 (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,
+C                       JMG2,KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE PSORMG   (KDMG)
+C  SUBROUTINE PSOR0    (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+C                       MAPMG.KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE PSORMGW  (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+C                       MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE COURSEN2 (MGLF,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,JMG1F,
+C                       JMG2F,KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,
+C                       MAPMG,KEYMGF,KEYMGC,COFMGF,COFMGC,DUKMGF,
+C                       DUKMGC,RESMGF,RESMGC)
+C  SUBROUTINE MGDIRECT (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+C                       MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE REFINE2  (MGLF,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,JMG1F,
+C                       JMG2F,KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,
+C                       MAPMG,KEYMG,COFMGF,COFMGC,DUKMGF,DUKMGC,RESMGF,RESMGC)
+C  SUBROUTINE REFINE1  (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,
+C                       JMG2,KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE CORKEYMG1(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,
+C                       JMG2,KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE CORKEYMG2(MGLF,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,JMG1F,
+C                       JMG2F,KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,
+C                       MAPMG,KEYMGF,KEYMGC,COFMGF,COFMGC,DUKMGF,DUKMGC,
+C                       RESMGF,RESMGC)
+
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     4/26/00    INITIAL CODE
+C  YURI VASSILEVSKI 3/10/02    UPDATE FOR PARALLEL CASE
+C  YURI VASSILEVSKI 4/10/03    UPDATE FOR PARALLEL CASE
+
+C*********************************************************************
+      SUBROUTINE COURSEN1 (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                  KL2,KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,
+     &                  JMG2,KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C  COURSENS FROM A 3D GRID TO THE 1ST LEVEL 2D GRID.
+C  THIS IS A MGWORK1 ROUTINE.
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &   MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF,*)
+      REAL*8  DUNK(IDIM,JDIM,KDIM,*), RESID(IDIM,JDIM,KDIM,*),
+     &   DUKMG(JDMG,KDMG,*), RESMG(JDMG,KDMG,*),
+     &   COFMG(JDMG,KDMG,$NCOFMG,*)
+      REAL*8 DUBR,CC1,CC2,CC3,CC4,CC5,CF1,CF2,CF3,CF4,CF5,CF6,CF7
+      LOGICAL MP1,MP2,MP3,MP4
+
+      MEQ=NUMEQS(NBLK)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+      JL=2*JOFFMG(1,NBLK)-JOFF-1
+      KL=2*KOFFMG(1,NBLK)-KOFF-1
+
+C  LOOP OVER COURSE GRID AND SET BASE LOCATION FOR FINE GRID
+
+      DO 1 KC=max(1,KMG1-1),min(KDMG,KMG2+1)
+      KF=2*KC+KL
+      DO 1 JC=max(1,JMG1-1),min(JDMG,JMG2+1)
+      IF (IABS(KEYMG(JC,KC)).NE.1) GO TO 1
+      MP=MAPMG(JC,KC)
+      IF (MP.EQ.0) GO TO 1
+      IF (MOD(MP,2).GT.0) THEN
+         MP1=.TRUE.
+      ELSE
+         MP1=.FALSE.
+      ENDIF
+      IF (MOD(MP,4).GT.1) THEN
+         MP2=.TRUE.
+      ELSE
+         MP2=.FALSE.
+      ENDIF
+      IF (MOD(MP,8).GT.3) THEN
+         MP3=.TRUE.
+      ELSE
+         MP3=.FALSE.
+      ENDIF
+      IF (MP.GT.7) THEN
+         MP4=.TRUE.
+      ELSE
+         MP4=.FALSE.
+      ENDIF
+      JF=2*JC+JL
+
+C  LOOP OVER THE EQUATIONS AND CLEAR UNKNOWNS
+
+      DO 2 ME=1,MEQ
+      DUKMG(JC,KC,ME)=0.D0
+      DUBR=0.D0
+
+C  LOOP OVER VARIABLES
+
+      M=ME
+      DO 3 MV=1,MEQ
+      CC1=0.D0
+      CC2=0.D0
+      CC3=0.D0
+      CC4=0.D0
+      CC5=0.D0
+
+C  FOR EACH OF FOUR POSSIBLE FINE GRID COLUMNS, DO SUMS
+
+      IF (MP1) THEN
+         J=JF
+         K=KF
+         IF (K.GT.0.AND.J.GT.0.AND.K.LE.KDIM.AND.J.LE.JDIM) THEN
+         DO 4 I=IL1,IL2
+         IF (KEYOUT(I,J,K).EQ.1) THEN
+            CF1=COF(I,J,K,1,M)
+            CF2=COF(I,J,K,2,M)
+            CF3=COF(I,J,K,3,M)
+            CF4=COF(I,J,K,4,M)
+            CF5=COF(I,J,K,5,M)
+            CF6=COF(I,J,K,6,M)
+            CF7=COF(I,J,K,7,M)
+
+            CC1=CF1+CF2+CF3+CC1
+            CC2=CF4+CC2
+            CC4=CF6+CC4
+            IF (MP2) THEN
+               CC1=CF5+CC1
+            ELSE
+               CC3=CF5+CC3
+            ENDIF
+            IF (MP4) THEN
+               CC1=CF7+CC1
+            ELSE
+               CC5=CF7+CC5
+            ENDIF
+
+            IF (MV.EQ.1) DUBR=DUBR+RESID(I,J,K,ME)
+            DUBR=DUBR-CF1*DUNK(I,J,K,MV)
+            IF (I.GT.1) DUBR=DUBR-CF2*DUNK(I-1,J,K,MV)
+            IF (I.LT.IDIM) DUBR=DUBR-CF3*DUNK(I+1,J,K,MV)
+            IF (J.GT.1) DUBR=DUBR-CF4*DUNK(I,J-1,K,MV)
+            IF (J.LT.JDIM) DUBR=DUBR-CF5*DUNK(I,J+1,K,MV)
+            IF (K.GT.1) DUBR=DUBR-CF6*DUNK(I,J,K-1,MV)
+            IF (K.LT.KDIM) DUBR=DUBR-CF7*DUNK(I,J,K+1,MV)
+
+         ENDIF
+    4    CONTINUE
+         ENDIF
+      ENDIF
+
+      IF (MP2) THEN
+         J=JF+1
+         K=KF
+         IF (K.GT.0.AND.J.GT.0.AND.K.LE.KDIM.AND.J.LE.JDIM) THEN
+         DO 5 I=IL1,IL2
+         IF (KEYOUT(I,J,K).EQ.1) THEN
+            CF1=COF(I,J,K,1,M)
+            CF2=COF(I,J,K,2,M)
+            CF3=COF(I,J,K,3,M)
+            CF4=COF(I,J,K,4,M)
+            CF5=COF(I,J,K,5,M)
+            CF6=COF(I,J,K,6,M)
+            CF7=COF(I,J,K,7,M)
+
+            CC1=CF1+CF2+CF3+CC1
+            CC3=CF5+CC3
+            CC4=CF6+CC4
+            IF (MP1) THEN
+               CC1=CF4+CC1
+            ELSE
+               CC2=CF4+CC2
+            ENDIF
+            IF (MP3) THEN
+               CC1=CF7+CC1
+            ELSE
+               CC5=CF7+CC5
+            ENDIF
+
+            IF (MV.EQ.1) DUBR=DUBR+RESID(I,J,K,ME)
+            DUBR=DUBR-CF1*DUNK(I,J,K,MV)
+            IF (I.GT.1) DUBR=DUBR-CF2*DUNK(I-1,J,K,MV)
+            IF (I.LT.IDIM) DUBR=DUBR-CF3*DUNK(I+1,J,K,MV)
+            IF (J.GT.1) DUBR=DUBR-CF4*DUNK(I,J-1,K,MV)
+            IF (J.LT.JDIM) DUBR=DUBR-CF5*DUNK(I,J+1,K,MV)
+            IF (K.GT.1) DUBR=DUBR-CF6*DUNK(I,J,K-1,MV)
+            IF (K.LT.KDIM) DUBR=DUBR-CF7*DUNK(I,J,K+1,MV)
+
+         ENDIF
+    5    CONTINUE
+         ENDIF
+      ENDIF
+
+      IF (MP3) THEN
+         J=JF+1
+         K=KF+1
+         IF (K.GT.0.AND.J.GT.0.AND.K.LE.KDIM.AND.J.LE.JDIM) THEN
+         DO 6 I=IL1,IL2
+         IF (KEYOUT(I,J,K).EQ.1) THEN
+            CF1=COF(I,J,K,1,M)
+            CF2=COF(I,J,K,2,M)
+            CF3=COF(I,J,K,3,M)
+            CF4=COF(I,J,K,4,M)
+            CF5=COF(I,J,K,5,M)
+            CF6=COF(I,J,K,6,M)
+            CF7=COF(I,J,K,7,M)
+
+            CC1=CF1+CF2+CF3+CC1
+            CC3=CF5+CC3
+            CC5=CF7+CC5
+            IF (MP4) THEN
+               CC1=CF4+CC1
+            ELSE
+               CC2=CF4+CC2
+            ENDIF
+            IF (MP2) THEN
+               CC1=CF6+CC1
+            ELSE
+               CC4=CF6+CC4
+            ENDIF
+
+            IF (MV.EQ.1) DUBR=DUBR+RESID(I,J,K,ME)
+            DUBR=DUBR-CF1*DUNK(I,J,K,MV)
+            IF (I.GT.1) DUBR=DUBR-CF2*DUNK(I-1,J,K,MV)
+            IF (I.LT.IDIM) DUBR=DUBR-CF3*DUNK(I+1,J,K,MV)
+            IF (J.GT.1) DUBR=DUBR-CF4*DUNK(I,J-1,K,MV)
+            IF (J.LT.JDIM) DUBR=DUBR-CF5*DUNK(I,J+1,K,MV)
+            IF (K.GT.1) DUBR=DUBR-CF6*DUNK(I,J,K-1,MV)
+            IF (K.LT.KDIM) DUBR=DUBR-CF7*DUNK(I,J,K+1,MV)
+
+         ENDIF
+    6    CONTINUE
+         ENDIF
+      ENDIF
+
+      IF (MP4) THEN
+         J=JF
+         K=KF+1
+         IF (K.GT.0.AND.J.GT.0.AND.K.LE.KDIM.AND.J.LE.JDIM) THEN
+         DO 7 I=IL1,IL2
+         IF (KEYOUT(I,J,K).EQ.1) THEN
+            CF1=COF(I,J,K,1,M)
+            CF2=COF(I,J,K,2,M)
+            CF3=COF(I,J,K,3,M)
+            CF4=COF(I,J,K,4,M)
+            CF5=COF(I,J,K,5,M)
+            CF6=COF(I,J,K,6,M)
+            CF7=COF(I,J,K,7,M)
+
+            CC1=CF1+CF2+CF3+CC1
+            CC2=CF4+CC2
+            CC5=CF7+CC5
+            IF (MP3) THEN
+               CC1=CF5+CC1
+            ELSE
+               CC3=CF5+CC3
+            ENDIF
+            IF (MP1) THEN
+               CC1=CF6+CC1
+            ELSE
+               CC4=CF6+CC4
+            ENDIF
+
+            IF (MV.EQ.1) DUBR=DUBR+RESID(I,J,K,ME)
+            DUBR=DUBR-CF1*DUNK(I,J,K,MV)
+            IF (I.GT.1) DUBR=DUBR-CF2*DUNK(I-1,J,K,MV)
+            IF (I.LT.IDIM) DUBR=DUBR-CF3*DUNK(I+1,J,K,MV)
+            IF (J.GT.1) DUBR=DUBR-CF4*DUNK(I,J-1,K,MV)
+            IF (J.LT.JDIM) DUBR=DUBR-CF5*DUNK(I,J+1,K,MV)
+            IF (K.GT.1) DUBR=DUBR-CF6*DUNK(I,J,K-1,MV)
+            IF (K.LT.KDIM) DUBR=DUBR-CF7*DUNK(I,J,K+1,MV)
+
+         ENDIF
+    7    CONTINUE
+         ENDIF
+      ENDIF
+
+      COFMG(JC,KC,1,M)=CC1
+      COFMG(JC,KC,2,M)=CC2
+      COFMG(JC,KC,3,M)=CC3
+      COFMG(JC,KC,4,M)=CC4
+      COFMG(JC,KC,5,M)=CC5
+
+    3 M=M+MEQ
+      RESMG(JC,KC,ME)=DUBR
+
+    2 CONTINUE
+    1 CONTINUE
+      END
+C*********************************************************************
+      SUBROUTINE PSORMG(KDMG)
+C*********************************************************************
+
+C  APPLY PSOR TO 2D EQUATIONS - DRIVER
+
+C  KDMG = MULTIGRID DIRECTION (DOWN OR UP) (INPUT, INTEGER)
+C         1 ==> DOWN
+C         2 ==> UP
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      EXTERNAL PSORMGW
+$MANY      EXTERNAL R8UPDMG2
+
+C  START PSOR LOOP
+
+C  UPDATE UNKNOWNS IN THE COMMUNICATION LAYER
+
+$DUAL      CALL MDUALL(NERR)
+
+      NP=NPSOR(LEVEL,KDMG)
+      IF (ROBUST) THEN
+         IF (KDMG.EQ.1) THEN
+            NP=NP+1
+         ELSE
+            NP=NP+2
+         ENDIF
+      ENDIF
+      DO 1 ITL=1,NP
+
+C  SELECT PSOR FACTOR
+
+      IF (ITL.EQ.1) THEN
+         FSOR=FPSOR(LEVEL,2*KDMG-1)
+         IF (ROBUST) FSOR=1.D0
+      ELSE
+         FSOR=FPSOR(LEVEL,2*KDMG)
+      ENDIF
+
+C  RED/BLACK LOOP
+
+      DO 2 K=1,0,-1
+      KRB=K
+
+C  RELAX
+
+      DO 3 I=1,$MXMOD
+      IF (MODELON(I)) THEN
+         MODACT=I
+         CALL MGWORK3(PSORMGW,LEVEL)
+      ENDIF
+    3 CONTINUE
+      MODACT=0
+
+C  UPDATE UNKNOWNS IN THE COMMUNICATION LAYER
+
+$DUAL      CALL MDUALL(NERR)
+
+
+$MANY      CALL TIMON(4)
+$MANY      DO 4 I=1,$MXMOD
+$MANY      IF (MODELON(I)) THEN
+$MANY         MODACT=I
+$MANY         CALL MGWORK3(R8UPDMG2,LEVEL)     
+$MANY      ENDIF
+$MANY    4 CONTINUE
+$MANY      MODACT=0
+$MANY      CALL TIMOFF(4)
+
+C  TERMINATE LOOPS AND EXIT
+
+    2 CONTINUE
+
+    1 CONTINUE
+      END
+      SUBROUTINE PSOR0 (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C  ROUTINE CLEARS PSOR UNKNOWNS.  THIS IS A MGWORK3 ROUTINE.
+
+C***********************************************************************
+      INCLUDE 'control.h'
+
+      INTEGER MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*8  DUKMG(JDMG,KDMG,*),RESMG(JDMG,KDMG,*),
+     &   COFMG(JDMG,KDMG,$NCOFMG,*)
+
+      MEQ=NUMEQS(NBLK)
+
+      DO 1 K=1,KDMG
+      DO 1 J=1,JDMG
+      DO 1 ME=1,MEQ
+    1 DUKMG(J,K,ME)=0d0
+
+      END
+C*********************************************************************
+      SUBROUTINE PSORMGW (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+ 
+C  ROUTINE MAKES ONE HALF POINT SOR ITERATION.  THIS IS A MGWORK3 ROUTINE.
+
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*8  DUKMG(JDMG,KDMG,*),RESMG(JDMG,KDMG,*),
+     &   COFMG(JDMG,KDMG,$NCOFMG,*)
+      REAL*8  DUB,C,A($MXNUMEQ,$MXNUMEQ+1)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+      MEQ=NUMEQS(NBLK)
+      MEQP=MEQ+1
+      MEQM=MEQ-1
+
+C  START ONE HALF OF AN SOR ITERATION
+
+      DO 1 K=KMG1,KMG2
+      JJ=K+JOFFMG(MGLV,NBLK)+KOFFMG(MGLV,NBLK)
+c     JJ=K+KOFF+JOFF
+      DO 1 J=JMG1,JMG2
+      IF (KEYMG(J,K).NE.1) GO TO 1
+      IF (MAPMG(J,K).EQ.0.OR.MOD(JJ+J,2).NE.KRB) GO TO 1
+
+C  SOLVE EQUATIONS FOR ONE ELEMENT SIMULTANEOUSLY
+
+      DO 2 ME=1,MEQ
+      DUB=RESMG(J,K,ME)
+      DO 3 MV=1,MEQ
+      M=ME+(MV-1)*MEQ
+      C=COFMG(J,K,1,M)
+      A(ME,MV)=C
+      DUB=DUB-C*DUKMG(J,K,MV)
+      IF (J.GT.1) DUB=DUB-COFMG(J,K,2,M)*DUKMG(J-1,K,MV)
+      IF (J.LT.JDMG) DUB=DUB-COFMG(J,K,3,M)*DUKMG(J+1,K,MV)
+      IF (K.GT.1) DUB=DUB-COFMG(J,K,4,M)*DUKMG(J,K-1,MV)
+      IF (K.LT.KDMG) DUB=DUB-COFMG(J,K,5,M)*DUKMG(J,K+1,MV)
+    3 CONTINUE
+      A(ME,MEQP)=DUB
+    2 CONTINUE
+
+      DO 4 L=1,MEQM
+      DO 4 ME=L+1,MEQ
+      DUB=A(ME,L)/A(L,L)
+      DO 4 MV=L+1,MEQP
+    4 A(ME,MV)=A(ME,MV)-DUB*A(L,MV)
+
+      A(MEQ,MEQP)=A(MEQ,MEQP)/A(MEQ,MEQ)
+      DO 5 ME=MEQM,1,-1
+      DUB=A(ME,MEQP)
+      DO 6 L=ME+1,MEQ
+    6 DUB=DUB-A(L,MEQP)*A(ME,L)
+    5 A(ME,MEQP)=DUB/A(ME,ME)
+
+C  UPDATE
+
+      DO 7 MV=1,MEQ
+    7 DUKMG(J,K,MV)=DUKMG(J,K,MV)+FSOR*A(MV,MEQP)
+
+    1 CONTINUE
+      END
+C*********************************************************************
+      SUBROUTINE COURSEN2 (MGLF,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,JMG1F,
+     &   JMG2F,KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,
+     &   MAPMG,KEYMGF,KEYMGC,COFMGF,COFMGC,DUKMGF,DUKMGC,RESMGF,RESMGC)
+C*********************************************************************
+
+C  COURSENS FROM ONE 2D GRID TO THE NEXT
+C  THIS IS A MGWORK2 ROUTINE.
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER MAPMG(JDMGC,KDMGC),KEYMGF(JDMGF,KDMGF),
+     & KEYMGC(JDMGC,KDMGC)
+      REAL*8  DUKMGF(JDMGF,KDMGF,*),DUKMGC(JDMGC,KDMGC,*),
+     &   RESMGF(JDMGF,KDMGF,*),RESMGC(JDMGC,KDMGC,*),
+     &   COFMGF(JDMGF,KDMGF,$NCOFMG,*),COFMGC(JDMGC,KDMGC,$NCOFMG,*)
+      REAL*8 DUBR,CC1,CC2,CC3,CC4,CC5,CF1,CF2,CF3,CF4,CF5
+      LOGICAL MP1,MP2,MP3,MP4
+
+      MEQ=NUMEQS(NBLK)
+
+      JL=2*JOFFMG(MGLF+1,NBLK)-JOFFMG(MGLF,NBLK)-1
+      KL=2*KOFFMG(MGLF+1,NBLK)-KOFFMG(MGLF,NBLK)-1
+
+C  LOOP OVER COURSE GRID AND SET BASE LOCATION FOR FINE GRID
+
+      DO 1 KC=max(1,KMG1C-1),min(KDMGC,KMG2C+1)
+      KF=2*KC+KL
+      DO 1 JC=max(1,JMG1C-1),min(JDMGC,JMG2C+1)
+      IF (IABS(KEYMGC(JC,KC)).NE.1) GO TO 1
+      MP=MAPMG(JC,KC)
+      IF (MP.EQ.0) GO TO 1
+      IF (MOD(MP,2).GT.0) THEN
+         MP1=.TRUE.
+      ELSE
+         MP1=.FALSE.
+      ENDIF
+      IF (MOD(MP,4).GT.1) THEN
+         MP2=.TRUE.
+      ELSE
+         MP2=.FALSE.
+      ENDIF
+      IF (MOD(MP,8).GT.3) THEN
+         MP3=.TRUE.
+      ELSE
+         MP3=.FALSE.
+      ENDIF
+      IF (MP.GT.7) THEN
+         MP4=.TRUE.
+      ELSE
+         MP4=.FALSE.
+      ENDIF
+      JF=2*JC+JL
+
+C  LOOP OVER THE EQUATIONS, CLEAR COURSE GRID UNKNOWNS
+
+      DO 2 ME=1,MEQ
+      DUKMGC(JC,KC,ME)=0.D0
+      DUBR=0.D0
+
+C  LOOP OVER VARIABLES
+
+      M=ME
+      DO 3 MV=1,MEQ
+
+      CC1=0.D0
+      CC2=0.D0
+      CC3=0.D0
+      CC4=0.D0
+      CC5=0.D0
+
+C  FOR EACH OF FOUR POSSIBLE FINE GRID ELEMENTS, DO SUMS
+
+      IF (MP1) THEN
+         J=JF
+         K=KF
+         IF (K.GT.0.AND.J.GT.0.AND.K.LE.KDMGF.AND.J.LE.JDMGF) THEN
+         IF (KEYMGF(J,K).EQ.1) THEN
+         CF1=COFMGF(J,K,1,M)
+         CF2=COFMGF(J,K,2,M)
+         CF3=COFMGF(J,K,3,M)
+         CF4=COFMGF(J,K,4,M)
+         CF5=COFMGF(J,K,5,M)
+
+         CC1=CF1+CC1
+         CC2=CF2+CC2
+         CC4=CF4+CC4
+         IF (MP2) THEN
+            CC1=CF3+CC1
+         ELSE
+            CC3=CF3+CC3
+         ENDIF
+         IF (MP4) THEN
+            CC1=CF5+CC1
+         ELSE
+            CC5=CF5+CC5
+         ENDIF
+
+         IF (MV.EQ.1) DUBR=DUBR+RESMGF(J,K,ME)
+         DUBR=DUBR-CF1*DUKMGF(J,K,MV)
+         IF (J.GT.1) DUBR=DUBR-CF2*DUKMGF(J-1,K,MV)
+         IF (J.LT.JDMGF) DUBR=DUBR-CF3*DUKMGF(J+1,K,MV)
+         IF (K.GT.1) DUBR=DUBR-CF4*DUKMGF(J,K-1,MV)
+         IF (K.LT.KDMGF) DUBR=DUBR-CF5*DUKMGF(J,K+1,MV)
+
+         ENDIF
+         ENDIF
+      ENDIF
+
+      IF (MP2) THEN
+         J=JF+1
+         K=KF
+         IF (K.GT.0.AND.J.GT.0.AND.K.LE.KDMGF.AND.J.LE.JDMGF) THEN
+         IF (KEYMGF(J,K).EQ.1) THEN
+         CF1=COFMGF(J,K,1,M)
+         CF2=COFMGF(J,K,2,M)
+         CF3=COFMGF(J,K,3,M)
+         CF4=COFMGF(J,K,4,M)
+         CF5=COFMGF(J,K,5,M)
+
+         CC1=CF1+CC1
+         CC3=CF3+CC3
+         CC4=CF4+CC4
+         IF (MP1) THEN
+            CC1=CF2+CC1
+         ELSE
+            CC2=CF2+CC2
+         ENDIF
+         IF (MP3) THEN
+            CC1=CF5+CC1
+         ELSE
+            CC5=CF5+CC5
+         ENDIF
+
+         IF (MV.EQ.1) DUBR=DUBR+RESMGF(J,K,ME)
+         DUBR=DUBR-CF1*DUKMGF(J,K,MV)
+         IF (J.GT.1) DUBR=DUBR-CF2*DUKMGF(J-1,K,MV)
+         IF (J.LT.JDMGF) DUBR=DUBR-CF3*DUKMGF(J+1,K,MV)
+         IF (K.GT.1) DUBR=DUBR-CF4*DUKMGF(J,K-1,MV)
+         IF (K.LT.KDMGF) DUBR=DUBR-CF5*DUKMGF(J,K+1,MV)
+
+         ENDIF
+         ENDIF
+      ENDIF
+
+      IF (MP3) THEN
+         J=JF+1
+         K=KF+1
+         IF (K.GT.0.AND.J.GT.0.AND.K.LE.KDMGF.AND.J.LE.JDMGF) THEN
+         IF (KEYMGF(J,K).EQ.1) THEN
+         CF1=COFMGF(J,K,1,M)
+         CF2=COFMGF(J,K,2,M)
+         CF3=COFMGF(J,K,3,M)
+         CF4=COFMGF(J,K,4,M)
+         CF5=COFMGF(J,K,5,M)
+
+         CC1=CF1+CC1
+         CC3=CF3+CC3
+         CC5=CF5+CC5
+         IF (MP4) THEN
+            CC1=CF2+CC1
+         ELSE
+            CC2=CF2+CC2
+         ENDIF
+         IF (MP2) THEN
+            CC1=CF4+CC1
+         ELSE
+            CC4=CF4+CC4
+         ENDIF
+
+         IF (MV.EQ.1) DUBR=DUBR+RESMGF(J,K,ME)
+         DUBR=DUBR-CF1*DUKMGF(J,K,MV)
+         IF (J.GT.1) DUBR=DUBR-CF2*DUKMGF(J-1,K,MV)
+         IF (J.LT.JDMGF) DUBR=DUBR-CF3*DUKMGF(J+1,K,MV)
+         IF (K.GT.1) DUBR=DUBR-CF4*DUKMGF(J,K-1,MV)
+         IF (K.LT.KDMGF) DUBR=DUBR-CF5*DUKMGF(J,K+1,MV)
+
+         ENDIF
+         ENDIF
+      ENDIF
+
+      IF (MP4) THEN
+         J=JF
+         K=KF+1
+         IF (K.GT.0.AND.J.GT.0.AND.K.LE.KDMGF.AND.J.LE.JDMGF) THEN
+         IF (KEYMGF(J,K).EQ.1) THEN
+         CF1=COFMGF(J,K,1,M)
+         CF2=COFMGF(J,K,2,M)
+         CF3=COFMGF(J,K,3,M)
+         CF4=COFMGF(J,K,4,M)
+         CF5=COFMGF(J,K,5,M)
+
+         CC1=CF1+CC1
+         CC2=CF2+CC2
+         CC5=CF5+CC5
+         IF (MP3) THEN
+            CC1=CF3+CC1
+         ELSE
+            CC3=CF3+CC3
+         ENDIF
+         IF (MP1) THEN
+            CC1=CF4+CC1
+         ELSE
+            CC4=CF4+CC4
+         ENDIF
+
+         IF (MV.EQ.1) DUBR=DUBR+RESMGF(J,K,ME)
+         DUBR=DUBR-CF1*DUKMGF(J,K,MV)
+         IF (J.GT.1) DUBR=DUBR-CF2*DUKMGF(J-1,K,MV)
+         IF (J.LT.JDMGF) DUBR=DUBR-CF3*DUKMGF(J+1,K,MV)
+         IF (K.GT.1) DUBR=DUBR-CF4*DUKMGF(J,K-1,MV)
+         IF (K.LT.KDMGF) DUBR=DUBR-CF5*DUKMGF(J,K+1,MV)
+
+         ENDIF
+         ENDIF
+      ENDIF
+
+      COFMGC(JC,KC,1,M)=CC1
+      COFMGC(JC,KC,2,M)=CC2
+      COFMGC(JC,KC,3,M)=CC3
+      COFMGC(JC,KC,4,M)=CC4
+      COFMGC(JC,KC,5,M)=CC5
+
+    3 M=M+MEQ
+      RESMGC(JC,KC,ME)=DUBR
+
+    2 CONTINUE
+    1 CONTINUE
+      END
+C*********************************************************************
+      SUBROUTINE MGDIRECT (MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+ 
+C  APPLIES DIRECT SOLUTION ON A 2D GRID.  THIS IS A MGWORK3 ROUTINE.
+
+C***********************************************************************
+      INCLUDE 'control.h'
+
+      INTEGER MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*8  DUKMG(JDMG,KDMG,*),RESMG(JDMG,KDMG,*),
+     &   COFMG(JDMG,KDMG,$NCOFMG,*)
+      PARAMETER (NYCRS = 20, NZCRS = 20)
+      REAL*8  A($MXNUMEQ*NYCRS*NZCRS,
+     &          $MXNUMEQ*NYCRS*NZCRS)
+      REAL*8  R($MXNUMEQ*NYCRS*NZCRS)
+c     REAL*8  A($MXNUMEQ*(JMG2-JMG1+1)*(KMG2-KMG1+1),
+c    &          $MXNUMEQ*(JMG2-JMG1+1)*(KMG2-KMG1+1))
+c     REAL*8  R($MXNUMEQ*(JMG2-JMG1+1)*(KMG2-KMG1+1))
+      REAL*8  DUB
+
+      MEQ=NUMEQS(NBLK)
+      JW=JMG2-JMG1+1
+      LEQ=MEQ*JW*(KMG2-KMG1+1)
+      LEQM=LEQ-1
+      JWM=JW*MEQ
+      JR=JWM+MEQ-1
+
+      IF (JMG2-JMG1+1.GT.NYCRS.OR.KMG2-KMG1+1.GT.NZCRS) THEN
+         write(*,*)'MGDIRECT: MATRIX A AND VECTOR R ARE SMALL'
+         stop
+      END IF
+C  CLEAR WORKING MATRIX
+
+      DO 1 LE=1,LEQ
+      R(LE)=0.D0
+      DO 1 LU=1,LEQ
+    1 A(LE,LU)=0.D0
+
+C  COPY COEFFICIENTS AND RESIDUALS TO WORKING MATRIX
+
+      MM=0
+      DO 2 K=KMG1,KMG2
+      DO 2 J=JMG1,JMG2
+      IF (MAPMG(J,K).EQ.0) THEN
+         DO 3 ME=1,MEQ
+         MM=MM+1
+    3    A(MM,MM)=1.D0
+         GO TO 2
+      ENDIF
+      MCC=MM
+      MJM=MCC-MEQ
+      MJP=MCC+MEQ
+      MKM=MCC-JWM
+      MKP=MCC+JWM
+      DO 4 ME=1,MEQ
+      MM=MM+1
+      R(MM)=RESMG(J,K,ME)
+      DO 4 MV=1,MEQ
+      M=ME+(MV-1)*MEQ
+      A(MM,MCC+MV)=COFMG(J,K,1,M)
+      IF (J.GT.JMG1) A(MM,MJM+MV)=COFMG(J,K,2,M)
+      IF (J.LT.JMG2) A(MM,MJP+MV)=COFMG(J,K,3,M)
+      IF (K.GT.KMG1) A(MM,MKM+MV)=COFMG(J,K,4,M)
+      IF (K.LT.KMG2) A(MM,MKP+MV)=COFMG(J,K,5,M)
+    4 CONTINUE
+    2 CONTINUE
+
+C  TRANGULATE
+
+      DO 5 L=1,LEQM
+      M1=L+1
+      M2=L+JR
+      IF (M2.GT.LEQ) M2=LEQ
+      DO 5 M=M1,M2
+      DUB=A(M,L)/A(L,L)
+      R(M)=R(M)-DUB*R(L)
+      DO 5 N=M1,M2
+    5 A(M,N)=A(M,N)-DUB*A(L,N)
+
+C  BACK SUBSTITUTE
+
+      R(LEQ)=R(LEQ)/A(LEQ,LEQ)
+      DO 6 L=LEQM,1,-1
+      M1=L+1
+      M2=L+JR
+      IF (M2.GT.LEQ) M2=LEQ
+      DO 7 M=M1,M2
+    7 R(L)=R(L)-R(M)*A(L,M)
+    6 R(L)=R(L)/A(L,L)
+
+C STORE VARIABLE CHANGES
+
+      MM=0
+      DO 8 K=KMG1,KMG2
+      DO 8 J=JMG1,JMG2
+      DO 8 M=1,MEQ
+      MM=MM+1
+    8 DUKMG(J,K,M)=R(MM)
+
+      END
+C*********************************************************************
+      SUBROUTINE REFINE2 (MGLF,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,JMG1F,
+     &   JMG2F,KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,
+     &   MAPMG,KEYMGF,KEYMGC,COFMGF,COFMGC,DUKMGF,DUKMGC,RESMGF,RESMGC)
+C*********************************************************************
+
+C  REFINES FROM ONE 2D GRID TO THE NEXT
+C  THIS IS A MGWORK2 ROUTINE.
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER MAPMG(JDMGC,KDMGC),KEYMGF(JDMGF,KDMGF),
+     &   KEYMGC(JDMGC,KDMGC)
+      REAL*8  DUKMGF(JDMGF,KDMGF,*),DUKMGC(JDMGC,KDMGC,*),DUB,
+     &   RESMGF(JDMGF,KDMGF,*),RESMGC(JDMGC,KDMGC,*),
+     &   COFMGF(JDMGF,KDMGF,$NCOFMG,*),COFMGC(JDMGC,KDMGC,$NCOFMG,*)
+
+      MEQ=NUMEQS(NBLK)
+
+      JL=2*JOFFMG(MGLF+1,NBLK)-JOFFMG(MGLF,NBLK)-1
+      KL=2*KOFFMG(MGLF+1,NBLK)-KOFFMG(MGLF,NBLK)-1
+
+C  LOOP OVER COURSE GRID AND FILL FINE GRID VARIABLE ARRAY
+
+      DO 1 KC=KMG1C,KMG2C
+      KF=2*KC+KL
+      DO 1 JC=JMG1C,JMG2C
+      IF (KEYMGC(JC,KC).NE.1) GO TO 1
+      MP=MAPMG(JC,KC)
+      IF (MP.EQ.0) GO TO 1
+      JF=2*JC+JL
+      DO 2 M=1,MEQ
+      DUB=DUKMGC(JC,KC,M)
+      IF (MOD(MP,2).GT.0.and.IABS(KEYMGF(JF,KF)).EQ.1)
+     &               DUKMGF(JF,KF,M)=DUKMGF(JF,KF,M)+DUB
+      IF (MOD(MP,4).GT.1.and.IABS(KEYMGF(JF+1,KF)).EQ.1)
+     &               DUKMGF(JF+1,KF,M)=DUKMGF(JF+1,KF,M)+DUB
+      IF (MOD(MP,8).GT.3.and.IABS(KEYMGF(JF+1,KF+1)).EQ.1)
+     &               DUKMGF(JF+1,KF+1,M)=DUKMGF(JF+1,KF+1,M)+DUB
+      IF (MP.GT.7.and.IABS(KEYMGF(JF,KF+1)).EQ.1)
+     &               DUKMGF(JF,KF+1,M)=DUKMGF(JF,KF+1,M)+DUB
+    2 CONTINUE
+    1 CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE REFINE1 (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                  KL2,KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,
+     &                  JMG2,KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C  REFINES FROM THE COURSEST 2D GRID TO THE 3D GRID.
+C  THIS IS A MGWORK1 ROUTINE.
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &   MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF,*)
+      REAL*8  DUNK(IDIM,JDIM,KDIM,*), RESID(IDIM,JDIM,KDIM,*),
+     &   DUKMG(JDMG,KDMG,*), RESMG(JDMG,KDMG,*),
+     &   COFMG(JDMG,KDMG,$NCOFMG,*),DUB
+
+      MEQ=NUMEQS(NBLK)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+      JL=2*JOFFMG(1,NBLK)-JOFF-1
+      KL=2*KOFFMG(1,NBLK)-KOFF-1
+
+C  LOOP OVER COURSE GRID AND SET BASE LOCATION FOR FINE GRID
+
+      DO 1 KC=KMG1,KMG2
+      KF=2*KC+KL
+      DO 1 JC=JMG1,JMG2
+      IF (KEYMG(JC,KC).NE.1) GO TO 1
+      MP=MAPMG(JC,KC)
+      IF (MP.EQ.0) GO TO 1
+      JF=2*JC+JL
+      DO 2 M=1,MEQ
+      DUB=DUKMG(JC,KC,M)
+
+      IF (MOD(MP,2).GT.0) THEN
+         J=JF
+         K=KF
+         DO 3 I=IL1,IL2
+         IF (IABS(KEYOUT(I,J,K)).EQ.1) DUNK(I,J,K,M)=DUNK(I,J,K,M)+DUB
+    3    CONTINUE
+      ENDIF
+
+      IF (MOD(MP,4).GT.1) THEN
+         J=JF+1
+         K=KF
+         DO 4 I=IL1,IL2
+         IF (IABS(KEYOUT(I,J,K)).EQ.1) DUNK(I,J,K,M)=DUNK(I,J,K,M)+DUB
+    4    CONTINUE
+      ENDIF
+
+      IF (MOD(MP,8).GT.3) THEN
+         J=JF+1
+         K=KF+1
+         DO 5 I=IL1,IL2
+         IF (IABS(KEYOUT(I,J,K)).EQ.1) DUNK(I,J,K,M)=DUNK(I,J,K,M)+DUB
+    5    CONTINUE
+      ENDIF
+
+      IF (MP.GT.7) THEN
+         J=JF
+         K=KF+1
+         DO 6 I=IL1,IL2
+         IF (IABS(KEYOUT(I,J,K)).EQ.1) DUNK(I,J,K,M)=DUNK(I,J,K,M)+DUB
+    6    CONTINUE
+      ENDIF
+
+    2 CONTINUE
+    1 CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE CORKEYMG1(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                  KL2,KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,
+     &                  JMG2,KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C  CORRECTS KEYMG AT THE 1ST LEVEL 2D GRID ON THE BASIS OF  KEYOUT.
+C  THIS IS A MGWORK1 ROUTINE.
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &   MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF,*)
+      REAL*8  DUNK(IDIM,JDIM,KDIM,*), RESID(IDIM,JDIM,KDIM,*),
+     &   DUKMG(JDMG,KDMG,*), RESMG(JDMG,KDMG,*),
+     &   COFMG(JDMG,KDMG,$NCOFMG,*)
+      LOGICAL FLAGIN
+      INTEGER JK2(2,4)
+      DATA JK2/0,0, 1,0, 1,1, 0,1/
+
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+      JL=2*JOFFMG(1,NBLK)-JOFF-1
+      KL=2*KOFFMG(1,NBLK)-KOFF-1
+
+C  LOOP OVER COURSE GRID AND SET BASE LOCATION FOR FINE GRID
+
+      DO 1 KC=max(1,KMG1-1),min(KDMG,KMG2+1)
+      KF=2*KC+KL
+      DO 1 JC=max(1,JMG1-1),min(JDMG,JMG2+1)
+       IF (IABS(KEYMG(JC,KC)).NE.1) THEN
+        JF=2*JC+JL
+        DO 2 L=1,4
+         J=JF+JK2(1,L)
+         K=KF+JK2(2,L)
+         IF (K.GT.0.AND.J.GT.0.AND.K.LE.KDIM.AND.J.LE.JDIM) THEN
+          FLAGIN=.FALSE.
+          DO 3 I=IL1,IL2
+           IF (KEYOUT(I,J,K).EQ.1) FLAGIN=.TRUE.
+    3     CONTINUE
+          IF (FLAGIN) KEYMG(JC,KC)=-1
+         END IF
+    2   CONTINUE
+       END IF
+    1 CONTINUE
+      END
+C*********************************************************************
+      SUBROUTINE CORKEYMG2(MGLF,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,JMG1F,
+     &   JMG2F,KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,
+     &   MAPMG,KEYMGF,KEYMGC,COFMGF,COFMGC,DUKMGF,DUKMGC,RESMGF,RESMGC)
+C*********************************************************************
+
+C  CORRECTS KEYMGF  ON THE BASIS OF  KEYMGC.
+C  THIS IS A MGWORK2 ROUTINE.
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER MAPMG(JDMGC,KDMGC),KEYMGF(JDMGF,KDMGF),
+     & KEYMGC(JDMGC,KDMGC)
+      REAL*8  DUKMGF(JDMGF,KDMGF,*),DUKMGC(JDMGC,KDMGC,*),
+     &   RESMGF(JDMGF,KDMGF,*),RESMGC(JDMGC,KDMGC,*),
+     &   COFMGF(JDMGF,KDMGF,$NCOFMG,*),COFMGC(JDMGC,KDMGC,$NCOFMG,*)
+
+      INTEGER JK2(2,4)
+      DATA JK2/0,0, 1,0, 1,1, 0,1/
+
+      JL=2*JOFFMG(MGLF+1,NBLK)-JOFFMG(MGLF,NBLK)-1
+      KL=2*KOFFMG(MGLF+1,NBLK)-KOFFMG(MGLF,NBLK)-1
+
+C  LOOP OVER COURSE GRID AND SET BASE LOCATION FOR FINE GRID
+
+      DO 1 KC=max(1,KMG1C-1),min(KDMGC,KMG2C+1)
+      KF=2*KC+KL
+      DO 1 JC=max(1,JMG1C-1),min(JDMGC,JMG2C+1)
+       IF (IABS(KEYMGC(JC,KC)).NE.1) THEN
+        JF=2*JC+JL
+        DO 2 L=1,4
+         J=JF+JK2(1,L)
+         K=KF+JK2(2,L)
+         IF (K.GT.0.AND.J.GT.0.AND.K.LE.KDMGF.AND.J.LE.JDMGF) THEN
+          IF (KEYMGF(J,K).EQ.1) KEYMGC(JC,KC)=-1
+         END IF
+    2   CONTINUE
+       END IF
+    1 CONTINUE
+      END
+

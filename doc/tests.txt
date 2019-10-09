@@ -1,0 +1,55 @@
+file: tests.txt
+----------------
+last modified: MPeszynska, 10/6/98
+
+The chart below summarizes status of IPARS project.
+---------------------------------------------------
+
+Symbols below:
+
+d.n.c.  - does not compile
+d.n.e.  - does not exist (code nonexistent or no "traditional" make/sizefiles 
+                        available)
+x       - same as d.n.e., indicates problems with portability
+?       - status unknown
+c/l     - code only compiles/links, has problems running
+
+                HYDROI  (MB)    HYDROE  (MB)    BLACK   (MB)    MMODEL (MB)
+===========================================================================
+===========================================================================
+
+RS6K            MPesz   x       MPesz   x       ?       d.n.e.  d.n.e. d.n.e.
+                9/23            9/23    
+
+===========================================================================
+
+SP2-1           MPesz   MPesz   MPesz   MPesz   MPesz   QLu     MPesz MPesz
+                10/6    10/6    10/6    10/6    10/6    10/6    10/6  10/6
+                                                
+                                                                 2 models
+===========================================================================
+
+SP2-mult        MPesz   MPesz   MPesz   MPesz   MPesz   QLu     d.n.e.  d.n.e.
+                10/6    10/6    10/6    10/6    10/6    10/6?
+                                                
+===========================================================================
+
+IBMPC           JAW     x       ?       x       ?       x       d.n.e.  x
+                10/6
+
+===========================================================================
+
+Linux           MPesz   x       MPesz   x       MPesz   x       MPesz  x
+                10/6            10/6            9/23            10/6
+
+===========================================================================
+
+Beowulf         MPesz   ?       ?       ?       ?       d.n.e.  MPesz  ?
+                10/6                                            9/21    
+                                                                1 proc
+===========================================================================
+
+T3E             MPesz   ?       ?       ?       ?       x       d.n.e. d.n.e.
+                8/30
+
+===========================================================================

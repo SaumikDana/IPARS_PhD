@@ -1,0 +1,161 @@
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/repos/csm/!svn/ver/579/IPARSv3.1/trchem
+END
+trx_equ.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/trx_equ.df
+END
+trdvars.dh
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/trdvars.dh
+END
+trarydat.h
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/568/IPARSv3.1/trchem/trarydat.h
+END
+trm_util.f
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/trm_util.f
+END
+trdual.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/455/IPARSv3.1/trchem/trdual.df
+END
+trx_kntc.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/trx_kntc.df
+END
+tr_mbvars.dh
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/tr_mbvars.dh
+END
+trx_rnsf.df
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/425/IPARSv3.1/trchem/trx_rnsf.df
+END
+trwdata.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/557/IPARSv3.1/trchem/trwdata.df
+END
+trbdary.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/trbdary.df
+END
+trmodel.dh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/568/IPARSv3.1/trchem/trmodel.dh
+END
+trx_step.df
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/352/IPARSv3.1/trchem/trx_step.df
+END
+trwell.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/541/IPARSv3.1/trchem/trwell.df
+END
+trvisual.df
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/352/IPARSv3.1/trchem/trvisual.df
+END
+trbdary.dh
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/trbdary.dh
+END
+trisdat.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/569/IPARSv3.1/trchem/trisdat.df
+END
+trvisual.dh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/trvisual.dh
+END
+trflow.df
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/trflow.df
+END
+trivdat.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/352/IPARSv3.1/trchem/trivdat.df
+END
+trdiff.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/352/IPARSv3.1/trchem/trdiff.df
+END
+trfault.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/trfault.df
+END
+trfim.df
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/repos/csm/!svn/ver/569/IPARSv3.1/trchem/trfim.df
+END
+trstep.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/579/IPARSv3.1/trchem/trstep.df
+END
+trutil.df
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/trutil.df
+END
+trarray.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/568/IPARSv3.1/trchem/trarray.df
+END
+trgdv.df
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/repos/csm/!svn/ver/91/IPARSv3.1/trchem/trgdv.df
+END

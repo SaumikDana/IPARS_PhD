@@ -1,0 +1,362 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.6	//
+1	h2trchem.df	/^   1    CONTINUE $/;"	l	subroutine:H2TRVELCOMP	file:
+1	h2trchem.df	/^ 1    CONTINUE$/;"	l	subroutine:H2BDTRVEL	file:
+1	hbdary.df	/^    1 CONTINUE$/;"	l	subroutine:HBDPROPW	file:
+1	hbdary.df	/^    1 CONTINUE$/;"	l	subroutine:HBDTRANW	file:
+1	hdata.df	/^    1 FORMAT(' CONVERGENCE TOLERANCE (CVTOL)',T49,G11.4)$/;"	l	subroutine:HTDATA	file:
+1	hdata.df	/^    1 FORMAT(' OIL STANDARD DENSITY (OILDEN)',T50,F10.3,1X,A20\/$/;"	l	subroutine:HISDAT	file:
+1	hdual.df	/^    1 CONTINUE$/;"	l	subroutine:H2TRVELD	file:
+1	hdual.df	/^    1 RESID(IA,JA,KA,2)=RESID(IA,JA,KA,2)-SQW$/;"	l	subroutine:HJRCAL	file:
+1	hrest.df	/^    1       FORMAT(5G23.16)$/;"	l	subroutine:HRESTI	file:
+1	hrest.df	/^    1       FORMAT(6I9)$/;"	l	subroutine:HRESTO	file:
+1	hsprb3.df	/^    1 CONTINUE$/;"	l	subroutine:HSPRB3X	file:
+1	hsprb3.df	/^    1 CONTINUE$/;"	l	subroutine:HSPRB3Y	file:
+1	hsprb3.df	/^    1 CONTINUE$/;"	l	subroutine:HSPRB3Z	file:
+1	hstdout.df	/^    1 CONTINUE$/;"	l	subroutine:HMAKSAT	file:
+1	hstep.df	/^    1 CONTINUE$/;"	l	subroutine:HMAXRESID	file:
+1	hstep.df	/^    1 CONTINUE$/;"	l	subroutine:HPROP	file:
+1	hstep.df	/^    1 CONTINUE$/;"	l	subroutine:HSTEP3	file:
+1	hstep.df	/^    1 FORMAT(\/' DEBUG OUTPUT AT TIME =',F10.4,', DELTIM =',F10.5,$/;"	l	subroutine:HBUGOUT	file:
+1	hstep.df	/^    1 WELVEC(IV,N)=0.D0$/;"	l	subroutine:HSTEP1	file:
+1	hvisual.df	/^    1 CONTINUE$/;"	l	subroutine:BL_PSCOMP	file:
+1	hvisual.df	/^    1 CONTINUE$/;"	l	subroutine:PSCOMP	file:
+1	hvisual.df	/^ 1          CONTINUE$/;"	l	subroutine:COMP_OWHEADW	file:
+1	hvisual.df	/^ 1       CONTINUE     $/;"	l	subroutine:HVELCOMP	file:
+1	hvisual.df	/^ 1    CONTINUE$/;"	l	subroutine:HVIS_OUTPUT	file:
+1	hwell.df	/^    1       LINSYSW(IW)=0$/;"	l	subroutine:HWELL	file:
+1	hwell.df	/^    1 AA=P$/;"	l	subroutine:WBD2P	file:
+1	hwell.df	/^    1 CONTINUE$/;"	l	subroutine:HWELSUM	file:
+1	hwell.df	/^    1 CONTINUE$/;"	l	subroutine:WBD1P	file:
+10	hdata.df	/^   10 FORMAT(\/' ************ IMPLICIT HYDROLOGY MODEL ************'\/)$/;"	l	subroutine:HISDAT	file:
+10	hivdat.df	/^   10    FORMAT(I5,4G14.5)$/;"	l	subroutine:HINIT2	file:
+10	hstep.df	/^   10 CONTINUE$/;"	l	subroutine:HBUGOUT	file:
+10	hwell.df	/^   10 CONTINUE$/;"	l	subroutine:WBD2P	file:
+101	hwell.df	/^  101 CONTINUE$/;"	l	subroutine:HWELL	file:
+102	hwell.df	/^  102 CONTINUE$/;"	l	subroutine:HWELL	file:
+103	hwell.df	/^  103       WELIPC(5,IW)=BHP$/;"	l	subroutine:HWELL	file:
+104	hwell.df	/^  104       LINSYSW(IW)=1$/;"	l	subroutine:HWELL	file:
+106	hwell.df	/^  106       CONTINUE$/;"	l	subroutine:HWELL	file:
+107	hwell.df	/^  107       WELDEN(IW)=WBDEN$/;"	l	subroutine:HWELL	file:
+109	hwell.df	/^  109       CONTINUE$/;"	l	subroutine:HWELL	file:
+11	hdata.df	/^   11    FORMAT (\/' ERROR HIADAT: INVALID XY PERMEABILITY')$/;"	l	subroutine:HIADAT	file:
+11	hdual.df	/^   11       BUFIF8(II,32)=0.D0$/;"	l	subroutine:HLODBUF	file:
+11	hdual.df	/^   11 COF(IA,JA,KA,3,1,1)=-SDQDPAO$/;"	l	subroutine:HJRCAL	file:
+11	hdual.df	/^   11 VEL(IA+1,JA,KA,1,1)=SQO$/;"	l	subroutine:H2TRVELD	file:
+11	hivdat.df	/^   11    POC(I)=POA$/;"	l	subroutine:HINIT2	file:
+11	hsprb3.df	/^ 11    CONTINUE$/;"	l	subroutine:HSPRB3X	file:
+11	hsprb3.df	/^ 11    CONTINUE$/;"	l	subroutine:HSPRB3Y	file:
+11	hsprb3.df	/^ 11    CONTINUE$/;"	l	subroutine:HSPRB3Z	file:
+11	hstep.df	/^   11 FORMAT(\/' I LOCATION=',I5,', J LOCATION =',I5,', K LOCATION =',$/;"	l	subroutine:HBUGOUT	file:
+11	hwell.df	/^   11 IF (K.NE.1) P=AA-D*W5T\/W4T$/;"	l	subroutine:WBD2P	file:
+110	hwell.df	/^  110       IF (BHP.LT.PLIMIT(IW).AND.PLIMIT(IW).GT.0.) THEN$/;"	l	subroutine:HWELL	file:
+12	hdata.df	/^   12    FORMAT (\/' ERROR HIADAT: INVALID YZ PERMEABILITY')$/;"	l	subroutine:HIADAT	file:
+12	hdual.df	/^   12 COF(IA,JA,KA,5,1,1)=-SDQDPAO$/;"	l	subroutine:HJRCAL	file:
+12	hdual.df	/^   12 VEL(IA,JA+1,KA,1,2)=SQO$/;"	l	subroutine:H2TRVELD	file:
+12	hivdat.df	/^   12    FORMAT(\/' ERROR - INITIAL Sw ITERATION FAILED'\/' PROC =',I5,$/;"	l	subroutine:HINIT2	file:
+12	hsprb3.df	/^ 12    CONTINUE$/;"	l	subroutine:HSPRB3X	file:
+12	hsprb3.df	/^ 12    CONTINUE$/;"	l	subroutine:HSPRB3Y	file:
+12	hsprb3.df	/^ 12    CONTINUE$/;"	l	subroutine:HSPRB3Z	file:
+12	hstep.df	/^   12    FORMAT(' MAX RESID =',G13.6,T34,' AT I,J,K =',3I4,', BLK',$/;"	l	subroutine:HMAXRESID	file:
+12	hstep.df	/^   12 FORMAT (' TCOFX(I,J,K)',T22,G17.9,', TCOFX(I+1,J,K)',G17.9)$/;"	l	subroutine:HBUGOUT	file:
+13	hdata.df	/^   13    FORMAT (\/' ERROR HIADAT: INVALID XZ PERMEABILITY')$/;"	l	subroutine:HIADAT	file:
+13	hdual.df	/^   13 COF(IA,JA,KA,7,1,1)=-SDQDPAO$/;"	l	subroutine:HJRCAL	file:
+13	hdual.df	/^   13 VEL(IA,JA,KA+1,1,3)=SQO$/;"	l	subroutine:H2TRVELD	file:
+13	hivdat.df	/^   13 NERR=NERR+1$/;"	l	subroutine:HIVDAT	file:
+13	hvisual.df	/^ 13    CONTINUE$/;"	l	subroutine:VIS_DEBUG	file:
+13	hwell.df	/^   13    FORMAT(' ERROR # 2003 - WELL DENSITY ITERATION FAILED, D =',$/;"	l	subroutine:WBD2P	file:
+132	hwell.df	/^  132       QRESID(IW)=DELTIM*(CFRW*QO+QW+PQ)$/;"	l	subroutine:HWELL	file:
+133	hwell.df	/^  133       QRESID(IW)=DELTIM*(CFRW*QO+PQ)$/;"	l	subroutine:HWELL	file:
+135	hwell.df	/^  135       QRESID(IW)=DELTIM*(QW+PQ)$/;"	l	subroutine:HWELL	file:
+14	hdata.df	/^   14   FORMAT (\/' ERROR: INVALID MPFA QUAD TYPES')$/;"	l	subroutine:HIADAT	file:
+14	hdual.df	/^   14 COF(IA,JA,KA,2,1,1)=-SDQDPAO$/;"	l	subroutine:HJRCAL	file:
+14	hdual.df	/^   14 VEL(IA,JA,KA,1,1)=-SQO$/;"	l	subroutine:H2TRVELD	file:
+14	hivdat.df	/^   14 CONTINUE$/;"	l	subroutine:HINIT2	file:
+14	hstep.df	/^   14       CONTINUE$/;"	l	subroutine:HSTEP3	file:
+14	hstep.df	/^   14    FORMAT(' NEWT',I3,' MOD',I3,' PROC',I3,' Rm',G10.3,$/;"	l	subroutine:HSTEP2	file:
+14	hstep.df	/^   14 FORMAT (' POIL(I,J,K)',T22,G17.9,', PWAT(I,J,K)   ',G17.9)$/;"	l	subroutine:HBUGOUT	file:
+15	hdata.df	/^   15    FORMAT (\/' ERROR HIADAT: INVALID ROCK COMPRESSIBILITY')$/;"	l	subroutine:HIADAT	file:
+15	hdual.df	/^   15 COF(IA,JA,KA,4,1,1)=-SDQDPAO$/;"	l	subroutine:HJRCAL	file:
+15	hdual.df	/^   15 VEL(IA,JA,KA,1,2)=-SQO$/;"	l	subroutine:H2TRVELD	file:
+15	hivdat.df	/^   15 CONTINUE$/;"	l	subroutine:HINIT2	file:
+15	hstep.df	/^   15       FORMAT(' WELL',I4,' QOI=',G12.5,' QOP=',G12.5,' QWI=',$/;"	l	subroutine:HSTEP3	file:
+16	hdual.df	/^   16 COF(IA,JA,KA,6,1,1)=-SDQDPAO$/;"	l	subroutine:HJRCAL	file:
+16	hdual.df	/^   16 VEL(IA,JA,KA,1,3)=-SQO$/;"	l	subroutine:H2TRVELD	file:
+16	hivdat.df	/^   16 CONTINUE$/;"	l	subroutine:HINIT2	file:
+16	hstep.df	/^   16 FORMAT(' PROC',I4,', IL1',I4,', IL2',I4,', JL1(KL2)',I4,$/;"	l	subroutine:HBUGOUT	file:
+17	hdual.df	/^   17 COF(IA,JA,KA,1,1,1)=COF(IA,JA,KA,1,1,1)+SDQDPAO$/;"	l	subroutine:HJRCAL	file:
+17	hdual.df	/^   17 CONTINUE$/;"	l	subroutine:H2TRVELD	file:
+17	hivdat.df	/^   17    WRITE (AL(N),10) IW(M,L),POBW(M,L),PWBW(M,L),SWBW(M,L),$/;"	l	subroutine:HINIT2	file:
+171	hwell.df	/^  171       FORMAT(' WELL',I4,', BHP',F10.3,', WBDEN',F10.4,', QWI',$/;"	l	subroutine:HWELL	file:
+173	hwell.df	/^  173       FORMAT(' WELL',I4,', BHP',F10.3,', WBDEN',F10.4,', QWP',$/;"	l	subroutine:HWELL	file:
+18	hdual.df	/^   18 FORMAT(' FACE: BLOCK,I,J,K =',4I4,' RO =',G14.7,' RW =',G14.7)$/;"	l	subroutine:HJRCAL	file:
+18	hdual.df	/^   18 FORMAT(' FACE: BLOCK,I,J,K =',4I4,' VO =',G14.7,' VW =',G14.7)$/;"	l	subroutine:H2TRVELD	file:
+18	hivdat.df	/^   18          WRITE (NFOUT,19) (ALS1(JTO),JTO=1,J1O)$/;"	l	subroutine:HINIT2	file:
+18	hstep.df	/^   18 FORMAT (' KEYOUT(I,J,K)',T22,I12)$/;"	l	subroutine:HBUGOUT	file:
+19	hdual.df	/^   19 FORMAT(' FACE FLUX SUMS: BLOCK =',I3,' QO =',G16.9,' QW =',G16.9)$/;"	l	subroutine:H2TRVELD	file:
+19	hdual.df	/^   19 FORMAT(' FACE FLUX SUMS: BLOCK =',I3,' QO =',G16.9,' QW =',G16.9)$/;"	l	subroutine:HJRCAL	file:
+19	hivdat.df	/^   19          FORMAT(80A1)$/;"	l	subroutine:HINIT2	file:
+19	hstep.df	/^   19 FORMAT (' KEYOUT(I-1,J,K)',T22,I12)$/;"	l	subroutine:HBUGOUT	file:
+2	h2trchem.df	/^ 2       CONTINUE$/;"	l	subroutine:H2BDTRVEL	file:
+2	hbdary.df	/^    2 CONTINUE$/;"	l	subroutine:HBDPROPW	file:
+2	hbdary.df	/^    2 CONTINUE$/;"	l	subroutine:HBDTRANW	file:
+2	hdata.df	/^    2 FORMAT(' WATER STANDARD DENSITY (WATDEN)',T50,F10.3,1X,A20\/$/;"	l	subroutine:HISDAT	file:
+2	hdual.df	/^    2 CONTINUE$/;"	l	subroutine:H2TRVELD	file:
+2	hdual.df	/^    2 CONTINUE$/;"	l	subroutine:HJRCAL	file:
+2	hivdat.df	/^    2 CONTINUE$/;"	l	subroutine:HINIT2	file:
+2	hivdat.df	/^    2 CONTINUE$/;"	l	subroutine:HIVDAT	file:
+2	hrest.df	/^    2       FORMAT(5G23.16)$/;"	l	subroutine:HRESTO	file:
+2	hstep.df	/^    2 IF (BUGKEY(6).AND.NEWT.LT.3) THEN$/;"	l	subroutine:HSTEP3	file:
+2	hstep.df	/^    2 WRITE (NFBUG,4) COF(IO,JO,KO,L,2,1),COF(IO,JO,KO,L,2,2)$/;"	l	subroutine:HBUGOUT	file:
+2	hwell.df	/^    2       LINSYSW(IW)=1$/;"	l	subroutine:HWELL	file:
+2	hwell.df	/^    2 CONTINUE$/;"	l	subroutine:HWELSUM	file:
+2	hwell.df	/^    2 IF (DOBHP) P=(Q-W5*D+W6)\/W4$/;"	l	subroutine:WBD1P	file:
+2	hwell.df	/^    2 W4T=W4W+CFRW*W4O$/;"	l	subroutine:WBD2P	file:
+20	hivdat.df	/^   20    FORMAT(' ')$/;"	l	subroutine:HINIT2	file:
+20	hstep.df	/^   20       WELISO=WELISO+WELIPC(1,N)-WELIPC(2,N)$/;"	l	subroutine:HSTEP3	file:
+20	hstep.df	/^   20 FORMAT (' KEYOUT(I+1,J,K)',T22,I12)$/;"	l	subroutine:HBUGOUT	file:
+202	hwell.df	/^  202    IF (QWOC(IW).LE.0.D0) THEN$/;"	l	subroutine:HWELL	file:
+21	hbdary.df	/^ 21         CONTINUE$/;"	l	subroutine:HBDTRANW	file:
+21	hivdat.df	/^   21    CONTINUE$/;"	l	subroutine:HINIT2	file:
+21	hstep.df	/^   21       CALL WELLOUT (N,1,WELIPC(3,N)*CVMWW)$/;"	l	subroutine:HSTEP3	file:
+21	hstep.df	/^   21 FORMAT (' KEYOUT(I,J-1,K)',T22,I12)$/;"	l	subroutine:HBUGOUT	file:
+22	hbdary.df	/^ 22         continue$/;"	l	subroutine:HBDTRANW	file:
+22	hivdat.df	/^   22          CONTINUE$/;"	l	subroutine:HINIT2	file:
+22	hstep.df	/^   22       CALL WELLOUT (N,1,WELIPC(3,N)*CVMWW)$/;"	l	subroutine:HSTEP3	file:
+22	hstep.df	/^   22 FORMAT (' KEYOUT(I,J+1,K)',T22,I12)$/;"	l	subroutine:HBUGOUT	file:
+23	hbdary.df	/^ 23         continue$/;"	l	subroutine:HBDTRANW	file:
+23	hstep.df	/^   23       CALL WELLOUT (N,2,WELIPC(2,N)*CVMWO)$/;"	l	subroutine:HSTEP3	file:
+23	hstep.df	/^   23 FORMAT (' KEYOUT(I,J,K-1)',T22,I12)$/;"	l	subroutine:HBUGOUT	file:
+232	hwell.df	/^  232    DWP=PWB-PWAT(I,J,K)-DNW*DTOE$/;"	l	subroutine:HWELL	file:
+24	hbdary.df	/^ 24         continue$/;"	l	subroutine:HBDTRANW	file:
+24	hstep.df	/^   24       CALL WELLOUT (N,2,WELIPC(2,N)*CVMWO)$/;"	l	subroutine:HSTEP3	file:
+24	hstep.df	/^   24 FORMAT (' KEYOUT(I,J,K+1)',T22,I12)$/;"	l	subroutine:HBUGOUT	file:
+25	hbdary.df	/^ 25         CONTINUE$/;"	l	subroutine:HBDTRANW	file:
+26	hbdary.df	/^ 26         continue$/;"	l	subroutine:HBDTRANW	file:
+3	h2trchem.df	/^   3    CONTINUE$/;"	l	subroutine:H2TRVELCOMP	file:
+3	hdata.df	/^    3 FORMAT(' INITIAL WATER SATURATION (SWINIT)',T50,F10.5\/$/;"	l	subroutine:HISDAT	file:
+3	hivdat.df	/^    3 DP=DP-F\/DF$/;"	l	subroutine:HINIT2	file:
+3	hivdat.df	/^    3 HONCE(I)=.TRUE.$/;"	l	subroutine:HIVDAT	file:
+3	hrest.df	/^    3       CONTINUE$/;"	l	subroutine:HRESTI	file:
+3	hrest.df	/^    3       CONTINUE$/;"	l	subroutine:HRESTO	file:
+3	hstep.df	/^    3 FORMAT (' COF(I,J,K,',I2,',,)',T22,2G16.7)$/;"	l	subroutine:HBUGOUT	file:
+3	hstep.df	/^    3 WELIPC(IV,N)=0.D0$/;"	l	subroutine:HSTEP1	file:
+3	hwell.df	/^    3 FORMAT(' ERROR # 2004 - DENSITY ITERATION FAILED, D =',G15.8,$/;"	l	subroutine:WBD1P	file:
+3	hwell.df	/^    3 W4T=CFRW*W4O$/;"	l	subroutine:WBD2P	file:
+30	hstep.df	/^   30 CONTINUE$/;"	l	subroutine:HSTEP3	file:
+31	hstep.df	/^   31 FORMAT(' TOTAL OIL =',G16.8,', TOTAL WATER =',G16.8)$/;"	l	subroutine:HBUGOUT	file:
+31	hwell.df	/^   31       IF (NEWT.EQ.1) WELBHP(IW)=PQ$/;"	l	subroutine:HWELL	file:
+32	hwell.df	/^   32       KR=2$/;"	l	subroutine:HWELL	file:
+33	hwell.df	/^   33       KR=3$/;"	l	subroutine:HWELL	file:
+35	hwell.df	/^   35       KR=4$/;"	l	subroutine:HWELL	file:
+4	h2trchem.df	/^ 4              CONTINUE$/;"	l	subroutine:H2TRVELCOMP	file:
+4	hdata.df	/^    4 FORMAT(' HYDROLOGY MODEL CONVERGENCE TOLERANCE (CVTOL)',T49,G11.4)$/;"	l	subroutine:HISDAT	file:
+4	hrest.df	/^    4       CONTINUE$/;"	l	subroutine:HRESTI	file:
+4	hrest.df	/^    4       CONTINUE$/;"	l	subroutine:HRESTO	file:
+4	hstep.df	/^    4 FORMAT (T22,2G16.7)$/;"	l	subroutine:HBUGOUT	file:
+4	hstep.df	/^    4 ICOPY(1)=2$/;"	l	subroutine:HSTEP3	file:
+4	hvisual.df	/^ 4       CONTINUE$/;"	l	subroutine:HVELCOMP	file:
+4	hwell.df	/^    4 W4T=W4W$/;"	l	subroutine:WBD2P	file:
+5	hdata.df	/^    5 KTRACE(I)=1$/;"	l	subroutine:HISDAT	file:
+5	hivdat.df	/^    5 DP=DP-F\/DF$/;"	l	subroutine:HINIT2	file:
+5	hstep.df	/^    5 FORMAT (' RESID(I,J,K)',T22,G17.9\/T22,G17.9)$/;"	l	subroutine:HBUGOUT	file:
+5	hwell.df	/^    5 DT=DFW+DFO$/;"	l	subroutine:WBD2P	file:
+55	hdual.df	/^   55    BUFIF8(II,10)=DPCSW(IA,JA,KA)$/;"	l	subroutine:HLODBUF	file:
+6	hdata.df	/^    6    FORMAT (\/' ERROR # 2001: EITHER POINIT OR PWINIT MUST BE',$/;"	l	subroutine:HISDAT	file:
+6	hivdat.df	/^    6 SWB=SWT$/;"	l	subroutine:HINIT2	file:
+6	hstep.df	/^    6       CONTINUE$/;"	l	subroutine:HSTEP2	file:
+61	hdual.df	/^   61       BUFIF8(II,3)=DEPTH(IA,JA,KA)$/;"	l	subroutine:HLODBUF	file:
+7	hdata.df	/^    7    FORMAT (\/' ERROR # 2002: BOTH POINIT AND PWINIT MUST NOT BE',$/;"	l	subroutine:HISDAT	file:
+7	hivdat.df	/^    7 POIL(I,J,K)=POB$/;"	l	subroutine:HINIT2	file:
+7	hstep.df	/^    7    FORMAT(' WELL',I3,' QOI',G11.4,' QOP',G11.4,' QWI',G11.4,$/;"	l	subroutine:HSTEP2	file:
+71	hivdat.df	/^   71 CONTINUE$/;"	l	subroutine:HINIT2	file:
+733	hwell.df	/^  733       FORMAT(' ERROR # 2005 - WELL FLOW ITERATION FAILED'\/$/;"	l	subroutine:HWELL	file:
+8	hdata.df	/^    8 FORMAT(' INITIAL OIL PRESSURE (POINIT)',T50,F10.3,1X,A20)$/;"	l	subroutine:HISDAT	file:
+8	hivdat.df	/^    8    FORMAT(' J =',I5,4X,'K =',I5,4X,'FAULT BLOCK =',I4,4X,$/;"	l	subroutine:HINIT2	file:
+8	hstep.df	/^    8 FORMAT (' TCOFY(I,J,K)',T22,G17.9,', TCOFY(I,J+1,K)',G17.9)$/;"	l	subroutine:HBUGOUT	file:
+832	hwell.df	/^  832    QCOFW(1,L,IW)=-BETWP-CFRW*BETOP$/;"	l	subroutine:HWELL	file:
+833	hwell.df	/^  833    QCOFW(1,L,IW)=-CFRW*BETOP$/;"	l	subroutine:HWELL	file:
+835	hwell.df	/^  835    QCOFW(1,L,IW)=-BETWP$/;"	l	subroutine:HWELL	file:
+9	hdata.df	/^    9 FORMAT(' INITIAL WATER PRESSURE (PWINIT)',T50,F10.3,1X,A20)$/;"	l	subroutine:HISDAT	file:
+9	hivdat.df	/^    9    FORMAT(T5,'I',T9,'Po, psi',T23,'Pw, psi',T40,'Sw',T51,$/;"	l	subroutine:HINIT2	file:
+9	hstep.df	/^    9    CONTINUE$/;"	l	subroutine:HSTEP3	file:
+9	hstep.df	/^    9 CONTINUE$/;"	l	subroutine:HSTEP1	file:
+9	hstep.df	/^    9 FORMAT (' TCOFZ(I,J,K)',T22,G17.9,', TCOFZ(I,J,K+1)',G17.9)$/;"	l	subroutine:HBUGOUT	file:
+9	hwell.df	/^    9 IF((NHISUSE == 0).AND.(NSTEP < 1)) TE=TIM$/;"	l	subroutine:HWELL	file:
+90	hdual.df	/^   90 CONTINUE$/;"	l	subroutine:HLODBUF	file:
+99	harray.df	/^   99 RETURN$/;"	l	subroutine:HARRAY	file:
+BL_PSCOMP	hvisual.df	/^      SUBROUTINE BL_PSCOMP(/;"	s
+CALLHSPRB3	hsprb3.df	/^      SUBROUTINE CALLHSPRB3(/;"	s
+COMPPOILDEN	hbdary.df	/^      SUBROUTINE COMPPOILDEN(/;"	s
+COMP_DENS	hutil.df	/^      SUBROUTINE COMP_DENS(/;"	s
+COMP_OWHEAD	hvisual.df	/^      SUBROUTINE COMP_OWHEAD(/;"	s
+COMP_OWHEADW	hvisual.df	/^      SUBROUTINE COMP_OWHEADW(/;"	s
+COMP_sat	hutil.df	/^      SUBROUTINE COMP_sat(/;"	s
+CURRENT	hbaldat.dh	/^      REAL*8 CURRENT(/;"	v
+CVTOL	hbaldat.dh	/^     & OILITNP,WATITN,WATITNP,CVTOL$/;"	v
+CVTOL1	hbaldat.dh	/^     & RESIDM,RESIDT,CVTOL1,/;"	v
+CVTOL2	hbaldat.dh	/^     & RESIDM,RESIDT,CVTOL1,CVTOL2,/;"	v
+DENWR	hfluids.h	/^     &       DENWR,    OILVIS,   WATVIS,   RDENOR,   DRATIO,   POINIT,$/;"	v
+DINIT	hfluids.h	/^     &       PWINIT,   SWINIT,   DINIT,    KRKI$/;"	v
+DRATIO	hfluids.h	/^     &       DENWR,    OILVIS,   WATVIS,   RDENOR,   DRATIO,   POINIT,$/;"	v
+ELERATE	hbaldat.dh	/^     & QOOC($MXWELL),ELERATE(/;"	v
+FLAG	hbaldat.dh	/^     & JRM2,KRM2,FLAG$/;"	v
+FLUXOM	hbaldat.dh	/^     & QOOC($MXWELL),ELERATE(2,$MXWELE,$MXWELL),FLUXOM(/;"	v
+H2BDTRVEL	h2trchem.df	/^      SUBROUTINE H2BDTRVEL(/;"	s
+H2TRVELCOMP	h2trchem.df	/^      SUBROUTINE H2TRVELCOMP(/;"	s
+H2TRVELD	hdual.df	/^      SUBROUTINE H2TRVELD(/;"	s
+H2TR_PROP	h2trchem.df	/^      SUBROUTINE H2TR_PROP /;"	s
+HARRAY	harray.df	/^      SUBROUTINE HARRAY /;"	s
+HBALDAT	hbaldat.dh	18;"	c
+HBDBAL	hbdary.df	/^      SUBROUTINE HBDBAL(/;"	s
+HBDINTAB	hbdary.df	/^      SUBROUTINE HBDINTAB(/;"	s
+HBDPROP	hbdary.df	/^      SUBROUTINE HBDPROP(/;"	s
+HBDPROPW	hbdary.df	/^      SUBROUTINE HBDPROPW /;"	s
+HBDTRAN	hbdary.df	/^      SUBROUTINE HBDTRAN(/;"	s
+HBDTRANW	hbdary.df	/^      SUBROUTINE HBDTRANW /;"	s
+HBUGOUT	hstep.df	/^      SUBROUTINE HBUGOUT /;"	s
+HCOND	htran.df	/^      SUBROUTINE HCOND(/;"	s
+HDENSCOMP	hutil.df	/^       SUBROUTINE HDENSCOMP(/;"	s
+HDUALR	hdual.df	/^      SUBROUTINE HDUALR /;"	s
+HDUALS	hdual.df	/^      SUBROUTINE HDUALS /;"	s
+HDUALV	hdual.df	/^      SUBROUTINE HDUALV /;"	s
+HFLOW	htran.df	/^      SUBROUTINE HFLOW(/;"	s
+HIADAT	hdata.df	/^      SUBROUTINE HIADAT /;"	s
+HINIT	hivdat.df	/^      SUBROUTINE HINIT /;"	s
+HINIT2	hivdat.df	/^      SUBROUTINE HINIT2 /;"	s
+HISDAT	hdata.df	/^      SUBROUTINE HISDAT /;"	s
+HIVDAT	hivdat.df	/^      SUBROUTINE HIVDAT /;"	s
+HJRCAL	hdual.df	/^      SUBROUTINE HJRCAL /;"	s
+HLODBUF	hdual.df	/^      SUBROUTINE HLODBUF /;"	s
+HMAKSAT	hstdout.df	/^      SUBROUTINE HMAKSAT /;"	s
+HMAXRESID	hstep.df	/^      SUBROUTINE HMAXRESID /;"	s
+HONCE	hbaldat.dh	/^      LOGICAL HONCE(/;"	v
+HPROP	hstep.df	/^      SUBROUTINE HPROP /;"	s
+HQUIT	hrest.df	/^      SUBROUTINE HQUIT /;"	s
+HRESTI	hrest.df	/^      SUBROUTINE HRESTI(/;"	s
+HRESTO	hrest.df	/^      SUBROUTINE HRESTO /;"	s
+HSATCOMP	hvisual.df	/^       SUBROUTINE HSATCOMP(/;"	s
+HSCAL	htran.df	/^      SUBROUTINE HSCAL(/;"	s
+HSPRB3X	hsprb3.df	/^      SUBROUTINE HSPRB3X(/;"	s
+HSPRB3Y	hsprb3.df	/^      SUBROUTINE HSPRB3Y(/;"	s
+HSPRB3Z	hsprb3.df	/^      SUBROUTINE HSPRB3Z(/;"	s
+HSTDOUTA	hstdout.df	/^      SUBROUTINE HSTDOUTA /;"	s
+HSTDOUTS	hstdout.df	/^      SUBROUTINE HSTDOUTS /;"	s
+HSTEP1	hstep.df	/^      SUBROUTINE HSTEP1 /;"	s
+HSTEP2	hstep.df	/^      SUBROUTINE HSTEP2 /;"	s
+HSTEP3	hstep.df	/^      SUBROUTINE HSTEP3 /;"	s
+HTDATA	hdata.df	/^      SUBROUTINE HTDATA /;"	s
+HTRAN	htran.df	/^      SUBROUTINE HTRAN(/;"	s
+HUPCONC	htran.df	/^      SUBROUTINE HUPCONC(/;"	s
+HUPPRES	hstep.df	/^      SUBROUTINE HUPPRES /;"	s
+HVELCOMP	hvisual.df	/^       SUBROUTINE HVELCOMP(/;"	s
+HVIS	hvisual.df	148;"	c	subroutine:HVIS_OUTPUT
+HVIS	hvisual.df	731;"	c	subroutine:COMP_OWHEADW
+HVIS_INIT	hvisual.df	/^      SUBROUTINE HVIS_INIT /;"	s
+HVIS_OUTPUT	hvisual.df	/^      SUBROUTINE HVIS_OUTPUT /;"	s
+HVIS_TRANSL	hvisual.df	/^      SUBROUTINE HVIS_TRANSL(/;"	s
+HWDATA	hwell.df	/^      SUBROUTINE HWDATA /;"	s
+HWELL	hwell.df	/^      SUBROUTINE HWELL(/;"	s
+HWELSUM	hwell.df	/^      SUBROUTINE HWELSUM(/;"	s
+IEQUL	hivdat.df	197;"	c	subroutine:HINIT2
+IRM1	hbaldat.dh	/^      INTEGER NERRC,ITRACE(3),JTRACE(3),KTRACE(3),IRM1,/;"	v
+IRM2	hbaldat.dh	/^      INTEGER NERRC,ITRACE(3),JTRACE(3),KTRACE(3),IRM1,JRM1,KRM1,IRM2,/;"	v
+ITRACE	hbaldat.dh	/^      INTEGER NERRC,ITRACE(/;"	v
+JRM1	hbaldat.dh	/^      INTEGER NERRC,ITRACE(3),JTRACE(3),KTRACE(3),IRM1,JRM1,/;"	v
+JRM2	hbaldat.dh	/^      INTEGER NERRC,ITRACE(3),JTRACE(3),KTRACE(3),IRM1,JRM1,KRM1,IRM2,$/;"	v
+JTRACE	hbaldat.dh	/^      INTEGER NERRC,ITRACE(3),JTRACE(/;"	v
+KRM1	hbaldat.dh	/^      INTEGER NERRC,ITRACE(3),JTRACE(3),KTRACE(3),IRM1,JRM1,KRM1,/;"	v
+KRM2	hbaldat.dh	/^     & JRM2,KRM2,/;"	v
+KTRACE	hbaldat.dh	/^      INTEGER NERRC,ITRACE(3),JTRACE(3),KTRACE(/;"	v
+NERRC	hbaldat.dh	/^      INTEGER NERRC,/;"	v
+N_AINVF	harydat.h	/^     &     N_AINVF,N_UPMOBPROD,N_UPMOB,N_CWAT,N_DELC,N_HDUNK$/;"	v
+N_COF	harydat.h	/^     &     N_RELPRM,N_DPCSW,N_COF,N_HCOF,N_RESID,N_HRESID,N_POILN,$/;"	v
+N_COIL	harydat.h	/^      COMMON \/HGEA\/ N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_COIL	harydat.h	/^      INTEGER N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_COIL	harydat.h	/^C  N_COIL = GRID-ELEMENT ARRAY NUMBER FOR OIL CONCENTRATION, LB\/CU-FT (REAL*8)$/;"	v
+N_COILN	harydat.h	/^      COMMON \/HGEA\/ N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_COILN	harydat.h	/^      INTEGER N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_CR	harydat.h	/^     &     N_HVEL,N_VMO,N_VMW,N_DDENS,N_CR,N_PV,N_PVN,N_REFPRES,$/;"	v
+N_CR	harydat.h	/^C  N_CR    = GRID-ELEMENT ARRAY NUMBER FOR ROCK COMPRESSIBILITY$/;"	v
+N_CWAT	harydat.h	/^     &     N_AINVF,N_UPMOBPROD,N_UPMOB,N_CWAT,N_DELC,N_HDUNK$/;"	v
+N_CWAT	harydat.h	/^C  N_CWAT = GRID-ELEMENT ARRAY NUMBER FOR WATER CONCENTRATION, LB\/CU-FT (REAL*8)$/;"	v
+N_CWATN	harydat.h	/^      COMMON \/HGEA\/ N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_CWATN	harydat.h	/^      INTEGER N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_CWATN	harydat.h	/^C  N_CWATN = GRID-ELEMENT ARRAY NUMBER FOR WATER CONCENTRATION AT BEGINNING$/;"	v
+N_DDENS	harydat.h	/^     &     N_HVEL,N_VMO,N_VMW,N_DDENS,N_CR,N_PV,N_PVN,N_REFPRES,$/;"	v
+N_DELC	harydat.h	/^     &     N_AINVF,N_UPMOBPROD,N_UPMOB,N_CWAT,N_DELC,N_HDUNK$/;"	v
+N_DPCSW	harydat.h	/^     &     N_RELPRM,N_DPCSW,N_COF,N_HCOF,N_RESID,N_HRESID,N_POILN,$/;"	v
+N_DUNK	harydat.h	/^      COMMON \/HGEA\/ N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_DUNK	harydat.h	/^      INTEGER N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_DUNK	harydat.h	/^C  N_DUNK  = GRID-ELEMENT ARRAY NUMBER FOR LINEAR SOLUTION$/;"	v
+N_HCOF	harydat.h	/^     &     N_RELPRM,N_DPCSW,N_COF,N_HCOF,N_RESID,N_HRESID,N_POILN,$/;"	v
+N_HCOF	harydat.h	/^C  N_HCOF  = GRID-ELEMENT ARRAY NUMBER FOR JACOBIAN COEFFICIENTS (REAL*8)$/;"	v
+N_HRESID	harydat.h	/^     &     N_RELPRM,N_DPCSW,N_COF,N_HCOF,N_RESID,N_HRESID,N_POILN,$/;"	v
+N_HVEL	harydat.h	/^     &     N_HVEL,N_VMO,N_VMW,N_DDENS,N_CR,N_PV,N_PVN,N_REFPRES,$/;"	v
+N_POIL	harydat.h	/^      COMMON \/HGEA\/ N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_POIL	harydat.h	/^C  N_POIL = GRID-ELEMENT ARRAY NUMBER FOR OIL PRESSURE, PSI (REAL*8)$/;"	v
+N_POILN	harydat.h	/^     &     N_RELPRM,N_DPCSW,N_COF,N_HCOF,N_RESID,N_HRESID,N_POILN,$/;"	v
+N_PV	harydat.h	/^     &     N_HVEL,N_VMO,N_VMW,N_DDENS,N_CR,N_PV,N_PVN,N_REFPRES,$/;"	v
+N_PV	harydat.h	/^C  N_PV    = GRID-ELEMENT ARRAY NUMBER FOR PORE VOLUME$/;"	v
+N_PVN	harydat.h	/^     &     N_HVEL,N_VMO,N_VMW,N_DDENS,N_CR,N_PV,N_PVN,N_REFPRES,$/;"	v
+N_PVN	harydat.h	/^C  N_PVN    = GRID-ELEMENT ARRAY NUMBER FOR PORE VOLUME AT BEGINNING OF$/;"	v
+N_PWAT	harydat.h	/^      COMMON \/HGEA\/ N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_PWAT	harydat.h	/^      INTEGER N_POIL,N_PWAT,N_COIL,N_DUNK,N_COILN,N_CWATN,$/;"	v
+N_PWAT	harydat.h	/^C  N_PWAT = GRID-ELEMENT ARRAY NUMBER FOR WATER PRESSURE, PSI (REAL*8)$/;"	v
+N_REFPRES	harydat.h	/^     &     N_HVEL,N_VMO,N_VMW,N_DDENS,N_CR,N_PV,N_PVN,N_REFPRES,$/;"	v
+N_REFPRES	harydat.h	/^C  N_REFPRES= REFERENCE PRESSURE (PSI)$/;"	v
+N_RELPRM	harydat.h	/^     &     N_RELPRM,N_DPCSW,N_COF,N_HCOF,N_RESID,N_HRESID,N_POILN,$/;"	v
+N_RELPRM	harydat.h	/^C  N_RELPRM = GRID-ELEMENT ARRAY NUMBER FOR RELATIVE PERMEABILITY DATA$/;"	v
+N_RESID	harydat.h	/^     &     N_RELPRM,N_DPCSW,N_COF,N_HCOF,N_RESID,N_HRESID,N_POILN,$/;"	v
+N_UPMOB	harydat.h	/^     &     N_AINVF,N_UPMOBPROD,N_UPMOB,N_CWAT,N_DELC,N_HDUNK$/;"	v
+N_UPMOBPROD	harydat.h	/^     &     N_AINVF,N_UPMOBPROD,N_UPMOB,N_CWAT,N_DELC,N_HDUNK$/;"	v
+N_VMO	harydat.h	/^     &     N_HVEL,N_VMO,N_VMW,N_DDENS,N_CR,N_PV,N_PVN,N_REFPRES,$/;"	v
+N_VMW	harydat.h	/^     &     N_HVEL,N_VMO,N_VMW,N_DDENS,N_CR,N_PV,N_PVN,N_REFPRES,$/;"	v
+OILCMP	hfluids.h	/^      COMMON \/HFLUIDS\/  OILCMP,   OILDEN,   WATCMP,   WATDEN,$/;"	v
+OILCMP	hfluids.h	/^C  OILCMP = OIL COMPRESSABILITY, 1\/psi$/;"	v
+OILDEN	hfluids.h	/^      COMMON \/HFLUIDS\/  OILCMP,   OILDEN,   WATCMP,   WATDEN,$/;"	v
+OILDEN	hfluids.h	/^      REAL*4 OILCMP,   OILDEN,   WATCMP,   WATDEN,$/;"	v
+OILDEN	hfluids.h	/^C  OILDEN = OIL DENSITY AT 0 PRESSURE, lb\/cu-ft$/;"	v
+OILITN	hbaldat.dh	/^     & QOOC($MXWELL),ELERATE(2,$MXWELE,$MXWELL),FLUXOM(2),OILITN,/;"	v
+OILITNP	hbaldat.dh	/^     & QOOC($MXWELL),ELERATE(2,$MXWELE,$MXWELL),FLUXOM(2),OILITN,$/;"	v
+OILVIS	hfluids.h	/^     &       DENWR,    OILVIS,   WATVIS,   RDENOR,   DRATIO,   POINIT,$/;"	v
+POINIT	hfluids.h	/^     &       DENWR,    OILVIS,   WATVIS,   RDENOR,   DRATIO,   POINIT,$/;"	v
+PSCOMP	hvisual.df	/^      SUBROUTINE PSCOMP(/;"	s
+PWINIT	hfluids.h	/^     &       PWINIT,   SWINIT,   DINIT$/;"	v
+PWINIT	hfluids.h	/^     &       PWINIT,   SWINIT,   DINIT,    KRKI$/;"	v
+PWINIT	hfluids.h	/^C  PWINIT = INITIAL WATER PRESSURE AT REFERENCE DEPTH, psi$/;"	v
+QOOC	hbaldat.dh	/^     & RESIDM,RESIDT,CVTOL1,CVTOL2,RMA1,RMA2,QWOC($MXWELL),$/;"	v
+QWOC	hbaldat.dh	/^     & RESIDM,RESIDT,CVTOL1,CVTOL2,RMA1,RMA2,QWOC(/;"	v
+RDENOR	hfluids.h	/^     &       DENWR,    OILVIS,   WATVIS,   RDENOR,   DRATIO,   POINIT,$/;"	v
+RDENOR	hfluids.h	/^C  RDENOR = RECRIPROCAL OF OIL DENSITY AT REFERENCE DEPTH, lb\/cu-ft$/;"	v
+RESIDM	hbaldat.dh	/^     & WELWP($MXWELL),WELIPC(5,$MXWELL),WELVEC(12,$MXWELL),$/;"	v
+RESIDT	hbaldat.dh	/^     & RESIDM,RESIDT,/;"	v
+RMA1	hbaldat.dh	/^     & RESIDM,RESIDT,CVTOL1,CVTOL2,RMA1,/;"	v
+RMA2	hbaldat.dh	/^     & RESIDM,RESIDT,CVTOL1,CVTOL2,RMA1,RMA2,/;"	v
+SWINIT	hfluids.h	/^     &       PWINIT,   SWINIT,   DINIT$/;"	v
+SWINIT	hfluids.h	/^     &       PWINIT,   SWINIT,   DINIT,    KRKI$/;"	v
+SWINIT	hfluids.h	/^C  SWINIT = INITIAL WATER SATURATION AT REFERENCE DEPTH$/;"	v
+VIS_DEBUG	hvisual.df	/^       SUBROUTINE VIS_DEBUG(/;"	s
+WATCMP	hfluids.h	/^      COMMON \/HFLUIDS\/  OILCMP,   OILDEN,   WATCMP,   WATDEN,$/;"	v
+WATCMP	hfluids.h	/^      REAL*4 OILCMP,   OILDEN,   WATCMP,   WATDEN,$/;"	v
+WATDEN	hfluids.h	/^      COMMON \/HFLUIDS\/  OILCMP,   OILDEN,   WATCMP,   WATDEN,$/;"	v
+WATDEN	hfluids.h	/^      REAL*4 OILCMP,   OILDEN,   WATCMP,   WATDEN,$/;"	v
+WATDEN	hfluids.h	/^C  WATDEN = WATER DENSITY AT 0 PRESSURE, lb\/cu-ft$/;"	v
+WATITN	hbaldat.dh	/^     & OILITNP,WATITN,/;"	v
+WATITNP	hbaldat.dh	/^     & OILITNP,WATITN,WATITNP,/;"	v
+WATVIS	hfluids.h	/^     &       DENWR,    OILVIS,   WATVIS,   RDENOR,   DRATIO,   POINIT,$/;"	v
+WATVIS	hfluids.h	/^C  WATVIS = WATER VISCOSITY, cp$/;"	v
+WBD1P	hwell.df	/^      SUBROUTINE WBD1P /;"	s
+WBD2P	hwell.df	/^      SUBROUTINE WBD2P /;"	s
+WELIPC	hbaldat.dh	/^     & WELWP($MXWELL),WELIPC(/;"	v
+WELOI	hbaldat.dh	/^      REAL*8 CURRENT(2),WELOI(/;"	v
+WELOP	hbaldat.dh	/^      REAL*8 CURRENT(2),WELOI($MXWELL),WELOP(/;"	v
+WELVEC	hbaldat.dh	/^     & WELWP($MXWELL),WELIPC(5,$MXWELL),WELVEC(/;"	v
+WELWI	hbaldat.dh	/^      REAL*8 CURRENT(2),WELOI($MXWELL),WELOP($MXWELL),WELWI(/;"	v
+WELWP	hbaldat.dh	/^      REAL*8 CURRENT(2),WELOI($MXWELL),WELOP($MXWELL),WELWI($MXWELL),$/;"	v
+ipars_nscl	hvisual.dh	/^      integer ipars_nscl,/;"	v
+ipars_nvec	hvisual.dh	/^      integer ipars_nscl, ipars_nvec$/;"	v

@@ -1,0 +1,227 @@
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/repos/csm/!svn/ver/434/IPARSv3.1/solve/ygmres
+END
+sl1dir.c
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/sl1dir.c
+END
+pdc3d.f
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/pdc3d.f
+END
+r8blas.h
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/r8blas.h
+END
+sol.df.cray
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/sol.df.cray
+END
+sol.h
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/sol.h
+END
+dste.f
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/dste.f
+END
+ygdddual.df
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/repos/csm/!svn/ver/286/IPARSv3.1/solve/ygmres/ygdddual.df
+END
+ticama.df
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/286/IPARSv3.1/solve/ygmres/ticama.df
+END
+dgbtr.f
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/dgbtr.f
+END
+ums.f
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/ums.f
+END
+slblk.dc.+mlilu
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/slblk.dc.+mlilu
+END
+gmg.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/gmg.cpp
+END
+r8lapack.h
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/r8lapack.h
+END
+slblk.dc
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/slblk.dc
+END
+gmgmod.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/gmgmod.hpp
+END
+slgmres.f
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/434/IPARSv3.1/solve/ygmres/slgmres.f
+END
+dc3d.f
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/dc3d.f
+END
+sprhandle.h
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/sprhandle.h
+END
+slupdate.df
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/slupdate.df
+END
+sllsorc.dh
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/sllsorc.dh
+END
+divideinsert.f
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/divideinsert.f
+END
+pdc3d.f.cray
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/pdc3d.f.cray
+END
+amg1r5.f
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/434/IPARSv3.1/solve/ygmres/amg1r5.f
+END
+sol.df
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/sol.df
+END
+sljacdebug.f
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/sljacdebug.f
+END
+dc2d.f.cray
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/dc2d.f.cray
+END
+slblk.h
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/slblk.h
+END
+dc3d.f.cray
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/dc3d.f.cray
+END
+dc2d.f
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/434/IPARSv3.1/solve/ygmres/dc2d.f
+END
+sprb.dh
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/sprb.dh
+END
+staticums.h
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/staticums.h
+END
+slblk.dc.ilu+dcpl
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/slblk.dc.ilu+dcpl
+END
+hsfc.c
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/hsfc.c
+END
+sllsor.df
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/sllsor.df
+END
+intrfdc3d.df
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/intrfdc3d.df
+END
+sljacnorm.f
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/sljacnorm.f
+END
+ygdual.df
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/ygmres/ygdual.df
+END

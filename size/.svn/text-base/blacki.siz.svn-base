@@ -1,0 +1,9 @@
+$ ############ Implicit Black Oil Model Include File ############
+
+Replace_Symbols
+
+BLACKI   ""          $ Include single phase implicit model code
+
+NUMCOF    7          $ Number of Jacobian coefficient blocks per equation
+INUMEQ    3          $ Number of Newtonian unknowns per grid element
+NEWTEQS   3          $ Number of Newtonian unknowns per grid element

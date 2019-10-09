@@ -1,0 +1,18 @@
+$ ############ Compositional Model Include File ############
+
+Replace_Symbols
+
+COMP     ""         
+MXCNAM   16         $ Max component and phase name length
+MXPHASE   3         $ Max number of phases
+NUMCOF    7         $ Number of Jacobian coefficient blocks per equation
+INUMEQ    1         $ Number of Newtonian unknowns per grid element (impec)
+NEWTEQS   1         $ Number of Newtonian unknowns per grid element (impec)
+MXINJ    10         $ Max number of different injection compositions
+MXSEP     5         $ Max number of separators
+MXSTAGE   5         $ Max number of stages in a separator
+MXPRD    50         $ Max number of different production compositions
+MXTEMP  100000      $ Max number of different temperatures for EOS tables
+MXICPH   25         $ Max sum of all components in all phases (usually 1+2*mxcomp)
+MXXRCK   10         $ Max number of rock types (for diffusion-dispersion)
+NBCVARS = 3         $ Max number of phases on interface

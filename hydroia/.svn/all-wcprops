@@ -1,0 +1,113 @@
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/repos/csm/!svn/ver/582/IPARSv3.1/hydroia
+END
+hstdout.df
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/578/IPARSv3.1/hydroia/hstdout.df
+END
+harydat.h
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/581/IPARSv3.1/hydroia/harydat.h
+END
+hfluids.h
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/578/IPARSv3.1/hydroia/hfluids.h
+END
+hdual.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/581/IPARSv3.1/hydroia/hdual.df
+END
+hbaldat.dh
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/578/IPARSv3.1/hydroia/hbaldat.dh
+END
+hsprb3.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/581/IPARSv3.1/hydroia/hsprb3.df
+END
+hbdary.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/581/IPARSv3.1/hydroia/hbdary.df
+END
+hvisual.df
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/578/IPARSv3.1/hydroia/hvisual.df
+END
+hwell.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/581/IPARSv3.1/hydroia/hwell.df
+END
+h2trchem.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/578/IPARSv3.1/hydroia/h2trchem.df
+END
+htran.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/581/IPARSv3.1/hydroia/htran.df
+END
+hvisual.dh
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/578/IPARSv3.1/hydroia/hvisual.dh
+END
+hivdat.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/582/IPARSv3.1/hydroia/hivdat.df
+END
+hdata.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/578/IPARSv3.1/hydroia/hdata.df
+END
+hstep.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/581/IPARSv3.1/hydroia/hstep.df
+END
+hutil.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/578/IPARSv3.1/hydroia/hutil.df
+END
+hrest.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/578/IPARSv3.1/hydroia/hrest.df
+END
+harray.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/581/IPARSv3.1/hydroia/harray.df
+END

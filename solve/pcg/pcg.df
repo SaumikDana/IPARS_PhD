@@ -1,0 +1,473 @@
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+C  PCG.F - PCG for IPARS
+
+C  ROUTINES IN THIS MODULE:
+
+C       SUBROUTINE PCG (N_COF,N_RESID,N_DUNK,PARTOL,ITER,NERR)
+c
+c       SUBROUTINE ipars_DCG(B, X, A,  
+c     &   ITOL, TOL, ATOL, ITMAX, ITER, ERR, IERR, 
+c     &   R, Z, P, DZ)
+c
+c       INTEGER FUNCTION ipars_ISDCG (B, X, A, 
+c     &   ITOL, TOL, ITMAX, ITER, ERR, IERR, R, Z, P, DZ,
+c     &   AK, BK, BNRM)
+c
+c      REAL*8 FUNCTION IPARS_DNRM2 (  x )
+c 
+C  CODE HISTORY:
+c Malgo Peszynska: 4/5-8/98
+c MPeszynska, 8/98: added setup of PCG parameters from input
+c
+C*********************************************************************
+      SUBROUTINE PCG (N_COF,N_RESID,N_DUNK,partol,iter,NERR)
+C*********************************************************************
+C  Preconditioned Conjugate Gradient Executive routine
+c  diagonal preconditioner 	
+c  Joe Eaton  4/1/99 Added Tridiagonal prec. (Vertical block solve)
+c                    Added pcg_prec switch to choose preconditioner
+c  PCG_PREC =1   diagonal preconditioner        
+c  PCG_PREC =2   Block Jacobi (tridiagonal) preconditioner      
+c  PCG_PREC =3   Block ILU preconditioner      
+c -----------
+c solves A x = b, with
+c A = N_COF
+c b = N_RESID
+c x = N_DUNK (on input it contains the initial guess)
+c -----------
+C  N_COF= GRID-ELEMENT ARRAY NUMBER FOR pressure matrix COEFFS (INPUT, INTEGER)
+C           COF(I,J,K,N,L,M) ==> COEFFICIENT M OF EQUATION L
+C           7 POINT TEMPLATE ($NUMCOF=7)
+C           COF(I,J,K,1,L,M) ==> DIAGONAL
+C           COF(I,J,K,2,L,M) ==> X-
+C           COF(I,J,K,3,L,M) ==> X+
+C           COF(I,J,K,4,L,M) ==> Y-
+C           COF(I,J,K,5,L,M) ==> Y+
+C           COF(I,J,K,6,L,M) ==> Z-
+C           COF(I,J,K,7,L,M) ==> Z+
+C  N_DUNK= GRID-ELEMENT ARRAY NUMBER FOR LINEAR SOLUTION (INPUT, INTEGER)
+C  N_RESID= GRID-ELEMENT ARRAY NUMBER FOR RESIDUALS (INPUT, INTEGER)
+C           RESID(I,J,K,N) ==> RESIDUAL OF EQUATION N
+c  partol     = on output it gives the ratio used for convergence step (REAL*4)
+C  iter    = NUMBER OF PCG ITERATIONS : on OUTPUT the
+c            actual number of iterations that the solver took (INTEGER)
+C  NERR   = ERROR KEY STEPPED BY ONE IF CONVERGENCE FAILS
+C           (OUTPUT, INTEGER)
+C*********************************************************************
+      implicit none
+$POWER      INCLUDE 'msjunk.h'
+      include 'control.h'
+c
+c read the solver parameters
+      include 'pcg.h'
+c
+c grid array numbers for the parameters
+      integer n_resid, n_dunk,n_cof
+      real*4 partol
+      integer iter,nerr
+c ----------------------------------------------------
+c counter for how many times the PCG was called
+      logical onceonly
+      data onceonly /.true./
+c
+c auxiliary variables 
+c	
+      integer itol, itmax, ierr, kerr
+      real*8 tol,err,atol
+      parameter (ierr=0)
+
+c grid array parameters for the auxiliary variables
+      integer N_p,N_r,N_z,N_dz
+      common /pcgini/ N_p,N_r,N_z,N_dz
+c      data N_p/0/, N_r/0/, N_z/0/, N_dz/0/
+c =========================================================
+c bail out if called with error
+
+      if (nerr.ne.0) return
+
+c get the solver parameters
+
+c      write(*,*) 'Using PCG_PREC=',pcg_prec
+
+      itmax = pcg_itmax	
+      tol   = pcg_tol
+      atol  = pcg_atol
+
+c process the absflag values
+      if (pcg_absflag.eq.0) then
+         itol = 1 
+      else if (pcg_absflag.eq.1) then
+c       if absflag =1 ONLY absolute tolerance is checked
+c        itol = 3 is ONLY asbolute 
+         itol = 3
+      else if (pcg_absflag.eq.2) then
+c       if absflag =2 absolute tolerance OR relative must be satisfied
+c               4 is relative OR absolute
+         itol = 4
+      else if (pcg_absflag.eq.3) then
+c       if absflag =3 absolute tolerance AND relative  must be satisfied 
+c               5 is realtive AND absolute 
+         itol = 5
+      else 
+c erroneous value: none of the above: default to zero or itol=1
+         itol = 1
+      endif
+
+c the update call below may be unnecessary but we include it here 
+c "just in case"
+$MANY      CALL UPDATE(N_DUNK,1)
+$MANY      CALL UPDATE(N_COF,1)
+$MANY      CALL UPDATE(N_RESID,1)
+
+c allocate auxiliary grid arrays (only the first time)
+	
+	if(onceonly) then
+           onceonly = .false.
+           kerr=0
+           call pcg_init(kerr)
+           if(kerr.ne.0) then
+              nerr = -1
+              return
+           endif
+        endif
+
+	kerr = 0
+	call ipars_dcg(N_RESID,N_DUNK,N_COF,
+     &    itol,tol,atol,itmax,iter,err,kerr,
+     &    N_r,N_z,N_p,N_dz)	
+
+        partol=err
+        nerr=kerr
+
+c the update call below may be unnecessary but we include it here 
+c "just in case"
+
+$MANY      CALL UPDATE(N_DUNK,1)	
+
+c report on the solver
+
+$MORTAR      IF(.NOT.LEVELB) goto 1212
+$MMODEL      IF(.NOT.LEVELB) goto 1212
+      IF(LEVELC) THEN
+         print *, '# of PCG itns = ',ITER,' res. err=',partol
+      ENDIF
+ 1212 CONTINUE
+
+      END
+
+
+c =================================================================
+      SUBROUTINE pcg_init(kerr)
+
+$POWER       include 'msjunk.h'
+
+      INCLUDE 'control.h'
+      integer N_p,N_r,N_z,N_dz
+      common /pcgini/ N_p,N_r,N_z,N_dz
+      integer kerr
+$MMODEL      integer origmodel
+
+$MMODEL      INCLUDE 'mmodel.h'
+
+$MMODEL      origmodel=Current_model
+$MMODEL      call setmodel(all)
+
+      call alcgea('PCG_R',2,0,N_r,kerr)
+      call alcgea('PCG_z',2,0,N_z,kerr)
+      call alcgea('PCG_P',2,0,N_p,kerr)
+      call alcgea('PCG_DZ',2,0,N_dz,kerr)               
+
+$MMODEL      call setmodel(origmodel)
+      end
+
+c =================================================================
+      SUBROUTINE ipars_dcg(B, X, A,  
+     &   ITOL, TOL, ATOL, ITMAX, ITER, ERR, IERR, 
+     &   R, Z, P, DZ)
+c -----------------------
+c solves A x = b, with
+c A = N_COF 
+c b = N_RESID
+c x = N_DUNK (on input it contains the initial guess)
+c a,x,b are IPARS numbers  of grid arrays: parameters
+c r,z,p,dz are IPARS numbers of grid arrays: auxiliary structures
+c -----------------------
+c itol = (input) type of convergence check: 1 is direct (relative)
+c        2 is with the preconditioner (relative)
+c        3 is ONLY asbolute 
+c        4 is relative OR absolute
+c        5 is relative AND absolute 
+c tol   = the (relative) tolerance parameter (input)
+c atol  = the (absolute) tolerance parameter (input)
+c itmax = max number of iterations (input)
+c iter = number of iterations (output)
+c err = the actual residual error (output)
+c ierr = on normal stop =0, otherwise indicates the cause of termination
+c -----------------------
+c this routine is DCG from www.netlib.org/slatec,
+c written originally by Anne Greenbaum,
+c modfied for IPARS by MPeszynska
+C ---------------------------------------------------------------
+      implicit none
+      REAL*8 ERR, TOL, ATOL
+      INTEGER IERR, ITER, ITMAX, ITOL
+c
+c these declarations of grid array numbers replace the usual decl. below
+c
+      integer a,b,x,dz,p,r,z	    
+c
+c      REAL*8 A(*), B(*), DZ(*), P(*), R(*),  X(*), Z(*)
+c --------------------------------
+      REAL*8 AK, AKDEN, BK, BKDEN, BKNUM, BNRM, TOLMIN
+      INTEGER I, K
+c -------------------------------- functions to be called
+      REAL*8 D1MACH
+      INTEGER ipars_ISDCG
+      EXTERNAL D1MACH, ipars_ISDCG
+c -------------------------------- subroutines to be called 
+      REAL*8   ipars_DDOT,ipars_DNRM2
+      EXTERNAL ipars_MSOLVE, ipars_MATVEC,ipars_DNRM2	
+      EXTERNAL ipars_DDOT, ipars_DAXPY, ipars_DCOPY,ipars_DSCALE	
+c ================================================================-- 
+C
+C         Check some of the input data.
+C
+c debug
+      include 'pcg.h'
+
+c      write(*,*) 'IPARS_PCG with diag. prec. ',
+c     &  'itmax=',itmax,' itol=',itol,' tol=',tol
+
+      ITER = 0
+      IERR = 0
+c
+c d1mach returns the machine precision : min (3) and max (2)
+c  
+      TOLMIN = 500*D1MACH(3)
+      IF( TOL.LT.TOLMIN ) THEN
+         TOL = TOLMIN
+         write(*,*) 'Adjusted TOL =',TOL
+         IERR = 4
+      ENDIF
+      IF( ATOL.LT.TOLMIN ) THEN
+         ATOL = TOLMIN
+         write(*,*) 'Adjusted ATOL =',TOL
+         IERR = 4
+      ENDIF
+C
+C         Calculate initial residual and pseudo-residual, and check
+C         stopping criterion.
+
+
+      CALL ipars_MATVEC(X, R, A )
+
+
+c ipars_dscale(alfa,y,z) realizes y(i)=z(i)+alfa*y(i)
+c this call replaces the usual scaling sequence
+c	
+c      DO 10 I = 2, N+1
+c         R(I) = B(I) - R(I)
+c 10   CONTINUE
+	
+      CALL ipars_DSCALE(-1.0d0,r,b)
+      CALL ipars_MSOLVE(R, Z,  A)
+C
+      IF( ipars_ISDCG(B, X, A,  
+     &	ITOL, TOL, ATOL, ITMAX, ITER, ERR, IERR,  R, Z, P, DZ,
+     &     AK, BK, BNRM) .NE. 0 ) GO TO 200
+      IF( IERR.NE.0 ) RETURN
+C
+C         ***** Iteration loop *****
+C
+      DO K=1,ITMAX
+         ITER = K
+C
+C         Calculate coefficient bk and direction vector p.
+         BKNUM = ipars_DDOT(Z, R)
+         IF( BKNUM.LE.0.0D0 ) THEN
+            IERR = 5
+            write(*,*) 'DDOT of z and r is negative!'
+            RETURN
+         ENDIF
+         IF(ITER .EQ. 1) THEN
+            CALL ipars_DCOPY(Z, P)
+         ELSE
+            BK = BKNUM/BKDEN
+
+c ipars_DSCALE(bk,p,z)
+c this call replaces the usual scaling sequence
+c            DO 20 I = 2, N+1
+c               P(I) = Z(I) + BK*P(I)
+c 20         CONTINUE
+
+            call ipars_DSCALE(bk,p,z)
+
+         ENDIF
+         BKDEN = BKNUM
+C
+C         Calculate coefficient ak, new iterate x, new residual r,
+C         and new pseudo-residual z.
+c
+         CALL ipars_MATVEC(P, Z, A)
+         AKDEN = ipars_DDOT( P, Z)
+         IF( AKDEN.LE.0.0D0 ) THEN
+            IERR = 6
+            write(*,*) 'DDOT of P and Z is negative!'
+            RETURN
+         ENDIF
+         AK = BKNUM/AKDEN
+         CALL ipars_DAXPY(AK, P, X )
+         CALL ipars_DAXPY(-AK, Z, R )
+         CALL ipars_MSOLVE( R, Z, A)
+C
+C         check stopping criterion.
+c         if(ipars_dnrm2(z) .lt. ATOL) goto 200 
+c
+         IF( ipars_ISDCG( B, X, A, 
+     x        ITOL, TOL, ATOL,
+     x        ITMAX, ITER, ERR, IERR,  R, Z, P, DZ, 
+     x        AK, BK, BNRM) .NE. 0 ) GO TO 200
+C
+         ENDDO
+C
+C         *****   end of loop  *****
+C
+C         stopping criterion not satisfied.
+      ITER = ITMAX + 1
+      IERR = 2
+C
+ 200  RETURN
+      END
+c=======================================================================
+
+      INTEGER FUNCTION ipars_ISDCG (B, X, A, 
+     &   ITOL, TOL, ATOL, ITMAX, ITER, ERR, IERR, R, Z, P, DZ,
+     &   AK, BK, BNRM)
+c -------------------------------------------------------------------
+      implicit none
+      REAL*8 AK, BK, BNRM, ERR, TOL, atol
+      INTEGER IERR, ITER, ITMAX, ITOL
+c
+      integer a,b,dz,p,r,x,z	    
+C---------------------------------------------------------------------
+      REAL*8 D1MACH, ipars_DNRM2
+      real*8 rnrm
+
+      EXTERNAL D1MACH, ipars_DNRM2
+      EXTERNAL ipars_MSOLVE
+C -------------------------
+      INTEGER I
+cmpesz for debugging
+      include 'pcg.h'
+      include 'control.h'
+c=========================================================
+
+c debugging
+
+      debug_flag = 0
+
+      ipars_ISDCG = 0
+C
+      IF( ITOL.EQ.1 ) THEN
+C         err = ||Residual||/||RightHandSide|| (2-Norms).
+         IF(ITER .EQ. 0) BNRM = ipars_DNRM2 ( B )
+         rnrm = ipars_DNRM2 ( R )
+         ERR = rnrm / BNRM
+
+      ELSE IF( ITOL.EQ.2 ) THEN
+C                  -1              -1
+C         err = ||M  Residual||/||M  RightHandSide|| (2-Norms).
+         IF(ITER .EQ. 0) THEN
+            CALL ipars_MSOLVE(R, DZ,  A)
+            BNRM = ipars_DNRM2( DZ )
+         ENDIF
+         ERR = ipars_DNRM2 ( Z ) / BNRM
+      ELSE if (itol.eq.3) then
+c        itol = 3 is  ONLY absolute 
+
+         rnrm = ipars_DNRM2 ( R )
+         ERR = rnrm  /bnrm
+      ELSE if (itol.eq.4) then
+c               4 is relative OR absolute
+         IF(ITER .EQ. 0) BNRM = ipars_DNRM2 ( B )
+         rnrm = ipars_DNRM2 ( R )
+         ERR = rnrm / BNRM
+
+      ELSE if (itol.eq.5) then
+c               5 is realtive AND absolute 
+
+         IF(ITER .EQ. 0) BNRM = ipars_DNRM2 ( B )
+         rnrm = ipars_DNRM2 ( R )
+         ERR = rnrm / BNRM
+
+      ELSE 
+C
+C         If we get here ITOL is not one of the acceptable values.
+         ERR = D1MACH(2)
+         IERR = 3
+      ENDIF
+C     
+
+c report on progress of PCG 
+      if (debug_flag.ne.0) then
+
+         IF( ITER.EQ.0 ) THEN
+            WRITE(*,1000) ITER, ITOL,tol,atol
+            WRITE(*,1010) ITER, ERR, rnrm
+         ELSE
+            WRITE(*,1010) ITER, ERR, rnrm
+         ENDIF
+      endif
+
+      if (itol.le.2.and. ERR .LE. TOL) ipars_ISDCG = 1
+      if (itol.eq.3.and. rnrm.le.atol) ipars_ISDCG = 1
+      if (itol.eq.4.and.(ERR .LE. TOL.or.rnrm.le.atol)) 
+     &     ipars_ISDCG = 1
+      if (itol.eq.5.and.ERR .LE. TOL.and.rnrm.le.atol) ipars_ISDCG = 1
+      RETURN
+
+ 1000 FORMAT(' PCG  for ',
+     &     'N, ITOL = ',I5, I5,' TOL=',E16.7,' ATOL=',E16.7,
+     &     /' ITER','   Error Estimate','            RNRM'
+     &     )
+ 1010 FORMAT(1X,I4,1X,D16.7,1X,D16.7)
+
+      END
+
+c ============================================================
+      real*8 function ipars_dnrm2 (  x )
+c
+c      REAL*8                  X( * )
+c -----------------------------------------------
+c - replaced the dnrm2 call by direct computation 
+c - of ddot and gather and sum      
+c ----------------------------
+      implicit none
+      INCLUDE 'control.h'
+
+      integer x
+      real*8 ipars_DDOT
+      external ipars_DDOT
+c ----------------------------
+      intrinsic sqrt
+      
+      real*8 norm
+      include 'pcg.h'
+c ===========================================================
+
+      norm = ipars_ddot (x,x)
+
+      if (debug_flag.eq.1) then
+      if ( MYPRC .EQ. 0 ) then
+         write(*,*) 'NRM_2: received value ',
+     &        norm, ' and sqrt =',sqrt(norm)
+      endif		
+      endif
+
+      ipars_DNRM2 = sqrt(norm)
+
+      RETURN
+
+      END
+
+

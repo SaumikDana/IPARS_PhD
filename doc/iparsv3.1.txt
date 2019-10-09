@@ -1,0 +1,261 @@
+
+                         IPARS VERSION 3
+
+The version 3 directory will be our first release version of IPARS.
+When an affiliate asks for a copy of the program, We would send them
+this version.  It is also the version one would start with to add a
+new capability to IPARS (e.g. well management).  The rules for version
+3 (and subsequent release versions) are as follows:
+
+  I.  Only finished code will be checked into this version.
+
+      A.  The code will be stable.  This means substantial changes are
+          not expected in the code.  There will, of course, always be
+          bugs detected and corrected even after we think the code is
+          stable.  There will also be new capabilities added which will
+          require a few (very few) lines of code be added in a modular
+          manner.
+
+      B.  Unused routines and variables will be eliminated.
+
+      C.  The code will be robust; most cases will run without tinkering 
+          with either the code or the input data.  With respect to data,
+          this objective may not be entirely achievable.  For field
+          scale problems, time step sizes on the order of days must be
+          practical.  
+
+      D.  Output will be clearly labeled so that someone other that the
+          author can understand it.
+
+      E.  No unregulated debug output will be included.  Any debug code
+          included will default to off.
+
+      F.  The code will run 100 or more timesteps with balance errors less
+          than one part in 10,000 of the oil or water in place.  A problem
+          with 20,000 or more grid elements and two or more wells is
+          assumed for this requirement.
+
+      G.  The code will run for an irregularly shaped region (keyed-out
+          elements).  It may or may not run for multiple fault blocks.
+
+ II.  Documentation for the code will be up-to-date but may be in draft
+      form.  Documentation will be included in the release as ASCII text
+      when possible.  If the text includes many equations, some other
+      format will be necessary (a Microsoft Word (version 7) format is
+      preferred but not required).
+
+III.  Make and size files will be modular.
+
+ IV.  The release will be complete; all source code necessary to compile
+      and run IPARS will be included in the release.
+
+  V.  The code will be portable.  As a minimum, it will compile and run
+      on single and multiprocessor machines and under Microsoft Windows,
+      Unix, and Linux.  Machines, operating systems, and compilers come
+      and go, so an explicit statement of this requirement is a moving
+      target.  For the moment, this requirement can be satisfied by
+      running on all of the following:
+
+      A.  IBM SP2 using four or more processors.
+
+      B.  Microsoft Windows95 using the Microsoft FORTRAN and C
+          compilers.  (The Microsoft fortran compiler is no longer sold
+          so we need a replacement.)
+
+      C.  Any Linux machine.
+
+ VI.  For each physical model, several fast test cases will be included.
+      Both input and output data will be included.
+
+VII.  All file names will have a length of 13 characters or less
+      including at most a single name extension.
+
+VIII. Code checked into the release that does not satisfy the above
+      criteria will be removed by the release police.
+      
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+             IPARS VERSION 3 DIRECTORY STRUCTURE (ENVISIONED)
+
+blacki  = Black Oil Implicit Model
+
+          data  = Black Oil Implicit Input Data
+
+blacke  = Black Oil IMPES Model
+
+          data  = Black Oil IMPES Input Data
+
+hydroi  = Hydrology Implicit Model
+
+          data  = Hydrology Implicit Input Data
+
+singlei = Single Phase Implicit Model
+
+          data  = Hydrology Implicit Input Data
+
+comp    = Compositional Model
+
+          data  = Compositional Input Data 
+
+trchem  = Transport Chemistry Model
+
+          data = Transport Chemistry Input Data
+
+doc     = IPARS Documentation
+
+make    = Modular IPARS Make Files
+
+size    = Preprocessor Source and Modular Data Files
+
+drive   = Framework Main Driver
+
+input   = Framework Input Routines
+
+java    = Interactive Simulation Routines
+
+memman  = Framework Memory Management Routines
+
+blocks  = Multiple Fault Block Routines
+
+          mortar = Mortar Space Routines
+
+          dual   = Dual Approximation Routines
+
+parall  = Framework Multiprocessor Routines
+
+output  = Framework Output Routines
+
+          print   = Print Routines
+
+          restart = Restart Routines
+
+          tecplot = Tecplot Routines
+
+outside = Routines from outside sources
+
+          blas    = BLAS Routines
+
+          linpack = LINPACK Routines
+
+solve   = Linear Solver Routines
+
+          lsor  = Line SOR Solver
+
+          gmres = GMRES Solver
+
+          petsc = PETSC Solver
+
+          bcgs = BiCGS Solver
+
+util    = Framework Utility Routines (timer, initialization, ect.)
+
+wells   = Framework Well Routines
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+       SGT - NOTES ON IMPORTANT CHANGES FROM IPARSv3 TO IPARSv3.1
+
+The flash memory requirement bug remains from IPARSv3. This usually 
+occurs when totaly number of grid elements are increased beyond about 
+40,000. It has never hindered from doing large runs, since for finer 
+problems, the desirable option is to run in parallel (distributed 
+memory) anyway. When new arrays have been allocated and passed to the 
+flash subroutines (with several nested calls), it has been observed 
+that problem sizes that used to run in local mode would fail to run. 
+This has been remedied by passing fewer arguments to the nested flash 
+subroutines (one may see this by comparing xflash.df in IPARSv3 to 
+the same in IPARSv3.1). A full fix would required revamping the entire 
+calling structure, extending what was already done in IPARSv3.1 in the 
+flash subroutines, which is probably not recommended since (a) this 
+does not hinder from doing large scale runs at all, (b) the probability 
+of introducing new bugs increases. The other option is to iron out all 
+memory bugs by running valgrind, using gmalloc, etc.
+
+A better tecplot visualization framework similar to that from IPARSv2 
+has been added in visual/ folder. For details read the vis-tec.txt
+The GMRES and PCG solvers have been included in IPARSv3.1, ported from 
+IPARSv2.
+
+A visualization framework for vtk visualization for use in software 
+such as Paraview, VisIt, etc. has been integrated into the visual/ 
+folder. For details, read notes in vis-vtk.txt
+
+A transport chemistry module has been integrated into IPARSv3.1 and 
+coupled to almost all the flow models. It has been extended from the 
+version in IPARSv2 to work in multiblock configurations as well (using 
+enhanced velocity MFEM or EVMFEM, i.e., "dual" FE method). A HOG method 
+has been implemented for advection for better shock capturing ability.
+
+Several bugs were fixed in the compositional model - significantly, 
+it now works in parallel and works when run in a multi-block setting 
+(using EVMFEM) on local workstations as well as parallel clusters. 
+Also, a two phase hysteresis model due to Land (the Parker-Lenhard 
+formulation) has been applied to the compositional flow model. Many 
+utility features associated with the compositional model applied to 
+the problem of CO2 sequestration have also been added. 
+
+A sequential coupling to a thermal energy balance model has been 
+implemented in the compositional model. Ultimately, the thermal model 
+will have to be a stand-alone model since it should not be a part of 
+another flow model conceptually. The thermal model incorporates a 
+heatloss implementation for modeling thermal BC's, due to Vinsome 
+and Westerveld. 
+
+Extensions of the current thermal model to solve highly nonlinear 
+thermally dynamic processes, (for e.g., with rapidly changing gas 
+phase properies) can potentially be achieved by allowing isobaric 
+and isochoric specific heats to change with time based on a dynamic 
+lookup table from a reliable source such as component steam tables  
+or correlation data (currently, assumed as constants) within the 
+quasi-Newton method. This lookup table, for e.g., may be similar to 
+the way EOS critical properties are currently read in the code. 
+
+The most general thermal-flow implementation will have to account 
+for latent heat transfers during phase changes by liquefaction or 
+vaporization and accounting for derivatives w.r.t T in the flash 
+equilibrium. These changes are probably described in an increasing 
+order of implementational complexity, and will allow for a robust 
+performance even for scenarios when the gas phase undergoes rapid 
+change in properties. 
+
+Global MODACT has been replaced by a driver model CURRENT_MODEL in the 
+older files: restart.df, putil.df as well as new ones: visout.df, 
+tvisual.df, hvisual.df, ivisual.df, xvisual.df to avoid seamlessly 
+the -CB related run-time error and to resolve a deadlock issue when 
+running trchem coupled to flow models in parallel. This may only be 
+temporary or could be a permanent fix. This change should not upset 
+the envisioned multi-model implementation as a workaround will always 
+exist. The variable CURRENT_MODEL can be replaced by a name like 
+DRIVER_MODEL in future versions. Ultimately however, if possible, 
+the original MODACT version is preferred.
+
+A generous collection of data sets has been provided under each model 
+folder. The organization is such that single block and multi block 
+cases (latter using EVMFEM) have been arranged in their own folders 
+under each model. For TRCHEM model, a further subdivision is given 
+based on which flow model is used in the coupling. 
+
+Notes when compiling and running:
+---------------------------------
+
+The makefile and sizefile (ipars.siz) structures are same as in 
+IPARSv2 
+
+Note: When compiling ipars in IPARSv3.1, note that the ipars.siz 
+has an extra "Replace_Symbols" section at the end that allows user 
+to indicate which linear solver is used for the flow model when 
+more than one solver is included. This is very common for example 
+when coupling flow with thermal or flow with transport since the 
+thermal conduction and diffusion-dispersion may involve linear 
+solves if solved implicitly even in part. If only one solve is 
+used, the user has to include that symbol for model solver as well; 
+otherwise no linear solve is called and problem will not converge.
+
+The used solver make and size files need to be included consistently 
+in both makefile and ipars.siz file as usual.
+
+If using multiblock, dual.mak and dual.siz have to be included in 
+makefile
+
+Always make sure that executable in the run directory is indeed 
+linked to the most recent build.

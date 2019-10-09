@@ -1,0 +1,752 @@
+C  HVISUAL.F - HYDROLOGY MODEL VISUALIZATION ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE HVIS_TRANSL(SCALAR,NUM,NAME)
+C  SUBROUTINE HVIS_INIT ()
+C  SUBROUTINE HVIS_OUTPUT ()
+C  SUBROUTINE HVELCOMP()
+C  SUBROUTINE VIS_DEBUG()
+
+C  CODE HISTORY:
+
+C  MPESZYNSKA       4/10/98    INITIAL VERSION
+C  JOHN WHEELER     5/04/98    MOVE CODE FROM HSTDOUT.F
+C  MALGO PESZYNSKA, 5/27/98     PUT IN HVIS_TRANSL, MODIFIED THE OTHER
+C     ROUTINES TO BE CONTROLLED BY THE DATA FILE
+C  MPESZYNSKA,      9/25/98    MODIFED THE ROUTINES BELOW TO 
+C     INCLUDE CHANGES IN FRAMEWORK ROUTINES, SEE VISOUT.DF FOR DETAILS
+C  GURPREET SINGH   10/16      TWO PHASE IMPLICIT BRICKS (APPROX)
+C *************************************************************
+
+      SUBROUTINE HVIS_TRANSL(SCALAR,NUM,NAME)
+C ---------------------------------------------
+C LOOKUP THE <NAME> IN THE GLOSSARY FOR THE MODEL
+C WHICH IS READ FROM HVISUAL.H
+C ---- FOR DIFFERENT MODELS: COPY THE ROUTINE, CHANGE THE INCLUDE FILE
+C 
+C SET VIS_VARNAMES, VIS_OFFSETS AND VIS_IPARS_VARS:
+C
+C VIS_VARNAMES: THE NAMES THAT WILL BE PUT IN THE TECPLOT FILE
+C VIS_IPARS_NAMES: THE NAMES THAT ARE OFFICIAL TO IPARS
+C VIS_OFFSETS: THE OFFSETS AS DECIDED IN IPARS
+C --------------
+C IF NOT IN GLOSSARY, COPY NAMES VERBATIM, SET OFFSET TO 1 (DEFAULT)
+C ---------------------------------------------
+      IMPLICIT NONE
+C PARAMETERS      
+      CHARACTER*$MXANAM NAME
+      INTEGER NUM
+      LOGICAL SCALAR
+
+C INCLUDES
+      INCLUDE 'visual.h'
+      INCLUDE 'hvisual.h'
+
+C LOCAL VARIABLES
+      INTEGER I,K,NNUM
+C -----------------------------------------------------------
+      IF(FIRSTVAR) THEN
+         HEADOUTO = .FALSE.
+         POTOUTO = .FALSE.
+         HEADOUTW = .FALSE.
+         POTOUTW = .FALSE.
+      ENDIF
+
+C -----------------------------------------------------------
+      IF (SCALAR) THEN
+C -----------------------------
+         VIS_VARNAMES(NUM) = NAME
+         VIS_OFFSETS(NUM) = 1
+         VIS_IPARS_NAMES (NUM ) = NAME
+
+         DO I=1,IPARS_NSCL
+
+            IF (IPARS_SCL_NAMES(1,I).EQ.NAME) THEN
+
+               VIS_VARNAMES(NUM) = IPARS_SCL_NAMES(2,I)
+               VIS_IPARS_NAMES (NUM) = IPARS_SCL_NAMES(3,I)
+               VIS_OFFSETS (NUM) = IPARS_SCL_OFFSETS(I)
+
+$PV3               CALL PV3TRANSL(NUM,I)
+      
+C RECOGNIZE THAT HEAD OR POTENTIAL SHOULD BE PRINTED                
+               IF(I.EQ.HEADPOSO) HEADOUTO = .TRUE.
+               IF(I.EQ.POTPOSO)  POTOUTO = .TRUE.
+               IF(I.EQ.HEADPOSW) HEADOUTW = .TRUE.
+               IF(I.EQ.POTPOSW)  POTOUTW = .TRUE.
+
+           ENDIF
+         ENDDO                  
+
+         CALL VIS_ARYNUM(NUM)
+      
+      ELSE 
+C ---------------------------------
+C VECTOR CASE : 
+         DO K=1,3             
+            NNUM = VIS_SCL + (NUM-1)*3 +K
+            VIS_VARNAMES( NNUM ) = NAME
+            VIS_OFFSETS( NNUM  ) = 1            
+            VIS_IPARS_NAMES (NNUM) = NAME
+         ENDDO
+
+         DO I=1,IPARS_NVEC
+            IF (IPARS_VEC_NAMES(1,I).EQ.NAME) THEN
+               DO K=1,3
+                  NNUM = VIS_SCL + (NUM-1)*3 +K
+                  VIS_VARNAMES(NNUM) = IPARS_VEC_NAMES(1+K,I)
+                  VIS_IPARS_NAMES(NNUM) = IPARS_VEC_NAMES(4+K,I)
+                  VIS_OFFSETS (NNUM) = IPARS_VEC_OFFSETS(K,I)
+               ENDDO
+            ENDIF
+         ENDDO
+         
+         DO K=1,3             
+            NNUM = VIS_SCL + (NUM-1)*3 +K
+            CALL VIS_ARYNUM(NNUM)
+         ENDDO
+      ENDIF
+
+      END
+
+C ====================================================================
+      SUBROUTINE HVIS_INIT ()
+C --------------------------------------------------------------------
+      END
+C===========================================================
+      SUBROUTINE HVIS_OUTPUT ()
+C-----------------------------------------------------------
+C23456
+      IMPLICIT NONE
+C-----------------------
+C EXTERNAL FRAMEWORK VIS ROUTINE
+C-----------------------
+      EXTERNAL HVELCOMP, HDENSCOMP,PSCOMP
+      EXTERNAL BL_PSCOMP
+C -----------------------
+$POWER       INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'harydat.h'
+$BUCKLEV      INCLUDE 'bucklev.h'
+      INCLUDE 'visual.h'
+      
+
+      INTEGER I,HVISDAT(30)
+      DATA HVISDAT / 30*0 /
+      
+      INTEGER N_ARRAY
+
+C THIS ARRAY WILL CHECK FOR THAT WE DO NOT DO TOO MANY UPDATES
+C AND WHICH OF THE EXTRA COMPUTATIONS NEED TO BE MADE
+
+      LOGICAL HUPDATE($MXARYS)
+
+      LOGICAL HEADOUTO, POTOUTO, HEADOUTW, POTOUTW
+      COMMON /HVIS/ HEADOUTO, POTOUTO, HEADOUTW, POTOUTW
+C ------------------------------------------------------------      
+C THE VALUE OF VISFAG CAN BE SET ANYWHERE, FOR EXAMPLE IN RESTART
+C FILES
+C      
+      IF((VISFLAG.LT.1).OR.(VISFLAG.GT.MAXVISFLAG)) THEN
+         GO TO 1
+      ENDIF
+
+C ---------------------------------------
+C UPDATE ALL VARIABLES USING TEMPLATE 2 
+      
+      DO I=1,$MXARYS
+         HUPDATE(I) = .FALSE.
+      ENDDO
+      
+      DO I=1, VIS_SCL
+         N_ARRAY = N_VIS_VARS(I,CURRENT_MODEL)
+$MANY         CALL UPDATE(N_ARRAY,2)
+         HUPDATE(N_ARRAY) = .TRUE.
+      ENDDO
+
+C ----------------------------------------
+C COMPUTE SATURATIONS IN COILN AND PWAT 
+
+      IF (HUPDATE(N_COILN).OR.HUPDATE(N_PWAT)) THEN
+         HVISDAT(1)=6
+         HVISDAT(2)=N_POIL
+         HVISDAT(3)=N_COIL
+         HVISDAT(4)=N_COILN
+         HVISDAT(5)=N_PWAT
+         HVISDAT(6)=N_ROCK
+         HVISDAT(7)=N_RELPRM
+
+         CALL CALLWORK(PSCOMP,HVISDAT)
+
+         IF(HUPDATE(N_VISDUM)
+$BUCKLEV     &        .AND.BLFLAG 
+     &        )THEN
+
+            HVISDAT(1)=6
+            HVISDAT(7)=N_VISDUM
+
+            CALL CALLWORK(BL_PSCOMP,HVISDAT)
+
+         ENDIF
+
+$MANY       CALL UPDATE(N_COILN,2)
+$MANY       CALL UPDATE(N_PWAT,2)
+      ENDIF
+
+C -----------------------------------------
+C COMPUTE VELOCITIES: 
+C
+      IF (VIS_VEC.GT.0) THEN
+
+$MANY      IF(.NOT.HUPDATE(N_POIL)) CALL UPDATE(N_POIL,2)
+$MANY      IF(.NOT.HUPDATE(N_COIL)) CALL UPDATE(N_COIL,2)
+$MANY      IF(.NOT.HUPDATE(N_PWAT)) CALL UPDATE(N_PWAT,2)
+$MANY      IF(.NOT.HUPDATE(N_DPCSW)) CALL UPDATE(N_DPCSW,2)
+
+      HVISDAT(1)=5
+      HVISDAT(2)=N_POIL
+      HVISDAT(3)=N_COIL
+      HVISDAT(4)=N_PWAT
+      HVISDAT(5)=N_DDENS
+      HVISDAT(6)=N_ROCK
+
+      CALL CALLWORK(HDENSCOMP,HVISDAT)
+
+$MANY      IF(.NOT.HUPDATE(N_PWAT)) CALL UPDATE(N_PWAT,2)
+$MANY      IF(.NOT.HUPDATE(N_TCOFX)) CALL UPDATE(N_TCOFX,2)
+$MANY      IF(.NOT.HUPDATE(N_TCOFY)) CALL UPDATE(N_TCOFY,2)
+$MANY      IF(.NOT.HUPDATE(N_TCOFZ)) CALL UPDATE(N_TCOFZ,2)
+$MANY      IF(.NOT.HUPDATE(N_RELPRM)) CALL UPDATE(N_RELPRM,2)
+$MANY      IF(.NOT.HUPDATE(N_DDENS)) CALL UPDATE(N_DDENS,2)
+
+CGUS ----
+C         HVISDAT(1)=14
+C         HVISDAT(2)=N_TCOFX
+C         HVISDAT(3)=N_TCOFY
+C         HVISDAT(4)=N_TCOFZ
+C         HVISDAT(5)=N_DEPTH
+C         HVISDAT(6)=N_POIL
+C         HVISDAT(7)=N_PWAT
+C         HVISDAT(8)=N_DDENS
+C         HVISDAT(9)=N_RELPRM      
+C         HVISDAT(10)=N_ROCK
+C         HVISDAT(11)=N_COIL
+C         HVISDAT(12)=N_DPCSW
+C         HVISDAT(13)=N_VEL
+C         HVISDAT(14)=N_VMO
+C         HVISDAT(15)=N_VMW
+C         
+C         CALL CALLWORK(HVELCOMP, HVISDAT)
+C
+CC ---- IF MULTIBLOCK, COMPUTE THE VALUES ALSO ON INTERFACE         
+C$MORTAR                CALL HBC_FLUX()
+C
+CC --- UPDATE THE VELOCITY
+C
+C$MANY                  CALL UPDATE(N_VEL,2)
+CGUS ----
+
+      ENDIF
+C------------------------------------------
+C HANDLE COMPUTATIONS FOR HEAD AND POTENTIAL 
+      HVISDAT(1)=5
+      HVISDAT(2)=N_POIL
+      HVISDAT(3)=N_COIL
+      HVISDAT(4)=N_PWAT
+      HVISDAT(5)=N_DDENS
+      HVISDAT(6)=N_ROCK
+
+      CALL CALLWORK(HDENSCOMP,HVISDAT)
+
+      IF(HEADOUTO.AND.POTOUTO) THEN
+         HEADOUTO=.FALSE.
+      ENDIF
+      IF(HEADOUTW.AND.POTOUTW) THEN
+         HEADOUTW=.FALSE.
+      ENDIF
+
+C      WRITE(*,*) 'HEADOUT AND POTOUT REQUESTED ',
+C     &     HEADOUTO,POTOUTO,HEADOUTW,POTOUTW
+
+      IF(HEADOUTO.OR.POTOUTO.OR.HEADOUTW.OR.POTOUTW) THEN
+         CALL COMP_OWHEAD(N_POIL,N_PWAT,
+     &        N_DDENS,N_DEPTH,N_DPCSW,N_CWATN)
+      ENDIF
+
+
+C ------------------ VISUALIZATION OUTPUT 
+C
+C PASS THE ARGUMENTS TO THE FRAMEWORK  VIS ROUTINE
+      
+      CALL VIS_OUTPUT()
+
+ 1    CONTINUE
+      RETURN
+      END
+
+C ==================================================================
+       SUBROUTINE HVELCOMP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,
+     &                   JL1V,JL2V,KL1,KL2,KEYOUT,NBLK,
+     &                   TCOFX,TCOFY,TCOFZ,DEPTH,
+     &                   POIL,PWAT,DDENS,RELPRM,KROCK,
+     &                   HVEL)
+C THIS IS A WORK ROUTINE 
+C ------------------------------------------------------------------
+C COMPUTES VELOCITIES (FLUXES) ASSOCIATED WITH FACES 1,2,3 (X,Y,Z) OF
+C EACH GRIDBLOCK, FOR EACH PHASE 1,2 (OIL,WATER)
+C PUT THE VALUES IN THE VEL GRID ARRAY
+C HVEL(I,J,K,IPHASE,1) FOR EXAMPLE CONTAINS THE VALUE OF 
+C       VELOCITY FOR PHASE IPHASE ON THA FACE OF LOCATION I-1/2,J,K 
+C-------------------------------------------------------------------
+       IMPLICIT NONE
+$POWER       INCLUDE 'msjunk.h'
+       INCLUDE 'control.h'
+       INCLUDE 'rock.h'
+       INCLUDE 'hfluids.h'
+       INCLUDE 'hbaldat.h'
+       INCLUDE 'layout.h'
+     
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM)
+     &       ,JL2V(KDIM),KL1,KL2,KEYOUT(IDIM,JDIM,KDIM)
+     &       ,NBLK,KROCK(IDIM,JDIM,KDIM)
+
+      REAL*8 TCOFX(IDIM,JDIM,KDIM),TCOFY(IDIM,JDIM,KDIM)
+     &      ,TCOFZ(IDIM,JDIM,KDIM),DEPTH(IDIM,JDIM,KDIM)
+     &      ,POIL(IDIM,JDIM,KDIM),PWAT(IDIM,JDIM,KDIM)
+     &      ,DDENS(IDIM,JDIM,KDIM,2),HVEL(IDIM,JDIM,KDIM,2,3)
+     &      ,RELPRM(IDIM,JDIM,KDIM,4)
+
+C ---- LOCAL VARIABLES
+
+      REAL*8   VIS(2),UPMOB,DX,DY,DZ,DD,G2,DGRAV,DENS1,
+     &         DENS2,DP
+      
+      INTEGER I,J,K,M,KR,IPH,DIM,MKEY1,MKEY,MIOFF,MJOFF,MKOFF,
+     &        JL1,JLP,I1,J1,K1,NPH,IERR,IPH2(2),IOFF,JOFF,
+     &        KOFF
+
+      NPH = 2
+      G2 = 0.5D0*GRAV
+
+C     GET THE GLOBAL OFFSETS FOR DX,DY,DZ
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      IF(IERR.NE.0) RETURN
+
+C ---- OIL = 1, WAT = 2
+      VIS(1) = OILVIS
+      VIS(2) = WATVIS
+
+C ---- OIL = 1, WAT = 3 IN RELPRM ARRAY 
+      IPH2(1) = 1
+      IPH2(2) = 3
+     
+C ---- CALCULATE HVEL = UPMOB*VEL
+
+      DO DIM = 1,3
+        MIOFF = 0
+        MJOFF = 0
+        MKOFF = 0
+      IF (DIM.EQ.1) MIOFF = 1
+      IF (DIM.EQ.2) MJOFF = 1
+      IF (DIM.EQ.3) MKOFF = 1
+      
+      DO IPH = 1,NPH
+      
+      DO K=KL1,KL2+MKOFF
+         IF (K.EQ.KL1) THEN
+            JL1=JL1V(K)
+            JLP=JL2V(K)+MJOFF
+         ELSEIF(K.LE.KL2) THEN
+            JL1=MIN(JL1V(K-1),JL1V(K))
+            JLP=MAX(JL2V(K-1),JL2V(K))+MJOFF
+         ELSE
+            JL1=JL1V(KL2)
+            JLP=JL2V(KL2)
+         ENDIF
+      DO J=JL1,JLP
+      DO I=IL1,IL2+MIOFF
+
+         I1=I-MIOFF
+         J1=J-MJOFF
+         K1=K-MKOFF
+
+         MKEY=KEYOUT(I,J,K)
+         MKEY1=KEYOUT(I1,J1,K1)
+
+C     INNER FACE
+         IF(MKEY.EQ.1.AND.MKEY1.EQ.1) GOTO 4
+C     GHOST FACE
+         IF(((MKEY.EQ.-1).AND.(MKEY1.EQ.1)).OR.
+     &      ((MKEY.EQ.1).AND.(MKEY1.EQ.-1))) GOTO 4
+C     BDARY FACE: THESE ARE SET TO ZERO AND RECOMPUTED
+C     IN BC_VELCOMP
+         IF((MKEY.EQ.0.AND.MKEY1.EQ.1).OR.
+     &      (MKEY.EQ.1.AND.MKEY1.EQ.0)) GOTO 1
+C     ELSE: DO NOT COMPUTE
+         GOTO 1
+
+
+C COMPUTE HVEL = MULTIPLY VEL BY LAMBDA IN AN UPWINDING WAY
+ 4       CONTINUE
+
+C DD IS THE DIFFERENCE IN DEPTHS
+
+         DD=(DEPTH(I,J,K)-DEPTH(I1,J1,K1))*G2
+
+C  DP IS DIFFERENCE  OF PRESSURES
+
+         IF (IPH.EQ.1) DP=POIL(I,J,K)-POIL(I1,J1,K1)
+         IF (IPH.EQ.2) DP=PWAT(I,J,K)-PWAT(I1,J1,K1)
+
+C COMPUTE DGRAV : GRAVITY COMPONENT FROM DARCY LAW
+C =0.0 FOR GAS VELOCITY IF THERE IS NO GAS IN EITHER
+C OF THE CELLS
+
+         DGRAV=0.D0
+
+         DENS1=DDENS(I1,J1,K1,IPH)
+         DENS2=DDENS(I,J,K,IPH)
+         DGRAV=DD*(DENS1+DENS2)
+         DP=DP-DGRAV
+
+C DP NOW CONTAINS THE DARCY DIFFERENCES
+
+C COMPUTE THE DARCY GRADIENT
+
+         DX=DXREC(I+IOFF,NBLK)
+         DY=DYREC(J+JOFF,NBLK)
+         DZ=DZREC(K+KOFF,NBLK)
+
+         IF(DIM.EQ.1) DP=DP*TCOFX(I,J,K) / (DY*DZ)
+         IF(DIM.EQ.2) DP=DP*TCOFY(I,J,K) / (DX*DZ)
+         IF(DIM.EQ.3) DP=DP*TCOFZ(I,J,K) / (DX*DY)
+
+         IF (DP<0.D0) THEN
+            UPMOB = DENS1*RELPRM(I1,J1,K1,IPH2(IPH))/VIS(IPH)
+         ELSE
+            UPMOB = DENS2*RELPRM(I,J,K,IPH2(IPH))/VIS(IPH)
+         ENDIF
+         HVEL(I,J,K,IPH,DIM) = -DP*UPMOB
+
+ 1       CONTINUE     
+
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+
+      RETURN
+      END
+
+C ==================================================================
+       SUBROUTINE VIS_DEBUG(IDIM,JDIM,KDIM,LDIM,IL1,IL2,
+     &                   JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,DX,DY,DZ)
+
+C ==================================================================
+ 
+$POWER       INCLUDE 'msjunk.h'
+
+      INCLUDE 'layout.h'
+       INCLUDE 'control.h'
+
+       INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+       REAL*4 DX(*),DY(*),DZ(*)
+
+CMPESZ 
+       CHARACTER*10 FNAM
+       WRITE(FNAM,'(A6,I1.1)')'VISDB.',MYPRC
+       OPEN(12,FILE=FNAM)
+
+       CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+       WRITE(12,*) 'NBLK=',NBLK,' OFFSETS:',IOFF,JOFF,KOFF
+
+       DO K=1,KDIM
+          DO J=1,JDIM
+             DO I=1,IDIM
+                IF(J+JOFF.EQ.22) THEN
+                   WRITE(12,*) NBLK, 
+     &               'LOCAL ',I,J,K, ' * GLOBAL:  ',
+     &               I+IOFF,J+JOFF,K+KOFF,' KEYOUT=' ,
+     &               KEYOUT(I,J,K)              
+                ENDIF
+             ENDDO
+          ENDDO
+      ENDDO
+
+       DO K=KL1,KL2
+          JL1=JL1V(K)
+          JL2=JL2V(K)
+
+          DO  J=JL1,JL2
+             DO  I=IL1,IL2
+                IF(J+JOFF.EQ.22) THEN
+                   WRITE(12,*) NBLK, 
+     &               'IN BOUNDS LOCAL ',I,J,K, ' * GLOBAL:  ',
+     &                  I+IOFF,J+JOFF,K+KOFF,' KEYOUT=' ,
+     &                  KEYOUT(I,J,K)              
+                ENDIF
+             ENDDO
+          ENDDO
+       ENDDO
+              
+       CLOSE(12)
+ 13    CONTINUE
+      END
+      
+C ==================================================================
+       SUBROUTINE HSATCOMP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,
+     &                   JL1V,JL2V,KL1,KL2,KEYOUT,NBLK,
+     &                   POIL,COIL,SWAT)
+C ------------------------------------------------------------------
+C COMPUTES DENSITIES
+C-------------------------------------------------------------------
+       INCLUDE 'control.h'
+       INCLUDE 'rock.h'
+       INCLUDE 'hfluids.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+
+      REAL*8  POIL(IDIM,JDIM,KDIM),SWAT(IDIM,JDIM,KDIM),
+     &        COIL(IDIM,JDIM,KDIM)
+
+        WRITE(*,*) 'IN HSATCOMP ' 
+
+        DO K=KL1,KL2
+           JL1=JL1V(K)
+           JL2=JL2V(K)
+           DO  J=JL1,JL2
+              DO  I=IL1,IL2
+                 IF (KEYOUT(I,J,K).EQ.1) THEN
+
+                    CALL COMP_SAT(POIL(I,J,K),COIL(I,J,K),
+     &                   SWAT(I,J,K))
+                    
+                    WRITE(*,*) I,J,K,SWAT(I,J,K)
+
+                 ENDIF
+              ENDDO
+           ENDDO
+        ENDDO
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE PSCOMP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                 KEYOUT,NBLK,POIL,COIL,SWAT,PWAT,KROCK,RELPRM)
+C*********************************************************************
+C  ROUTINE COMPUTES PWAT,SWAT, BEING GIVEN POIL AND COIL
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+C  COIL(I,J,K) = OIL CONCENTRATION, LB/CU-FT (INPUT, REAL*8)
+C  SWAT(I,J,K) = WATER SATURATION, PSI (OUTPUT, REAL*8)
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (OUTPUT, REAL*8)
+C  KROCK(I,J,K) = ROCK TYPE (INPUT, INTEGER)
+C  RELPRM(I,J,K,4) = RELATIVE PERMEABILITY DATA (OUTPUT, REAL*8)
+C    RELPRM(I,J,K,1) = OIL RELATIVE PERMEABILITY
+C    RELPRM(I,J,K,2) = DERIVATIVE OIL RELATIVE PERMEABILITY WRT SW
+C    RELPRM(I,J,K,3) = WATER RELATIVE PERMEABILITY
+C    RELPRM(I,J,K,4) = DERIVATIVE WATER RELATIVE PERMEABILITY WRT SW
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'rock.h'
+      INCLUDE 'hfluids.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8 POIL(IDIM,JDIM,KDIM), COIL(IDIM,JDIM,KDIM),
+     &       PWAT(IDIM,JDIM,KDIM), SWAT(IDIM,JDIM,KDIM),
+     &       RELPRM(IDIM,JDIM,KDIM,4)
+
+      INTEGER I,J,K,L,JL1,JL2
+      REAL*8 S,DUM,PC
+
+C ---------------------
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         L = KROCK(I,J,K)
+         DUM=EXP(OILCMP*POIL(I,J,K))*OILDEN
+         S = 1.D0 - COIL(I,J,K)/DUM
+         SWAT(I,J,K) = S
+         CALL LOOKUP(NPCOW(L),S,PC,DUM)
+         PWAT(I,J,K) = POIL(I,J,K) - PC
+         CALL LOOKUP(NKOSW(L),S,RELPRM(I,J,K,1),RELPRM(I,J,K,2))
+         CALL LOOKUP(NKWSW(L),S,RELPRM(I,J,K,3),RELPRM(I,J,K,4))
+      ENDIF
+    1 CONTINUE
+      
+      END
+
+
+C*********************************************************************
+      SUBROUTINE BL_PSCOMP(IDIM,JDIM,KDIM,LDIM,
+     &     IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &     KEYOUT,NBLK,POIL,COIL,SWAT,PWAT,KROCK,VDUM)
+C*********************************************************************
+C  ROUTINE COMPUTES PWAT,SWAT, BEING GIVEN POIL AND COIL.
+C  ALSO, IT COMPUTES THE ANALYTICAL SOLUTION
+C  FOR THE BUCKLEY-LEVERETT PROBLEM. IT ASSUMES THAT 
+C  <INJLEFT> CONTAINS THE TOTAL FLUID INJECTED (NONDIMENSIONAL TIME).
+C  NONDIMENSIONAL POSITION IS COMPUTED FROM Y COORDINATES AND THAT 
+C  THE FLOW IS ESSENTIALLY ONE-DIMENSIONAL.
+C  THE ANALYTICAL RESULTS (WATER SATURATION) ARE STORED IN <VDUM>.
+C  SEE FILE MP_BL.F FOR MORE ASSUMPTIONS/EXPLANATIONS ON BUCKLEY_LEV.
+C 
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+C  COIL(I,J,K) = OIL CONCENTRATION, LB/CU-FT (INPUT, REAL*8)
+C  SWAT(I,J,K) = WATER SATURATION, PSI (OUTPUT, REAL*8)
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (OUTPUT, REAL*8)
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'rock.h'
+      INCLUDE 'hfluids.h'
+      INCLUDE 'hbaldat.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM)
+      REAL*8 POIL(IDIM,JDIM,KDIM),        COIL(IDIM,JDIM,KDIM),
+     &     PWAT(IDIM,JDIM,KDIM),       SWAT(IDIM,JDIM,KDIM),
+     &     VDUM(IDIM,JDIM,KDIM)
+
+C FOR BUCK_LEV
+
+      INCLUDE 'layout.h'
+$BUCKLEV      INCLUDE 'bucklev.h'
+      INTEGER JOFF
+      REAL*8 YD,TD,YLEFT,YRIGHT
+$BUCKLEV      REAL*8 BUCKLEV_SAT
+
+      INTEGER I,J,K,L,JL1,JL2
+      REAL*8 S,DUM,PC
+
+C ---------------------
+      CALL BLKOFF(NBLK,I,JOFF,K,L)
+      YLEFT = YREC(JL1V(2)+JOFF,NBLK)
+      YRIGHT = YREC(JL2V(2)+1+JOFF,NBLK)
+C      WRITE(*,*) 'YRIGHT = ',JL1V(2)+JOFF,JL2V(2)+1+JOFF,
+C     &     YLEFT,YRIGHT
+
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         L = KROCK(I,J,K)
+         DUM=EXP(OILCMP*POIL(I,J,K))*OILDEN
+         S = 1.D0- COIL(I,J,K)/DUM
+         SWAT(I,J,K) = S
+
+         YD = (YREC(J+JOFF,NBLK) + DYREC(J+JOFF,NBLK)/2.0)/
+     &        (YRIGHT-YLEFT)
+
+$BUCKLEV         TD = INJLEFT/POV
+$BUCKLEV         VDUM(I,J,K)=BUCKLEV_SAT(YD,TD)
+
+C         WRITE(*,*) 'BL CALLED AT ',YD,TD,S,VDUM(I,J,K)
+
+         CALL LOOKUP(NPCOW(L),S,PC,DUM)
+         PWAT(I,J,K) = POIL(I,J,K) - PC
+      ENDIF
+    1 CONTINUE
+      
+      END
+
+
+C --------------------------------------------------------------------
+      SUBROUTINE COMP_OWHEAD(N_POIL,N_PWAT,N_DEN,N_DEPTH,N_OPOTVIS,
+     &     N_WPOTVIS)
+C --------------------------------------------------------------------
+      INTEGER N_PRES,N_FLDEN,N_DEPTH,N_POTVIS
+      INTEGER A(7)
+      EXTERNAL COMP_OWHEADW
+      
+C --------------------------------------------------------------------
+      A(1)=6
+      A(2)=N_POIL
+      A(3)=N_PWAT
+      A(4)=N_DEN
+      A(5)=N_DEPTH
+      A(6)=N_OPOTVIS
+      A(7)=N_WPOTVIS
+
+      CALL CALLWORK(COMP_OWHEADW,A)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE COMP_OWHEADW(IDIM,JDIM,KDIM,LDIM,
+     &     IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &     KEYOUT,NBLK,POIL,PWAT,DEN,DEPTH,HEADO,HEADW)
+C*********************************************************************
+C  ROUTINE COMPUTES POTENTIALS/HEADS GIVEN PRES,DEPTH AND DEN
+C***********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 PWAT(IDIM,JDIM,KDIM),       DEPTH(IDIM,JDIM,KDIM),
+     &     DEN(IDIM,JDIM,KDIM,2),     HEADO(IDIM,JDIM,KDIM),
+     &     POIL(IDIM,JDIM,KDIM),     HEADW(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,L,JL1,JL2
+      REAL*8 HO,HW
+
+C------------------------
+C TO REQUEST OUTPUT OF HEAD OR POTENTIAL
+
+      LOGICAL HEADOUTO, POTOUTO, HEADOUTW, POTOUTW
+      COMMON /HVIS/ HEADOUTO, POTOUTO, HEADOUTW, POTOUTW
+
+C=============================================
+      IF(.NOT.POTOUTO.AND..NOT.HEADOUTO.AND.
+     &   .NOT.POTOUTW.AND..NOT.HEADOUTW) RETURN
+
+      DO 1 K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO 1 J=JL1,JL2
+            DO 1 I=IL1,IL2
+               IF (KEYOUT(I,J,K).EQ.1) THEN
+                  HO=GRAV*DEN(I,J,K,1)
+                  HW=GRAV*DEN(I,J,K,2)
+C COMPUTE POTENTIAL AND IF HEADOUT REQUESTED, DIVIDE IT BY GRAV AND DENSITY
+                  
+                     HEADW(I,J,K) = PWAT(I,J,K)-HW*DEPTH(I,J,K)
+                     HEADO(I,J,K) = POIL(I,J,K)-HO*DEPTH(I,J,K)
+
+C                     WRITE(*,*) I,J,K,POIL(I,J,K),HEADO(I,J,K),HO,
+C     &                    HEADO(I,J,K)/HO
+
+                  IF(HEADOUTW) THEN
+                     IF(HW.NE.0.D0)
+     &                    HEADW(I,J,K)= HEADW(I,J,K)/HW
+                  ENDIF
+                  IF(HEADOUTO) THEN
+                     IF(HO.NE.0.D0)
+     &                    HEADO(I,J,K)= HEADO(I,J,K)/HO
+                  ENDIF
+
+               ENDIF
+ 1          CONTINUE
+            
+      END
+
+
+
+
+

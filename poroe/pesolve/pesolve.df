@@ -1,0 +1,137 @@
+C PESOLVE.F
+
+C***********************************************************************
+      SUBROUTINE PESOLVE(NEWCOF,ITER,NERR)
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemodel.h'
+
+      INTEGER ITER,NERR
+      LOGICAL NEWCOF
+
+      INTEGER ITOT,KERR
+
+      IF(NERR.GT.0) RETURN
+
+      KERR=0
+      IF(NEWCOF) CALL PE_FACTOR(KERR)
+      
+      PE_ITER=0
+      IF(IESOLVE.EQ.0) THEN
+         CALL PEDIRECT(NEWCOF,KERR)
+      ELSE IF(IESOLVE.EQ.1) THEN
+         CALL PEPCG(KERR)
+      ELSE IF(IESOLVE.EQ.2) THEN
+         CALL PEBICGS(KERR)
+      ELSE IF(IESOLVE.EQ.3) THEN
+         CALL PELSOR(KERR)
+      ELSE IF(IESOLVE.EQ.4) THEN
+         CALL PECG(KERR)
+      ENDIF
+
+      NERR=NERR+KERR
+      PE_ITOT=PE_ITOT+PE_ITER
+      ITER=PE_ITER
+
+C     IF(IESOLVE.GT.0.AND.LEVELC) 
+C    &   WRITE(*,*) '# of itns = ',ITER,PE_ITOT
+          
+      END
+
+C**********************************************************************
+      SUBROUTINE PESOLVE_INIT(KERR)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemodel.h'
+
+      INTEGER KERR,N4,NDY,NDZ,NEQ,IARG(3)
+      EXTERNAL PEW_BJAC_SUBID
+
+      IF(KERR.GT.0) RETURN
+
+      PE_MEQ=NDIM_ELASTIC
+      PE_ITOT=0   
+      GO TO (1,2,3,4,5) IESOLVE+1
+      GO TO 5
+
+C DIRECT SOLVER
+       
+  1   N4 = PE_MEQ * PE_MEQ * MXBAND 
+      CALL ALCGEA ('EFACTOR ',2,N4,N_FACTOR,KERR)
+      N4=PE_MEQ*(PE_MEQ+1)/2
+      CALL ALCGEA ('EDINV ',2,N4,N_DINV,KERR)
+      GO TO 6
+
+C PCG SOLVER
+
+  2   CALL ALCGEA('PEPCG_R',2,PE_MEQ,N_R,KERR)
+      CALL ALCGEA('PEPCG_Z',2,PE_MEQ,N_Z,KERR)
+      CALL ALCGEA('PEPCG_P',2,PE_MEQ,N_P,KERR)
+      N_S1=0
+      IF(PESOLV2D.GT.0) CALL ALCGEA('PEPCG_S1',2,PE_MEQ,N_S1,KERR)
+      GO TO 6
+
+C BiCGS
+
+  3   CALL ALCGEA('BiCGS_R',2,PE_MEQ,N_R,KERR)
+      CALL ALCGEA('BiCGS_Z',2,PE_MEQ,N_Z,KERR)
+      CALL ALCGEA('BiCGS_P',2,PE_MEQ,N_P,KERR)
+      CALL ALCGEA('BiCGS_S',2,PE_MEQ,N_S,KERR)
+      CALL ALCGEA('BiCGS_T',2,PE_MEQ,N_T,KERR)
+      CALL ALCGEA('BiCGS_V',2,PE_MEQ,N_V,KERR)
+      CALL ALCGEA('BiCGS_S1',2,PE_MEQ,N_S1,KERR)
+      CALL ALCGEA('BiCGS_R1',2,PE_MEQ,N_R1,KERR)
+      GO TO 6
+
+C GAUSS-SEIDEL 
+ 
+  4   CALL ALCGEA('GS_R',2,PE_MEQ,N_R,KERR)
+      CALL ALCGEA('GS_Z',2,PE_MEQ,N_Z,KERR)
+      GO TO 6
+
+  5   CALL ALCGEA('CG_R',2,PE_MEQ,N_R,KERR)
+      CALL ALCGEA('CG_Z',2,PE_MEQ,N_Z,KERR)
+      CALL ALCGEA('CG_P',2,PE_MEQ,N_P,KERR)
+
+  6   CONTINUE
+
+      IF(PE_PREC.EQ.1) THEN
+         IF(NDDY.GT.1.OR.NDDZ.GT.1) THEN
+            CALL ALCDDA(NDDY,NDDZ,PE_MEQ,KERR)
+            CALL ALCGEA('PE_SID',4,0,N_SID,KERR)
+            IARG(1)=2
+            IARG(2)=N_KEYOUT_CR
+            IARG(3)=N_SID
+            CALL DDWORK(PEW_BJAC_SUBID,IARG)
+         ELSE
+            N4 = PE_MEQ * PE_MEQ * MXBAND
+            CALL ALCGEA ('EFACTOR ',2,N4,N_FACTOR,KERR)
+            N4=PE_MEQ*(PE_MEQ+1)/2
+            CALL ALCGEA ('EDINV ',2,N4,N_DINV,KERR)
+         ENDIF
+      ELSE IF(PE_PREC.EQ.3) THEN
+           CALL PE_ILU_SETUP(KERR)
+           CALL PNTVAR (ILU_NJOFFSET, N_NJOFFSET, KERR)
+           N4 = PE_MEQ * PE_MEQ * ILU_NJOFFSET 
+           CALL ALCGEA ('ILU_EFACTOR ',2,N4,N_FACTOR,KERR)
+           N4=PE_MEQ*(PE_MEQ+1)/2
+           CALL ALCGEA ('ILU_EDINV ',2,N4,N_DINV,KERR)
+      ELSE IF(PE_PREC.EQ.4) THEN
+           N4=PE_MEQ*(PE_MEQ+1)/2
+           CALL ALCGEA ('ILU_EDINV ',2,N4,N_DINV,KERR)
+      ENDIF
+     
+      IF(PESOLV2D.EQ.1) THEN
+         CALL ALCGEA2D(PE_MEQ,KERR)
+      ELSE IF(PESOLV2D.EQ.2) THEN
+         CALL PEMG_INIT(KERR)
+      ENDIF
+      
+      END
+C**********************************************************************
+C               END OF PESOLVE.DF
+C**********************************************************************

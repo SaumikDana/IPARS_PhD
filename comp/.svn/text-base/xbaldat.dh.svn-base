@@ -1,0 +1,53 @@
+C  XBALDAT.H - COMPOSITIONAL MODEL BALANCE AND NEWTONIAN ITERATION DATA
+
+C  CODE HISTORY:
+C  Rick Dean        6/26/01    Compositional Version
+
+C*********************************************************************
+
+      REAL*8 CURRENT($MXCOMP+1),RESIDM($MXCOMP+1),RESIDT($MXCOMP+1),
+     &       RESDMO($MXCOMP+1),FLUXOM($MXCOMP+1),PAVG,PVTOTL,
+     &       CVMPLL,CVMPLG,DSMAX_TARG,DSMAX,SAT_ERRMAX,SAT_ERRAVG,
+     &       CFL,IFIP($MXPHASE),FIP($MXPHASE),OVERSHT,DTVAL,OVERLMT
+      INTEGER NERRC,ISAT,JSAT,KSAT,NSAT,ISMAX,JSMAX,KSMAX,NSMAX,
+     &        ICFLMAX,JCFLMAX,KCFLMAX,NCFLMAX,ICFLCHK,NCPRT
+      LOGICAL KCONVG_SAT,NEWFLASH,NEWFLOW,NEWRESID,NEWPV,ONLY_COMP,
+     &        STEPCUT
+      CHARACTER*20 EXTPLL,EXTPLG
+
+      COMMON /XBALDAT/CURRENT,RESIDM,RESIDT,FLUXOM,RESDMO,SAT_ERRMAX,
+     &        SAT_ERRAVG,CVMPLL,CVMPLG,DSMAX,DSMAX_TARG,PAVG,PVTOTL,
+     &        IFIP,FIP,CFL,OVERSHT,DTVAL,OVERLMT,
+     &        NERRC,ISAT,JSAT,KSAT,NSAT,ISMAX,JSMAX,KSMAX,NSMAX,
+     &        ICFLMAX,JCFLMAX,KCFLMAX,NCFLMAX,ICFLCHK,NCPRT,
+     &        KCONVG_SAT,NEWFLASH,NEWFLOW,NEWRESID,NEWPV,ONLY_COMP,
+     &        STEPCUT
+      COMMON /XEXTDAT/EXTPLL,EXTPLG
+   
+C*********************************************************************
+
+C CURRENT(IC) - Total ic currently in the system, lbm (processor 0 only)
+C RESIDM(IC)  - Maximum ic residual, lbm 
+C RESDMO(IC)  - RESIDM() for previous newtonian iteration
+C RESIDT(IC)  - Total of ic residuals, lbm
+C NERRC       - Error flag passed from work routines
+C FLUXOM      - Instantaneous mass flux to other physical models
+C SAT_ERRMAX  - Max absolute error of saturation balance criterion
+C SAT_ERRAVG  - Avg absolute error of saturation balance criterion
+C KCONVG_SAT  - True, if saturation tolerance satisfied
+C NEWFLASH    - True, if new flash for cell properties
+C NEWFLOW     - True, if new flow coefficients for be calculated
+C NEWRESID    - True, if new residual to be calculated
+C NEWPV       - True, if pore volume to be calculated
+C ONLY_COMP   - True, if compositional is only active model
+C STEPCUT     - True, if current calc is at start of timestep cut
+C PAVG        - Average reservoir pressure
+C PVTOTL      - Total pore volume
+C IFIP        - Initial fluids in place
+C FIP         - Current fluids in place
+C ICFLCHK     - Indicator for stability check (ICFL=1 if check)
+C CFL         - Stability limit
+C NCPRT       - Number of components printed for material balance
+C OVERSHT     - Fractional overshoot for flux terms
+C DTVAL       - Stability limit on DELTIM at wells at start of each timestep
+C OVERLMT     - Overshoot limit on concentration when removing mass

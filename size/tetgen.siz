@@ -1,0 +1,17 @@
+$
+$  TETGEN for Tesselation
+$ 
+$  Saumik Dana Aug 2016
+$
+
+Replace_Symbols
+
+TETGEN   ""            $ TETGEN for Tesselation
+
+Source_Directory
+../memman/
+Source_Files
+
+tetcall.cpp      
+tetgen.cpp       
+predicates.cpp  

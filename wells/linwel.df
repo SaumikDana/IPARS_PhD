@@ -1,0 +1,366 @@
+C  LINWEL.DF - LINEAR SOLVER ROUTINES FOR IMPLICIT WELLS
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE DIAGWEL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,RESIDV)
+C  SUBROUTINE WELLSOR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,DUNK)
+C  SUBROUTINE WELLSCHUR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,DUNKV,RESIDV)
+C  SUBROUTINE ELMNWEL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,RESIDV)
+C  SUBROUTINE RCOVWEL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,DUNK,RESIDV)
+
+
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER      1/31/02    ALPHA CODE
+C  Yuri Vassilevski  5/8/02     SCHUR COMPLEMENT ROUTINES
+C*********************************************************************
+      SUBROUTINE DIAGWEL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,RESIDV)
+C*********************************************************************
+
+C  Diagonalize well equations such that QCOFN(2,IW)=0, DCOFN(1,IW)=0
+C  QCOFN(1,IW)=1 and DCOFN(2,IW)=1.
+C  Save the initial residuals of well grid elements.
+C  This is a work routine.
+
+C  RESIDV(I,J,K,L) = Residuals of grid-element primary variables
+C                    (INPUT, REAL*8)
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 DUB1,DUB2,DUB3,RESIDV(IDIM,JDIM,KDIM,*)
+
+      MEQ=NUMEQS(NBLK)
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+      DO 1 IW=1,NUMWEL
+      IF (LINSYSW(IW).EQ.0) GO TO 1
+
+CZZZZZZZ  MULTIPLE BLOCKS ???
+
+C  DIAGONALIZE
+
+      DUB1=DCOFN(1,IW)/QCOFN(1,IW)
+      DUB2=QCOFN(2,IW)/DCOFN(2,IW)
+      QCOFN(1,IW)=QCOFN(1,IW)-DUB2*DCOFN(1,IW)
+      DCOFN(2,IW)=DCOFN(2,IW)-DUB1*QCOFN(2,IW)
+      DUB3=QRESID(IW)
+      QRESID(IW)=QRESID(IW)-DUB2*DRESID(IW)
+      DRESID(IW)=DRESID(IW)-DUB1*DUB3
+      DO 2 L=1,NUMELE(IW)
+      DO 3 IV=1,MEQ
+      DUB3=QCOFW(IV,L,IW)
+      QCOFW(IV,L,IW)=QCOFW(IV,L,IW)-DUB2*DCOFW(IV,L,IW)
+    3 DCOFW(IV,L,IW)=DCOFW(IV,L,IW)-DUB1*DUB3
+    2 CONTINUE
+
+C  NORMALIZE
+
+      DUB1=1.D0/QCOFN(1,IW)
+      DUB2=1.D0/DCOFN(2,IW)
+      QRESID(IW)=DUB1*QRESID(IW)   !GXL ADD
+      DRESID(IW)=DUB2*DRESID(IW)   !GXL ADD
+      DO 4 L=1,NUMELE(IW)
+      DO 5 IV=1,MEQ
+      QCOFW(IV,L,IW)=DUB1*QCOFW(IV,L,IW)
+    5 DCOFW(IV,L,IW)=DUB2*DCOFW(IV,L,IW)
+    4 CONTINUE
+
+C  SAVE INITIAL RESIDUALS OF WELL GRID ELEMENTS
+
+      DO 6 L=1,NUMELE(IW)
+      IF (LOCWEL(6,L,IW).NE.MYPRC.OR.LOCWEL(1,L,IW).NE.NBLK) GO TO 6
+      I=LOCWEL(3,L,IW)-IOFF
+      J=LOCWEL(4,L,IW)-JOFF
+      K=LOCWEL(5,L,IW)-KOFF
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         DO 7 IV=1,MEQ
+    7       ELEDUM(IV,L,IW)=RESIDV(I,J,K,IV)
+      ENDIF
+    6 CONTINUE
+
+    1 CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE WELLSOR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,DUNKV,RESIDV)
+C*********************************************************************
+
+C  Applies SOR to well equations.  This is a work routine.
+
+C  DUNKV(I,J,K,L) = Changes in grid-element primary variables (INPUT, REAL*8)
+
+C  RESIDV(I,J,K,L) = Residuals of grid-element primary variables
+C                    (OUTPUT, REAL*8)
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 DUNKV(IDIM,JDIM,KDIM,*),RESIDV(IDIM,JDIM,KDIM,*),QR,DR,F,T
+      REAL*8 CHDEN,CHBHP,CHDENZ($MXWELL),CHBHPZ($MXWELL),RRDENM,RRBHPM
+      DATA ITMGL/-1/,CHDENZ/$MXWELL*0.D0/,CHBHPZ/$MXWELL*0.D0/
+
+      MEQ=NUMEQS(NBLK)
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+      IF (ITMG.EQ.1) THEN
+         F=FLSOR(1)
+      ELSE
+         F=FLSOR(2)
+      ENDIF
+      IF (ROBUST) F=1.D0
+
+C  APPLY LSOR TO THE WELL VARIABLES
+
+      RRDENM=0.D0
+      RRBHPM=0.D0
+      DO 1 IW=1,NUMWEL
+      IF (LINSYSW(IW).EQ.0) GO TO 1
+      QR=QRESID(IW)
+      DR=DRESID(IW)
+      DO 2 L=1,NUMELE(IW)
+      IF (LOCWEL(6,L,IW).NE.MYPRC.OR.LOCWEL(1,L,IW).NE.NBLK) GO TO 2
+      I=LOCWEL(3,L,IW)-IOFF
+      J=LOCWEL(4,L,IW)-JOFF
+      K=LOCWEL(5,L,IW)-KOFF
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         DO 3 IV=1,MEQ
+         QR=QR-QCOFW(IV,L,IW)*DUNKV(I,J,K,IV)
+    3    DR=DR-DCOFW(IV,L,IW)*DUNKV(I,J,K,IV)
+      ENDIF
+    2 CONTINUE
+      CHDEN=DR-DWELDEN(IW)
+      CHBHP=QR-DWELBHP(IW)
+      DWELBHP(IW)=DWELBHP(IW)+F*CHBHP
+      DWELDEN(IW)=DWELDEN(IW)+F*CHDEN
+
+C  CHECK WELL VARIABLE CONVERGENCE
+
+      IF (ITMG.NE.ITMGL) THEN
+         IF (ITMG.EQ.1) THEN
+            CHDENZ(IW)=ABS(CHDEN)+1.D-7
+            CHBHPZ(IW)=ABS(CHBHP)+.0005
+         ELSE
+            RRDEN=ABS(CHDEN/CHDENZ(IW))
+            IF (RRDEN.GT.RRDENM) RRDENM=RRDEN
+            RRBHP=ABS(CHBHP/CHBHPZ(IW))
+            IF (RRBHP.GT.RRBHPM) RRBHPM=RRBHP
+         ENDIF
+      ENDIF
+
+   1  CONTINUE
+
+      IF (ITMG.NE.ITMGL) THEN
+         T=TOLMG
+         IF (ITMG.GT.MAXMGI-3.AND.T.LT..1D0) T=.1D0
+         IF (RRDENM.LT.T.AND.RRBHPM.LT.T) THEN
+            KVGMGW=1
+         ELSE
+            KVGMGW=2
+         ENDIF
+      ENDIF
+
+      ITMGL=ITMG
+
+C  CORRECT ELEMENT RESIDUALS FOR CHANGES IN WELL VARIABLES
+
+      DO 10 IW=1,NUMWEL
+      IF (LINSYSW(IW).EQ.0) GO TO 10
+      DO 11 L=1,NUMELE(IW)
+      IF (LOCWEL(6,L,IW).NE.MYPRC.OR.LOCWEL(1,L,IW).NE.NBLK) GO TO 11
+      I=LOCWEL(3,L,IW)-IOFF
+      J=LOCWEL(4,L,IW)-JOFF
+      K=LOCWEL(5,L,IW)-KOFF
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         DO 12 IV=1,MEQ
+   12       RESIDV(I,J,K,IV)=ELEDUM(IV,L,IW)-VCOFQ(IV,L,IW)
+     &         *DWELBHP(IW)-VCOFD(IV,L,IW)*DWELDEN(IW)
+      ENDIF
+   11 CONTINUE
+   10 CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE WELLSCHUR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                   KL1,KL2,KEYOUT,NBLK,DUNKV,RESIDV)
+C*********************************************************************
+
+C  Adds to  grid vector evaluation the Schur complement due to well equations.
+C      RESIDV = RESIDV - A_gridwell A_wellgrid DUNKV
+C  This is a work routine.
+
+C  DUNKV(I,J,K,L) = Changes in grid-element primary variables (INPUT, REAL*8)
+
+C  RESIDV(I,J,K,L) = Residuals of grid-element primary variables
+C                    (OUTPUT, REAL*8)
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+
+      REAL*8 DUNKV(IDIM,JDIM,KDIM,*),RESIDV(IDIM,JDIM,KDIM,*)
+
+      REAL*8 WRKBHP($MXWELL),WRKDEN($MXWELL)
+
+      MEQ=NUMEQS(NBLK)
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  Multiply wrk = A_wellgrid by DUNKV
+
+      DO 1 IW=1,NUMWEL
+      IF (LINSYSW(IW).EQ.0) GO TO 1
+      WRKBHP(IW) = 0d0
+      WRKDEN(IW) = 0d0
+      DO 2 L=1,NUMELE(IW)
+      IF (LOCWEL(6,L,IW).NE.MYPRC.OR.LOCWEL(1,L,IW).NE.NBLK) GO TO 2
+      I=LOCWEL(3,L,IW)-IOFF
+      J=LOCWEL(4,L,IW)-JOFF
+      K=LOCWEL(5,L,IW)-KOFF
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         DO 3 IV=1,MEQ
+         WRKBHP(IW)=WRKBHP(IW)+QCOFW(IV,L,IW)*DUNKV(I,J,K,IV)
+    3    WRKDEN(IW)=WRKDEN(IW)+DCOFW(IV,L,IW)*DUNKV(I,J,K,IV)
+      ENDIF
+    2 CONTINUE
+
+CZZZZZ  NEED COMMUNICATIONS FOR WELLS SPANNING MULTIPLE PROCESSORS
+   1  CONTINUE
+
+C  CORRECT RESIDV = RESIDV - A_gridwell wrk
+
+      DO 10 IW=1,NUMWEL
+      IF (LINSYSW(IW).EQ.0) GO TO 10
+      DO 11 L=1,NUMELE(IW)
+      IF (LOCWEL(6,L,IW).NE.MYPRC.OR.LOCWEL(1,L,IW).NE.NBLK) GO TO 11
+      I=LOCWEL(3,L,IW)-IOFF
+      J=LOCWEL(4,L,IW)-JOFF
+      K=LOCWEL(5,L,IW)-KOFF
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         DO 12 IV=1,MEQ
+   12       RESIDV(I,J,K,IV)=RESIDV(I,J,K,IV)-VCOFQ(IV,L,IW)
+     &         *WRKBHP(IW)-VCOFD(IV,L,IW)*WRKDEN(IW)
+      ENDIF
+   11 CONTINUE
+   10 CONTINUE
+
+      END
+
+C*********************************************************************
+      SUBROUTINE ELMNWEL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,RESIDV)
+C*********************************************************************
+C  Has to be proceeded by DIAGWEL!
+C  Eliminate   well equations after they were diagonalized
+C  (i.e., QCOFN(2,IW)=0, DCOFN(1,IW)=0 QCOFN(1,IW)=1 and DCOFN(2,IW)=1)
+C  Modify the initial residuals RESIDV=RESIDV-A_gridwell WELRHS.
+C  Caution! The initial residuals of well grid elements are stored in
+C  ELEDUM by DIAGWEL.
+C  This is a work routine.
+
+C  RESIDV(I,J,K,L) = Residuals of grid-element primary variables
+C                    (INPUT, REAL*8)
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 DUB1,DUB2,DUB3,RESIDV(IDIM,JDIM,KDIM,*)
+
+      MEQ=NUMEQS(NBLK)
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  CORRECT RESIDV = RESIDV - A_gridwell WELRHS
+
+      DO 10 IW=1,NUMWEL
+      IF (LINSYSW(IW).EQ.0) GO TO 10
+      DO 11 L=1,NUMELE(IW)
+      IF (LOCWEL(6,L,IW).NE.MYPRC.OR.LOCWEL(1,L,IW).NE.NBLK) GO TO 11
+      I=LOCWEL(3,L,IW)-IOFF
+      J=LOCWEL(4,L,IW)-JOFF
+      K=LOCWEL(5,L,IW)-KOFF
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         DO 12 IV=1,MEQ
+   12       RESIDV(I,J,K,IV)=RESIDV(I,J,K,IV)-VCOFQ(IV,L,IW)
+     &         *QRESID(IW)-VCOFD(IV,L,IW)*DRESID(IW)
+      ENDIF
+   11 CONTINUE
+   10 CONTINUE
+
+      END
+
+C*********************************************************************
+      SUBROUTINE RCOVWEL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,DUNKV,RESIDV)
+C*********************************************************************
+
+C  Recovers the rhs (RESIDV<=ELEDUM) and solution
+C  (DWELBHP,DWELDEN = {Q,D}RESID - A_wellgrid DUNKV of the extended well system,
+C  from the Schur complement solution.  This is a work routine.
+
+C  DUNKV(I,J,K,L) = Changes in grid-element primary variables (INPUT, REAL*8)
+
+C  RESIDV(I,J,K,L) = Residuals of grid-element primary variables
+C                    (OUTPUT, REAL*8)
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 DUNKV(IDIM,JDIM,KDIM,*),RESIDV(IDIM,JDIM,KDIM,*),QR,DR
+
+      MEQ=NUMEQS(NBLK)
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+
+      DO 1 IW=1,NUMWEL
+      IF (LINSYSW(IW).EQ.0) GO TO 1
+      QR=QRESID(IW)
+      DR=DRESID(IW)
+      DO 2 L=1,NUMELE(IW)
+      IF (LOCWEL(6,L,IW).NE.MYPRC.OR.LOCWEL(1,L,IW).NE.NBLK) GO TO 2
+      I=LOCWEL(3,L,IW)-IOFF
+      J=LOCWEL(4,L,IW)-JOFF
+      K=LOCWEL(5,L,IW)-KOFF
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         DO 3 IV=1,MEQ
+         RESIDV(I,J,K,IV)=ELEDUM(IV,L,IW)
+         QR=QR-QCOFW(IV,L,IW)*DUNKV(I,J,K,IV)
+    3    DR=DR-DCOFW(IV,L,IW)*DUNKV(I,J,K,IV)
+      ENDIF
+    2 CONTINUE
+
+
+CZZZZZ  NEED COMMUNICATIONS FOR WELLS SPANNING MULTIPLE PROCESSORS
+      DWELBHP(IW)=QR
+      DWELDEN(IW)=DR
+   1  CONTINUE
+
+
+      END
+

@@ -1,0 +1,193 @@
+$ List of keywords/source code changes in compositional model
+
+$ Keywords:
+--------------
+
+OUT_1DTEMPR          -  Flag to include output of temperatures 
+                        in tecplot format when run as 1-d (for
+                        debugging)
+
+OUT_1DXCP            -  Flag to include output of isobaric 
+                        specific heats when run as 1-d (for 
+                        debugging)
+
+OUT_1DMDEN           -  Flag to include output of phase molar
+                        density when run as 1-d (for debugging)
+
+OUT_1DSAT            -  Flag to include output of phase saturations 
+                        when run as 1-d (for debugging)
+
+OUT_1DVEL            -  Flag to include output of phase velocity 
+                        when run as 1-d (for debugging)
+
+OUT_CO2LEAK          -  Flag to include output of leakage of CO2 
+                        from a specified cross section at a 
+                        specified column and block (used in 
+                        conjunction with ICO2OUT, JCO2OUT, KCO2OUT 
+                        and NCO2OUT)
+
+ICO2OUT              -  Index (corresponding to element depth) at 
+                        which the CO2 leakage is requested
+
+J(K)CO2OUT           -  J(,K) block-global index corresponding to the 
+                        column at which CO2 leakage is requested
+
+NCO2OUT              -  Fault block number in which CO2 leakage is 
+                        requested (defaults to 1) intended for multi-
+                        block
+
+OUT_CO2MOL           -  Flag to include output of molar distrib.
+                        of CO2 among the phases
+
+OUT_CO2DIST          -  Flag to include fractional distribution 
+                        (by mass) of CO2 among free, dissolved and 
+                        trapped conditions.
+
+HYSTERESIS           -  Flag to include hysteresis in non-aqueous 
+                        relative permeability and capillary 
+                        pressures
+
+AQPHSWTCH            -  Flag to be used in conjunction with 
+                        hysteresis 
+
+XDARCYFLUX           -  Flag to calculate Darcy fluxes as opposed to 
+                        Darcy velocity (defaults to false)
+
+XTHERMAL             -  Flag to include thermal spatial and temporal 
+                        variations using the thermal energy balance 
+                        model and adopting an operator-split (time-
+                        split) approach
+
+XNOTHCOND            -  Flag to ignore thermal conduction (defaults 
+                        to false) 
+
+XTHSOLVE             -  Flag to actually solve a linear system for the 
+                        thermal conduction (as opposed to an explicit 
+                        update)
+
+XNOFLXLMTR           -  Flag to use a first-order Godunov method 
+                        (one-point upstream weighting) for thermal 
+                        advection (defaults to false, i.e., a HOG 
+                        approach is assumed by default)
+
+XTPROPVAR            -  Flag to include variation of the coefficients 
+                        appearing in the thermal energy balance PDE 
+                        with temperature (in a quasi-Newton approach)
+
+XTHCFLCHK            -  Flag to ensure CFL stability checks are 
+                        performed when running thermal problem
+
+XHEATLOSS            -  Flag to include heatloss calculations to over- 
+                        and under-burden for the thermal energy balance 
+                        problem
+
+N_THERM_STEPS        -  Number of thermal time steps per flow step
+
+XTHLINSOL            -  Choice of linear solver for thermal conduction 
+                        1: GMRES   2: BCGS  3: PCG (not yet implemented)
+                        (active only if solved atleast implicitly in 
+                         part, defaults to 2)
+
+XTHSOLTHETA          -  Crank-Nicholson fraction (0 < XTHSOLTHETA < 1), 
+                        0: Explicit update 1: Fully-implicit 
+                        (defaults to 1)
+
+XFLXLMTRTYPE         -  Type of element slope calculation to be used 
+                        (0: Central Diff.,  1: Min-Mod,  2: Van Leer, 
+                         3: SuperBee, defaults to 0)
+
+XFLXLMTR             -  Actual value of slope limiter used (defaults 
+                        to 0.85 - only needed for type 0, for all 
+                        others 1.0 can be used)
+
+TEMPOB               -  Overburden temperature
+
+TEMPUB               -  Underburden temperature
+
+LAMBDAOB             -  Conductivity of overburden rock
+
+LAMBDAUB             -  Conductivity of underburden rock
+
+RHOOB                -  Density of overburden rock
+
+RHOUB                -  Density of underburden rock
+
+CVOB                 -  Isochoric specific heat of overburden rock
+
+CVUB                 -  Isochoric specific heat of underburden rock
+
+XRFOB                -  Reference depth of overburden temperature
+
+XRFUB                -  Reference depth of undeburden temperature
+
+DEPTHTGRAD           -  Temperature gradient with depth
+
+DBDINFTY             -  Depth to infinity in Vinsome-Westerveld model
+
+$ Arrays added (fortran array handle and array names):
+----------------------------------------------------------
+
+N_TEMPR,TEMPR        -  Reservoir temperature
+
+N_XVISC,XVISC        -  Phase viscosity
+
+N_XDMAT,XDMAT        -  Component diffusion matrix
+
+N_XTCP,XTCP          -  Reservoir heat capacity
+
+N_XVEL,XVEL          -  Phase velocities
+
+N_XHEAT,XHEAT        -  Reservoir 'heat content'
+
+N_XCVS,XCVS          -  Rock isochoric heat capacity
+
+N_XCVL,XCVL          -  Phase isochoric heat capacity
+
+N_XCPL,XCPL          -  Phase isobaric heat capacity
+
+N_XRHOS,XRHOS        -  Rock density
+
+N_XTCOND,XTCOND      -  Reservoir thermal conductivity
+
+N_XSLP,XSLP          -  Phase heat capacity slopes
+
+N_XTCOF,XTCOF        -  Thermal conduction stiffness matrix
+
+N_XTRESID,XTRES      -  Thermal conduction right-hand-side
+
+N_XTDUNK,XTDUNK      -  Thermal conduction solution
+
+N_SWMIN,SWMIN        -  Minimum aqueous phase saturation when 
+                        hysteresis is included
+
+N_SGT,SGATRP         -  Trapped gas saturation when hysteresis 
+                        is included
+
+$ Files added:
+-------------------
+
+xthermal.df          -  Thermal processing routines
+
+xthermal.dh          -  Common variables header
+
+xvisual.df           -  Visualization
+
+$ Files changed/modified/debugged:
+
+---------------------------------
+
+All to one extent or another. But broadly:
+
+xflash.df            -  Memory related and EVMFEM related bug-fixes
+                        and other utility functions 
+
+xprop.df             -  Hysteresis treatment
+
+xthermal.df          -  Thermal energy balance treatment
+
+xisdat.df            -  Scalar variable initialization
+
+xivdat.df            -  Problem initialization
+
+xwell.df             -  Well treatment mods w.r.t temperature and 
+                        bug-fixes

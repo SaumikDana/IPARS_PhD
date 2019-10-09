@@ -1,0 +1,317 @@
+C  TICAMA.F - LINK THE HYDROLOGY MODEL TO THE TICAMA LINEAR SOLVER
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE TICAMA (N_COF,N_DUNK,N_RESID,LIN)
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     5/01/98    PULLED CODE FROM HSTEP.F
+c mpesz	5/14/98 added nerr handling to report on sl_info from slblk
+c mpesz 8/4/98  added reading solver parameters from sol.h (these
+c     come from input file through a call to GETVAL), changed name to TICAMA
+c Qin Lu   5/27/99   Removed NUMEQ and added input variable NEQ so that
+c                    the solver may be used with arbitrary number of equations  
+C  YURI VASSILEVSKI 4/2/99     ADD PRECPREPINI IN CASE OF SEPARABLE PRESSURE
+C                              PRECONDITIONER, ADD IPRECPREP IN SLBLK()
+C  YURI VASSILEVSKI 4/2/00     ADD PRECONDITIONERS BASED ON KRYLOV METHODS  
+C                              AND TRUNCATED NEUMANN SERIES.
+C                              ADD SPARSE FACTORIZER (FOR RESEARCH)
+c
+c M. Peszynska, 6/19/01: added code to ensure that the solver is        
+c       initialized separately for the flow model(s) and separately
+c       for the diffusion/dispersion equation
+c   Also, added handling of LSOL_ABSFLAG enforcing abs. tolerance 
+c   (Lacroix''s suggestion).
+
+C*********************************************************************
+      SUBROUTINE GMRES (ITLN,NERR)
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INTEGER ITLN,MOD,NERR
+
+      MOD=MODEL
+$TRCHEM      IF(MODELON($TRMODEL)) MOD=FLOWMODEL
+$POROE      IF(MODELON($PEMODEL)) MOD=FLOWMODEL
+      CALL TICAMG(N_COFV(MOD),N_DUNKV(MOD),N_RESIDV(MOD),$NEWTEQS,
+     &            ITLN,NERR)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE TICAMG (N_COF,N_DUNK,N_RESID,NEQ,LIN,nerr)
+C*********************************************************************
+
+C  Hydrology model link to ticama linear solver
+
+C  N_DUNK  = GRID-ELEMENT ARRAY NUMBER FOR LINEAR SOLUTION (INPUT, INTEGER)
+
+C  N_COF  = GRID-ELEMENT ARRAY NUMBER FOR JACOBIAN COEFFICIENTS (INPUT, INTEGER)
+C           COF(I,J,K,N,L,M) ==> COEFFICIENT M OF EQUATION L
+
+C           7 POINT TEMPLATE ($NUMCOF=7)
+C           COF(I,J,K,1,L,M) ==> DIAGONAL
+C           COF(I,J,K,2,L,M) ==> X-
+C           COF(I,J,K,3,L,M) ==> X+
+C           COF(I,J,K,4,L,M) ==> Y-
+C           COF(I,J,K,5,L,M) ==> Y+
+C           COF(I,J,K,6,L,M) ==> Z-
+C           COF(I,J,K,7,L,M) ==> Z+
+
+C  N_RESID= GRID-ELEMENT ARRAY NUMBER FOR RESIDUALS (INPUT, INTEGER)
+C           RESID(I,J,K,N) ==> RESIDUAL OF EQUATION N
+
+C  NEQ    = NUMBER OF EQUATIONS
+
+C  LIN    = NUMBER OF LINEAR ITERATIONS (OUTPUT, INTEGER)
+C           FLAG OF THE FIRST NEWTON STEP (INPUT, INTEGER)
+
+C*********************************************************************
+c(mpesz) general solver parameters
+      implicit none
+      include 'sol.h'
+      include 'control.h'
+c GMRES specific constants
+      INCLUDE 'slblk.h'
+c SEPARABLE preconditioner data handle
+      include 'sprhandle.h'
+ 
+      INTEGER N_COF,N_RESID,N_DUNK
+
+      INTEGER SL_JSMAP(3,19)
+      INTEGER SL_NEV, SL_NS, SL_KTMP, SL_NBLK
+      INTEGER SL_SPEC( 4 )
+ 
+      integer nerr, lin, NEQ, MM, numary , c_model
+      INTEGER SL_INFO, SL_ITER, SL_ABSFLAG
+      REAL*4  SL_RES,SL_ARES
+      LOGICAL ONCEONLY($MXMOD)
+      DATA ONCEONLY /$MXMOD*.TRUE./ 
+      DATA SL_SPEC /0,0,0,0/
+
+c  (I,J,K) Offsets for the model''s particular stencil
+c  Defined up to a full cube, used as needed.
+
+      DATA SL_JSMAP /
+     >    0 ,  0 ,  0 ,
+     >   -1 ,  0 ,  0 ,
+     >    1 ,  0 ,  0 ,
+     >    0 , -1 ,  0 ,
+     >    0 ,  1 ,  0 ,
+     >    0 ,  0 , -1 ,
+     >    0 ,  0 ,  1 ,
+     >
+     >   -1 , -1 ,  0 ,
+     >    1 , -1 ,  0 ,
+     >   -1 ,  1 ,  0 ,
+     >    1 ,  1 ,  0 ,
+     >   -1 ,  0 , -1 ,
+     >    1 ,  0 , -1 ,
+     >    0 , -1 , -1 ,
+     >    0 ,  1 , -1 ,
+     >   -1 ,  0 ,  1 ,
+     >    1 ,  0 ,  1 ,
+     >    0 , -1 ,  1 ,
+     >    0 ,  1 ,  1 /
+
+cmpesz: for trchem
+$TRCHEM      integer nfrom_diff
+$TRCHEM      common /tmpstatus/ nfrom_diff
+$TRCHEM      include 'trmodel.h'
+
+c(mpesz)  Exit if entered with nonzero nerr
+
+      if (nerr.ne.0) return
+
+c  Solver initialization, or reinitilization if KEYOUT changes
+
+cmpesz: the construction below ensures that the solver is
+c       initialized separately for the flow model(s) and separately
+c       for the diffusion/dispersion equation
+
+      c_model = current_model
+$TRCHEM      if(nfrom_diff.eq.1) c_model= flowmodel
+$POROE       IF(MODELON($PEMODEL)) c_model = flowmodel
+
+      IF (ONCEONLY(c_model)) THEN
+         ONCEONLY(c_model) = .FALSE.
+
+c  Sizes and Update template
+
+         SL_NEV  = NEQ
+         SL_NS   = $NUMCOF
+         SL_NBLK = $MXBLKS
+         SL_KTMP = 1
+
+c---------------------------------------------------------------
+c  Reset linear solver if it is specified to be SAMG through input
+         if (.not.samg) then
+
+c---------------------------------------------------------------
+c  Solver default specification, GMRES with Restart = 20
+            SL_SPEC(1) = SL_SOL_GMRES
+            SL_SPEC(2) = 20
+c---------------------------------------------------------------
+c  In case of Krylov method preconditioned by the
+c  truncated Neumann series use FGMRES since the
+c  preconditioner is nonlinear
+            if (PREC.eq.5.or.PREC.eq.6.or.PREC.eq.7.or.PREC.eq.12) then
+               SL_SPEC(1) = SL_SOL_FGMRES
+            end if
+
+c  Default preconditioner is line SOR. 
+            SL_SPEC(3) = SL_PRE_LINESOR
+c---------------------------------------------------------------
+c  Pressure preconditioner, line Gauss-Seidel
+            if (PREC.eq.3) SL_SPEC(3) = SL_PRE_LINEGS
+c---------------------------------------------------------------
+c  Pressure preconditioner, line SOR. (It is called by default)
+            if (PREC.eq.4) SL_SPEC(3) = SL_PRE_LINESOR
+c---------------------------------------------------------------
+c  Pressure preconditioner,  TRUNCATED NEUMANN SERIES PCG. 
+            if (PREC.eq.5) SL_SPEC(3) = SL_PRE_NEUPCG
+c  Pressure preconditioner,  TRUNCATED NEUMANN SERIES PBCGS.
+            if (PREC.eq.6) SL_SPEC(3) = SL_PRE_NEUPBCGS
+c  Pressure preconditioner,  TRUNCATED NEUMANN SERIES GMRES.
+            if (PREC.eq.7) SL_SPEC(3) = SL_PRE_NEUGMRES
+c  Pressure preconditioner,  TRUNCATED NEUMANN SERIES.
+            if (PREC.eq.8) SL_SPEC(3) = SL_PRE_NEUSER
+c  Pressure preconditioner,  SEPARABLE. 
+            if (PREC.eq.10) then
+              SL_SPEC(3) = SL_PRE_SEPARABLE
+              IPRECPREP(2)=N_COF
+              IPRECPREP(3)=N_RESID
+            end if
+c  Pressure preconditioner,  SEPARABLE and GS smoother. 
+            if (PREC.eq.11) then
+              SL_SPEC(3) = SL_PRE_SEPAR_GS 
+              IPRECPREP(2)=N_COF
+              IPRECPREP(3)=N_RESID
+            end if
+c  Pressure preconditioner,  GS smoother and SEPARABLE 
+c                            based on ums (factorization). 
+            if (PREC.eq.12) then
+              SL_SPEC(3) = SL_PRE_SEPAR_UMS
+              IPRECPREP(2)=N_COF
+              IPRECPREP(3)=N_RESID
+            end if
+c  Pressure preconditioner,  TMG
+            if (PREC.eq.13) SL_SPEC(3) = SL_PRE_TMG
+c  Pressure preconditioner,  TMG AND LSOR
+            if (PREC.eq.14) SL_SPEC(3) = SL_PRE_TMG2
+c  Pressure preconditioner,  ALGEBRAIC MULTIGRID
+            if (PREC.eq.15) SL_SPEC(3) = SL_PRE_AMG
+c  Pressure preconditioner,  ALGEBRAIC MULTIGRID AND LSOR
+            if (PREC.eq.16) SL_SPEC(3) = SL_PRE_AMG2
+c  Pressure preconditioner,  SPARSE FACTORIZER. 
+            if (PREC.eq.17) SL_SPEC(3) = SL_PRE_FCTRZ
+c  Pressure & saturation preconditioner, SAMG for FIM
+            if (PREC.eq.18) SL_SPEC(3) = SL_PRE_FIM_AMG
+         else
+c----------------------------------------------------------------
+c SAMG solver
+            SL_SPEC(1) = SL_SOL_SAMG
+            SL_SPEC(2) = 0
+            SL_SPEC(3) = 0
+
+         endif
+c---------------------------------------------------------------
+         call SLIBLK(SL_NEV,SL_NS,SL_JSMAP,SL_KTMP,SL_NBLK,SL_SPEC)
+      ENDIF
+ 
+c the update call below may be unnecessary but we include it here 
+c "just in case"
+
+$MANY      CALL UPDATE(N_DUNK,2)
+$MANY      CALL UPDATE(N_COF,2)
+$MANY      CALL UPDATE(N_RESID,2)
+
+c  Residual ratio for convergence and iteration limit
+
+      SL_RES  = LSOL_TOL
+      SL_ITER = LSOL_ITMAX
+      SL_ARES = LSOL_ATOL
+      SL_ABSFLAG = LSOL_ABSFLAG     
+
+      IF (FORCING.ne.0.) SL_ARES = -FORCING
+
+      IF (LIN.eq.0) THEN
+        SL_INFO = -1
+      else
+        SL_INFO = 0
+      END IF
+      
+      CALL SLBLK( N_COF, N_RESID, N_DUNK, SL_RES, SL_ARES, SL_ITER, 
+     &     SL_ABSFLAG,
+     &     SL_INFO,IPRECPREP )
+    
+      LIN=SL_ITER
+      NERR = SL_INFO
+
+c the update call below may be unnecessary but we include it here 
+c "just in case"
+
+$MANY      CALL UPDATE(N_DUNK,2)	
+
+c report on the solver
+$MORTAR      IF(.NOT.LEVELB) goto 1212
+$MMODEL      IF(.NOT.LEVELB) goto 1212
+   
+      IF(LEVELC) THEN
+         IF (SL_SPEC(1) .EQ. SL_SOL_GMRES)
+     &       print *, '# of GMRES itns = ',SL_ITER,' res.err=',SL_RES
+         IF (SL_SPEC(1) .EQ. SL_SOL_SAMG)
+     &       print *, '# of SAMG itns = ',SL_ITER,' res.err=',SL_RES
+      ENDIF
+ 1212 CONTINUE
+
+C  SL_RES  is output as the resulting ratio
+C  SL_ITER is output as the actual number of iterations
+
+      END
+
+c----------------------------------------------------------------
+c mpesz: 
+c   This function
+c   is a wrapper of the original function get_currentmodel(). 
+c   This wrapper delivers values of currentmodel for all models without 
+c   TRCHEM and for models with TRCHEM it delivers:
+c   	* flowmodel number when solver is called from the flowmodel 
+c        * TRCHEM model number when solver is called for diffusion/disp.
+c-----------------------------------------------------------------
+
+      INTEGER FUNCTION GET_SOLVEMOD()
+      IMPLICIT NONE
+      INTEGER CMOD,GET_CURRENTMODEL
+
+cmpesz: for trchem
+$TRCHEM      integer nfrom_diff
+$TRCHEM      common /tmpstatus/ nfrom_diff
+$TRCHEM      include 'trmodel.h'
+$POROE       INCLUDE 'control.h'
+      
+      CMOD = GET_CURRENTMODEL()
+
+$TRCHEM      IF(NFROM_DIFF.EQ.0) CMOD=FLOWMODEL
+$POROE       IF(MODELON($PEMODEL)) CMOD = FLOWMODEL
+
+      GET_SOLVEMOD = CMOD
+
+      END
+C*********************************************************************
+      SUBROUTINE TICAMG_KILL ()
+C*********************************************************************
+      include 'sol.h'
+      include 'control.h'
+
+      INTEGER IERR
+      IF(PREC.EQ.15) THEN
+         CALL SAMG_LEAVE(IERR)
+      ENDIF
+
+     
+      END     

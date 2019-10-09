@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/repos/csm/!svn/ver/25/IPARSv3.1/output/tecplot
+END
+base1.lay
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/output/tecplot/base1.lay
+END
+tecux.mak
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/output/tecplot/tecux.mak
+END
+visgrid.df
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/repos/csm/!svn/ver/12/IPARSv3.1/output/tecplot/visgrid.df
+END
+vistab.df
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/output/tecplot/vistab.df
+END
+vistabc.h
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/output/tecplot/vistabc.h
+END
+base4.lay
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/output/tecplot/base4.lay
+END
+tecwell.f
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/output/tecplot/tecwell.f
+END
+base6.lay
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/output/tecplot/base6.lay
+END
+tecpc.mak
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/output/tecplot/tecpc.mak
+END
+tect3e.mak
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/repos/csm/!svn/ver/12/IPARSv3.1/output/tecplot/tect3e.mak
+END

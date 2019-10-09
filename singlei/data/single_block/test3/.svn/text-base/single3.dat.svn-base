@@ -1,0 +1,164 @@
+TITLE(2)="SINGLE_PHASE FLOW WITH BARRIER PERMS"
+
+DESCRIPTION()=
+"LENGTH (FT) : 400"
+"WIDTH (FT) : 400"
+"THICKNESS (FT) : 20"
+"GRID BLOCKS : 10X20X20   4000 GRID ELEMENTS"
+"DATE : 6/9/98"
+
+BLOCKMODEL(1) = "SINGLE_PHASE_IMPLICIT"
+
+$ I/O OPTIONS
+
+OUTLEVEL = 2  
+
+TIMEEND = 150.1
+
+$$$ model specific parameters
+FLCOMP = 4.2E-5
+
+$$$ initial conditions (oil/water implicit)
+
+PINIT = 500.  
+
+$$$ solver options (flow part), GMRES solver
+
+$GMRES_PREC = 15
+LSOL_TOL = 1.E-5
+N_GS_STEP = 5
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ FAULT BLOCK AND MESH DATA
+
+DOWN() = 1 0 0
+NX(1) = 10  NY(1) = 20  NZ(1) = 20
+DX() = 2.   DY() = 20.  DZ() = 20.
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ ROCK PROPERTIES
+
+$ POROSITY
+
+POROSITY1() = .2
+
+$ PERMEABILITIES
+
+XPERM1() = 200. 
+XPERM1(3,,) = 2000.
+XPERM1(6,,) = 1000.
+XPERM1(,8,1 TO 12) = 2.
+XPERM1(,12,8 TO 20) = 2.
+
+YPERM1() = 1000.
+YPERM1(3,,) = 10000.
+YPERM1(6,,) = 5000.
+YPERM1(,8,1 TO 12) = 10.
+YPERM1(,12,8 TO 20) = 10.
+
+ZPERM1() = 1000.
+ZPERM1(3,,) = 10000.
+ZPERM1(6,,) = 5000.
+ZPERM1(,8,1 TO 12) = 10.
+ZPERM1(,12,8 TO 20) = 10.
+
+$ RELATIVE PERMS
+
+KOSW(1) Block        $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .8
+  Derivative  0 At .8
+  Constraint  1 At  0
+  Nodes  .2  .58
+  Data  0.  1. , .1  .67 , .2  .46 , .4  .2 , .6  .055 , .7  .015 , .8  0
+EndBlock
+
+KWSW(1) Block        $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .15
+  Derivative  0 At .15
+  Constraint  1 At   1
+  Nodes  .55  .7  .75
+  Data  .15  0 , .3  .035 , .4  .085 , .6  .28 , .8  .776 , 1  1
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Spline3
+  Extrapolation Same
+  Nodes  .25  .4  .7  .9
+  Pole   .12
+  Data
+  .16   9. , .2   6.12 , .225 4.86 , .25  4.22 , .275 3.78 , .325 3.2
+  .375 2.74 , .45  2.28 , .55  1.94 , .65  1.74 , .75  1.61 , .85  1.54
+  .925 1.44 , .95  1.37 , .975 1.14 , 1.0  .7
+EndBlock
+
+NUMWELL=2
+
+WELLNAME(1) = "FIRST WELL"
+KINDWELL(1) = 1
+WELLTOP(1 TO 3,1,1) = 0. 2*10.
+WELLBOTTOM(1 TO 3,1,1) = 15. 2*10.
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  510.
+EndBlock
+
+WELLNAME(2) = "SECOND WELL"
+KINDWELL(2) = 31
+WELLTOP(1 TO 3,1,2) = 0. 390. 390.
+WELLBOTTOM(1 TO 3,1,2) = 20. 390. 390.
+WELLPQ(2) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  480.  30.  350.
+EndBlock
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+DELTIM = 0.005
+DTIMMUL = 1.0001
+DTIMMAX = 0.005  
+TIMOUT = 10.  
+DTIMOUT = 10.
+TIMRES = 9999.
+DTIMRES = 9999.
+CVTOL = .1E-6
+$ visualization paramaters
+VISOUT = 5. 
+DVISOUT = 5.
+VISFLAG = 3
+VIS_SCL = 2
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "FLDEN"
+VIS_NVEC = 1
+VIS_VEC_NAMES(1) = "VEL"
+VIS_FNAME = "SINGLE3_"
+EndTime
+
+BeginTime    40.
+TIMOUT = 50.  
+DTIMOUT = 20.  
+DTIMMAX = 3.
+FORMAT = TRUE  
+DVISOUT = 10.
+EndTime
+
+BeginTime    100.
+DTIMMAX = 6.  
+TIMOUT = 120.   
+DTIMOUT = 40.
+DVISOUT = 20.
+EndTime
+
+BeginTime    200.
+DTIMMAX = 10.
+EndTime
+
+BeginTime    365.25
+DTIMMAX = 15.  FORMAT = FALSE
+EndTime

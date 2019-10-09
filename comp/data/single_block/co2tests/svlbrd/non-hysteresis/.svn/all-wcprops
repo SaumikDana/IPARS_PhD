@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/175/IPARSv3.1/comp/data/single_block/co2tests/svlbrd/non-hysteresis
+END
+co2svlbd_misc1.dat
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/repos/csm/!svn/ver/163/IPARSv3.1/comp/data/single_block/co2tests/svlbrd/non-hysteresis/co2svlbd_misc1.dat
+END
+co2svlbd_misc1_fine.dat
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/repos/csm/!svn/ver/175/IPARSv3.1/comp/data/single_block/co2tests/svlbrd/non-hysteresis/co2svlbd_misc1_fine.dat
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/149/IPARSv3.1/comp/data/single_block/co2tests/svlbrd/non-hysteresis/IPARS.IN
+END
+svlbd-wells.dat
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/repos/csm/!svn/ver/149/IPARSv3.1/comp/data/single_block/co2tests/svlbrd/non-hysteresis/svlbd-wells.dat
+END
+svlbd-rock.dat
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/repos/csm/!svn/ver/149/IPARSv3.1/comp/data/single_block/co2tests/svlbrd/non-hysteresis/svlbd-rock.dat
+END

@@ -1,0 +1,420 @@
+C PEMULGRD.F - MULTIGRID PRECONDITIONER DRIVER ROUTINES
+C
+C ROUTINES IN THIS FILE:
+C     SUBROUTINE PEMG_INIT(NERR) 
+C     SUBROUTINE PEMG_DIVIDE(N0MAPMG,PRCMAPMG)
+C     SUBROUTINE PEMG_MATRIX2D(NERR)
+C     SUBROUTINE PE_MULGRD2D(B,X)
+C     SUBROUTINE PEMG_RELAX2D(MGL,MGDIR)
+C
+C CODE HISTORY:
+C     XIULI GAI  05/06/2002
+C     BY REFERENCE TO JOHN WHEELER'S MULTIGRID SOLVER
+C*********************************************************************
+      SUBROUTINE PEMG_INIT (NERR)
+C*********************************************************************
+C Initilization routine for multigrid preconditioner
+C 1. Set the number of multigrid levels
+C 2. Grid partition for multigrid processors
+C 3. Allocate grid element arrays on each multigrid level
+C 4. Initialize boundary conditions on each level
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemulgrd.h'
+
+      INTEGER IARG(2),NXC($MXPEMGL+1,$MXBLKS),
+     &        NYC($MXPEMGL+1,$MXBLKS),NZC($MXPEMGL+1,$MXBLKS),
+     &        PRCMAPMG($MXCOLS/4,$MXPEMGL),N0MAPMG($MXPEMGL,$MXBLKS)
+      REAL*8  DUB
+      EXTERNAL PEMG_GETLEV,PEMGW_SETUP,PEMGW_BDFACE
+    
+C  DETERMINE NUMBER OF MULTIGRID LEVELS
+
+      N=0
+      DO J=1,NUMBLK
+         CALL BLKDIM(J,NX,NY,NZ,KERR)
+         NYC(1,J)=(NY+1)/2
+         IF (NYC(1,J).LT.1) NYC(1,J)=1
+         NZC(1,J)=(NZ+1)/2
+         IF (NZC(1,J).LT.1) NZC(1,J)=1
+         N=N+NYC(1,J)*NZC(1,J)
+      ENDDO  
+     
+      MM=$MXPEMGL 
+      DO I=2,MM
+         N=0
+         DO J=1,NUMBLK
+            NYC(I,J)=(NYC(I-1,J)+1)/2
+            IF (NYC(I,J).LT.1) NYC(I,J)=1
+            NZC(I,J)=(NZC(I-1,J)+1)/2
+            IF (NZC(I,J).LT.1) NZC(I,J)=1
+            N=N+NYC(I,J)*NZC(I,J)
+            IF (N.LE.4) GO TO 1
+         ENDDO
+      ENDDO
+   1  MGL=I
+      IF(PEMGLEV.EQ.0) THEN
+         PEMGLEV = MGL
+      ELSE IF(PEMGLEV.GT.MGL) THEN
+         PEMGLEV=MGL
+         IF(LEVELC) THEN
+            WRITE(NFOUT,2) MGL
+            WRITE(*,*) " WARNING: PEMGLEV IS OUT OF RANGE AND SET TO ",
+     &                   MGL
+         ENDIF
+      ENDIF 
+   2  FORMAT(' WARNING: PEMGLEV IS OUT OF RANGE AND SET TO',I5)        
+      PEMGLEV=PEMGLEV-1
+   
+C ALLOCATE GRID FOR MULTIPLE PROCESSORS
+    
+      CALL PEMG_DIVIDE(N0MAPMG,PRCMAPMG)
+$MANY      CALL PEMGP_COMMI(N0MAPMG,PRCMAPMG,KERR)
+$MANY      CALL PEMGP_COMMIE(N0MAPMG,PRCMAPMG,KERR)
+      
+C ALLOCATE MULTIGRID ARRAYS
+
+      CALL PEALCMGA(PEMGLEV+1,PE_MEQ,PE_PREC,KERR)
+      IF (KERR.GT.0) THEN
+          NERR=NERR+1
+          IF(LEVELC) WRITE(NFOUT,5) KERR
+          WRITE (*,5) KERR
+  5       FORMAT(' PEERR #',I4,' PEMULGRD MEMORY ALLOCATION ERROR')   
+          RETURN
+      ENDIF
+ 
+c SETUP ELASTIC CONNECTIONS, 3D MAPS FOR EACH MULTIGRID LEVEL
+ 
+      DO I=1,PEMGLEV+1
+         CALL PEWORKMG3(PEMGW_SETUP,I)
+      ENDDO
+      
+C SETUP BOUNDAR FACES FOR EACH PROCESSOR
+    
+      DO J=1,NUMBLK
+         DO I=1,PEMGLEV+1
+            DO IFACE=1,6
+               IBD_FACEMG(IFACE,I,J)=.FALSE.
+            ENDDO
+            CALL PEWORKMG3(PEMGW_BDFACE,I)
+         ENDDO
+      ENDDO
+
+C TEMPORARILY MOVE MATRIX2D HERE TO MAKE NEW TEMPLATE FOR RESIDUAL
+
+C      IF(PESOLV2D.GT.0) CALL PE_MATRIX2D(KERR)
+C$MANY      CALL PEMG_COMMIER(N0MAPMG,PRCMAPMG,KERR)
+      
+      END
+
+C*********************************************************************
+      SUBROUTINE PEMG_DIVIDE(N0MAPMG,PRCMAPMG)
+C*********************************************************************
+C  Divides the grid elements among multiple processors on multiple
+C  levels.  Call this routine even though a single proccessor is used.
+C  This routine initiallizes the multigrid division, it should be
+C  called after calling DIVIDE; do NOT call it to do dynamic 
+C  load balancing. 
+C     
+C  N0MAPMG(MGL,NBLK) = BASE LOCATION FOR BLOCK NBLK IN PRCMAP ON 
+C                      EACH MULTIGRID LEVEL
+C  PRCMAPMG(M,MGL) = PROCESSOR ASSIGNMENTS FOR EACH GRID COLUMN IN EACH
+C                    BLOCK ON EACH MULTIGRID LEVEL. 
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER N,I,J,K,MGL,DUB,NFRE($MXPEMGL),
+     &        PRCMAPMG($MXCOLS/4,$MXPEMGL),N0MAPMG($MXPEMGL,$MXBLKS)
+
+C  SET GLOBAL COARSE GRID DIMENSION
+
+      DO I=1,PEMGLEV+1
+         NFRE(I)=1
+      ENDDO
+
+      DO N=1,NUMBLK
+         CALL BLKDIM (N,NX,NY,NZ,KERR)
+         PENXMG(1,N)=(NX+1)/2
+         PENYMG(1,N)=(NY+1)/2
+         PENZMG(1,N)=(NZ+1)/2
+         IF(PENXMG(1,N).LT.1) PENXMG(1,N)=1
+         IF(PENYMG(1,N).LT.1) PENYMG(1,N)=1
+         IF(PENZMG(1,N).LT.1) PENZMG(1,N)=1
+         MGL=1
+         CALL PEDEFBLKMG(PENXMG(1,N),PENYMG(1,N),PENZMG(1,N),MGL,N,KERR)
+ 
+         DO I=2,PEMGLEV+1
+            PENXMG(I,N)=(PENXMG(I-1,N)+1)/2
+            PENYMG(I,N)=(PENYMG(I-1,N)+1)/2
+            PENZMG(I,N)=(PENZMG(I-1,N)+1)/2  
+            IF(PENXMG(I,N).LT.1) PENXMG(I,N)=1
+            IF(PENYMG(I,N).LT.1) PENYMG(I,N)=1
+            IF(PENZMG(I,N).LT.1) PENZMG(I,N)=1
+            MGL=I
+            CALL PEDEFBLKMG(PENXMG(I,N),PENYMG(I,N),PENZMG(I,N),
+     &                      MGL,N,KERR)
+         ENDDO
+
+C SET N0MAPMG,PRCMAPMG
+
+         DO I=1,PEMGLEV+1
+            N0=NFRE(I)-PENYMG(I,N)-1
+            N0MAPMG(I,N)=N0
+            NFRE(I)=NFRE(I)+PENYMG(I,N)*PENZMG(I,N) 
+         ENDDO
+
+         N0F=N0MAP(N)
+         N0C=N0MAPMG(1,N)
+         DO K=1,NZ
+            NF = N0F + NY * K
+            KC = (K-1)/2 + 1
+            NC = N0C + PENYMG(1,N) * KC
+            KFB = KC * 2 - 1
+            DO J=1,NY
+              JC = (J-1)/2 + 1
+              JFB = JC * 2 - 1
+              IF(JFB.EQ.J.AND.KFB.EQ.K) PRCMAPMG(NC+JC,1)=PRCMAP(NF+J)
+            ENDDO
+         ENDDO
+
+         DO I=2,PEMGLEV+1
+            N0F=N0MAPMG(I-1,N)
+            N0C=N0MAPMG(I,N)
+            DO K=1,PENZMG(I-1,N)
+               NF = N0F + PENYMG(I-1,N) * K
+               KC = (K-1)/2 + 1
+               NC = N0C + PENYMG(I,N) * KC
+               KFB = KC * 2 - 1
+               DO J=1,PENYMG(I-1,N)
+                  JC = (J-1)/2 + 1
+                  JFB = JC * 2 - 1
+                  IF(JFB.EQ.J.AND.KFB.EQ.K)
+     &               PRCMAPMG(NC+JC,I)=PRCMAPMG(NF+J,I-1)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+
+   1  CONTINUE
+
+      DUB=-PEMGLEV
+$MANY      CALL MAXIT(1,DUB)
+$MANY      CALL SPREAD8(1,DUB)
+$MANY      PEMGLEV=-DUB+.1D0
+
+C DEFINT SUBGRIDS ON EACH PROCESSORS       
+
+      CALL PEDEFGRDMG(MYPRC,N0MAP,NYMAP,PRCMAP,N0MAPMG,PRCMAPMG,
+     &     PEMGLEV+1,PEIOFFMG,PEJOFFMG,PEKOFFMG,PE_PREC,KERR)
+     
+      END
+
+C*********************************************************************
+      SUBROUTINE PEMG_MATRIX2D(NERR)
+C*********************************************************************
+C Form coarse grid operators on each multigrid level
+C 
+C NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pemulgrd.h'
+
+      INTEGER NERR
+
+      INTEGER IARG(5)
+      EXTERNAL PEMGW_2DMATRIX0,PEMGW_2DMATRIX1,PEMGW_2DMATRIX2,
+     &         PEMGW_DISP2D
+$MANY      EXTERNAL PEMGWP_COFUPDE,PEMGWP_COFUPDG,PEMGWP_COFUPDG0,
+$MANY     &         PEMGWP_ZNODUPD,PEMGWP_ZNODUPDE
+
+C COARSEN FROM 3D TO 1ST 2D GRID                    
+
+      IARG(1)=4
+      IARG(2)=N_KEYOUT_CR
+      IARG(3)=N_ZERO_NODE
+      IARG(4)=N_EBEFORE
+      IARG(5)=N_EDIAG
+      CALL PEWORKMG0(PEMGW_2DMATRIX0,IARG)
+      CALL PEWORKMG1(PEMGW_2DMATRIX1)
+$MANY      CALL PEWORKMG3(PEMGWP_COFUPDE,1)
+      CALL PEWORKMG3(PEMGW_DISP2D,1)
+
+C DOWN LOOP OVER MULTIGRID LEVELS
+      
+      DO I=1,PEMGLEV
+         CALL PEWORKMG2(PEMGW_2DMATRIX2,I)
+$MANY      CALL PEWORKMG3(PEMGWP_COFUPDE,I+1)
+         CALL PEWORKMG3(PEMGW_DISP2D,I+1)
+      ENDDO
+      IARG(1)=0
+$MANY      CALL PEWORKMG0(PEMGWP_COFUPDG0,IARG)
+
+      DO I=1,PEMGLEV+1
+$MANY      CALL PEWORKMG3(PEMGWP_COFUPDG,I)
+           CALL PEWORKMG3(PEMGW_DISP2D,I)
+$MANY      CALL PEWORKMG3(PEMGWP_ZNODUPD,I)
+$MANY      CALL PEWORKMG3(PEMGWP_ZNODUPDE,I)
+      ENDDO
+      
+      END
+C*********************************************************************
+      SUBROUTINE PE_MULGRD2D(B,X)
+C*********************************************************************
+C Perform one iteration of multigrid preconditioner
+C 
+C INPUT:
+C   B = ARRAY NUMBER OF THE RIGHT HAND SIDES
+C   X = ARRAY NUMBER OF UNKNOWNS 
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pemulgrd.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER X,B
+      INTEGER  MGL,IARG(7)
+      EXTERNAL PEMGW_EUNKMG0,PEMGW_COARSEN1_FW2D,PEMGW_COARSEN2_FW2D,
+     &         PEMGW_REFINE1_PC2D,PEMGW_REFINE2_PC2D,PEMGW_DIRECT,
+     &         PEMGW_DISP_ZERO,PEMGW_DISP2D,PEMGW_COARSEN0_FW2D,
+     &         PEMGW_REFINE0_PC2D
+$MANY      EXTERNAL PEMGWP_RESUPDE,PEMGWP_DISPUPDE
+
+C COARSEN FROM 3D TO 2D GRID
+
+      IARG(2)=N_KEYOUT_CR
+      IARG(3)=N_ZERO_NODE
+      IARG(4)=N_EBEFORE
+      IARG(5)=N_EDIAG
+      IARG(6)=B
+      IARG(7)=X
+      IARG(1)=6
+      CALL PEWORKMG0(PEMGW_COARSEN0_FW2D,IARG)   
+c     CALL PEMG_RELAX2D(0,1)
+
+C COARSEN FROM 2D GRID TO FIRST LEVEL COARSE GRID
+
+      CALL PEWORKMG1(PEMGW_COARSEN1_FW2D)
+$MANY      CALL PEWORKMG3(PEMGWP_RESUPDE,1)
+      CALL PEWORKMG3(PEMGW_DISP_ZERO,1)
+
+C DOWN LOOP OVER MULTIGRID LEVEL: COARSEN AND RELAX
+  
+      DO MGL=1,PEMGLEV
+           CALL PEWORKMG3(PEMGW_EUNKMG0,MGL)
+           CALL PEMG_RELAX2D(MGL,1)      
+           CALL PEWORKMG2(PEMGW_COARSEN2_FW2D,MGL)
+$MANY      CALL PEWORKMG3(PEMGWP_RESUPDE,MGL+1)
+           CALL PEWORKMG3(PEMGW_DISP_ZERO,MGL+1)
+      ENDDO
+
+C APPLY RB GAUSS-SEIDEL RELAXATIONS TO THE COARSEST GRID
+
+      CALL PEWORKMG3(PEMGW_EUNKMG0,PEMGLEV+1)
+c     CALL PEWORKMG3(PEMGW_DIRECT,PEMGLEV+1)
+      CALL PEMG_RELAX2D(PEMGLEV+1,1)
+      CALL PEMG_RELAX2D(PEMGLEV+1,2)
+
+C UP LOOP OVER MULTIGRID LEVELS: REFINE AND SMOOTH
+
+      DO MGL=PEMGLEV,1,-1
+           CALL PEWORKMG2(PEMGW_REFINE2_PC2D,MGL)
+           CALL PEMG_RELAX2D(MGL,2)
+      ENDDO
+
+C REFINE FROM THE FIRST 2D COARSE GRID TO 2D GRID
+      
+      IARG(1)=3
+      IARG(2)=N_KEYOUT_CR
+      IARG(3)=N_ZERO_NODE
+      IARG(4)=X
+
+      CALL PEWORKMG1(PEMGW_REFINE1_PC2D)
+c     CALL PEMG_RELAX2D(0,2)
+
+C REFINE FROM 2D GRID TO 3D GRID
+ 
+      CALL PEWORKMG0(PEMGW_REFINE0_PC2D,IARG)
+
+      END
+C*********************************************************************
+      SUBROUTINE PEMG_RELAX2D(MGL,MGDIR)
+C*********************************************************************
+C RB Gauss-Seidel relaxation on multigrid levels
+C
+C MGL = MULTIGRID LEVEL
+C MGDIR = V CYCLE DIRECTION
+C       = 1 DOWN LOOP
+C       = 2 UP LOOP
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER MGL,MGDIR
+
+      INTEGER J,K,ITL,NP,IARG(1)
+      EXTERNAL PEMGW_RELAX2D0,PEMGW_RELAX2D
+$MANY      EXTERNAL PEMGWP_DISPUPDE,PEMGWP_R8UPD0,PEMGWP_DISPUPD
+
+      IF(MGL.EQ.0) THEN
+         NP=3
+      ELSE
+         NP=3
+      ENDIF
+      IARG(1)=0
+      IF(MGDIR.EQ.1) THEN
+         DO ITL=1,NP
+            DO K=1,0,-1
+               DO J=1,0,-1
+                  KRBK=K
+                  KRBJ=J
+                  IF(MGL.GT.0) THEN
+                     CALL PEWORKMG3(PEMGW_RELAX2D,MGL)
+$MANY                CALL PEWORKMG3(PEMGWP_DISPUPD,MGL)
+                  ELSE
+                     CALL PEWORKMG0(PEMGW_RELAX2D0,IARG)
+$MANY                CALL PEWORKMG0(PEMGWP_DISPUPD0,IARG)
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDDO
+      ELSE
+         DO ITL=1,NP
+            DO K=0,1
+               DO J=0,1
+                  KRBK=K
+                  KRBJ=J
+                  IF(MGL.GT.0) THEN
+                     CALL PEWORKMG3(PEMGW_RELAX2D,MGL)
+$MANY                CALL PEWORKMG3(PEMGWP_DISPUPD,MGL)
+                  ELSE
+                     CALL PEWORKMG0(PEMGW_RELAX2D0,IARG)
+$MANY                CALL PEWORKMG0(PEMGWP_DISPUPD,IARG)
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDDO
+
+      ENDIF
+$MANY      CALL PEWORKMG3(PEMGWP_DISPUPDE,MGL)
+
+      END
+C*********************************************************************
+C                END OF PEMULGRDW.DF
+C*********************************************************************

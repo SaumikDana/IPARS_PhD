@@ -1,0 +1,434 @@
+C  HTRAN.F - TRANSPORT EVALUATION FOR DIAGONAL TENSOR PERMEABILITY
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE HTRAN(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C     &                   KEYOUT,NBLK,POIL,PWAT,DDENS,
+C     &                   RELPRM,DPCSW,COF,RESID,KEYOUTCR,VOLPROP,
+C     &                   VOLDIM,FACEPROP,FACEDIM,PERMINV,XC,YC,ZC,
+C     &                   UPMOBPROD,AINVF,TRAN,AINV)
+
+C  SUBROUTINE HCOND(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C     &                   KEYOUT,NBLK,PV,DDENS,COIL,CWAT,COF,RESID,HCOF,
+C     &                   HRESID)
+
+C  SUBROUTINE HFLOW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C     &                 KEYOUT,NBLK,COF,RESID,DUNK,COIL,CWAT,
+C     &                 PV,CR,DELC)
+
+C  SUBROUTINE HUPCONC(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C     &                  KL1,KL2,KEYOUT,NBLK,COIL,CWAT,DELC,PV,PVOLD)
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     5/10/97    PORT ROUTINES FROM PIERS
+C  GURPREET SINGH   11/15      TWO PHASE IMPLICIT MFMFE
+
+C*********************************************************************
+      SUBROUTINE HTRAN(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,POIL,PWAT,DDENS,
+     &                   RELPRM,DPCSW,COF,RESID,KEYOUTCR,VOLPROP,
+     &                   VOLDIM,FACEPROP,FACEDIM,PERMINV,XC,YC,ZC,
+     &                   UPMOBPROD,AINVF,TRAN,AINV)
+C*********************************************************************
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DDENS(I,J,K,1) = OIL DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  DDENS(I,J,K,2) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  RELPRM(I,J,K,L) = RELATIVE PERMEABILITY DATA (INPUT, REAL*8)
+
+C  DPCSW(I,J,K) = DERIVATIVE OF Pc WRT Sw, PSI (INPUT, REAL*8)
+
+C  COF(I,J,K,27,L) = JACOBIAN COEFFICIENTS (INPUT AND OUTPUT, REAL*8)
+
+C  RESID(I,J,K,L)= RESIDUALS (INPUT AND OUTPUT, REAL*8)
+
+C  KEYOUTCR(IC,JC,KC) = CORNER POINT KEYOUT (INPUT, INTEGER)
+
+C  VOLPROP(IC,JC,KC) = VOLUMES AROUND A CR. PT. (INPUT, INTEGER)
+
+C  VOLDIM(IC,JC,KC) = NO. OF VOLUMES AROUND A CR. PT. (INPUT, INTEGER)
+
+C  FACEPROP(IC,JC,KC) = FACES AROUND A CR. PT (INPUT, INTEGER)
+
+C  FACEDIM(IC,JC,KC) = NO. OF FACES AROUND A CR. PT. (INPUT, INTEGER)
+
+C  PERMVINV(3,3,8,I,J,K) = (K^-1u,v) INNER PRODUCT FOR EIGHT CR. OF A 
+C                          CELL (I,J,K) (INPUT, REAL*8)
+
+C  XC,YC,ZC = CARTESIAN COORDINATES OF A CR. (INPUT, REAL*8)
+
+C  UPMOBPROD = UPWINDED PROD. OF MOB. RATIO * DENSITY (INPUT, REAL*8)
+
+C  AINVF (INPUT, REAL*8)
+
+C  TRAN (INPUT, REAL*8) 
+
+C  AINV (INPUT, REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'hfluids.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM),JL2V(KDIM)
+     &      ,KL1,KL2,NBLK,KEYOUT(IDIM,JDIM,KDIM)
+     &      ,KEYOUTCR(IDIM+1,JDIM+1,KDIM+1)
+     &      ,VOLPROP(IDIM+1,JDIM+1,KDIM+1,8)
+     &      ,VOLDIM(IDIM+1,JDIM+1,KDIM+1)
+     &      ,FACEPROP(IDIM+1,JDIM+1,KDIM+1,12)
+     &      ,FACEDIM(IDIM+1,JDIM+1,KDIM+1)
+      REAL*8 POIL(IDIM,JDIM,KDIM),PERMINV(3,3,8,IDIM,JDIM,KDIM)
+     &      ,PWAT(IDIM,JDIM,KDIM),DDENS(IDIM,JDIM,KDIM,2)
+     &      ,DPCSW(IDIM,JDIM,KDIM),RELPRM(IDIM,JDIM,KDIM,4)
+     &      ,RESID(IDIM,JDIM,KDIM,2),COF(IDIM,JDIM,KDIM,-13:13,2)
+     &      ,XC(IDIM+1,JDIM+1,KDIM+1),YC(IDIM+1,JDIM+1,KDIM+1)
+     &      ,ZC(IDIM+1,JDIM+1,KDIM+1)
+     &      ,AINVF(12,2,IDIM+1,JDIM+1,KDIM+1)
+     &      ,TRAN(12,8,IDIM+1,JDIM+1,KDIM+1)
+     &      ,AINV(12,12,IDIM+1,JDIM+1,KDIM+1)
+     &      ,UPMOBPROD(IDIM,JDIM,KDIM,3,2)
+
+ 
+      INTEGER I,J,K,JL1,JL2,IL2P,VPROP(8),FPROP(12),
+     &        M,KR,IPH,IERR
+ 
+C  LOCAL DUMMY VARIABLES FOR MPFA SUBROUTINES    
+      REAL*8  PCN(8,2),PN(8),RHON(8,2)
+      INTEGER NC,NPH,NCINPH,ICINPH($MXCOMP+1,$MXPHASE)
+
+      REAL*8, ALLOCATABLE :: PC(:,:,:)
+      
+      ALLOCATE (PC(IDIM,JDIM,KDIM),STAT=IERR)
+      IF (IERR.NE.0) STOP 'Could not allocate PC'
+
+      PC = PWAT - POIL
+      
+C IPH = 1 (OIL) , 2 (WATER)
+
+      NC = 2
+      NPH = 2
+      NCINPH = 2
+      ICINPH = 0
+      DO I = 1,NPH
+         ICINPH(I,I) = I
+      ENDDO
+      PCN = 0.D0
+
+      DO K = KL1,KL2+1
+      DO J = 1,JDIM+1
+      DO I = IL1,IL2+1
+
+        KR = KEYOUTCR(I,J,K)
+
+        IF ((KR==1).OR.(KR==2)) THEN
+
+          DO M = 1,8
+             VPROP(M) = VOLPROP(I,J,K,M)
+          ENDDO
+
+          DO M = 1,12
+             FPROP(M) = FACEPROP(I,J,K,M)
+          ENDDO
+
+          CALL GETCORNERLOCAL(PN,I,J,K,POIL,IDIM,JDIM,KDIM,VPROP)
+          CALL GETCORNERLOCAL(PCN(1,2),I,J,K,PC,IDIM,JDIM,KDIM,VPROP)
+          
+          DO IPH = 1,NPH
+             CALL GETCORNERLOCAL(RHON(1,IPH),I,J,K,DDENS(1,1,1,IPH),
+     &                           IDIM,JDIM,KDIM,VPROP)
+          ENDDO
+          CALL GETMATRHS(COF,RESID,TRAN(1,1,I,J,K),
+     &                   AINV(1,1,I,J,K),AINVF(1,1,I,J,K),
+     &                   I,J,K,PN,PCN,RHON,PERMINV,
+     &                   VOLDIM(I,J,K),VPROP,
+     &                   FACEDIM(I,J,K),FPROP,IDIM,JDIM,
+     &                   KDIM,XC,YC,ZC,NBLK,UPMOBPROD,
+     &                   NC,NPH,NCINPH,ICINPH)
+       
+        ENDIF    
+      ENDDO
+      ENDDO
+      ENDDO
+
+      DEALLOCATE(PC)
+
+      RETURN
+      END
+
+
+C*********************************************************************
+      SUBROUTINE HCOND(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,PV,DDENS,COIL,CWAT,COF,RESID,HCOF,
+     &                   HRESID)
+C*********************************************************************
+      IMPLICIT NONE
+
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM),JL2V(KDIM),KL1,
+     &        KL2,KEYOUT(IDIM,JDIM,KDIM),NBLK
+
+      REAL*8  HRESID(IDIM,JDIM,KDIM),HCOF(IDIM,JDIM,KDIM,-13:13),
+     &        RESID(IDIM,JDIM,KDIM,2),COF(IDIM,JDIM,KDIM,-13:13,2),
+     &        PV(IDIM,JDIM,KDIM),COIL(IDIM,JDIM,KDIM),
+     &        CWAT(IDIM,JDIM,KDIM),DDENS(IDIM,JDIM,KDIM,2)
+      
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,L,IPH,JL1(KDIM),JL2(KDIM),KL2P,IL2P
+      INTEGER MAPPING,M,NPH,IERR
+
+      REAL*8, ALLOCATABLE :: SCAL(:,:,:,:)
+
+      ALLOCATE(SCAL(IDIM,JDIM,KDIM,2),STAT=IERR)
+      IF (IERR.NE.0) STOP 'Could not allocate SCAL'
+       
+C
+C IPH = 1 (OIL), 2 (WATER)
+C
+      NPH = 2
+
+C------initialize HRESID, HCOF and SCAL
+      HCOF = 0.D0
+      HRESID = 0.D0
+      SCAL = 0.D0
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XCOND, OLD TAG =',MSGTAG(2+1)
+      IL2P=IL2+1
+      KL2P=KL2+1
+
+C-------set up JL1 and JL2 vectors
+      JL1(KL1)=JL1V(KL1)
+      JL2(KL1)=JL2V(KL1)
+      DO K = KL1+1,KL2
+         JL1(K)=MIN(JL1V(K-1),JL1V(K))
+         JL2(K)=MAX(JL2V(K-1),JL2V(K))
+      END DO
+      JL1(KL2P)=JL1V(KL2)
+      JL2(KL2P)=JL2V(KL2)
+
+C-------scale dstdn by pv, use hresid for storage
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+         IF(KEYOUT(I,J,K) > 0) THEN
+            HRESID(I,J,K) = 1.D0
+            DO IPH = 1,NPH
+            SCAL(I,J,K,IPH) = 1/(DDENS(I,J,K,IPH)*PV(I,J,K))
+            ENDDO
+         ENDIF
+      END DO
+      END DO
+      END DO
+
+C     HRESID = (1-SWAT-SOIL)
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)+1
+      DO I = IL1,IL2+1
+         IF (KEYOUT(I,J,K)>0) THEN
+            HRESID(I,J,K) = HRESID(I,J,K)
+     &                      -COIL(I,J,K)/DDENS(I,J,K,1)
+     &                      -CWAT(I,J,K)/DDENS(I,J,K,2)
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+
+C-------process phases
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2P
+         IF(KEYOUT(I,J,K) > 0) THEN
+            DO IPH =1,NPH
+                HRESID(I,J,K) = HRESID(I,J,K)
+     &                        + SCAL(I,J,K,IPH)*RESID(I,J,K,IPH)
+            DO M = -13,13
+                HCOF(I,J,K,M) = HCOF(I,J,K,M) - SCAL(I,J,K,IPH)
+     &                          *COF(I,J,K,M,IPH)
+            ENDDO
+            ENDDO
+         ENDIF
+      END DO
+      END DO
+      END DO
+
+      DEALLOCATE(SCAL)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE HFLOW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                 KEYOUT,NBLK,COF,RESID,DUNK,COIL,CWAT,
+     &                 PV,CR,DELC)
+C*********************************************************************
+
+C Calculates mass flux correction for cells from pressure changes
+
+C  INPUT:
+C     RESID(I,J,K,L) = RESIDUAL FOR RIGHT HAND SIDE (REAL*8)
+C     COF(I,J,K,L) =  FLOW COEFFICIENT FOR P(I,J,K)
+C                     IN (I,J,K,-13:13,L) PHASE MASS CONSERVATION 
+C                     EQUATIONS (REAL*8)
+C     COIL(I,J,K) = OIL CONCENTRATION (REAL*8)
+C     CWAT(I,J,K) = WATER CONCENTRATION (REAL*8)
+C     PV(I,J,K) = PORE VOLUME (CU-FT) (REAL*8)
+C     CR(I,J,K) = CR X PV0E (CU-FT) (REAL*8)
+C     DUNK(I,J,K,1) = PRESSURE CHANGE (REAL*8)
+
+C  OUTPUT:
+C     DELC(I,J,K,L) = CHANGE IN PHASE CONCENTRATION (REAL*8)
+C     L = 1 (OIL), 2 (WATER)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'hfluids.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM,
+     &        JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 DUNK(IDIM,JDIM,KDIM),RESID(IDIM,JDIM,KDIM,2),
+     &       COF(IDIM,JDIM,KDIM,-13:13,2),COIL(IDIM,JDIM,KDIM),
+     &       CWAT(IDIM,JDIM,KDIM),PV(IDIM,JDIM,KDIM),
+     &       DELC(IDIM,JDIM,KDIM,2),CR(IDIM,JDIM,KDIM)
+
+C-----Local Variables
+      INTEGER I,J,K,IPH,NPH
+      INTEGER MAP(3,-13:13),I1,J1,K1,M,MAPPING
+      DATA MAP /0, 0, 0, -1, 0, 0, 1, 0, 0,
+     &    0, -1, 0, 0, 1, 0, 0, 0, -1,
+     &    0, 0, 1, -1, -1, 0, 1, -1, 0,
+     &   -1, 1, 0, 1, 1, 0, -1, 0, -1,
+     &    1, 0, -1, 0, -1, -1, 0, 1, -1,
+     &   -1, 0, 1, 1, 0, 1, 0, -1, 1,
+     &    0, 1, 1, -1, -1, -1, 1, -1, -1,
+     &   -1, 1, -1, 1, 1, -1, -1, -1, 1,
+     &    1, -1, 1, -1, 1, 1, 1, 1, 1/
+
+      REAL*8 X
+
+      NPH = 2
+
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+        IF (KEYOUT(I,J,K)>0) THEN
+          DELC(I,J,K,1) =-RESID(I,J,K,1)-(COF(I,J,K,MAPPING(0),1)
+     &                      -(CR(I,J,K)+OILCMP*PV(I,J,K))*COIL(I,J,K)
+     &                       )*DUNK(I,J,K)
+          DELC(I,J,K,2) =-RESID(I,J,K,2)-(COF(I,J,K,MAPPING(0),2)
+     &                      -(CR(I,J,K)+WATCMP*PV(I,J,K))*CWAT(I,J,K)
+     &                      )*DUNK(I,J,K)
+          DO M = -13,13
+            IF (M/=MAPPING(0)) THEN
+             I1 = I + MAP(1,M)
+             J1 = J + MAP(2,M)
+             K1 = K + MAP(3,M)
+             IF (KEYOUT(I1,J1,K1)==1.OR.KEYOUT(I1,J1,K1)==-1)THEN
+                DO IPH = 1,NPH
+                   X = COF(I,J,K,M,IPH)
+                   DELC(I,J,K,IPH) = DELC(I,J,K,IPH)
+     &                               -X*DUNK(I1,J1,K1)
+                ENDDO
+             ENDIF
+            ENDIF 
+          ENDDO
+        ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE HUPCONC(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,COIL,CWAT,DELC,PV,PVOLD)
+C*********************************************************************
+
+C  Updates phase concentrations for cells.
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,
+     &        JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 COIL(IDIM,JDIM,KDIM),DELC(IDIM,JDIM,KDIM,2),
+     &       PVOLD(IDIM,JDIM,KDIM),PV(IDIM,JDIM,KDIM),
+     &       CWAT(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,NPH,IPH
+      REAL*8 X,Y
+
+      NPH = 2
+
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+         IF(KEYOUT(I,J,K) > 0) THEN
+C-----Update oil concentration
+            X = COIL(I,J,K)
+            Y = 1.D0/PV(I,J,K)*(DELC(I,J,K,1)+X*PVOLD(I,J,K))
+            COIL(I,J,K) = Y
+            DELC(I,J,K,1) = COIL(I,J,K) - X
+C-----Update water concentration
+            X = CWAT(I,J,K)
+            Y = 1.D0/PV(I,J,K)*(DELC(I,J,K,2)+X*PVOLD(I,J,K))
+            CWAT(I,J,K) = Y
+            DELC(I,J,K,2) = CWAT(I,J,K) - X
+         ENDIF
+      END DO
+      END DO
+      END DO
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE HSCAL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,COIL,CWAT,FLAG)
+C*********************************************************************
+
+C  Checks for overshoot on concentrations.
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+      IMPLICIT NONE
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,
+     &        JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 COIL(IDIM,JDIM,KDIM),CWAT(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,FLAG
+      FLAG = 0
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+         IF(KEYOUT(I,J,K) > 0) THEN
+           IF (COIL(I,J,K)<0.D0.OR.CWAT(I,J,K)<0.D0) THEN
+              FLAG = 1
+              RETURN
+           ENDIF
+         ENDIF
+      END DO
+      END DO
+      END DO
+
+      RETURN
+      END

@@ -1,0 +1,709 @@
+!*********************************************************************
+! Module and Subroutines for IPARS-dealii coupling
+! Ben Ganis
+! 1/27/17
+!*********************************************************************
+
+      MODULE dealiimod
+      IMPLICIT NONE
+      SAVE
+
+      REAL*8  :: XLOW(3),XHIGH(3)
+      INTEGER :: NDIM,NCOARSE(3),NLEV,NELE
+      INTEGER, ALLOCATABLE :: GRID(:,:)
+      INTEGER :: N_D2PERM,N_D2PRES
+ 
+      END MODULE dealiimod
+
+C*********************************************************************
+      SUBROUTINE D2TOKEYOUT(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &     KL2,KEYOUT,NBLK)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER E,I,J,K,IOFF,JOFF,KOFF,IERR
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+
+      KEYOUT=0
+      DO E=1,NELE
+        IF (GRID(4,E).NE.NBLK) CYCLE
+        I=GRID(1,E)-IOFF
+        J=GRID(2,E)-JOFF
+        K=GRID(3,E)-KOFF
+        IF ((I.LT.1).OR.(I.GT.IDIM)) CYCLE
+        IF ((J.LT.1).OR.(J.GT.JDIM)) CYCLE
+        IF ((K.LT.1).OR.(K.GT.KDIM)) CYCLE
+        KEYOUT(I,J,K)=1
+      ENDDO
+
+      END SUBROUTINE D2TOKEYOUT
+
+C*********************************************************************
+      SUBROUTINE IPARS_SENDPRES(NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'tarydat.h'
+      INTEGER NERR
+      EXTERNAL D2TOPRES
+
+      CALL CALLWORK(D2TOPRES,[2,N_D2PRES,N_PRES])
+      CALL UPDATE(N_PRES,1)
+
+      END SUBROUTINE IPARS_SENDPRES
+
+C*********************************************************************
+      SUBROUTINE D2TOPRES(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &     KL2,KEYOUT,NBLK,D2PRES,PRES)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  D2PRES(NELE)
+      REAL*8  PRES(IDIM,JDIM,KDIM)
+      INTEGER E,I,J,K,IOFF,JOFF,KOFF,IERR
+      REAL*8  CV
+
+      IF (CONV_FACTOR.EQ.1.D0) THEN
+        CV = 1.D0
+      ELSE
+        CV = 1.D0/6894.75729D0  ! Pa to psi
+      ENDIF
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+
+      DO E=1,NELE
+        IF (GRID(4,E).NE.NBLK) CYCLE
+        I=GRID(1,E)-IOFF
+        J=GRID(2,E)-JOFF
+        K=GRID(3,E)-KOFF
+        IF ((I.LT.1).OR.(I.GT.IDIM)) CYCLE
+        IF ((J.LT.1).OR.(J.GT.JDIM)) CYCLE
+        IF ((K.LT.1).OR.(K.GT.KDIM)) CYCLE
+        PRES(I,J,K)=D2PRES(E)*CV
+      ENDDO
+
+      END SUBROUTINE D2TOPRES
+
+C*********************************************************************
+      SUBROUTINE IPARS_RECVPRES(NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'tarydat.h'
+      INTEGER NERR
+      EXTERNAL PRESTOD2
+
+      CALL CALLWORK(PRESTOD2,[2,N_D2PRES,N_PRES])
+
+      END SUBROUTINE IPARS_RECVPRES
+
+C*********************************************************************
+      SUBROUTINE PRESTOD2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &     KL2,KEYOUT,NBLK,D2PRES,PRES)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  D2PRES(NELE)
+      REAL*8  PRES(IDIM,JDIM,KDIM)
+      INTEGER E,I,J,K,IOFF,JOFF,KOFF,IERR
+      REAL*8  CV
+
+      IF (CONV_FACTOR.EQ.1.D0) THEN
+        CV = 1.D0
+      ELSE
+        CV = 6894.75729D0  ! psi to Pa
+      ENDIF
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+
+      DO E=1,NELE
+        IF (GRID(4,E).NE.NBLK) CYCLE
+        I=GRID(1,E)-IOFF
+        J=GRID(2,E)-JOFF
+        K=GRID(3,E)-KOFF
+        IF ((I.LT.1).OR.(I.GT.IDIM)) CYCLE
+        IF ((J.LT.1).OR.(J.GT.JDIM)) CYCLE
+        IF ((K.LT.1).OR.(K.GT.KDIM)) CYCLE
+        D2PRES(E)=PRES(I,J,K)*CV
+      ENDDO
+
+      END SUBROUTINE PRESTOD2
+
+C*********************************************************************
+      SUBROUTINE IPARS_SENDPERM(NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'tarydat.h'
+      INTEGER NERR
+      EXTERNAL D2TOPERM,TRANC1
+$MPFA      EXTERNAL TRANC2
+
+      CALL CALLWORK(D2TOPERM,[4,N_D2PERM,N_XPERM,N_YPERM,N_ZPERM])
+
+      CALL UPDATE(N_XPERM,1)
+      CALL UPDATE(N_YPERM,1)
+      CALL UPDATE(N_ZPERM,1)
+
+      IF (KNDGRD.EQ.1) THEN
+        CALL CALLWORK(TRANC1,[6,N_TCOFX,N_TCOFY,N_TCOFZ,N_XPERM,
+     &    N_YPERM,N_ZPERM])
+      ELSEIF (KNDGRD.EQ.3) THEN
+$MPFA        CALL CALLWORK(TRANC2,[9,N_TCOFX,N_TCOFY,N_TCOFZ,N_XPERM,
+$MPFA     &    N_YPERM,N_ZPERM,N_XC,N_YC,N_ZC])
+      ENDIF
+      CALL IFTRAN()
+
+      END SUBROUTINE IPARS_SENDPERM
+
+C*********************************************************************
+      SUBROUTINE D2TOPERM(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &     KL2,KEYOUT,NBLK,D2PERM,XPERM,YPERM,ZPERM)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  D2PERM(NELE)
+      REAL*4  XPERM(IDIM,JDIM,KDIM),YPERM(IDIM,JDIM,KDIM),
+     &        ZPERM(IDIM,JDIM,KDIM)
+      INTEGER E,I,J,K,IOFF,JOFF,KOFF,IERR
+      REAL*8  CV
+
+      IF (CONV_FACTOR.EQ.1.D0) THEN
+        CV = 1.D0
+      ELSE
+        CV = 1.0132499658281449D15  ! M2 to MD
+      ENDIF
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+
+      DO E=1,NELE
+        IF (GRID(4,E).NE.NBLK) CYCLE
+        I=GRID(1,E)-IOFF
+        J=GRID(2,E)-JOFF
+        K=GRID(3,E)-KOFF
+        IF ((I.LT.1).OR.(I.GT.IDIM)) CYCLE
+        IF ((J.LT.1).OR.(J.GT.JDIM)) CYCLE
+        IF ((K.LT.1).OR.(K.GT.KDIM)) CYCLE
+        XPERM(I,J,K)=D2PERM(E)*CV
+        YPERM(I,J,K)=XPERM(I,J,K)
+        ZPERM(I,J,K)=XPERM(I,J,K)
+      ENDDO
+
+      END SUBROUTINE D2TOPERM
+
+C*********************************************************************
+      SUBROUTINE IPARS_SENDGRID(XLOW1,XHIGH1,NDIM1,NCOARSE1,NLEV1,
+     &  NELE1,GRID1,ADAPT1,NERR)
+C*********************************************************************
+      USE adaptmod
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      REAL*8 XLOW1(3),XHIGH1(3)
+      INTEGER NDIM1,NCOARSE1(3),NLEV1,NELE1,GRID1(4*NELE1),ADAPT1,NERR
+      INTEGER I,J,K
+
+      XLOW=XLOW1
+      XHIGH=XHIGH1
+      NDIM=NDIM1
+      NCOARSE=NCOARSE1
+      NLEV=NLEV1
+      NELE=NELE1
+
+      NLEVA=NLEV1        ! Make these available in adaptmod, as well
+      NDIMA=NDIM1
+      
+      ALLOCATE(GRID(4,NELE),STAT=NERR)
+      IF (NERR.NE.0) CALL KILL_IPARS('Could not allocate GRID')
+      K=0
+      DO J=1,NELE
+      DO I=1,4
+         K=K+1
+         GRID(I,J)=GRID1(K)
+      ENDDO
+      ENDDO
+
+      IF (ADAPT1.EQ.0) THEN
+        ADAPTIVITY = .FALSE.
+      ELSE
+        ADAPTIVITY = .TRUE.
+      ENDIF
+
+      END SUBROUTINE IPARS_SENDGRID
+
+C*********************************************************************
+      SUBROUTINE IPARS_REINIT(NELE1,GRID1,NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INTEGER NELE1,GRID1(4*NELE1),NERR
+      INTEGER I,J,K
+      EXTERNAL D2TOKEYOUT
+
+      NELE=NELE1
+
+      IF (ALLOCATED(GRID)) DEALLOCATE(GRID) 
+      ALLOCATE(GRID(4,NELE),STAT=NERR)
+      IF (NERR.NE.0) CALL KILL_IPARS('Could not allocate GRID')
+      K=0
+      DO J=1,NELE
+      DO I=1,4
+         K=K+1
+         GRID(I,J)=GRID1(K)
+      ENDDO
+      ENDDO
+
+      CALL ADAPTIVITY_SAVE_LEVEL(NERR)
+      CALL CALLWORK(D2TOKEYOUT,0)
+      CALL GET_GELEI_LSIZE(NERR)
+$SINGLEI      CALL TUPSCALE(NERR)
+      CALL SBLKIN(NERR)
+      CALL DUALINIT(NERR)
+      CALL HYPRE_EVFEM_INIT()
+
+      END SUBROUTINE IPARS_REINIT
+
+C*********************************************************************
+      SUBROUTINE IPARS_START(NERR)
+C*********************************************************************
+      USE scrat1mod
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'wells.h'
+      INTEGER MFILE(6)
+      INTEGER NERR
+      CHARACTER*20 BLKEND
+      EXTERNAL SIGNAL_HANDLER
+
+      DATA MFILE/-1,-2,3,4,5,6/
+
+C bag8 : for parallel debugging
+!      INTEGER P
+!bw      P=1
+!      IF (P.EQ.0) WRITE(*,*)'PARALLEL DEBUG; SET P=1 TO CONTINUE...'
+!42    IF (P.EQ.0) GOTO 42
+
+      WRITE(*,*)'In IPARS_START, NERR=',NERR
+
+C bag8 - jump to signal handler if user sends kill signal
+      IF (.NOT.DATASPACES) THEN
+        CALL SIGNAL(2,SIGNAL_HANDLER,-1)    ! SIGINT
+        CALL SIGNAL(15,SIGNAL_HANDLER,-1)   ! SIGTERM
+      ENDIF
+
+C gus: allocate big character array
+      ALLOCATE(A($MXREAD),STAT=NERR)
+      IF (NERR.NE.0) CALL KILL_IPARS('Could not allocate char array A')
+
+C  PLATFORM SPECIFIC INITIALIZATION
+
+      DEALII = .TRUE.
+      NERR=0
+      NUMPRC=1
+      MYPRC=0
+      MYPID=0
+$MANY       CALL SETPRCS (NERR)
+$MANY       IF (NERR.GT.0) CALL KILL_IPARS('Errors in SETPRCS')
+
+C  GET FILE NAMES, OPEN FILES
+
+      NFIN=1
+      NFOUT=2
+      NFINC=7
+      NFRIN=8
+      NFROUT=9
+      NFUTIL=10
+      NFWELL=11
+      NWFCUM=21
+      NFRESP=13
+      BATCH=.FALSE.
+      IF (MYPRC.EQ.0) THEN
+         NFBUG=NFOUT
+         BUGOPEN=.TRUE.
+      ELSE
+         NFBUG=12
+         BUGOPEN=.FALSE.
+      ENDIF
+
+C  LOOP POINT FOR MULTIPLE JOBS
+
+    2 RTIMIN=-1.D0
+      IF (MYPRC.EQ.0) THEN
+         CALL OPENIO(NERR)
+         IF (NERR.GT.0) CALL KILL_IPARS('Errors in OPENIO')
+      ENDIF
+
+C  INITIALIZE MESSAGE TAGS
+
+$MANY      CALL SETTAGS()
+
+C  INITIALIZE UTILITIES AND DISTRIBUTE RESTART TIME
+
+      LEVERR=0
+
+      CALL IUTIL(MFILE)
+      CALL TIMSET()
+      CALL TIMON(1)
+      CALL TIMON(7)
+
+      BUGKEY(1)=.FALSE.
+$MANY      IF (NUMPRC.GT.1) CALL SPREAD8(1,RTIMIN)
+
+C  READ AND DISTRIBUTE INITIAL DATA
+
+      CALL SETNBG()
+
+      IF (MYPRC.EQ.0) THEN
+         BLKEND='EndInitial'
+
+         WRITE(*,'(A,$)')'Calling READER...'
+         CALL READER(BLKEND,NFIN,NFINC,NERR)
+         IF (NERR.EQ.0) THEN
+            WRITE(*,*)'Done!'
+         ELSE
+            WRITE(*,*)'Error!'
+            GOTO 101
+         ENDIF
+      ENDIF
+$MANY      IF (NUMPRC.GT.1) CALL SNDABUF(.TRUE.)
+
+      IF (NERR.EQ.0) RETURN
+ 101  CALL IPARS_FINISH(NERR)
+
+      END SUBROUTINE IPARS_START
+
+C*********************************************************************
+      SUBROUTINE IPARS_FINISH(NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+      INTEGER NERR
+      REAL*8 UU,VV
+      CHARACTER*9 NEXTCASE
+
+      WRITE(*,*)'In IPARS_FINISH, NERR=',NERR
+
+! dealii
+      IF (ALLOCATED(GRID)) DEALLOCATE(GRID)
+!      IF (ALLOCATED(PERM)) DEALLOCATE(PERM)
+
+C  TERMINATE OR START NEXT CASE
+
+ 101  IF (NERR.EQ.0) THEN
+         !IF (TIM-ACTTIM(1).LE.-DTIMTOL) GO TO 1
+         IF (KHISOUT.GT.0.AND.NHISUSE.GT.0) CALL WELDUMP()
+         IF (KSTDO) CALL STDOUT ()
+         CALL TIMOUT ()
+
+         UU=ITNEWTR
+         VV=UU/NSTEPR
+c         UU=ITLINR/UU
+         IF (MYPRC.EQ.0) WRITE (NFOUT,117) ITLINR,ITNEWTR,NSTEPR,UU,VV
+  117    FORMAT(/' TOTAL LINEAR ITERATIONS THIS RUN =',T40,I7/
+     &           ' TOTAL NEWTONIAN ITERATIONS THIS RUN =',T40,I7/
+     &           ' TOTAL TIME STEP THIS RUN =',T40,I7/
+     &           ' LINEAR / NEWTONIAN =',T41,G10.3/
+     &           ' NEWTONIAN / TIME STEP =',T41,G10.3)
+      ENDIF
+
+C   TRILINOS - DEALLOCATE MEMORY
+$TRILINOS      CALL trilinos_cleanup()
+
+$POROE      MODACT=$PEMODEL
+$POROE      IF (MODELON($PEMODEL)) THEN
+$POROE         CALL EQUIT(NERR)
+$POROE         GOTO 7
+$POROE      ENDIF
+$TRCHEM      MODACT=$TRMODEL
+$TRCHEM      IF (MODELON($TRMODEL)) THEN 
+$TRCHEM         CALL TRQUIT(NERR)
+$TRCHEM         GOTO 7
+$TRCHEM      ENDIF
+$MMODEL      MODACT=$MMMODEL
+$MMODEL      IF (MODELON($MMMODEL)) THEN
+$MMODEL          CALL MQUIT(NERR)
+$MMODEL         GOTO 7
+$MMODEL      ENDIF
+$BLACKI      MODACT=$IMODEL
+$BLACKI      IF (MODELON($IMODEL)) CALL IQUIT(NERR)
+$COMP      MODACT=$XMODEL
+$COMP      IF (MODELON($XMODEL)) CALL XQUIT(NERR)
+$CMFMFE      MODACT=$XMMODEL
+$CMFMFE      IF (MODELON($XMMODEL)) CALL XQUIT(NERR)
+$HYDROI      MODACT=$HMODEL
+$HYDROI      IF (MODELON($HMODEL)) CALL HQUIT(NERR)
+$AHYDROI      MODACT=$HAMODEL
+$AHYDROI      IF (MODELON($HAMODEL)) CALL HQUIT(NERR)
+$HIMFMFE      MODACT=$HMMODEL
+$HIMFMFE      IF (MODELON($HMMODEL)) CALL HQUIT(NERR)
+$SINGLEI      MODACT=$TMODEL
+$SINGLEI      IF (MODELON($TMODEL)) CALL TQUIT(NERR)
+$SIMFMFE      MODACT=$TMMODEL
+$SIMFMFE      IF (MODELON($TMMODEL)) CALL TQUIT(NERR)
+    7 MODACT=0
+
+      IF (BATCH) THEN
+         READ (NFRESP,3,ERR=4) NEXTCASE
+    3    FORMAT(A9)
+         IF (NEXTCASE.EQ.'NEXT CASE'.OR.NEXTCASE.EQ.'next case') THEN
+            CALL FREEALL()
+            CALL CLEAREV()
+            CALL KILL_IPARS('Multiple jobs not supported here')
+         ENDIF
+      ENDIF
+
+    4 CONTINUE
+$MANY      CALL KILLPRC(NERR)
+
+      IF (NERR.EQ.0) STOP 0
+
+! bag8 - important message for IPARS "users"
+      IF (MYPRC.EQ.0) WRITE(*,*)'PLEASE SEE OUTPUT FILE FOR ERRORS'
+      STOP 13
+
+      END SUBROUTINE IPARS_FINISH
+
+C*********************************************************************
+      SUBROUTINE IPARS_INIT(NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INTEGER NERR
+
+C  PROCESS INITIAL DATA
+
+      CALL GETIDAT(NERR)
+      IF (NERR.GT.0) CALL KILL_IPARS('Errors in GETIDAT')
+
+C  EXCHANGE INITIAL INTERFACE DATA WITH NEIGHBORING NODES
+
+$MANY      CALL WAITALL()
+$MANY      IF (NUMPRC.GT.1) CALL COMMI(NERR)
+$MANY      IF (NERR.GT.0) CALL KILL_IPARS('Errors in COMMI')
+
+      IF (VMDEBUG) CALL PRINT_VM_INFO('Before IVPARM')
+
+C  INITIALIZE VARIOUS PARAMETERS
+
+      CALL IVPARM(NERR)
+      IF (NERR.GT.0) CALL KILL_IPARS('Errors in IVPARM')
+      IF (RTIMIN.GT.0.D0) TIM=RTIMIN
+$MANY      CALL WAITALL()
+
+! bag8 - moved from inside GETIDAT->SBLKIN->DUALINIT
+!        to after COMMI and KEYOUT update
+$DUAL      CALL DUALINIT(NERR)
+$DUAL      CALL TIMON(12)
+$DUAL$COMP      MODACT=$XMODEL
+$DUAL$COMP      IF (MODELON($XMODEL).OR.FLOWMODEL.EQ.MODACT) 
+$DUAL$COMP     &             CALL XBLKIN(NERR)
+$DUAL$CMFMFE      MODACT=$XMMODEL
+$DUAL$CMFMFE      IF (MODELON($XMMODEL).OR.FLOWMODEL.EQ.MODACT) 
+$DUAL$CMFMFE     &             CALL XBLKIN(NERR)
+$DUAL      MODACT=0
+$DUAL      CALL TIMOFF(12)
+$DUAL      IF (NERR.GT.0) CALL KILL_IPARS('Error in DUALINIT')
+$DUAL$HYPRE      CALL HYPRE_EVFEM_INIT()
+
+C  READ 1ST TRANSIENT DATA TIME
+
+      CALL NEXTIME(NERR)
+      CALL TIMOFF(7)
+
+      IF (NERR.EQ.0) RETURN
+ 101  CALL IPARS_FINISH(NERR)
+
+      END SUBROUTINE IPARS_INIT
+
+C*********************************************************************
+      SUBROUTINE IPARS_SET_ARRAY_POINTERS(PERM1,PRES1,NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INTEGER NERR
+      REAL*8  PERM1(NELE),PRES1(NELE)
+
+      CALL PNTVARR8(PERM1,N_D2PERM,NERR)
+      CALL PNTVARR8(PRES1,N_D2PRES,NERR)
+
+      IF (NERR.EQ.0) RETURN
+ 101  CALL IPARS_FINISH(NERR)
+
+      END SUBROUTINE IPARS_SET_ARRAY_POINTERS
+
+C*********************************************************************
+      SUBROUTINE IPARS_SOLVE(NSTEP1,TIM1,DELTIM1,NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'wells.h'
+      INTEGER NSTEP1,NERR
+      REAL*8  TIM1,DELTIM1
+      CHARACTER*20 BLKEND
+      REAL*8 :: CV
+
+! dealii
+      IF (CONV_FACTOR.EQ.1.D0) THEN
+        CV = 1.D0
+      ELSE
+        CV = 1.D0/86400.D0  ! secs to days
+      ENDIF
+
+C  READ, DISTRIBUTE, AND PROCESS RESTART DATA
+
+    1 IF (RTIMIN.GT.0.D0.AND.(ACTTIM(2)-RTIMIN).GT.-DTIMTOL) THEN
+         CALL RESIN(NERR)
+         IF (NERR.GT.0) GOTO 101
+         RTIMIN=-1.D0
+      ENDIF
+
+C  READ, DISTRIBUTE, AND PROCESS TRANSIENT DATA
+
+      IF (TIM-ACTTIM(2).GT.-DTIMTOL) THEN
+         IF (MYPRC.EQ.0) THEN
+            BLKEND='EndTime'
+            CALL READER(BLKEND,NFIN,NFINC,NERR)
+            IF (NERR.GT.0) GOTO 101
+         ENDIF
+$MANY      IF (NUMPRC.GT.1) CALL SNDABUF(LEVELE)
+         CALL GETTDAT(NERR)
+         IF (NERR.GT.0) CALL KILL_IPARS('Errors in GETTDAT')
+$MANY      CALL WAITALL()
+         CALL NEXTIME(NERR)
+         IF (NERR.GT.0) GOTO 101
+         GO TO 1
+      ENDIF
+
+C  SELECT NEXT TIME STEP SIZE
+
+!      CALL SETSTEP ()
+
+! dealii
+      NSTEP = NSTEP1
+      TIM = TIM1*CV
+      DELTIM = DELTIM1*CV
+
+!      WRITE(*,*)'NSTEP=',NSTEP
+!      WRITE(*,*)'TIM=',TIM
+!      WRITE(*,*)'DELTIM=',DELTIM
+
+C  MAKE ONE TIME STEP
+
+      IF (KHISOUT.GT.0) THEN
+         TIMHIS(NHISUSE)=TIM
+         IF((NHISUSE == 0).AND.(NSTEP < 1)) THEN
+            NHISQ=0
+$TRCHEM            MODACT=$TRMODEL
+$TRCHEM            IF (MODELON($TRMODEL)) THEN
+$TRCHEM               CALL TRSTEP(NERR) 
+$TRCHEM               IF (NERR.GT.0) STOP 'Errors in TRSTEP' 
+$TRCHEM               MODACT=0
+$TRCHEM               GOTO 5
+$TRCHEM            ENDIF
+            CALL STEP(NERR)
+            IF (NERR.GT.0) CALL KILL_IPARS('Errors in STEP')
+$TRCHEM    5       CONTINUE
+         ENDIF
+      ENDIF
+      NSTEP=NSTEP+1
+      NHISUSE=NHISUSE+1
+      NHISQ=0
+$TRCHEM      MODACT=$TRMODEL
+$TRCHEM      IF (MODELON($TRMODEL)) THEN 
+$TRCHEM         CALL TRSTEP(NERR)
+$TRCHEM         IF (NERR.GT.0) STOP 'Errors in TRSTEP' 
+$TRCHEM         MODACT=0
+$TRCHEM         GOTO 6
+$TRCHEM      ENDIF
+      CALL STEP(NERR)
+      IF (NERR.GT.0) CALL KILL_IPARS('Errors in STEP')
+$TRCHEM    6 CONTINUE
+
+C  OUTPUT STANDARD HARDCOPY
+
+      IF (NERR.GT.0) GO TO 101
+      TIM=TIM+DELTIM
+
+C  OUTPUT WELL DATA
+
+      IF (KHISOUT.GT.0) THEN
+         TIMHIS(NHISUSE)=TIM
+         IF (NHISUSE.EQ.18) CALL WELDUMP()
+      ENDIF
+
+      KSTDO=.TRUE.
+      IF (TIM-ACTTIM(3).GT.-DTIMTOL) THEN
+         KSTDO=.FALSE.
+         CALL STDOUT ()
+         ACTTIM(3)=ACTTIM(3)+DTIMOUT
+      ENDIF
+
+C  OUTPUT RESTART DATA
+
+      IF (TIM-ACTTIM(4).GT.-DTIMTOL) THEN
+         CALL TIMON(11)
+         CALL RESOUT (NERR)
+         ACTTIM(4)=ACTTIM(4)+DTIMRES
+         CALL TIMOFF(11)
+      ENDIF
+
+C  OUTPUT VISUALIZATION DATA
+
+!      IF(VISALL) THEN
+!$VISUAL         CALL TIMON(13)
+!$VISUAL         CALL VISOUT (NERR)
+!$VISUAL         IF (NERR.GT.0) CALL KILL_IPARS('Errors in VISOUT')
+!$VISUAL         CALL TIMOFF(13)
+!                GOTO 1001
+!      ELSE
+!         IF (TIM-ACTTIM(6).GT.-DTIMTOL) THEN
+!$VISUAL         CALL TIMON(13)
+!$VISUAL         CALL VISOUT (NERR)
+!$VISUAL         IF (NERR.GT.0) CALL KILL_IPARS('Errors in VISOUT')
+!$VISUAL         CALL TIMOFF(13)
+!             ACTTIM(6)=ACTTIM(6)+DVISOUT
+!         ENDIF
+!      ENDIF
+!1001  CONTINUE
+
+      IF (NERR.EQ.0) RETURN
+ 101  CALL IPARS_FINISH(NERR)
+
+      END SUBROUTINE IPARS_SOLVE
+
+C*********************************************************************
+      SUBROUTINE IPARS_VISUALIZE(NERR)
+C*********************************************************************
+      IMPLICIT NONE
+      INTEGER NERR
+
+$VISUAL      CALL TIMON(13)
+$VISUAL      CALL VISOUT (NERR)
+$VISUAL      IF (NERR.GT.0) CALL KILL_IPARS('Errors in VISOUT')
+$VISUAL      CALL TIMOFF(13)
+
+      END SUBROUTINE IPARS_VISUALIZE

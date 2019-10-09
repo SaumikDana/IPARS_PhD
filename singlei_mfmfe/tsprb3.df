@@ -1,0 +1,281 @@
+C  TSPRB3.F - TRANSPORT EVALUATION FOR DIAGONAL TENSOR PERMEABILITY
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE CALLTSPRB3( NAMEROUTINE, ITRAN )
+C  SUBROUTINE TSPRB3    (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                       KEYOUT,NBLK,TCOFX,TCOFY,TCOFZ,DEPTH,FLDEN,PRES,
+C                       COF,SEPARABLE)
+
+C  CODE HISTORY:
+
+c  Yuri Vassilevski 12/11/00 ADD STORING PRESSURE BLOCK IN SEPARABLE
+C*********************************************************************
+      SUBROUTINE CALLTSPRB3( NAMEROUTINE, ITRAN )
+C*********************************************************************
+      EXTERNAL NAMEROUTINE
+      INTEGER  ITRAN(*)
+
+      INCLUDE 'sol.h'
+      INCLUDE 'sprhandle.h'
+
+      IF (PREC.EQ.10.or.PREC.EQ.11.or.PREC.EQ.12) THEN
+          N_RESIDCOPY = ITRAN(9)
+          ITRAN(9)=N_SEPARABLE
+          CALL CALLWORK(NAMEROUTINE,ITRAN)
+          ITRAN(9)=N_RESIDCOPY
+      END IF
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE TSPRB3 (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &     KL2,KEYOUT,NBLK,TCOFX,TCOFY,TCOFZ,DEPTH,FLDEN,PRES,
+     &     COF,SEPARABLE)
+C*********************************************************************
+
+C  FORM TRANSPORT TERMS
+
+C  TCOFX(I,J,K) = X TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+C  TCOFY(I,J,K) = Y TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+C  TCOFZ(I,J,K) = Z TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  FLDEN(I,J,K) = FLUID DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  PRES(I,J,K) = FLUID PRESSURE, PSIA (INPUT, REAL*8)
+
+C  COF(I,J,K,n)= MATRIX COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+C        COF(i,j,k,1) ==> DIAGONAL
+C        COF(i,j,k,2) ==> X-
+C        COF(i,j,k,3) ==> X+
+C        COF(i,j,k,4) ==> Y-
+C        COF(i,j,k,5) ==> Y+
+C        COF(i,j,k,6) ==> Z-
+C        COF(i,j,k,7) ==> Z+
+
+C  SEPARABLE(*) = WORK ARRAY FOR SEPARABLE PRECONDITIONER; STORES FIRST
+C                 3*(IDIM+JDIM+KDIM) ELEMENTS HERE
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'tfluidsc.h'
+
+      INCLUDE 'sprb.h'
+      REAL*8 SEPARABLE(*)
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),   KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  TCOFX(IDIM,JDIM,KDIM),   TCOFY(IDIM,JDIM,KDIM),
+     &        TCOFZ(IDIM,JDIM,KDIM)
+      REAL*8  DEPTH(IDIM,JDIM,KDIM),   PRES(IDIM,JDIM,KDIM)
+      REAL*8  FLDEN(IDIM,JDIM,KDIM),   RESID(IDIM,JDIM,KDIM)
+      REAL*4  COF(IDIM,JDIM,KDIM,7)
+
+      REAL*4 DX, DY, DZ
+      REAL*8 RHO, DTVIS, DGX, DGY, DGZ, DUM
+
+c Indices of the trace lines
+      call BLKOFF(NBLK,NXO,NYO,NZO,ierr)
+      Itrace = ILINEINDX(NBLK) - NXO
+      Jtrace = JLINEINDX(NBLK) - NYO
+      Ktrace = KLINEINDX(NBLK) - NZO
+      IF (heter) THEN
+       DO 11 I = 1, 3*(IDIM*JDIM+JDIM*KDIM+IDIM*KDIM)
+         SEPARABLE(I) = 0.0D0
+ 11    CONTINUE
+      ELSE
+       DO 12 I = 1, 3*(IDIM+JDIM+KDIM)
+         SEPARABLE(I) = 0.0D0
+ 12    CONTINUE
+      END IF
+
+      DTVIS=DELTIM/FLVIS
+
+C EDGES WITH NORMALS IN X-DIRECTION
+
+      IL2P=IL2+1
+      DO K=KL1,KL2
+       JL1=JL1V(K)
+       JL2=JL2V(K)
+       DO J=JL1,JL2
+        DO I=IL1,IL2P
+         IF(TCOFX(I,J,K).NE.0.D0) THEN
+
+            RHO = (FLDEN(I,J,K) + FLDEN(I-1,J,K))*.5D0
+            DUM = TCOFX(I,J,K)*DTVIS*RHO
+            DX = DUM
+            DGX = DUM*(PRES(I,J,K)-PRES(I-1,J,K)-GRAV*RHO*
+     &         (DEPTH(I,J,K)-DEPTH(I-1,J,K)))
+
+C the SEPARABLE needs two dimensional traces
+           IF (heter) THEN
+            IF (KEYOUT(I,J,K).EQ.1) THEN
+              IF (K.eq.Ktrace) THEN
+               II = I + (J-1)*IDIM
+               SEPARABLE(II+IDIM*JDIM)=SEPARABLE(II+IDIM*JDIM)+DX
+               SEPARABLE(II)= -DX
+              END IF
+            ENDIF
+            IF (KEYOUT(I-1,J,K).EQ.1) THEN
+              IF (K.eq.Ktrace) THEN
+               II = I - 1 + (J-1)*IDIM
+               SEPARABLE(II+IDIM*JDIM)=SEPARABLE(II+IDIM*JDIM)+DX
+               SEPARABLE(II+2*IDIM*JDIM)=-DX
+              END IF
+            ENDIF
+C the SEPARABLE needs one dimensional traces
+           ELSE
+            IF (KEYOUT(I,J,K).EQ.1) THEN
+             IF (J.eq.Jtrace.and.K.eq.Ktrace) THEN
+              II = I
+              SEPARABLE(II+IDIM)=SEPARABLE(II+IDIM)+DX
+              SEPARABLE(II)=-DX
+             END IF
+            ENDIF
+            IF (KEYOUT(I-1,J,K).EQ.1) THEN
+             IF (J.eq.Jtrace.and.K.eq.Ktrace) THEN
+              II = I - 1
+              SEPARABLE(II+IDIM)=SEPARABLE(II+IDIM)+DX
+              SEPARABLE(II+2*IDIM)=-DX
+             END IF
+            ENDIF
+           ENDIF
+c end if heterogenous
+
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+C     EDGES WITH NORMALS IN Y-DIRECTION
+
+      DO K=KL1,KL2
+       JL1=JL1V(K)
+       JL2=JL2V(K)
+       DO J=JL1,JL2+1
+        DO I=IL1,IL2
+         IF(TCOFY(I,J,K).NE.0.D0) THEN
+
+            RHO = (FLDEN(I,J,K) + FLDEN(I,J-1,K))*.5D0
+            DUM = TCOFY(I,J,K)*DTVIS*RHO
+            DY = DUM
+            DGY = DUM*(PRES(I,J,K)-PRES(I,J-1,K)-GRAV*RHO*
+     &         (DEPTH(I,J,K)-DEPTH(I,J-1,K)))
+
+C the SEPARABLE needs two dimensional traces
+           IF (heter) THEN
+            IF (KEYOUT(I,J,K).EQ.1) THEN
+              IF (K.eq.Ktrace) THEN
+                  JJ = I + (J-1)*IDIM
+                  SEPARABLE(4*IDIM*JDIM+JJ)=
+     &            SEPARABLE(4*IDIM*JDIM+JJ)+DY 
+                  SEPARABLE(3*IDIM*JDIM+JJ)=-DY
+              END IF
+            ENDIF
+            IF (KEYOUT(I,J-1,K).EQ.1) THEN
+              IF (K.eq.Ktrace) THEN
+                  JJ = I + (J-2)*IDIM
+                  SEPARABLE(4*IDIM*JDIM+JJ)=
+     &            SEPARABLE(4*IDIM*JDIM+JJ)+DY
+                  SEPARABLE(5*IDIM*JDIM+JJ)=-DY
+              END IF
+            ENDIF
+           ELSE
+C the SEPARABLE needs one dimensional traces
+            IF (KEYOUT(I,J,K).EQ.1) THEN
+              IF (I.eq.Itrace.and.K.eq.Ktrace) THEN
+                  JJ = J
+                  SEPARABLE(3*IDIM+JDIM+JJ)=
+     &            SEPARABLE(3*IDIM+JDIM+JJ)+DY 
+                  SEPARABLE(3*IDIM+JJ)=-DY
+              END IF
+            ENDIF
+            IF (KEYOUT(I,J-1,K).EQ.1) THEN
+              IF (I.eq.Itrace.and.K.eq.Ktrace) THEN
+                  JJ = J - 1
+                  SEPARABLE(3*IDIM+JDIM+JJ)=
+     &            SEPARABLE(3*IDIM+JDIM+JJ)+DY 
+                  SEPARABLE(3*IDIM+2*JDIM+JJ)=-DY 
+              END IF
+            ENDIF
+           ENDIF
+c end  if heterogenous
+
+
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+C EDGES WITH NORMALS IN Z-DIRECTION
+
+      DO K=KL1,KL2+1
+       IF(K.EQ.KL1)THEN
+        JL1=JL1V(K)
+        JL2=JL2V(K)
+       ELSE IF(K.LT.KL2+1)THEN
+        JL1=MIN(JL1V(K-1),JL1V(K))
+        JL2=MAX(JL2V(K-1),JL2V(K))
+       ELSE
+        JL1=JL1V(KL2)
+        JL2=JL2V(KL2)
+       ENDIF
+       DO J=JL1,JL2
+        DO I=IL1,IL2
+         IF(TCOFZ(I,J,K).NE.0.D0) THEN
+
+            RHO= (FLDEN(I,J,K) + FLDEN(I,J,K-1))*.5D0
+            DUM = TCOFZ(I,J,K)*DTVIS*RHO
+            DZ = DUM
+            DGZ = DUM*(PRES(I,J,K)-PRES(I,J,K-1)-GRAV*RHO*
+     &         (DEPTH(I,J,K)-DEPTH(I,J,K-1)))
+
+C the SEPARABLE needs two dimensional traces
+           IF (heter) THEN
+            IF (KEYOUT(I,J,K).EQ.1) THEN
+              IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(6*IDIM*JDIM+KDIM+K)=
+     &            SEPARABLE(6*IDIM*JDIM+KDIM+K)+DZ 
+                  SEPARABLE(6*IDIM*JDIM+K)=-DZ
+              END IF
+            ENDIF
+            IF (KEYOUT(I,J,K-1).EQ.1) THEN
+              IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(6*IDIM*JDIM+KDIM+K-1)=
+     &            SEPARABLE(6*IDIM*JDIM+KDIM+K-1)+DZ 
+                  SEPARABLE(6*IDIM*JDIM+2*KDIM+K-1)=-DZ 
+              END IF
+            ENDIF
+C the SEPARABLE needs one dimensional traces
+           ELSE
+            IF (KEYOUT(I,J,K).EQ.1) THEN
+              IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(3*IDIM+3*JDIM+KDIM+K)=
+     &            SEPARABLE(3*IDIM+3*JDIM+KDIM+K)+DZ 
+                  SEPARABLE(3*IDIM+3*JDIM+K)=-DZ
+              END IF
+            ENDIF
+            IF (KEYOUT(I,J,K-1).EQ.1) THEN
+              IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(3*IDIM+3*JDIM+KDIM+K-1)=
+     &            SEPARABLE(3*IDIM+3*JDIM+KDIM+K-1)+DZ 
+                  SEPARABLE(3*IDIM+3*JDIM+2*KDIM+K-1)=-DZ 
+              END IF
+            ENDIF
+      ENDIF
+c end if heterogenous
+
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+      RETURN
+
+      END

@@ -1,0 +1,72 @@
+$ Ben Ganis
+$ 2/9/17
+$ This file turns everything off by default, setting size symbols
+$ to comment characters, so there are no undefined symbols. Defaults 
+$ were moved here so that ipars.siz files in all work directories 
+$ need not be changed when new capabilities are added.
+
+$ ################## Physical Model ###################################
+
+Replace_Symbols
+
+HYDROI  C            $ Exclude hydrology-implicit model
+HYDROE  C            $ Exclude hydrology-impes model
+BLACKI  C            $ Exclude black-oil implicit model
+BLACKP  C            $ Exclude black-oil impes model
+COMP    C            $ Exclude compositional model
+CMFMFE  C            $ Exclude compositional MFMFE model
+TRCHEM  C            $ Exclude transport-chemistry model
+CHEM    C            $ Exclude chemical-flood model
+SINGLEE C            $ Exclude explicit single-phase model
+SINGLEI C            $ Exclude implicit single-phase model
+AIR     C            $ Exclude air-water model
+DGIMPES C            $ Exclude DG-impes model
+PORESC  C            $ Exclude porescale network model
+POROE   C            $ Exclude poro-elasticty model
+MMODEL  C            $ Exclude multi model
+NOMMOD  ""           $ Do not exclude multi model
+MPFA    C            $ Exclude MPFA models
+SIMFMFE C            $ Exclude single-phase mpfa model
+HIMFMFE C            $ Exclude hydrology-implicit mpfa model
+AHYDROI C            $ Exclude hydrology-implicit bricks model (approx)
+
+$ ######################## Graphics ###################################
+
+Replace_Symbols
+
+VISUAL   C              $ disable visual output
+TEC      C              $ disable tecplot output
+VTK      C              $ disable vtk output
+PV3      C              $ disable PV3 output
+NOPV3    C              $ disable PV3 output
+TECBIN   C              $ disable tecplot binary
+
+$ ###################### Multi-block Capability #######################
+
+Replace_Symbols
+
+MORTAR   C             $ Exclude mortar code
+DUAL     C             $ Exclude dual approximation code
+DEALII   C             $ Exclude dealii code
+
+$ ##################### Metis Grid-Partitioning #######################
+
+Replace_Symbols
+
+METIS   C            $ Exclude metis code
+TETGEN   C            $ Exclude tetgen code
+
+$ ################## Linear solver ####################################
+
+Replace_Symbols
+
+TICAMA   C              $ Remove gmres/pcg linear solver
+LSOR     C              $ Remove line sor linear solver
+MULGRD   C              $ Remove multigrid linear solver
+GMRES    C              $ Remove gmres linear solver
+YGMRES   C              $ Remove Y. Vassilevski's gmres linear solver
+PCG      C              $ Remove pcg linear solver
+HYPRE    C              $ Remove Hypre linear solver
+SUPERLU  !              $ Remove SuperLU linear solver
+TRILINOS C              $ Remove Trilinos linear solver
+

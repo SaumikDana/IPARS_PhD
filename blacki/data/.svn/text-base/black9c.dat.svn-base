@@ -1,0 +1,153 @@
+TITLE(2)="HYDROLOGY MODEL TEST 9C"
+
+DESCRIPTION()=
+"TESTS DUAL APPROXIMATION ON 3 BLOCKS WITH UNALIGNED GRIDS"
+
+"BLOCK   HEIGHT (FT)   WIDTH (FT)  LENGTH (FT)    SIZE       CORNER"
+"  1       20            380          160        10x19x8    0, 0,  0"
+"  2       20            380          160        10x20x8    0, 0,160"
+"  3       20            380          160        10x19x8    0, 0,320"
+
+"4640 GRID ELEMENTS                                    DATE : 3/9/99"
+
+BLOCKMODEL()="HYDROLOGY_IMPLICIT"
+
+TIMEEND = 100.
+
+SOROPT=FALSE  SORFAC=1.77  MAXJK=24
+
+$ I/O OPTIONS
+
+OUTLEVEL = 2  GEOMOUT  PROCOUT
+WELLOUTKEY = 3   WELLFILE = "HYDRO9C.WEL"
+STDENO=56.
+
+IFIRST(1,2)=5   ILAST(1,2)=5   ISTEP(1,2)=1
+JFIRST(1,2)=1   JLAST(1,2)=19  JSTEP(1,2)=1
+KFIRST(1,2)=8   KLAST(1,2)=8   KSTEP(1,2)=1
+
+IFIRST(2,2)=5   ILAST(2,2)=5   ISTEP(2,2)=1
+JFIRST(2,2)=1   JLAST(2,2)=20  JSTEP(2,2)=1
+KFIRST(2,2)=1   KLAST(2,2)=1   KSTEP(2,2)=1
+
+IFIRST(3,2)=5   ILAST(3,2)=5   ISTEP(3,2)=1
+JFIRST(3,2)=1   JLAST(3,2)=19  JSTEP(3,2)=1
+KFIRST(3,2)=1   KLAST(3,2)=1   KSTEP(3,2)=1
+
+$ FAULT BLOCK AND MESH DATA
+ 
+FACEBLOCKS(,1) = 1 2  FACEXYZ(,1) = 0   0  0 , 0  0  0
+FACEBLOCKS(,2) = 2 3  FACEXYZ(,2) = 0   0  0 , 0  0  0
+
+BLOCKNAME(1) = "BLOCK 1"
+DOWN(,1) = 1 0 0  
+NX(1) = 10  NY(1) = 19  NZ(1) = 8
+DX(,1) = 2.  DY(,1) = 20.  DZ(,1) = 20.
+XYZ111(,1) = 0 , 0 , 0
+
+BLOCKNAME(2) = "BLOCK 2"
+DOWN(,2) = 1 0 0  
+NX(2) = 10  NY(2) = 20  NZ(2) = 8
+DX(,2) = 2.  DY(,2) = 10. 18*20. 10. DZ(,2) = 20.
+XYZ111(,2) = 0 , 0 , 160
+
+BLOCKNAME(3) = "BLOCK 3"
+DOWN(,3) = 1 0 0  
+NX(3) = 10  NY(3) = 19  NZ(3) = 8
+DX(,3) = 2.  DY(,3) = 20.  DZ(,3) = 20.
+XYZ111(,3) = 0 , 0 , 320
+
+$ INITIAL CONDITIONS
+
+POINIT = 500.  SWINIT = .22
+
+$ POROSITY
+
+POROSITY1() = .2  POROSITY2() = .2  POROSITY3() = .2
+
+$ PERMEABILITIES
+
+XPERM1() = 20  XPERM1(8,,) = 5  YPERM1() = 200
+XPERM2() = 20  XPERM2(8,,) = 5  YPERM2() = 200
+XPERM3() = 20  XPERM3(8,,) = 5  YPERM3() = 200
+
+KOSW(1) Block        $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .8
+  Derivative  0 At .8
+  Constraint  1 At  0
+  Nodes  .2  .58
+  Data  0.  1. , .1  .67 , .2  .46 , .4  .2 , .6  .055 , .7  .015 , .8  0
+EndBlock
+
+KWSW(1) Block        $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .15
+  Derivative  0 At .15
+  Constraint  1 At   1
+  Nodes  .55  .7  .75
+  Data  .15  0 , .3  .035 , .4  .085 , .6  .28 , .8  .776 , 1  1
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Spline3
+  Extrapolation Same
+  Nodes  .25  .4  .7  .9
+  Pole   .12
+  Data
+  .16   9. , .2   6.12 , .225 4.86 , .25  4.22 , .275 3.78 , .325 3.2
+  .375 2.74 , .45  2.28 , .55  1.94 , .65  1.74 , .75  1.61 , .85  1.54
+  .925 1.44 , .95  1.37 , .975 1.14 , 1.0  .7
+EndBlock
+
+NUMWELL=2
+
+WELLNAME(1) = "INJECTION WELL"
+KINDWELL(1) = 1
+WELLBLOCK(1,1) = 1
+WELLTOP(1 TO 3,1,1) =     0 190 150
+WELLBOTTOM(1 TO 3,1,1) = 20 190 150
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  504.
+EndBlock
+
+WELLNAME(2) = "PRODUCTION WELL"
+KINDWELL(2) = 31
+WELLBLOCK(1,2) = 3
+WELLTOP(1 TO 3,1,2) =     0 190 470
+WELLBOTTOM(1 TO 3,1,2) = 20 190 470
+WELLPQ(2) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  500.  30.  350.
+EndBlock
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+DELTIM = 1.  DTIMMUL = 1.2  DTIMMAX = 2.  TIMOUT = 40.  DTIMOUT = 60.
+CVTOL = 1.E-6  TIMRES = 365.  DTIMRES = 730.5
+EndTime
+
+BeginTime    40.
+TIMOUT = 100.  DTIMMAX = 3.
+FORMAT = TRUE
+EndTime
+
+BeginTime    100.
+DTIMMAX = 6.  TIMOUT = 365.25   DTIMOUT = 365.25
+EndTime
+
+BeginTime    200.
+DTIMMAX = 10.
+EndTime
+
+BeginTime    365.25
+DTIMMAX = 15.
+EndTime

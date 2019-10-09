@@ -1,0 +1,46 @@
+#!MC 700
+## TECanim.src
+###################### assume that we have numproc processors and nsteps zones
+$!VarSet |numproc| = 
+$!VarSet |nsteps| = 
+############################################### constant part
+########## LOOP over init zones for all processors in order to
+########## find the common range for the contour variables
+$!VarSet |init| = 1
+$!PICK ADDALL 
+	SELECTZONES = TRUE
+$!ACTIVEFIELDZONES -= [|init|]
+$!LOOP |numproc|
+$!ACTIVEFIELDZONES -= [|init|]
+$!VarSet |init| += |nsteps|
+$!VarSet |init| += 1
+$!ENDLOOP
+##################### comment this out if you do not want to reset the levels
+$!CONTOURLEVELS RESET
+  NUMVALUES = 15
+######################  begin of the animation loop 
+$!LOOP |nsteps|
+# create a list of zones for the current time step: 
+# 
+$!VarSet |step| = |Loop| 
+$!VarSet |step| += 1
+$!ACTIVEFIELDZONES = [|step|]
+$!LOOP |numproc|
+$!VarSet |step| += |nsteps|
+$!VarSet |step| += 1
+$!ACTIVEFIELDZONES += [|step|]
+$!ENDLOOP
+#
+####### list of zones created
+####### display the zones and delay
+#
+$!REDRAW
+$!delay 1
+#
+$!ENDLOOP
+####################### end of our macro
+
+
+
+
+

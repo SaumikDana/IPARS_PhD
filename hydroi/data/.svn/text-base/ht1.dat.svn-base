@@ -1,0 +1,144 @@
+TITLE(2)="HYDROLOGY MODEL + SINGLE PHASE MODEL TEST HT1"
+
+DESCRIPTION()=
+"TESTS MULTIMODEL ON TWO FAULT BLOCKS"
+
+"BLOCK   HEIGHT (FT)   WIDTH (FT)  LENGTH (FT)    SIZE       CORNER"
+"  1       60            400          400        10x10x10    0,    0,    0"
+"  2       32            800          800         8x 8x 8   60, -200, -200"
+
+"1512 GRID ELEMENTS                                    DATE : 6/8/99"
+
+$$$$$$$$$$$$$$  FRAMEWORK INITIAL DATA  $$$$$$$$$$$$$$$$$$$$$$$$
+
+BLOCKMODEL(1)="HYDROLOGY_IMPLICIT"
+BLOCKMODEL(2)="SINGLE_PHASE_IMPLICIT"
+
+TIMEEND = 40.
+
+STDENO = 56.   STDENW = 62.34
+
+$ LINE SOR DATA
+
+SOROPT=TRUE  MAXJK=8   MINLIN=30  MAXLIN=600  SORFAC=1.46
+
+$ I/O OPTIONS
+
+OUTLEVEL = 2  PROCOUT  WELLOUTKEY = 1
+
+$ FAULT BLOCK AND MESH DATA
+ 
+FACEBLOCKS(,1) = 1 2  FACEXYZ(,1) = 0   0  0 , 0  0  0
+
+BLOCKNAME(1) = "BLOCK 1"
+DOWN(,1) = 1 0 0  
+NX(1) = 10  NY(1) = 10  NZ(1) = 10
+DX(,1) = 6.  DY(,1) = 40.  DZ(,1) = 40.
+XYZ111(,1) = 0 , 0 , 0
+
+BLOCKNAME(2) = "BLOCK 2"
+DOWN(,2) = 1 0 0  
+NX(2) = 8   NY(2) = 8   NZ(2) = 8
+DX(,2) = 4.  DY(,2) = 100.  DZ(,2) = 100.
+XYZ111(,2) = 60 , -200 , -200
+
+$ POROSITY
+
+POROSITY1() = .2  POROSITY2() = .2
+
+$ PERMEABILITIES
+
+XPERM1() = 20  XPERM1(5,,) = 5  YPERM1() = 200
+XPERM2() = 10  XPERM2(4,,) = 3  YPERM2() = 100
+
+KOSW(1) Block        $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .8
+  Derivative  0 At .8
+  Constraint  1 At  0
+  Nodes  .2  .58
+  Data  0.  1. , .1  .67 , .2  .46 , .4  .2 , .6  .055 , .7  .015 , .8  0
+EndBlock
+
+KWSW(1) Block        $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .15
+  Derivative  0 At .15
+  Constraint  1 At   1
+  Nodes  .55  .7  .75
+  Data  .15  0 , .3  .035 , .4  .085 , .6  .28 , .8  .776 , 1  1
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Spline3
+  Extrapolation Same
+  Nodes  .25  .4  .7  .9
+  Pole   .12
+  Data
+  .16   9. , .2   6.12 , .225 4.86 , .25  4.22 , .275 3.78 , .325 3.2
+  .375 2.74 , .45  2.28 , .55  1.94 , .65  1.74 , .75  1.61 , .85  1.54
+  .925 1.44 , .95  1.37 , .975 1.14 , 1.0  .7
+EndBlock
+
+NUMWELL=2
+
+WELLNAME(1) = "INJECTION WELL"
+KINDWELL(1) = 1
+WELLBLOCK(1,1) = 2
+WELLTOP(1 TO 3,1,1) =    60  -150 150
+WELLBOTTOM(1 TO 3,1,1) = 92  -150 150
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  540.
+EndBlock
+
+WELLNAME(2) = "PRODUCTION WELL"
+KINDWELL(2) = 3
+WELLBLOCK(1,2) = 1
+WELLTOP(1 TO 3,1,2) =     0 180 180
+WELLBOTTOM(1 TO 3,1,2) = 30 180 180
+WELLPQ(2) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  510.  30.  480.
+EndBlock
+
+$$$$$$$$$$$$$$  HYDROLOGY MODEL INITIAL DATA  $$$$$$$$$$$$$$$$$$
+
+H_PWINIT  = 500.     H_DINIT   = 0.       H_SWINIT = .30
+H_WATDEN  = 62.34    H_WATCOMP = .33E-5   H_WATVIS = .5
+
+$$$$$$$$$$$$$$  SINGLE PHASE MODEL INITIAL DATA  $$$$$$$$$$$$$$$
+
+S_PINIT   = 500.     S_DINIT   = 0.
+S_STFLDEN = 62.34    S_FLCOMP  = .33E-5   S_FLVIS  = .5
+
+EndInitial
+
+$$$$$$$$$$$$$$  TRANSIENT DATA INPUT BLOCKS  $$$$$$$$$$$$$$$$$$$
+
+BeginTime    0.
+DELTIM = 1.  DTIMMUL = 1.2  DTIMMAX = 2.  TIMOUT = 40.  DTIMOUT = 60.
+TIMRES = 40.  DTIMRES = 730.5
+H_CVTOL = 1.E-6  S_CVTOL = 2.E-6
+EndTime
+
+BeginTime    40.
+TIMOUT = 100.  DTIMMAX = 3.
+FORMAT = TRUE  TIMRES = 730.5
+EndTime
+
+BeginTime    100.
+DTIMMAX = 6.  TIMOUT = 365.25   DTIMOUT = 365.25
+EndTime
+
+BeginTime    200.
+DTIMMAX = 10.
+EndTime
+
+BeginTime    365.25
+DTIMMAX = 15.
+EndTime

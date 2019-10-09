@@ -1,0 +1,27 @@
+#!MC 700
+## TECfirst.src
+###################### assume that we have numproc processors and nsteps zones
+$!VarSet |numproc| =
+$!VarSet |nsteps| = 
+################## TECfirst.src
+########## show first time step for all processors 
+$!VarSet |fstep| = 
+$!ACTIVEFIELDZONES = [|fstep|]
+$!LOOP |numproc|
+$!IF |Loop| > 1
+$!ACTIVEFIELDZONES += [|fstep|]
+$!ENDIF
+$!VarSet |fstep| += |nsteps|
+$!VarSet |fstep| += 1
+$!ENDLOOP
+#####################
+$!CONTOURLEVELS RESET
+  NUMVALUES = 15
+#####################
+$!REDRAW
+####################################################
+
+
+
+
+

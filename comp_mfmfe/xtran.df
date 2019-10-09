@@ -1,0 +1,1681 @@
+C  XTRAN.F - TRANSPORT EVALUATION FOR DIAGONAL TENSOR PERMEABILITY
+C  COMPOSITIONAL IMPEC MODEL
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE XCOND(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                   KEYOUT,NBLK,XCOF,XRESID,DFLOW,TFLOW,RESID,
+C                   ERRSAT,DSTDP,DSTDN,PV,SCAL)
+C  SUBROUTINE XFLOW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                   KEYOUT,NBLK,CONC,DFLOW,TFLOW,RESID,DELP,CR,DELC)
+C  SUBROUTINE XTRAN(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+C          JL2V,KL1,KL2,KEYOUT,NBLK,KEYOUTCR,VOLPROP,VOLDIM,
+C          FACEPROP,FACEDIM,PERMINV,XC,YC,ZC,UPMOBPROD,MDEN,
+C          PRES,PC,AINVF,TRAN,COF,RESID)
+
+C  SUBROUTINE XCONC (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                    KL1,KL2,KEYOUT,NBLK,CONC,DELC,PV,PVOLD)
+
+C  SUBROUTINE XSAT_STEP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,CONCN,CONC,DSTDN,ICFL)
+
+C  SUBROUTINE XSCALE (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                     KL1,KL2,KEYOUT,NBLK,VNEW,VOLD,NUM,SCAL)
+
+C  SUBROUTINE XSCALEK (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                      KL1,KL2,KEYOUT,NBLK,VNEW,VOLD,NUM,SCAL)
+
+C  SUBROUTINE XPAVG (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                    KL1,KL2,KEYOUT,NBLK,PRES,PV)
+
+C  SUBROUTINE XGSTABX3(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+C                      PC,DMOB,DPC,ICFL)
+
+C  SUBROUTINE XGSTABY3(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+C                      PC,DMOB,DPC,ICFL)
+
+C  SUBROUTINE XGSTABZ3(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+C                      PC,DMOB,DPC,ICFL)
+
+C  SUBROUTINE XGSTABX2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+C                      PC,DMOB,DPC,ICFL)
+
+C  SUBROUTINE XGSTABY2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+C                      PC,DMOB,DPC,ICFL)
+
+C  SUBROUTINE XGSTABZ2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+C                      PC,DMOB,DPC,ICFL)
+
+C  SUBROUTINE XSTABCHK(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,PV,PMD,SAT,DCFL,ICFL)
+
+C  SUBROUTINE XFLOWAQ(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,POR,VEL,PV,PVN,PMDEN,PMDENN,SAT,
+C                      SATN,CONC,CONCN)
+C  CODE HISTORY:
+
+C  RICK DEAN        06/28/01   INITIAL VERSION
+C  RICK DEAN        12/31/02   ADDED OVERSHOOT AND STABILITY LOGIC
+C  SUNIL G. THOMAS  09/01/07   BUG FIX IN XSTABCHK
+C  GURPREET SINGH   2011-2014  MODIFIED FOR MFMFE
+C  GURPREET SINGH   09/15/15   AQUEOUS COMPONENTS
+C*********************************************************************
+      SUBROUTINE XCOND(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                 KEYOUT,NBLK,XCOF,XRESID,COF,RESID,
+     &                 ERRSAT,DSTDP,DSTDN,PV,SCAL)
+C*********************************************************************
+
+C Produces IMPEC equations from mass conservation equations
+
+C  INPUT:
+C     RESID(I,J,K,IC) = RESIDUAL FOR RIGHT HAND SIDE (REAL*8)
+C     COF(I,J,K,27,NC)= COEFFICIENT MATRIX (REAL*8)
+
+C  OUTPUT:
+C     XCOF(I,J,K,L) = IMPEC FLOW COEFFICENTS (REAL*4)
+C     XRESID(I,J,K) = IMPEC RESIDUAL FOR RIGHT HAND SIDE (REAL*8)
+C     SCAL(I,J,K,IC) = SCALING FACTOR FOR IMPEC (REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 XCOF(IDIM,JDIM,KDIM,-13:13)
+      REAL*8 XRESID(IDIM,JDIM,KDIM),ERRSAT(IDIM,JDIM,KDIM),
+     &       DSTDN(IDIM,JDIM,KDIM,NC),RESID(IDIM,JDIM,KDIM,NC),
+     &       COF(IDIM,JDIM,KDIM,-13:13,NC),
+     &       DSTDP(IDIM,JDIM,KDIM),PV(IDIM,JDIM,KDIM),
+     &       SCAL(IDIM,JDIM,KDIM,NC)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,L,IC,JL1(KDIM),JL2(KDIM),KL2P,IL2P
+      INTEGER MAPPING,M
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XCOND, OLD TAG =',MSGTAG($XMMODEL+1)
+      IL2P=IL2+1
+      KL2P=KL2+1
+
+C-------set up JL1 and JL2 vectors
+      JL1(KL1)=JL1V(KL1)
+      JL2(KL1)=JL2V(KL1)
+      DO K = KL1+1,KL2
+         JL1(K)=MIN(JL1V(K-1),JL1V(K))
+         JL2(K)=MAX(JL2V(K-1),JL2V(K))
+      END DO
+      JL1(KL2P)=JL1V(KL2)
+      JL2(KL2P)=JL2V(KL2)
+
+C-------scale dstdn by pv, use xresid for storage
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+         IF ((KEYOUT(I,J,K) > 0).AND.(PV(I,J,K).GT.0.D0)) THEN
+            XRESID(I,J,K) = ONE / PV(I,J,K)
+            SCAL(I,J,K,1) = DSTDN(I,J,K,1) * XRESID(I,J,K)
+         ENDIF
+      END DO
+      END DO
+      END DO
+      DO IC = 2,NC
+         DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+         DO I = IL1,IL2
+            IF ((KEYOUT(I,J,K) > 0).AND.(PV(I,J,K).GT.0.D0)) THEN
+               SCAL(I,J,K,IC) = DSTDN(I,J,K,IC) * XRESID(I,J,K)
+            ENDIF
+         END DO
+         END DO
+         END DO
+      END DO
+
+C-------initialize XRESID and XCOF
+C       Note: JL2V(KL2+1) is not defined
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)+1
+      DO I = IL1,IL2+1
+      DO M = -13,13
+         XCOF(I,J,K,M) = ZERO
+      END DO
+         IF ((KEYOUT(I,J,K) > 0).AND.(PV(I,J,K).GT.0.D0)) THEN
+            XRESID(I,J,K)= ERRSAT(I,J,K)
+            XCOF(I,J,K,MAPPING(0))= DSTDP(I,J,K)
+         ELSE
+            XRESID(I,J,K) = ZERO
+            XCOF(I,J,K,MAPPING(0)) = ZERO
+         ENDIF
+      END DO
+      END DO
+      END DO
+      DO J = JL1V(KL2),JL2V(KL2)+1
+      DO I = IL1,IL2+1
+      DO M = -13,13
+         XCOF(I,J,KL2P,M) = ZERO
+      END DO
+      END DO
+      END DO
+
+C-------process components
+      DO IC = 1,NC
+
+         DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+         DO I = IL1,IL2P
+            IF ((KEYOUT(I,J,K) > 0).AND.(PV(I,J,K).GT.0.D0)) THEN
+               XRESID(I,J,K) = XRESID(I,J,K)
+     &                       + SCAL(I,J,K,IC)*RESID(I,J,K,IC)
+               DO M = -13,13
+               XCOF(I,J,K,M) = XCOF(I,J,K,M) - SCAL(I,J,K,IC)
+     &                         *COF(I,J,K,M,IC)
+               ENDDO
+            ENDIF
+         END DO
+         END DO
+         END DO
+
+      END DO
+
+      END
+
+! bag8 - fix for zero porosity elements
+C*********************************************************************
+      SUBROUTINE XFIX0PORO(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &   KL1,KL2,KEYOUT,NBLK,PHI,XPERM,YPERM,ZPERM,
+     &   XCOF,XRESID,COF,RESID)
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 XCOF(IDIM,JDIM,KDIM,-13:13),XRESID(IDIM,JDIM,KDIM),
+     &       RESID(IDIM,JDIM,KDIM,NC),COF(IDIM,JDIM,KDIM,-13:13,NC),
+     &       XPERM(IDIM,JDIM,KDIM),YPERM(IDIM,JDIM,KDIM),
+     &       ZPERM(IDIM,JDIM,KDIM),PHI(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XFIX0POROSITY, OLD TAG =',MSGTAG(2+1)
+
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+         IF (KEYOUT(I,J,K)<=0) CYCLE
+         IF (XPERM(I,J,K)*YPERM(I,J,K)*ZPERM(I,J,K).GT.0.D0) CYCLE
+         IF (PHI(I,J,K).GT.0.D0) CYCLE
+         COF(I,J,K,-1,:)=1.D0
+         COF(I,J,K,-2:13,:)=0.D0
+         XCOF(I,J,K,-1)=1.D0
+         XCOF(I,J,K,-2:13)=0.D0
+         RESID(I,J,K,:)=0.D0
+         XRESID(I,J,K)=0.D0
+      END DO
+      END DO
+      END DO
+
+      END
+
+C*********************************************************************
+      SUBROUTINE XFLOW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                 KEYOUT,NBLK,CONC,COF,RESID,DELP,CR,
+     &                 DELC)
+C*********************************************************************
+
+C Calculates mass flux correction for cells from pressure changes
+
+C  INPUT:
+C     RESID(I,J,K,IC) = RESIDUAL FOR RIGHT HAND SIDE (REAL*8)
+C     COF(I,J,K,IC) =  FLOW COEFFICIENT FOR P(I,J,K)
+C                       IN (I,J,K,-13:13,IC) MASS CONSERVATION EQUATION (REAL*8)
+C     CR(I,J,K) = COMPRESSIBLITIY X PV0 (REAL*8)
+C     CONC(I,J,K,IC) = CONCENTRATION (REAL*8)
+C     DELP(I,J,K) = PRESSURE CHANGE (REAL*8)
+C     PV(I,J,K) = PORE VOLUME (REAL*8)
+
+C  OUTPUT:
+C     DELC(I,J,K,L) = CHANGE IN MASS (REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 DELC(IDIM,JDIM,KDIM,NC),CONC(IDIM,JDIM,KDIM,NC),
+     &       DELP(IDIM,JDIM,KDIM),RESID(IDIM,JDIM,KDIM,NC),
+     &       COF(IDIM,JDIM,KDIM,-13:13,NC),CR(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IC
+      INTEGER MAP(3,-13:13),I1,J1,K1,M,MAPPING
+      DATA MAP /0,0,0,  -1,0,0,    1,0,0,
+     &          0,-1,0,  0,1,0,    0,0,-1,
+     &          0,0,1,  -1,-1,0,   1,-1,0,
+     &         -1,1,0,   1,1,0,   -1,0,-1,
+     &          1,0,-1,  0,-1,-1,  0,1,-1,
+     &         -1,0,1,   1,0,1,    0,-1,1,
+     &          0,1,1,  -1,-1,-1,  1,-1,-1,
+     &         -1,1,-1,  1,1,-1,  -1,-1,1,
+     &          1,-1,1, -1,1,1,    1,1,1/
+
+      REAL*8 X
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XFLOW, OLD TAG =',MSGTAG($XMMODEL+1)
+
+      DO IC = 1,NC
+
+         DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+         DO I = IL1,IL2
+            IF (KEYOUT(I,J,K)>0) THEN
+               DELC(I,J,K,IC) = -RESID(I,J,K,IC)
+     &                 - (COF(I,J,K,MAPPING(0),IC)-CR(I,J,K)
+     &                   *CONC(I,J,K,IC))*DELP(I,J,K)
+              DO M = -13,13
+                 IF (M/=MAPPING(0) ) THEN
+                    I1 = I + MAP(1,M)
+                    J1 = J + MAP(2,M)
+                    K1 = K + MAP(3,M)
+                    IF (KEYOUT(I1,J1,K1)==1.OR.KEYOUT(I1,J1,K1)==-1)THEN
+                       X = COF(I,J,K,M,IC)
+                       DELC(I,J,K,IC) =DELC(I,J,K,IC)
+     &                                 -X*DELP(I1,J1,K1)
+                    ENDIF
+                 ENDIF
+              ENDDO
+            ENDIF
+         END DO
+         END DO
+         END DO
+
+      END DO
+      END
+
+C*********************************************************************
+      SUBROUTINE XCONC (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,CONC,DELC,PV,PVOLD)
+C*********************************************************************
+
+C  Updates concentrations for cells.
+C  Checks for overshoot on concentrations.
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'xmodel.h'
+      INCLUDE 'control.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xbaldat.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 CONC(IDIM,JDIM,KDIM,NC),DELC(IDIM,JDIM,KDIM,NC),
+     &       PVOLD(IDIM,JDIM,KDIM),PV(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,IC
+      REAL*8 X,Y,SCAL
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XCONC, OLD TAG =',MSGTAG($XMMODEL+1)
+
+      SCAL = BIG
+      DO IC = 1,NC
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+         IF(KEYOUT(I,J,K) > 0) THEN
+            X = CONC(I,J,K,IC)
+            IF (PV(I,J,K).LE.ZERO) CYCLE
+            Y = (DELC(I,J,K,IC)+X*PVOLD(I,J,K))/PV(I,J,K)
+            IF(Y < -OVERLMT) THEN
+               IF(LEVELE .AND. BUGKEY(6)) THEN
+                  WRITE(NFBUG,'(A,F10.3,A,I3)') ' TIME =',TIM,
+     &               ' OVERSHOOT FOR FLOW FOR COMPONENT ',IC
+                  WRITE(NFBUG,'(A,3I5,2A,E15.6,A,E15.6)')
+     &               '     CELL=(',I,J,K,')',
+     &               '  CONC =',CONC(I,J,K,IC),
+     &               '  NEW VALUE =',Y
+               ENDIF
+               SCAL = MIN(SCAL, X/(X-Y))
+               CONC(I,J,K,IC) = TENTH*CONC(I,J,K,IC)
+            ELSE
+               CONC(I,J,K,IC) = Y
+            ENDIF
+            DELC(I,J,K,IC) = CONC(I,J,K,IC) - X
+         ENDIF
+      END DO
+      END DO
+      END DO
+      END DO
+      OVERSHT = MIN(OVERSHT,SCAL)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE XSAT_STEP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                     KL1,KL2,KEYOUT,NBLK,CONCN,CONC,DSTDN,ICFL)
+C*********************************************************************
+
+C  Determines maximum effective saturation change for timestep.
+C  Sets stability check indicator for max change in each fault block
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'xmodel.h'
+      INCLUDE 'control.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xbaldat.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER ICFL(IDIM,JDIM,KDIM)
+      REAL*8 CONC(IDIM,JDIM,KDIM,NC),CONCN(IDIM,JDIM,KDIM,NC),
+     &       DSTDN(IDIM,JDIM,KDIM,NC)
+
+      INTEGER I,J,K,IC,IMAX,JMAX,KMAX
+      REAL*8 SY,X
+
+! bag8 debug
+!      LOGICAL DBG
+!      DBG = .TRUE.
+
+      SY = -ONE
+      DO IC = 1,NC
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+         IF(KEYOUT(I,J,K) == 1) THEN
+            X = ABS( DSTDN(I,J,K,IC) *
+     &          (CONC(I,J,K,IC) - CONCN(I,J,K,IC)) )
+
+            IF(X > SY) THEN
+               SY = X
+               IMAX = I
+               JMAX = J
+               KMAX = K
+            ENDIF
+
+! bag8 debug
+!      IF (DBG) THEN
+!        WRITE(10+MYPRC,*)'In XSAT_STEP, I,J,K,IC=',I,J,K,IC
+!        WRITE(10+MYPRC,*)'DSTDN=',DSTDN(I,J,K,IC)
+!        WRITE(10+MYPRC,*)'CONC=',CONC(I,J,K,IC)
+!        WRITE(10+MYPRC,*)'CONCN=',CONCN(I,J,K,IC)
+!        WRITE(10+MYPRC,*)'X=',X
+!        WRITE(10+MYPRC,*)'SY=',SY
+!      ENDIF
+
+         ENDIF
+      END DO
+      END DO
+      END DO
+      END DO
+
+      IF (SY > DSMAX) THEN
+         DSMAX = SY
+         ISMAX = IMAX
+         JSMAX = JMAX
+         KSMAX = KMAX
+         NSMAX = NBLK
+      ENDIF
+      IF(SY > ZERO) ICFL(IMAX,JMAX,KMAX) = 1
+
+! bag8
+!      IF (DBG) THEN
+!         WRITE(*,*)'In XSAT_STEP'
+!         WRITE(*,*)'DSMAX=',DSMAX
+!         WRITE(*,*)'ISMAX=',ISMAX
+!         WRITE(*,*)'JSMAX=',JSMAX
+!         WRITE(*,*)'KSMAX=',KSMAX
+!         WRITE(*,*)'NSMAX=',NSMAX
+!!         STOP 'STOP in XSAT_STEP'
+!      ENDIF
+
+      END
+
+C*********************************************************************
+      SUBROUTINE XSCALE (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                   KL1,KL2,KEYOUT,NBLK,VNEW,VOLD,NUM,SCAL)
+C*********************************************************************
+
+C  Scales input value for timestep for cells.
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,NUM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 VNEW(IDIM,JDIM,KDIM,NUM),VOLD(IDIM,JDIM,KDIM,NUM),SCAL
+
+      INTEGER I,J,K,M
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XSCALE, OLD TAG =',MSGTAG($XMMODEL+1)
+
+      DO M = 1,NUM
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+         IF(KEYOUT(I,J,K) > 0) THEN
+            VNEW(I,J,K,M) = SCAL*(VNEW(I,J,K,M)-VOLD(I,J,K,M))
+     &                    + VOLD(I,J,K,M)
+         ENDIF
+      END DO
+      END DO
+      END DO
+      END DO
+
+      END
+
+C*********************************************************************
+      SUBROUTINE XSCALEK (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                    KL1,KL2,KEYOUT,NBLK,VNEW,VOLD,NUM,SCAL)
+C*********************************************************************
+
+C  Scales input value for timestep for cells.
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xparam.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,NUM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 VNEW(IDIM,JDIM,KDIM,NUM),VOLD(IDIM,JDIM,KDIM,NUM),SCAL
+
+      INTEGER I,J,K,M
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XSCALE, OLD TAG =',MSGTAG($XMMODEL+1)
+
+      IF(SCAL == ZERO) THEN
+         DO M = 1,NUM
+         DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+         DO I = IL1,IL2
+            IF(KEYOUT(I,J,K) > 0) THEN
+               VNEW(I,J,K,M) = VOLD(I,J,K,M)
+            ENDIF
+         END DO
+         END DO
+         END DO
+         END DO
+      ELSE
+         DO M = 1,NUM
+         DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+         DO I = IL1,IL2
+            IF(KEYOUT(I,J,K) > 0) THEN
+               VNEW(I,J,K,M) = (VNEW(I,J,K,M)/VOLD(I,J,K,M))**SCAL
+     &                       * VOLD(I,J,K,M)
+            ENDIF
+         END DO
+         END DO
+         END DO
+         END DO
+      ENDIF
+
+      END
+
+C*********************************************************************
+      SUBROUTINE XPAVG (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,PRES,PV)
+C*********************************************************************
+
+C  Calculates total pore volume and pore volume x pressure.
+C  THIS IS A WORK ROUTINE.
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xbaldat.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 PRES(IDIM,JDIM,KDIM),PV(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XPAVG, OLD TAG =',MSGTAG($XMMODEL+1)
+
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2
+         IF ((KEYOUT(I,J,K) > 0).AND.(PV(I,J,K).GT.0.D0)) THEN
+            PVTOTL = PVTOTL + PV(I,J,K)
+            PAVG = PAVG + PV(I,J,K)*PRES(I,J,K)
+         ENDIF
+      END DO
+      END DO
+      END DO
+
+      END
+
+C*********************************************************************
+      SUBROUTINE XGSTABX3(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+     &                    PC,DMOB,DPC,ICFL)
+C*********************************************************************
+
+C  Calculates stability limit contribution in x-direction for grid blocks
+C  Assumes NPH = 3
+C  THIS IS A WORK ROUTINE.
+
+C  INPUT:
+C     TCOF(I,J,K) = TRANSMISSIBILITY BETWEEN CELL I AND I-1 (REAL*8)
+C     DEPTH(I,J,K) = CELL DEPTH (REAL*8)
+C     PRES(I,J,K) = PRESSURE (REAL*8)
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C     MDEN(I,J,K,IPH) = MASS DENSITY FOR PHASE IPH (REAL*8)
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE FOR PHASE IPH (REAL*8)
+C     DPC(I,J,K,*) = DERIVATIVE OF CAPILLARY PRESSURE (REAL*4)
+C     DMOB(I,J,K,*) = DERIVATIVE OF MOBILITY (REAL*4)
+C                     DOES NOT INCLUDE DERIVATIVE OF VISCOSITY
+C     ICFL(I,J,K) = STABILITY CHECK INDICATOR (INTEGER)
+
+C  INPUT/OUTPUT:
+C     DCFL(I,J,K,*) = STABILITY LIMIT ARRAY (REAL*4)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM),
+     &        ICFL(IDIM,JDIM,KDIM)
+      REAL*8 TCOF(IDIM,JDIM,KDIM),DEPTH(IDIM,JDIM,KDIM),
+     &       PRES(IDIM,JDIM,KDIM),MOB(IDIM,JDIM,KDIM,NPH),
+     &       MDEN(IDIM,JDIM,KDIM,NPH),PC(IDIM,JDIM,KDIM,NPH)
+      REAL*4 DCFL(IDIM,JDIM,KDIM,6),DMOB(IDIM,JDIM,KDIM,4),
+     &       DPC(IDIM,JDIM,KDIM,2)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IL2P,LC,IC,IPH,L,IM1,IUP(NPH)
+      REAL*8 DEN,G,TC,DELH,DELP(NPH),FMOB(NPH),X,P1,P2,TMOB,DPW,DPO,
+     &       DPG,KRWP,KRGP,KROWP,KROGP,WOMOB,OGMOB,PCWP,PCGP
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XGSTABX3, OLD TAG =',MSGTAG($XMMODEL+1)
+
+C  SET GRAVITY CONSTANT TO .5 g
+      G = HALF*GRAV
+      IL2P = IL2+1
+
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2P
+         IM1 = I-1
+C        skip this interface if neither cell is checked for stability
+         IF(ICFL(I,J,K) == 0 .AND. ICFL(IM1,J,K) == 0) CYCLE
+         TC = TCOF(I,J,K)
+         IF(TC == ZERO) CYCLE
+
+C----------setup up potential for phase IPH
+         P2 = PRES(I,J,K)
+         P1 = PRES(IM1,J,K)
+         DELH = G *(DEPTH(I,J,K)-DEPTH(IM1,J,K))
+         TMOB = ZERO
+         X = ZERO
+         DO IPH = 1,NPH
+            DEN =  MDEN(I,J,K,IPH) + MDEN(IM1,J,K,IPH)
+            IF(MDEN(I,J,K,IPH) == ZERO .OR.
+     &         MDEN(IM1,J,K,IPH) == ZERO) DEN = TWO*DEN
+            DELP(IPH) = (P2-P1)+(PC(I,J,K,IPH)-PC(IM1,J,K,IPH))
+     &                  - DEN*DELH
+            IF(DELP(IPH) < ZERO) THEN
+               IUP(IPH) = IM1
+            ELSE
+               IUP(IPH) = I
+            ENDIF
+            FMOB(IPH) = MOB(IUP(IPH),J,K,IPH)
+            TMOB = TMOB + FMOB(IPH)
+            X = X + FMOB(IPH)*DELP(IPH)
+         END DO
+         IF(TMOB <= ZERO) CYCLE
+         IF(X >= ZERO) THEN
+            L = I
+         ELSE
+            L = IM1
+         ENDIF
+         X = TC/TMOB
+
+         DPW = ABS(DELP(1))
+         DPO = ABS(DELP(2))
+         DPG = ABS(DELP(3))
+         PCWP = DPC(I,J,K,1)+DPC(IM1,J,K,1)
+         PCGP = DPC(I,J,K,2)+DPC(IM1,J,K,2)
+         KRWP = DMOB(IUP(1),J,K,1)*DPW
+         KROWP = DMOB(IUP(2),J,K,2)*DPO
+         KROGP = DMOB(IUP(2),J,K,3)*DPO
+         KRGP = DMOB(IUP(3),J,K,4)*DPG
+         WOMOB = FMOB(1) + FMOB(2)
+         OGMOB = FMOB(2) + FMOB(3)
+
+         DCFL(L,J,K,1) = DCFL(L,J,K,1)
+     &                 + X*(OGMOB*KRWP-FMOB(1)*KROWP-FMOB(1)*OGMOB*PCWP)
+         DCFL(L,J,K,2) = DCFL(L,J,K,2)
+     &                 - X*FMOB(1)*(KROGP+KRGP+FMOB(3)*PCGP)
+         DCFL(L,J,K,3) = DCFL(L,J,K,3)
+     &                 - X*FMOB(3)*(KRWP+KROWP-FMOB(1)*PCWP)
+         DCFL(L,J,K,4) = DCFL(L,J,K,4)
+     &                 + X*(WOMOB*KRGP-FMOB(3)*KROGP+FMOB(3)*WOMOB*PCGP)
+
+         DCFL(IUP(2),J,K,5) = DCFL(IUP(2),J,K,5) + TC*FMOB(2)*DPO
+         DCFL(IUP(3),J,K,6) = DCFL(IUP(3),J,K,6) + TC*FMOB(3)*DPG
+      END DO
+      END DO
+      END DO
+      END
+
+C*********************************************************************
+      SUBROUTINE XGSTABY3(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+     &                    PC,DMOB,DPC,ICFL)
+C*********************************************************************
+
+C  Calculates stability limit contribution in y-direction for grid blocks
+C  Assumes NPH = 3
+C  THIS IS A WORK ROUTINE.
+
+C  INPUT:
+C     TCOF(I,J,K) = TRANSMISSIBILITY BETWEEN CELL I AND I-1 (REAL*8)
+C     DEPTH(I,J,K) = CELL DEPTH (REAL*8)
+C     PRES(I,J,K) = PRESSURE (REAL*8)
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C     MDEN(I,J,K,IPH) = MASS DENSITY FOR PHASE IPH (REAL*8)
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE FOR PHASE IPH (REAL*8)
+C     DPC(I,J,K,*) = DERIVATIVE OF CAPILLARY PRESSURE (REAL*4)
+C     DMOB(I,J,K,*) = DERIVATIVE OF MOBILITY (REAL*4)
+C                     DOES NOT INCLUDE DERIVATIVE OF VISCOSITY
+C     ICFL(I,J,K) = STABILITY CHECK INDICATOR (INTEGER)
+
+C  INPUT/OUTPUT:
+C     DCFL(I,J,K,*) = STABILITY LIMIT ARRAY (REAL*4)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM),
+     &        ICFL(IDIM,JDIM,KDIM)
+      REAL*8 TCOF(IDIM,JDIM,KDIM),DEPTH(IDIM,JDIM,KDIM),
+     &       PRES(IDIM,JDIM,KDIM),MOB(IDIM,JDIM,KDIM,NPH),
+     &       MDEN(IDIM,JDIM,KDIM,NPH),PC(IDIM,JDIM,KDIM,NPH)
+      REAL*4 DCFL(IDIM,JDIM,KDIM,6),DMOB(IDIM,JDIM,KDIM,4),
+     &       DPC(IDIM,JDIM,KDIM,2)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IL2P,LC,IC,IPH,L,JM1,IUP(NPH)
+      REAL*8 DEN,G,TC,DELH,DELP(NPH),FMOB(NPH),X,P1,P2,TMOB,DPW,DPO,
+     &       DPG,KRWP,KRGP,KROWP,KROGP,WOMOB,OGMOB,PCWP,PCGP
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XGSTABY3, OLD TAG =',MSGTAG($XMMODEL+1)
+
+C  SET GRAVITY CONSTANT TO .5 g
+      G = HALF*GRAV
+      IL2P = IL2+1
+
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      JM1 = J-1
+      DO I = IL1,IL2P
+C        skip this interface if neither cell is checked for stability
+         IF(ICFL(I,J,K) == 0 .AND. ICFL(I,JM1,K) == 0) CYCLE
+         TC = TCOF(I,J,K)
+         IF(TC == ZERO) CYCLE
+
+C----------setup up potential for phase IPH
+         P2 = PRES(I,J,K)
+         P1 = PRES(I,JM1,K)
+         DELH = G *(DEPTH(I,J,K)-DEPTH(I,JM1,K))
+         TMOB = ZERO
+         X = ZERO
+         DO IPH = 1,NPH
+            DEN =  MDEN(I,J,K,IPH) + MDEN(I,JM1,K,IPH)
+            IF(MDEN(I,J,K,IPH) == ZERO .OR.
+     &         MDEN(I,JM1,K,IPH) == ZERO) DEN = TWO*DEN
+            DELP(IPH) = (P2-P1)+(PC(I,J,K,IPH)-PC(I,JM1,K,IPH))
+     &                  - DEN*DELH
+            IF(DELP(IPH) < ZERO) THEN
+               IUP(IPH) = JM1
+            ELSE
+               IUP(IPH) = J
+            ENDIF
+            FMOB(IPH) = MOB(I,IUP(IPH),K,IPH)
+            TMOB = TMOB + FMOB(IPH)
+            X = X + FMOB(IPH)*DELP(IPH)
+         END DO
+         IF(TMOB <= ZERO) CYCLE
+         IF(X >= ZERO) THEN
+            L = J
+         ELSE
+            L = JM1
+         ENDIF
+         X = TC/TMOB
+
+         DPW = ABS(DELP(1))
+         DPO = ABS(DELP(2))
+         DPG = ABS(DELP(3))
+         PCWP = DPC(I,J,K,1)+DPC(I,JM1,K,1)
+         PCGP = DPC(I,J,K,2)+DPC(I,JM1,K,2)
+         KRWP = DMOB(I,IUP(1),K,1)*DPW
+         KROWP = DMOB(I,IUP(2),K,2)*DPO
+         KROGP = DMOB(I,IUP(2),K,3)*DPO
+         KRGP = DMOB(I,IUP(3),K,4)*DPG
+         WOMOB = FMOB(1) + FMOB(2)
+         OGMOB = FMOB(2) + FMOB(3)
+
+         DCFL(I,L,K,1) = DCFL(I,L,K,1)
+     &                 + X*(OGMOB*KRWP-FMOB(1)*KROWP-FMOB(1)*OGMOB*PCWP)
+         DCFL(I,L,K,2) = DCFL(I,L,K,2)
+     &                 - X*FMOB(1)*(KROGP+KRGP+FMOB(3)*PCGP)
+         DCFL(I,L,K,3) = DCFL(I,L,K,3)
+     &                 - X*FMOB(3)*(KRWP+KROWP-FMOB(1)*PCWP)
+         DCFL(I,L,K,4) = DCFL(I,L,K,4)
+     &                 + X*(WOMOB*KRGP-FMOB(3)*KROGP+FMOB(3)*WOMOB*PCGP)
+
+         DCFL(I,IUP(2),K,5) = DCFL(I,IUP(2),K,5) + TC*FMOB(2)*DPO
+         DCFL(I,IUP(3),K,6) = DCFL(I,IUP(3),K,6) + TC*FMOB(3)*DPG
+      END DO
+      END DO
+      END DO
+      END
+
+C*********************************************************************
+      SUBROUTINE XGSTABZ3(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+     &                    PC,DMOB,DPC,ICFL)
+C*********************************************************************
+
+C  Calculates stability limit contribution in z-direction for grid blocks
+C  Assumes NPH = 3
+C  THIS IS A WORK ROUTINE.
+
+C  INPUT:
+C     TCOF(I,J,K) = TRANSMISSIBILITY BETWEEN CELL I AND I-1 (REAL*8)
+C     DEPTH(I,J,K) = CELL DEPTH (REAL*8)
+C     PRES(I,J,K) = PRESSURE (REAL*8)
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C     MDEN(I,J,K,IPH) = MASS DENSITY FOR PHASE IPH (REAL*8)
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE FOR PHASE IPH (REAL*8)
+C     DPC(I,J,K,*) = DERIVATIVE OF CAPILLARY PRESSURE (REAL*4)
+C     DMOB(I,J,K,*) = DERIVATIVE OF MOBILITY (REAL*4)
+C                     DOES NOT INCLUDE DERIVATIVE OF VISCOSITY
+C     ICFL(I,J,K) = STABILITY CHECK INDICATOR (INTEGER)
+
+C  INPUT/OUTPUT:
+C     DCFL(I,J,K,*) = STABILITY LIMIT ARRAY (REAL*4)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM),
+     &        ICFL(IDIM,JDIM,KDIM)
+      REAL*8 TCOF(IDIM,JDIM,KDIM),DEPTH(IDIM,JDIM,KDIM),
+     &       PRES(IDIM,JDIM,KDIM),MOB(IDIM,JDIM,KDIM,NPH),
+     &       MDEN(IDIM,JDIM,KDIM,NPH),PC(IDIM,JDIM,KDIM,NPH)
+      REAL*4 DCFL(IDIM,JDIM,KDIM,6),DMOB(IDIM,JDIM,KDIM,4),
+     &       DPC(IDIM,JDIM,KDIM,2)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IL2P,LC,IC,IPH,L,KM1,IUP(NPH)
+      REAL*8 DEN,G,TC,DELH,DELP(NPH),FMOB(NPH),X,P1,P2,TMOB,DPW,DPO,
+     &       DPG,KRWP,KRGP,KROWP,KROGP,WOMOB,OGMOB,PCWP,PCGP
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XGSTABZ3, OLD TAG =',MSGTAG($XMMODEL+1)
+
+C  SET GRAVITY CONSTANT TO .5 g
+      G = HALF*GRAV
+      IL2P = IL2+1
+
+      DO K = KL1,KL2
+      KM1 = K-1
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2P
+C        skip this interface if neither cell is checked for stability
+         IF(ICFL(I,J,K) == 0 .AND. ICFL(I,J,KM1) == 0) CYCLE
+         TC = TCOF(I,J,K)
+         IF(TC == ZERO) CYCLE
+
+C----------setup up potential for phase IPH
+         P2 = PRES(I,J,K)
+         P1 = PRES(I,J,KM1)
+         DELH = G *(DEPTH(I,J,K)-DEPTH(I,J,KM1))
+         TMOB = ZERO
+         X = ZERO
+         DO IPH = 1,NPH
+            DEN =  MDEN(I,J,K,IPH) + MDEN(I,J,KM1,IPH)
+            IF(MDEN(I,J,K,IPH) == ZERO .OR.
+     &         MDEN(I,J,KM1,IPH) == ZERO) DEN = TWO*DEN
+            DELP(IPH) = (P2-P1)+(PC(I,J,K,IPH)-PC(I,J,KM1,IPH))
+     &                  - DEN*DELH
+            IF(DELP(IPH) < ZERO) THEN
+               IUP(IPH) = KM1
+            ELSE
+               IUP(IPH) = K
+            ENDIF
+            FMOB(IPH) = MOB(I,J,IUP(IPH),IPH)
+            TMOB = TMOB + FMOB(IPH)
+            X = X + FMOB(IPH)*DELP(IPH)
+         END DO
+         IF(TMOB <= ZERO) CYCLE
+         IF(X >= ZERO) THEN
+            L = K
+         ELSE
+            L = KM1
+         ENDIF
+         X = TC/TMOB
+
+         DPW = ABS(DELP(1))
+         DPO = ABS(DELP(2))
+         DPG = ABS(DELP(3))
+         PCWP = DPC(I,J,K,1)+DPC(I,J,KM1,1)
+         PCGP = DPC(I,J,K,2)+DPC(I,J,KM1,2)
+         KRWP = DMOB(I,J,IUP(1),1)*DPW
+         KROWP = DMOB(I,J,IUP(2),2)*DPO
+         KROGP = DMOB(I,J,IUP(2),3)*DPO
+         KRGP = DMOB(I,J,IUP(3),4)*DPG
+         WOMOB = FMOB(1) + FMOB(2)
+         OGMOB = FMOB(2) + FMOB(3)
+
+         DCFL(I,J,L,1) = DCFL(I,J,L,1)
+     &                 + X*(OGMOB*KRWP-FMOB(1)*KROWP-FMOB(1)*OGMOB*PCWP)
+         DCFL(I,J,L,2) = DCFL(I,J,L,2)
+     &                 - X*FMOB(1)*(KROGP+KRGP+FMOB(3)*PCGP)
+         DCFL(I,J,L,3) = DCFL(I,J,L,3)
+     &                 - X*FMOB(3)*(KRWP+KROWP-FMOB(1)*PCWP)
+         DCFL(I,J,L,4) = DCFL(I,J,L,4)
+     &                 + X*(WOMOB*KRGP-FMOB(3)*KROGP+FMOB(3)*WOMOB*PCGP)
+
+         DCFL(I,J,IUP(2),5) = DCFL(I,J,IUP(2),5) + TC*FMOB(2)*DPO
+         DCFL(I,J,IUP(3),6) = DCFL(I,J,IUP(3),6) + TC*FMOB(3)*DPG
+      END DO
+      END DO
+      END DO
+      END
+
+C*********************************************************************
+      SUBROUTINE XGSTABX2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+     &                    PC,DMOB,DPC,ICFL)
+C*********************************************************************
+
+C  Calculates stability limit contribution in x-direction for grid blocks
+C  Assumes NPH = 2
+C  THIS IS A WORK ROUTINE.
+
+C  INPUT:
+C     TCOF(I,J,K) = TRANSMISSIBILITY BETWEEN CELL I AND I-1 (REAL*8)
+C     DEPTH(I,J,K) = CELL DEPTH (REAL*8)
+C     PRES(I,J,K) = PRESSURE (REAL*8)
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C     MDEN(I,J,K,IPH) = MASS DENSITY FOR PHASE IPH (REAL*8)
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE FOR PHASE IPH (REAL*8)
+C     DPC(I,J,K) = DERIVATIVE OF CAPILLARY PRESSURE (REAL*4)
+C     DMOB(I,J,K,*) = DERIVATIVE OF MOBILITY (REAL*4)
+C                     DOES NOT INCLUDE DERIVATIVE OF VISCOSITY
+C     ICFL(I,J,K) = STABILITY CHECK INDICATOR (INTEGER)
+
+C  INPUT/OUTPUT:
+C     DCFL(I,J,K) = STABILITY LIMIT ARRAY (REAL*4)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM),
+     &        ICFL(IDIM,JDIM,KDIM)
+      REAL*8 TCOF(IDIM,JDIM,KDIM),DEPTH(IDIM,JDIM,KDIM),
+     &       PRES(IDIM,JDIM,KDIM),MOB(IDIM,JDIM,KDIM,NPH),
+     &       MDEN(IDIM,JDIM,KDIM,NPH),PC(IDIM,JDIM,KDIM,NPH)
+      REAL*4 DCFL(IDIM,JDIM,KDIM),DMOB(IDIM,JDIM,KDIM,2),
+     &       DPC(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IL2P,LC,IC,IPH,L,IM1,IUP(NPH)
+      REAL*8 DEN,G,TC,DELH,DELP(NPH),FMOB(NPH),X,P1,P2,TMOB,DPW,DPO,
+     &       KRWP,KROWP,PCWP
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XGSTABX2, OLD TAG =',MSGTAG($XMMODEL+1)
+
+C  SET GRAVITY CONSTANT TO .5 g
+      G = HALF*GRAV
+      IL2P = IL2+1
+
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2P
+         IM1 = I-1
+C        skip this interface if neither cell is checked for stability
+         IF(ICFL(I,J,K) == 0 .AND. ICFL(IM1,J,K) == 0) CYCLE
+         TC = TCOF(I,J,K)
+         IF(TC == ZERO) CYCLE
+
+C----------setup up potential for phase IPH
+         P2 = PRES(I,J,K)
+         P1 = PRES(IM1,J,K)
+         DELH = G *(DEPTH(I,J,K)-DEPTH(IM1,J,K))
+         TMOB = ZERO
+         X = ZERO
+         DO IPH = 1,NPH
+            DEN =  MDEN(I,J,K,IPH) + MDEN(IM1,J,K,IPH)
+            IF(MDEN(I,J,K,IPH) == ZERO .OR.
+     &         MDEN(IM1,J,K,IPH) == ZERO) DEN = TWO*DEN
+            DELP(IPH) = (P2-P1)+(PC(I,J,K,IPH)-PC(IM1,J,K,IPH))
+     &                  - DEN*DELH
+            IF(DELP(IPH) < ZERO) THEN
+               IUP(IPH) = IM1
+            ELSE
+               IUP(IPH) = I
+            ENDIF
+            FMOB(IPH) = MOB(IUP(IPH),J,K,IPH)
+            TMOB = TMOB + FMOB(IPH)
+            X = X + FMOB(IPH)*DELP(IPH)
+         END DO
+         IF(TMOB <= ZERO) CYCLE
+         IF(X >= ZERO) THEN
+            L = I
+         ELSE
+            L = IM1
+         ENDIF
+         X = TC/TMOB
+
+         DPW = ABS(DELP(1))
+         DPO = ABS(DELP(2))
+         PCWP = DPC(I,J,K)+DPC(IM1,J,K)
+         KRWP = DMOB(IUP(1),J,K,1)*DPW
+         KROWP = DMOB(IUP(2),J,K,2)*DPO
+
+         DCFL(L,J,K) = DCFL(L,J,K) + X*(FMOB(2)*KRWP
+     &               - FMOB(1)*KROWP-FMOB(1)*FMOB(2)*PCWP)
+      END DO
+      END DO
+      END DO
+      END
+
+C*********************************************************************
+      SUBROUTINE XGSTABY2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+     &                    PC,DMOB,DPC,ICFL)
+C*********************************************************************
+
+C  Calculates stability limit contribution in y-direction for grid blocks
+C  Assumes NPH = 2
+C  THIS IS A WORK ROUTINE.
+
+C  INPUT:
+C     TCOF(I,J,K) = TRANSMISSIBILITY BETWEEN CELL I AND I-1 (REAL*8)
+C     DEPTH(I,J,K) = CELL DEPTH (REAL*8)
+C     PRES(I,J,K) = PRESSURE (REAL*8)
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C     MDEN(I,J,K,IPH) = MASS DENSITY FOR PHASE IPH (REAL*8)
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE FOR PHASE IPH (REAL*8)
+C     DPC(I,J,K) = DERIVATIVE OF CAPILLARY PRESSURE (REAL*4)
+C     DMOB(I,J,K,*) = DERIVATIVE OF MOBILITY (REAL*4)
+C                     DOES NOT INCLUDE DERIVATIVE OF VISCOSITY
+C     ICFL(I,J,K) = STABILITY CHECK INDICATOR (INTEGER)
+
+C  INPUT/OUTPUT:
+C     DCFL(I,J,K) = STABILITY LIMIT ARRAY (REAL*4)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM),
+     &        ICFL(IDIM,JDIM,KDIM)
+      REAL*8 TCOF(IDIM,JDIM,KDIM),DEPTH(IDIM,JDIM,KDIM),
+     &       PRES(IDIM,JDIM,KDIM),MOB(IDIM,JDIM,KDIM,NPH),
+     &       MDEN(IDIM,JDIM,KDIM,NPH),PC(IDIM,JDIM,KDIM,NPH)
+      REAL*4 DCFL(IDIM,JDIM,KDIM),DMOB(IDIM,JDIM,KDIM,2),
+     &       DPC(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IL2P,LC,IC,IPH,L,JM1,IUP(NPH)
+      REAL*8 DEN,G,TC,DELH,DELP(NPH),FMOB(NPH),X,P1,P2,TMOB,DPW,DPO,
+     &       KRWP,KROWP,PCWP
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XGSTABY2, OLD TAG =',MSGTAG($XMMODEL+1)
+
+C  SET GRAVITY CONSTANT TO .5 g
+      G = HALF*GRAV
+      IL2P = IL2+1
+
+      DO K = KL1,KL2
+      DO J = JL1V(K),JL2V(K)
+      JM1 = J-1
+      DO I = IL1,IL2P
+C        skip this interface if neither cell is checked for stability
+         IF(ICFL(I,J,K) == 0 .AND. ICFL(I,JM1,K) == 0) CYCLE
+         TC = TCOF(I,J,K)
+         IF(TC == ZERO) CYCLE
+
+C----------setup up potential for phase IPH
+         P2 = PRES(I,J,K)
+         P1 = PRES(I,JM1,K)
+         DELH = G *(DEPTH(I,J,K)-DEPTH(I,JM1,K))
+         TMOB = ZERO
+         X = ZERO
+         DO IPH = 1,NPH
+            DEN =  MDEN(I,J,K,IPH) + MDEN(I,JM1,K,IPH)
+            IF(MDEN(I,J,K,IPH) == ZERO .OR.
+     &         MDEN(I,JM1,K,IPH) == ZERO) DEN = TWO*DEN
+            DELP(IPH) = (P2-P1)+(PC(I,J,K,IPH)-PC(I,JM1,K,IPH))
+     &                  - DEN*DELH
+            IF(DELP(IPH) < ZERO) THEN
+               IUP(IPH) = JM1
+            ELSE
+               IUP(IPH) = J
+            ENDIF
+            FMOB(IPH) = MOB(I,IUP(IPH),K,IPH)
+            TMOB = TMOB + FMOB(IPH)
+            X = X + FMOB(IPH)*DELP(IPH)
+         END DO
+         IF(TMOB <= ZERO) CYCLE
+         IF(X >= ZERO) THEN
+            L = J
+         ELSE
+            L = JM1
+         ENDIF
+         X = TC/TMOB
+
+         DPW = ABS(DELP(1))
+         DPO = ABS(DELP(2))
+         PCWP = DPC(I,J,K)+DPC(I,JM1,K)
+         KRWP = DMOB(I,IUP(1),K,1)*DPW
+         KROWP = DMOB(I,IUP(2),K,2)*DPO
+
+         DCFL(I,L,K) = DCFL(I,L,K) + X*(FMOB(2)*KRWP
+     &               - FMOB(1)*KROWP-FMOB(1)*FMOB(2)*PCWP)
+      END DO
+      END DO
+      END DO
+      END
+
+C*********************************************************************
+      SUBROUTINE XGSTABZ2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,TCOF,DEPTH,PRES,MDEN,MOB,DCFL,
+     &                    PC,DMOB,DPC,ICFL)
+C*********************************************************************
+
+C  Calculates stability limit contribution in z-direction for grid blocks
+C  Assumes NPH = 2
+C  THIS IS A WORK ROUTINE.
+
+C  INPUT:
+C     TCOF(I,J,K) = TRANSMISSIBILITY BETWEEN CELL I AND I-1 (REAL*8)
+C     DEPTH(I,J,K) = CELL DEPTH (REAL*8)
+C     PRES(I,J,K) = PRESSURE (REAL*8)
+C     MOB(I,J,K,IPH) = MOBILITY FOR PHASE IPH (REAL*8)
+C     MDEN(I,J,K,IPH) = MASS DENSITY FOR PHASE IPH (REAL*8)
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE FOR PHASE IPH (REAL*8)
+C     DPC(I,J,K) = DERIVATIVE OF CAPILLARY PRESSURE (REAL*4)
+C     DMOB(I,J,K,*) = DERIVATIVE OF MOBILITY (REAL*4)
+C                     DOES NOT INCLUDE DERIVATIVE OF VISCOSITY
+C     ICFL(I,J,K) = STABILITY CHECK INDICATOR (INTEGER)
+
+C  INPUT/OUTPUT:
+C     DCFL(I,J,K) = STABILITY LIMIT ARRAY (REAL*4)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM),
+     &        ICFL(IDIM,JDIM,KDIM)
+      REAL*8 TCOF(IDIM,JDIM,KDIM),DEPTH(IDIM,JDIM,KDIM),
+     &       PRES(IDIM,JDIM,KDIM),MOB(IDIM,JDIM,KDIM,NPH),
+     &       MDEN(IDIM,JDIM,KDIM,NPH),PC(IDIM,JDIM,KDIM,NPH)
+      REAL*4 DCFL(IDIM,JDIM,KDIM),DMOB(IDIM,JDIM,KDIM,2),
+     &       DPC(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IL2P,LC,IC,IPH,L,KM1,IUP(NPH)
+      REAL*8 DEN,G,TC,DELH,DELP(NPH),FMOB(NPH),X,P1,P2,TMOB,DPW,DPO,
+     &       KRWP,KROWP,PCWP
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XGSTABZ2, OLD TAG =',MSGTAG($XMMODEL+1)
+
+C  SET GRAVITY CONSTANT TO .5 g
+      G = HALF*GRAV
+      IL2P = IL2+1
+
+      DO K = KL1,KL2
+      KM1 = K-1
+      DO J = JL1V(K),JL2V(K)
+      DO I = IL1,IL2P
+C        skip this interface if neither cell is checked for stability
+         IF(ICFL(I,J,K) == 0 .AND. ICFL(I,J,KM1) == 0) CYCLE
+         TC = TCOF(I,J,K)
+         IF(TC == ZERO) CYCLE
+
+C----------setup up potential for phase IPH
+         P2 = PRES(I,J,K)
+         P1 = PRES(I,J,KM1)
+         DELH = G *(DEPTH(I,J,K)-DEPTH(I,J,KM1))
+         TMOB = ZERO
+         X = ZERO
+         DO IPH = 1,NPH
+            DEN =  MDEN(I,J,K,IPH) + MDEN(I,J,KM1,IPH)
+            IF(MDEN(I,J,K,IPH) == ZERO .OR.
+     &         MDEN(I,J,KM1,IPH) == ZERO) DEN = TWO*DEN
+            DELP(IPH) = (P2-P1)+(PC(I,J,K,IPH)-PC(I,J,KM1,IPH))
+     &                  - DEN*DELH
+            IF(DELP(IPH) < ZERO) THEN
+               IUP(IPH) = KM1
+            ELSE
+               IUP(IPH) = K
+            ENDIF
+            FMOB(IPH) = MOB(I,J,IUP(IPH),IPH)
+            TMOB = TMOB + FMOB(IPH)
+            X = X + FMOB(IPH)*DELP(IPH)
+         END DO
+         IF(TMOB <= ZERO) CYCLE
+         IF(X >= ZERO) THEN
+            L = K
+         ELSE
+            L = KM1
+         ENDIF
+         X = TC/TMOB
+
+         DPW = ABS(DELP(1))
+         DPO = ABS(DELP(2))
+         PCWP = DPC(I,J,K)+DPC(I,J,KM1)
+         KRWP = DMOB(I,J,IUP(1),1)*DPW
+         KROWP = DMOB(I,J,IUP(2),2)*DPO
+
+         DCFL(I,J,L) = DCFL(I,J,L) + X*(FMOB(2)*KRWP
+     &               - FMOB(1)*KROWP-FMOB(1)*FMOB(2)*PCWP)
+      END DO
+      END DO
+      END DO
+      END
+
+C*********************************************************************
+      SUBROUTINE XSTABCHK(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,PV,PMD,SAT,DCFL,ICFL)
+C*********************************************************************
+
+C  Computes time step size for stability limit
+C  THIS IS A WORK ROUTINE.
+
+C  INPUT:
+C     PV(I,J,K) = PORE VOLUME (REAL*8)
+C     PMD(I,J,K,L) = MASS FRACTION X MOLAR DENSITY (REAL*8)
+C     SAT(I,J,K,IPH) = FLUID SATURATION (REAL*8)
+C     ICFL(I,J,K) = STABILITY CHECK INDICATOR (INTEGER)
+C     DCFL(I,J,K) = STABILITY LIMIT ARRAY (REAL*4)
+
+C  INPUT/OUTPUT:
+C     DTSTAB = TIME STEP SIZE DUE TO STABILITY LIMIT
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xbaldat.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM,LCO,LCG
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM),
+     &        ICFL(IDIM,JDIM,KDIM)
+      REAL*8 PV(IDIM,JDIM,KDIM),PMD(IDIM,JDIM,KDIM,NCINPH),
+     &       SAT(IDIM,JDIM,KDIM,NPH)
+      REAL*4 DCFL(IDIM,JDIM,KDIM,6)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER I,J,K,IC,IG,IMAX,JMAX,KMAX
+      REAL*8 DMIN,EPS,FI,QO,QG,SO,SG,Y,X
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &  ' ENTERING SUBROUTINE XSTABCHK, OLD TAG =',MSGTAG($XMMODEL+1)
+
+      DMIN = BIG
+      EPS = TEN_M10
+
+      IF(NPH == 3) THEN
+         DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+         DO I = IL1,IL2
+C           skip this cell if not flagged for stability check
+            IF ((ICFL(I,J,K) == 0).OR.(PV(I,J,K).LE.0.D0)) CYCLE
+
+             FI = DCFL(I,J,K,1) + ABS(DCFL(I,J,K,2))
+             FI = MAX( FI, DCFL(I,J,K,4) + ABS(DCFL(I,J,K,3)) )
+             QO = DCFL(I,J,K,5)
+             QG = DCFL(I,J,K,6)
+             SO = SAT(I,J,K,2)
+             SG = SAT(I,J,K,3)
+             DO IC = 2,NC
+                LCO = ICINPH(IC,2)
+                LCG = ICINPH(IC,3)
+                IF(LCO <= 0 .OR. LCG <= 0) CYCLE
+                Y = SO*PMD(I,J,K,LCO) + SG*PMD(I,J,K,LCG)
+                IF(Y > EPS) THEN
+                   X = (QO*PMD(I,J,K,LCO) + QG*PMD(I,J,K,LCG))/Y
+                   FI = MAX(FI,X)
+                ENDIF
+             END DO
+             X = FI/PV(I,J,K)
+             IF(X > ZERO) THEN
+                X = CFL/X
+                IF(X < DMIN) THEN
+                   DMIN = X
+                   IMAX = I
+                   JMAX = J
+                   KMAX = K
+                ENDIF
+             ENDIF
+         END DO
+         END DO
+         END DO
+      ELSEIF(NPH == 2) THEN
+         DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+         DO I = IL1,IL2
+C           skip this cell if not flagged for stability check
+            IF ((ICFL(I,J,K) == 0).OR.(PV(I,J,K).LE.0.D0)) CYCLE
+
+            FI = DCFL(I,J,K,1)
+            SO = SAT(I,J,K,2)
+            IF(SO > EPS) FI = MAX(FI,DCFL(I,J,K,2)/SO)
+            X = FI/PV(I,J,K)
+            IF(X > ZERO) THEN
+               X = CFL/X
+               IF(X < DMIN) THEN
+                  DMIN = X
+                  IMAX = I
+                  JMAX = J
+                  KMAX = K
+               ENDIF
+            ENDIF
+         END DO
+         END DO
+         END DO
+      ENDIF
+
+      IF (DMIN < DTSTAB) THEN
+         DTSTAB = DMIN
+         ICFLMAX = IMAX
+         JCFLMAX = JMAX
+         KCFLMAX = KMAX
+         NCFLMAX = NBLK
+      ENDIF
+      END
+
+C*********************************************************************
+      SUBROUTINE XTRAN(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+     &     JL2V,KL1,KL2,KEYOUT,NBLK,KEYOUTCR,VOLPROP,VOLDIM,
+     &     FACEPROP,FACEDIM,PERMINV,XC,YC,ZC,UPMOBPROD,MDEN,
+     &     PRES,PC,AINVF,TRAN,AINV,COF,RESID)
+C*********************************************************************
+      IMPLICIT NONE
+C
+      include 'control.h'
+      include 'xmodel.h'
+C
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM),
+     &     JL2V(KDIM),KL1,KL2,KEYOUT(IDIM,JDIM,KDIM),
+     &     NBLK
+      INTEGER KEYOUTCR(IDIM+1,JDIM+1,KDIM+1),
+     &     VOLPROP(IDIM+1,JDIM+1,KDIM+1,8),
+     &     VOLDIM(IDIM+1,JDIM+1,KDIM+1),
+     &     FACEPROP(IDIM+1,JDIM+1,KDIM+1,12),
+     &     FACEDIM(IDIM+1,JDIM+1,KDIM+1)
+      REAL*8 PERMINV(3,3,8,IDIM,JDIM,KDIM),
+     &     XC(IDIM+1,JDIM+1,KDIM+1),YC(IDIM+1,JDIM+1,KDIM+1),
+     &     ZC(IDIM+1,JDIM+1,KDIM+1),UPMOBPROD(IDIM,JDIM,KDIM,3,NCINPH),
+     &     MDEN(IDIM,JDIM,KDIM,NPH),PRES(IDIM,JDIM,KDIM),
+     &     TRAN(12,8,IDIM+1,JDIM+1,KDIM+1),
+     &     AINVF(12,NPH,IDIM+1,JDIM+1,KDIM+1),
+     &     COF(IDIM,JDIM,KDIM,-13:13,NC),
+     &     RESID(IDIM,JDIM,KDIM,NC),PC(IDIM,JDIM,KDIM,NPH),
+     &     AINV(12,12,IDIM+1,JDIM+1,KDIM+1)
+C
+      INTEGER VPROP(8),FPROP(12)
+      REAL*8 RHON(8,NPH),PCN(8,NPH),PN(8)
+      INTEGER I,J,K,M,KR,IPH
+
+C     IPH (WATER = 1, OIL = 2, GAS = 3)
+
+C
+C LOOP OVER ALL VERTICES (I,J,K)
+C
+      DO 200 K = KL1,KL2+1
+      DO 200 J = 1, JDIM+1
+      DO 200 I = IL1,IL2+1
+      KR = KEYOUTCR(I,J,K)
+
+      IF((KR.EQ.1).OR.(KR.EQ.2)) THEN
+
+         DO M = 1, 8
+            VPROP(M) = VOLPROP(I,J,K,M)
+         ENDDO
+         DO M = 1, 12
+            FPROP(M) = FACEPROP(I,J,K,M)
+         ENDDO
+         CALL GETCORNERLOCAL(PN,I,J,K,PRES,IDIM,JDIM,KDIM,VPROP)
+
+         DO IPH = 1,NPH
+           IF (IREFPRES.EQ.IPH) THEN
+              DO M = 1,8
+                 PCN(M,IPH) = 0.D0
+              ENDDO
+           ELSE
+              CALL GETCORNERLOCAL(PCN(1,IPH),I,J,K,PC(1,1,1,IPH),
+     &                          IDIM,JDIM,KDIM,VPROP)
+           ENDIF
+           CALL GETCORNERLOCAL(RHON(1,IPH),I,J,K,MDEN(1,1,1,IPH)
+     &                       ,IDIM,JDIM,KDIM,VPROP)
+         ENDDO
+         CALL GETMATRHS(COF,RESID,TRAN(1,1,I,J,K),
+     &                AINV(1,1,I,J,K),AINVF(1,1,I,J,K),
+     &                I,J,K,PN,PCN,RHON,PERMINV,VOLDIM(I,J,K),
+     &                VPROP,FACEDIM(I,J,K),FPROP,IDIM,JDIM,
+     &                KDIM,XC,YC,ZC,NBLK,UPMOBPROD,NC,NPH,NCINPH,
+     &                ICINPH)
+
+      ENDIF
+
+ 200  CONTINUE
+
+      RETURN
+      END
+C*********************************************************************
+      SUBROUTINE XFLOWAQ(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                 KEYOUT,NBLK,POR,VEL,PV,PVN,PMDEN,PMDENN,SAT,
+     &                 SATN,CONC,CONCN)
+C*********************************************************************
+
+C Aqueous phase component transport
+
+C  INPUT:
+C     VEL(I,J,K,NPH,3) = VOLUMETRIC PHASE VELOCITIES (REAL*8)
+C     POR(I,J,K) = PORE VOLUME AT TIME T = 0 (REAL*4)
+C     PV(I,J,K) = PORE VOLUME (REAL*8)
+C     PVN(I,J,K) = OLD TIMESTEP PORE VOLUME (REAL*8)
+C     PMDEN(I,J,K,NPH) = PORE VOLUME (REAL*8)
+C     PMDENN(I,J,K,NPH) = OLD TIMESTEP PORE VOLUME (REAL*8)
+C     SAT(I,J,K,NPH) = PHASE SATURATION (REAL*8)
+C     SATN(I,J,K,NPH) = OLD TIMESTEP PHASE SATURATION (REAL*8)
+C     CONCN(I,J,K,IC) = OLD TIMESTEP CONCENTRATION (REAL*8)
+
+C  OUTPUT:
+C     CONC(I,J,K,IC) = CONCENTRATION (REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xwells.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'xcompwel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 VEL(IDIM,JDIM,KDIM,NPH,3),PV(IDIM,JDIM,KDIM),
+     &       PVN(IDIM,JDIM,KDIM),PMDEN(IDIM,JDIM,KDIM,NPH),
+     &       PMDENN(IDIM,JDIM,KDIM,NPH),SAT(IDIM,JDIM,KDIM,NPH),
+     &       SATN(IDIM,JDIM,KDIM,NPH),CONC(IDIM,JDIM,KDIM,NAQ),
+     &       CONCN(IDIM,JDIM,KDIM,NAQ)
+      REAL*8 POR(IDIM,JDIM,KDIM)
+C
+C---- LOCAL VARIABLES
+C
+      INTEGER AQNEWT,MAXNEWT,IC,IM1,JM1,KM1,KL2P,JL1(KDIM),JL2(KDIM),
+     &        KL1S,IL2P,I,J,K,IERR
+      REAL*8 FLUX,AVGPMDEN,RM,RESID_M,CONCAQ
+      REAL*8, ALLOCATABLE :: RESID(:,:,:,:)
+
+      INTEGER IW,IOFF,JOFF,KOFF,MERR,NE,L,JS
+
+      ALLOCATE(RESID(IDIM,JDIM,KDIM,NAQ),STAT=IERR)
+      IF (IERR.NE.0) STOP 'Could not allocate AQ. RESID'
+
+CC
+CC---- CHECK IF PHASE VELOCITIES ARE VOLUMETRIC
+CC
+C      IF (.NOT.XDARCYFLUX) THEN
+C         WRITE(*,*)'XDARCYFLUX FALSE: AQ. COMPONENT TRANSPORT SKIPPED!'
+C         RETURN
+C      ENDIF
+
+C     GET LOCAL TO GLOBAL INDEX OFFSETS
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+      IL2P=IL2+1
+      KL2P = KL2+1
+      KL1S = MAX(2,KL1)
+
+C-------set up JL1 and JL2 vectors
+      JL1(KL1)=JL1V(KL1)
+      JL2(KL1)=JL2V(KL1)
+      DO K = KL1+1,KL2
+         JL1(K)=MIN(JL1V(K-1),JL1V(K))
+         JL2(K)=MAX(JL2V(K-1),JL2V(K))
+      END DO
+      JL1(KL2P)=JL1V(KL2)
+      JL2(KL2P)=JL2V(KL2)
+
+C---- Inexact Newton for component transport
+
+      MAXNEWT = 20
+      RESID_M = 1.D0
+      AQNEWT = 0
+
+      DO WHILE (RESID_M>1.D-8)
+
+      RESID = 0.D0
+      RESID_M = 0.D0
+
+      DO IC = 1,NAQ
+C        direction-1
+         DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+         DO I = IL1,IL2P
+            IM1 = I-1
+            IF(KEYOUT(I,J,K) > 0) THEN
+               RESID(I,J,K,IC) = RESID(I,J,K,IC)+(PV(I,J,K)
+     &              *PMDEN(I,J,K,1)*SAT(I,J,K,1)*CONC(I,J,K,IC)
+     &              -PVN(I,J,K)*PMDENN(I,J,K,1)*SATN(I,J,K,1)
+     &              *CONCN(I,J,K,IC))
+            ENDIF
+            IF(KEYOUT(IM1,J,K)/=0) THEN
+              IF (VEL(I,J,K,1,1)>0.D0) THEN
+                 CONCAQ = CONC(IM1,J,K,IC)
+              ELSE
+                 CONCAQ = CONC(I,J,K,IC)
+              ENDIF
+              AVGPMDEN = 0.5D0*(PMDEN(I,J,K,1)+PMDEN(IM1,J,K,1))
+              FLUX = AVGPMDEN*CONCAQ*VEL(I,J,K,1,1)*DELTIM
+              RESID(I,J,K,IC) = RESID(I,J,K,IC) - FLUX
+              RESID(IM1,J,K,IC) = RESID(IM1,J,K,IC) + FLUX
+            ENDIF
+         END DO
+         END DO
+         END DO
+
+C        direction-2
+         DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)+1
+         JM1 = J-1
+         IF(JM1 <= 0) CYCLE
+         DO I = IL1,IL2
+            IF(KEYOUT(I,JM1,K)/=0) THEN
+              IF (VEL(I,J,K,1,2)>0.D0) THEN
+                 CONCAQ = CONC(I,JM1,K,IC)
+              ELSE
+                 CONCAQ = CONC(I,J,K,IC)
+              ENDIF
+              AVGPMDEN = 0.5D0*(PMDEN(I,J,K,1)+PMDEN(I,JM1,K,1))
+              FLUX = AVGPMDEN*CONCAQ*VEL(I,J,K,1,2)*DELTIM
+              RESID(I,J,K,IC) = RESID(I,J,K,IC) - FLUX
+              RESID(I,JM1,K,IC) = RESID(I,JM1,K,IC) + FLUX
+            ENDIF
+         END DO
+         END DO
+         END DO
+
+C        direction-3
+         DO K = KL1S,KL2P
+         KM1 = K-1
+         DO J = JL1(K),JL2(K)
+         DO I = IL1,IL2
+            IF(KEYOUT(I,J,KM1)/=0) THEN
+              IF (VEL(I,J,K,1,3)>0.D0) THEN
+                 CONCAQ = CONC(I,J,KM1,IC)
+              ELSE
+                 CONCAQ = CONC(I,J,K,IC)
+              ENDIF
+              AVGPMDEN = 0.5D0*(PMDEN(I,J,K,1)+PMDEN(I,J,KM1,1))
+              FLUX = AVGPMDEN*CONCAQ*VEL(I,J,K,1,3)*DELTIM
+              RESID(I,J,K,IC) = RESID(I,J,K,IC) - FLUX
+              RESID(I,J,KM1,IC) = RESID(I,J,KM1,IC) + FLUX
+            ENDIF
+         END DO
+         END DO
+         END DO
+
+C---- WELL CONTRIBUTION
+         DO IW = 1,NUMWEL
+            IF(MODWEL(IW) /= MODACT) CYCLE
+            NE = NUMELE(IW)
+            JS = INJCOMP(IW)
+            DO  L = 1,NE
+               IF (LOCWEL(6,L,IW)==MYPRC .AND.
+     &             LOCWEL(1,L,IW)==NBLK) THEN
+                  I = LOCWEL(3,L,IW)-IOFF
+                  J = LOCWEL(4,L,IW)-JOFF
+                  K = LOCWEL(5,L,IW)-KOFF
+                  IF(KEYOUT(I,J,K) /= 1) CYCLE
+
+C--------------INJECTION WELL
+                  IF (KWELL(IW)<30) THEN
+                     RESID(I,J,K,IC) = RESID(I,J,K,IC)-COMPAQINJ(IC,JS)
+     &                                 *QLAYER(1,L,IW)*DELTIM
+C--------------PRODUCTION WELL
+                  ELSE
+                     RESID(I,J,K,IC) = RESID(I,J,K,IC)-CONC(I,J,K,IC)
+     &                                 *QLAYER(1,L,IW)*DELTIM
+                  ENDIF
+               ENDIF
+            END DO
+         END DO
+
+C---- RESIDUAL CALCULATION & CONC. UPDATE
+         DO K=KL1,KL2
+         DO J=JL1V(K),JL2V(K)
+         DO I=IL1,IL2
+            IF(KEYOUT(I,J,K)>0) THEN
+               RM = ABS(RESID(I,J,K,IC)/POR(I,J,K))
+               IF (RM>RESID_M) RESID_M = RM
+               CONC(I,J,K,IC)=-RESID(I,J,K,IC)/(PMDEN(I,J,K,1)
+     &                        *SAT(I,J,K,1)*PV(I,J,K))+CONC(I,J,K,IC)
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+      END DO
+
+      AQNEWT = AQNEWT + 1
+CGUS Parallel run needs to be fixed
+C$MANY            CALL UPDATE(N_CONC,1)
+      ENDDO
+
+      IF (AQNEWT>MAXNEWT) THEN
+         WRITE(*,*)'WARNING: MAX. NEWTON EXCEEDED BY = ',AQNEWT-MAXNEWT
+      ENDIF
+
+      DEALLOCATE(RESID)
+
+      RETURN
+      END
+
+
+

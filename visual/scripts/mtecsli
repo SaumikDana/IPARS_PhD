@@ -1,0 +1,298 @@
+#! /bin/csh
+#
+# MTECSLI
+#
+# usage: 
+#    mtecsli visinf
+# or    
+#    mtecsli
+# In the latter case, visinf is set to "Vis.inf"
+#
+# C - shell utility to combine IPARS zone output for Tecplot in one
+# file for ALL processors, and for ALL faultblocks, creates TEC*.mcr
+# macro files.
+# This shell utility works only for files in Unix format, see below.
+# use MTECPC for files in PC format
+# 
+# This shell calls SLIP (executable related to slip.dc), 
+# It uses the following information files
+# ========================================
+# visinf	- main file, contains the number of processors, 
+#	rootname, visflag, style
+# ... in the comments below we assume that rootname =TEC
+# TEC_blks.proc - contains the list of fault blocks for each processor
+# TEC_info.proc - contaisn the list of recently created time steps
+#  
+# =====================================================================
+# TEC.slice.processor.visflag.tstep (if style =1, Unix)
+#
+#
+# MPeszynska, (MTECCOA: 4/20/98, updated 9/26/98, Linux updates 1/9/98)
+# MTECSLI 5/1/00
+###############################################################
+#
+#  process Vis.inf or file from command line to set the main parameters
+#
+set number = 0
+#
+foreach arg ($*)	
+	@ number ++
+#
+#	echo 'argument number '$number' is '$arg
+#
+	switch ($number) 
+	case 1:
+		set visinf = $arg
+		breaksw
+	endsw
+end			
+#		
+# echo 'number of arguments is ' $number
+#
+if ( $number == 0 ) then
+    set visinf = "Vis.inf"
+endif
+
+echo "<-- MTECSLI will process the file <$visinf>."
+
+if ( ! (-e $visinf ) ) then
+        echo "File $visinf does not exist."
+        goto endshell
+endif
+
+set rootname   = `awk ' NR == 1 { print $3; } ' $visinf `
+set numslices  = `awk ' NR == 1 { print $6; } ' $visinf `
+set nprocessor = `awk ' NR == 2 { print $3; } ' $visinf `
+set style      = `awk ' NR == 3 { print $3; } ' $visinf `
+set visflag    = `awk ' NR == 4 { print $3; } ' $visinf `
+
+if ( $visflag != 4 ) then
+	echo "MTECSLI called for visflag !=4"
+	goto endshell
+endif	
+
+if ( $style != 1) then
+	echo "Use MTECPC shell instead. The style is incompatible."
+	goto endshell
+else
+	echo "Processing files with root=$rootname, for $nprocessor procs, sty=$style, flag=$visflag for $numslices slices."
+endif
+## set file names 
+set infoname = "${rootname}_info"
+set sliinfoname = "${rootname}"
+set sliname  = "${rootname}_slices"
+#
+#### initialize 
+set zonelist = ()
+set number = 0
+set nsteps = 0
+#
+##### process the files
+#
+set snum = 0
+set nsets = 0
+#
+while ( $snum < $numslices )	
+
+################## get the numvars, idim, jdim
+
+	#
+	set infofile = "${rootname}.$snum"
+	#
+	rm -f zonedum
+	awk ' NR == 2{ \
+	printf("%s ", $3);  \
+	}' $infofile > zonedum
+	set numvars = `cat zonedum`
+	#
+	rm -f zonedum
+	awk ' NR == 3{ \
+	printf("%s ", $3);  \
+	}' $infofile > zonedum
+	set idim = `cat zonedum`
+	#
+	rm -f zonedum
+	awk ' NR == 4{ \
+	printf("%s ", $3);  \
+	}' $infofile > zonedum
+	set jdim = `cat zonedum`
+
+# echo "numvars:  $numvars idim: $idim $jdim "
+
+################## 
+
+
+	set flist=()
+	set proclist = ()
+	set actprocnum = 0
+	set procnum = 0		
+	set done = 0
+
+	while ( $procnum < $nprocessor )	
+	  #
+	  ##### get the list of procs for this slice
+	  #
+	  set slifile = "$sliname.$procnum"
+	  rm -f zonedum
+	  awk ' { \
+		printf("%s ", $NF);  \
+	  }' $slifile > zonedum
+	  set slilist = `cat zonedum`
+
+#	  echo "list of slices for processor $procnum is $slilist"
+
+######################## process all the procs for this slice
+	  foreach slice ($slilist)
+
+	  if ( $slice == $snum ) then
+
+		set proclist = ($proclist $procnum)
+#		echo "added $procnum to  < $proclist > with $actprocnum "
+
+		@ actprocnum ++
+
+		if ( $done == 0 ) then
+		####################### get all the time steps	
+		    set infofile = "$infoname.$slice.$procnum"
+		    rm -f zonedum
+		    awk -F. ' NR > 2{ \
+		    printf("%s ", $NF);  \
+		    }' $infofile > zonedum
+		    set zonelist = `cat zonedum`
+		    echo "zones:  $zonelist : "
+		#
+		    set csteps = 0
+		    foreach zone ($zonelist)
+			    @ csteps ++	
+		    end	
+		#
+		    rm -f dumtstep
+		    echo $csteps > dumtstep
+		    set csteps = 0
+		    foreach zone ($zonelist)
+			    echo $zone >> dumtstep
+			    @ csteps ++	
+		    end	
+		#
+		    if ( $procnum == 0 ) then
+			 set nsteps = $csteps
+		    else
+		      if ( $nsteps != $csteps )  then
+		        echo "Warning: different number of time steps for $procnum"
+		       goto endshell
+		      endif
+		      set nsteps = $csteps
+		    endif
+		    @ done ++
+		endif # if for the first time 
+		@ nsets++
+
+  	  endif	# if this procs is active for this slice
+	  end	# loop over slicelist for this proc
+#  	echo "-----------------------------"	
+  	@ procnum++	
+	end # loop for nprocessor
+	# prepare aux file for slip
+       if ( $actprocnum > 0 ) then
+	    rm -f dumproclist
+	    echo $actprocnum > dumproclist 
+	    echo $proclist >> dumproclist
+       else
+	    echo "error : no procs for slice $snum "
+	    goto endshell
+       endif
+       #
+       # call slip (and Preplot)
+       #
+       echo "Calling SLIP $rootname $snum $numvars $idim $jdim"
+#       echo "List ( $actprocnum ) for $slice of procs is $proclist "
+
+       slip $rootname $snum $numvars $idim $jdim
+       preplot $rootname.$snum.tec
+       #
+       # create the list of input files to be used by sed 
+       #
+       # bag8 - changed mydir to macrofilepath
+       set flist = ($flist "|macrofilepath|/$rootname.$snum.plt")
+       #
+       ## create the sed script dum that applies to all src files 
+       #
+	rm -f dum
+	echo "4 s/=/=  $nsets/" > dum
+	echo "5 s/=/=  $nsteps/"  >> dum
+
+## create script for this slice
+
+	set slicename = "$rootname$snum."
+	#
+	#### reset the load, anim, first macros 
+	#### 
+	echo "Resetting MCR (Tecplot macro) files: ${slicename}*" 
+	# remove old time step macros, if they exist
+	rm -f ${slicename}*.mcr
+	#
+	## loop over the macro files: 
+	## insert the current values of nprocessor, nsteps
+	#
+	foreach mfile(load first anim)
+		echo "$slicename$mfile.mcr.. "
+		rm -f $slicename$mfile.mcr 	
+		sed -f dum TECS$mfile.src > $slicename$mfile.mcr
+		echo "..has been created OK."
+	end
+	#
+	############ special treatment of TECload.mcr: append filenames
+	#
+	rm -f fdum		
+	echo '8 a\' > fdum
+	echo "'"`pwd`"'" >> fdum
+	echo '9 a\' >> fdum
+	rm -f tmp
+	mv ${slicename}load.mcr tmp
+	echo '"'"$flist"'"' >> fdum
+	sed -f fdum tmp > ${slicename}load.mcr
+	#
+	############  special treatment of TECfirst.mcr: mark the time step
+	# create the macro files for all zones
+	# 
+	set step = 0
+	echo "Time step macros:"
+	foreach zone ($zonelist)
+		@ step ++
+		@ sstep = $step + 1
+		rm -f dum
+		echo "8 s/=/=  $sstep/" > dum
+		rm -f tmp
+		cp ${slicename}first.mcr tmp
+		sed -f dum tmp > $slicename$zone.mcr
+		echo "$slicename$zone.mcr created OK."
+	end	
+	@ sstep = 2
+	rm -f dum
+	echo "8 s/=/=  $sstep/" > dum
+	rm -f tmp
+	mv ${slicename}first.mcr tmp
+	sed -f dum tmp > ${slicename}first.mcr
+	#### 
+	rm -f fdum tmp
+	@ snum ++
+end
+##############
+rm -f dum
+
+echo "<-- MTECSLI ended OK."
+exit 0
+### we are here if error occured or user interrupted the macro
+endshell:
+echo "<-- MTECSLI interrupted."
+set status = 15
+
+
+
+
+
+
+
+
+
+

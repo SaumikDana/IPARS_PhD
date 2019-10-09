@@ -1,0 +1,255 @@
+C  T2TRCHEM.F - interface routines for 
+c     single phase implicit (T) --> transport-chemistry model (TR)
+
+C  ROUTINES IN THIS MODULE:
+
+c  SUBROUTINE T2TRVEL_EX 
+c  SUBROUTINE T2TRVEL 
+c  SUBROUTINE BDTRVEL 
+
+C  CODE HISTORY:
+
+c  MPeszynska, 8/00        added T2TRVEL for transport velocities 
+c              2/01        added BDTRVEL for bdary fluxes  
+c  SUNIL G THOMAS 03/09    mods for coupling using EVMFEM
+
+C****************************************************************
+      SUBROUTINE T2TRVEL_EX(FLAG)
+C****************************************************************
+      IMPLICIT NONE
+
+$POWER      INCLUDE 'msjunk.h'
+
+      INCLUDE 'blkary.h'
+      INCLUDE 'tarydat.h'
+      INCLUDE 'trarydat.h'
+      INCLUDE 'trmodel.h'
+
+      INTEGER FLAG
+
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./
+      INTEGER IVEL(8) ,IV(2),IVELD
+      DATA  IVEL /8*0/,IV/2*0/
+      EXTERNAL T2TRVEL,BDTRVEL
+
+      IF(ONCEONLY) THEN
+         ONCEONLY = .FALSE.
+ 
+         IVEL(1) = 7
+         IVEL(2) = N_TCOFX
+         IVEL(3) = N_TCOFY
+         IVEL(4) = N_TCOFZ
+         IVEL(5) = N_DEPTH
+         IVEL(6) = N_FLDEN
+         IVEL(7) = N_PRES
+
+         IV(1) = 1
+
+      ENDIF
+
+c ----------------------------------------------------------
+C  EXCHANGE PHYSICAL PARAMETERS WITH NEIGHBORING PROCESSORS 
+c  The only possible variables need to update is  PRES, DEN
+c  DEPTH, TCOFX, TCOFY, TCOFZ must have correct values already.
+$MANY      CALL TIMON(22)
+$MANY      CALL UPDATE(N_PRES,1)
+$MANY      CALL UPDATE(N_FLDEN,1)
+$MANY      CALL TIMOFF(22)
+
+      IF(FLAG.EQ.OLD) THEN
+         IVEL(8) = N_TRVELN
+$DUAL         IVELD=N_TRVELN
+      ENDIF
+      IF(FLAG.EQ.NEW) THEN
+         IVEL(8) = N_TRVEL
+$DUAL         IVELD=N_TRVEL
+      ENDIF
+
+C CONTRIBUTION FROM BLOCK INTERIOR INTERFACES
+
+      CALL CALLWORK(T2TRVEL,IVEL)
+
+C CONTRIBUTION FROM FAULT-BLOCK INTERFACES
+
+$DUAL      CALL TDUALV(IVELD) 
+
+c CONTRIBUTION FROM BOUNDARY CONTRIBUTIONS 
+
+      IV(2) = IVEL(8)
+
+      CALL CALLWORK(BDTRVEL,IV)
+      
+      END
+
+
+C****************************************************************
+      SUBROUTINE T2TRVEL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &           KL2,KEYOUT,NBLK,TCOFX,TCOFY,TCOFZ,DEPTH,DEN,PRES,
+     &           VEL)
+C********************************************************************
+
+C  TCOFX(I,J,K) = X TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+C  TCOFY(I,J,K) = Y TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+C  TCOFZ(I,J,K) = Z TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+C  DEPTH(I,J,K) = ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+C  PRES(I,J,K) = FLUID PRESSURE, PSI (INPUT, REAL*8)
+C
+C  VEL(I,J,K,1) = X-DIRN VELOCITY , CU-FT/DAY
+C                   (OUTPUT, REAL*8)
+C  VEL(I,J,K,2) = Y-DIRN VELOCITY , CU-FT/DAY
+C                   (OUTPUT, REAL*8)
+C  VEL(I,J,K,3) = Z-DIRN VELOCITY , CU-FT/DAY
+C                   (OUTPUT, REAL*8)
+C*********************************************************************
+      IMPLICIT NONE
+$POWER       INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'tfluidsc.h'
+
+      INTEGER I, J, K, IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IDIM, JDIM, KDIM, LDIM, NBLK
+      REAL*8 RHO, DPX, DPY, DPZ
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 TCOFX(IDIM,JDIM,KDIM),     TCOFY(IDIM,JDIM,KDIM),
+     &       TCOFZ(IDIM,JDIM,KDIM),     DEPTH(IDIM,JDIM,KDIM),
+     &       PRES(IDIM,JDIM,KDIM),      DEN(IDIM,JDIM,KDIM)
+
+      INTEGER IOFF,JOFF,KOFF,IERR
+      REAL*8 VEL(IDIM,JDIM,KDIM,3)
+
+c ----------------------------------------------------------
+C COMPUTE THE X DIRECTION VELOCITIES (CU-FT/DAY)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      IF(IERR.NE.0) RETURN
+
+      DO K=KL1,KL2
+       JL1=JL1V(K)
+       JL2=JL2V(K)
+       DO J=JL1,JL2
+         DO I=IL1,IL2+1
+         IF(TCOFX(I,J,K).EQ.0.D0) THEN   
+            VEL(I,J,K,1) = 0.0D0
+         ELSE
+
+            RHO = 0.5D0*(DEN(I-1,J,K) + DEN(I,J,K))
+            DPX = PRES(I,J,K)-PRES(I-1,J,K)
+     &           - RHO*GRAV*(DEPTH(I,J,K)-DEPTH(I-1,J,K))
+
+            VEL(I,J,K,1) = -TCOFX(I,J,K)*DPX/FLVIS
+
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+C COMPUTE THE Y DIRECTION VELOCITIES (CU-FT/DAY)
+
+      DO K=KL1,KL2
+       JL1=JL1V(K)
+       JL2=JL2V(K)
+       DO J=JL1,JL2+1
+        DO I=IL1,IL2
+         IF(TCOFY(I,J,K).EQ.0.D0) THEN   
+            VEL(I,J,K,2) = 0.0D0
+         ELSE
+            
+            RHO = 0.5D0*(DEN(I,J-1,K) + DEN(I,J,K))
+            DPY = PRES(I,J,K)-PRES(I,J-1,K)
+     &           - RHO*GRAV*(DEPTH(I,J,K)-DEPTH(I,J-1,K))
+            VEL(I,J,K,2) = -TCOFY(I,J,K)*DPY/FLVIS
+
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+C COMPUTE THE Z DIRN VELOCITIES (CU-FT/DAY)
+
+      DO K=KL1,KL2+1
+       IF(K.EQ.KL1)THEN
+        JL1=JL1V(K)
+        JL2=JL2V(K)
+       ELSE IF(K.LT.KL2+1)THEN
+        JL1=MIN(JL1V(K-1),JL1V(K))
+        JL2=MAX(JL2V(K-1),JL2V(K))
+       ELSE
+        JL1=JL1V(KL2)
+        JL2=JL2V(KL2)
+       ENDIF
+       DO J=JL1,JL2
+        DO I=IL1,IL2
+         IF(TCOFZ(I,J,K).EQ.0.D0) THEN   
+            VEL(I,J,K,3) = 0.0D0
+         ELSE
+
+            RHO = 0.5D0*(DEN(I,J,K-1) + DEN(I,J,K))
+            DPZ = PRES(I,J,K)-PRES(I,J,K-1)
+     &           - RHO*GRAV*(DEPTH(I,J,K)-DEPTH(I,J,K-1))
+            VEL(I,J,K,3) = -TCOFZ(I,J,K)*DPZ/FLVIS
+
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+      END
+
+c****************************************************************
+      SUBROUTINE BDTRVEL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &           KL2,KEYOUT,NBLK,VEL)
+c********************************************************************
+c copies bdary fluxes to velocities array
+c********************************************************************
+      IMPLICIT NONE
+$POWER       INCLUDE 'msjunk.h'
+
+      INCLUDE 'boundary.h'
+
+      INTEGER I, J, K, IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IDIM, JDIM, KDIM, LDIM, NBLK
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 VEL(IDIM,JDIM,KDIM,3)
+
+      INTEGER IV,JV,KV,IS,JS,KS,ILR,NDIR,IB,NFOFF,NT,ND,L
+c ----------------------------------------------------------
+
+      IF (NBND_REG.EQ.0.OR.NBEL.EQ.0) RETURN
+
+c  loop over the bdary condition regions
+
+      DO 1 IB=1,NBND_REG
+
+         NT=NBND_TYPE(IB)
+         IF(NT.EQ.0) GOTO 1
+         IF(NBLK.EQ.1.AND.IB.EQ.1) NFOFF=1
+         IF(NBLK.GT.1.AND.IB.EQ.1) NFOFF=LOFFBND(NBND_REG,NBLK-1)+1
+         IF(IB.NE.1) NFOFF=LOFFBND(IB-1,NBLK)+1
+
+c loop over all bdary elements in this region
+
+         DO 2 L=NFOFF,LOFFBND(IB,NBLK)
+            I = LOCBND(1,L)
+            J = LOCBND(2,L)
+            K = LOCBND(3,L)
+
+            NDIR = LOCBND(4,L)
+            ND = (NDIR+1) / 2
+
+            CALL GETSOURCEINDEX(NDIR,I,J,K,IS,JS,KS,IV,JV,KV,ILR)
+
+            VEL(IV,JV,KV,ND) = BFLUX(1,L)
+            
+ 2       CONTINUE
+ 1    CONTINUE
+
+      END
+
+

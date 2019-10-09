@@ -1,0 +1,60 @@
+C  MULGRDD.H  -  MULTIGRID COMMON FOR DUAL APPROXIMATION INTERFACE
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     9/27/00    INITIAL CODE
+
+C*********************************************************************
+
+      COMMON /MULGRDD/ TFINSMG($DMXFELE),COFINFMG($DMXFELE,$MXNUMEQ,$MXNUMEQ),
+     & NIEBSMG($MXBLKS,$MXMGLV+1),KDIRSMG($DMXFELE),NFJIMG,
+     & IIEBSMG($MXBLKS,$MXMGLV+1),NESNDIMG($MXMPP,$MXBLKS,$MXMGLV+1),
+     & IESNDIMG($MXMPP,$MXBLKS,$MXMGLV+1),NERECIMG($MXMPP,$MXBLKS,$MXMGLV+1),
+     & IERECIMG($MXMPP,$MXBLKS,$MXMGLV+1),NCGESMG($DMXGEI,$MXMGLV+1),
+     & ICGESMG($DMXGEI,$MXMGLV+1),KFESRMG($DMXGEI,$MXMGLV+1),
+     & LIBUFMG($DMXGEI,$MXMGLV+1),JMAPC(2,$DMXFELE),NJMAPC($MXMGLV+1,$MXBLKS),
+     & IJMAPC($MXMGLV+1,$MXBLKS),IJKSMG(2,$DMXGEI),JBLOCKMG($DMXFELE)
+
+      REAL*8 TFINSMG
+C*********************************************************************
+
+C  NIEBSMG(m,L) = Number of grid elements on any interface for fault block m
+C                 at multigrid level L (current processor only).
+
+C  IIEBSMG(m,L) = Packing offset of grid elements on any interface for fault
+C                 block m and multigrid level L (current processor only)
+C                 (associated with k index in definitions below).
+
+C  IJKSMG(2,k) = Local J,K of grid element k on an interface (source block)
+
+C  NCGESMG(k,L) = Number of grid elements connected to grid element k through
+C                 the interface at multigrid level L
+
+C  ICGESMG(k,L) = Packing offset of grid elements connected to grid element k
+C                 through the interface at multigrid level L
+C                 (associated with j index in definitions below)
+
+C  JBLOCKMG(j) = Fault block number of element j (target block)
+
+C  KDIRSMG(j) = Direction key for element j relative to element k
+C           =  1 ==> X + 1
+C           =  2 ==> Y + 1
+C           =  3 ==> Z + 1
+C           =  4 ==> X - 1
+C           =  5 ==> Y - 1
+C           =  6 ==> Z - 1
+C           =  Additional offsets for higher order approximations.
+
+C  TFINSMG(j)  = 2 * A    / (D   / K   + D   / K  )
+C                     AkBj    Ak    Ak    Bj    Bj
+
+C  COFINFMG(j,M,N) = Interaction coefficient for equation m and variable n
+C                  = Derivative of Q      WRT V
+C                                   MAkBj      NBj
+
+C  KFESR(ii,L) = k of grid element in a send message at multigrid level L
+
+C  LIBUF(j,L) = Receive buffer index of data from across the interface
+C               (ie. first index in BUFIF4(,) or BUFIF8(,) )
+
+C  JMAPFC(2,mm,L) = Coefficient summing indexes for 2D multigrid levels

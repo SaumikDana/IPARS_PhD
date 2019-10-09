@@ -1,0 +1,786 @@
+C PEIDATA.DF - INPUT POROELASTIC MODEL SPECIFIC DATA
+C ROUTINES IN THIS MODULE:
+C
+C     SUBROUTINE PEISDAT(NERR)
+C
+C     SUBROUTINE PEIADAT(NERR)
+C
+C     SUBROUTINE PETDATA(NERR)
+C
+C     SUBROUTINE EPROP_DEFAULT(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                         KL1,KL2,KEYOUT,NBLK,MODUL,POISS,BIOTA,   
+C                         BIOTM,ROCKD)      
+C     SUBROUTINE PEPROP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                         KEYOUT,NBLK,MODUL,POISS,BIOTA,BIOTM,(POR,
+C                         DISP_COMP,ECR)
+C CODE HISTORY:
+C    XIULI GAI     05/06/2001
+
+C******************************************************************
+      SUBROUTINE PEISDAT(NERR)
+C******************************************************************
+C Set and input poroelastic model initial scalar data 
+
+C NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C        (INPUT AND OUTPUT INTEGER)
+C******************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'unitsex.h'
+      INCLUDE 'pemodel.h'
+
+      INTEGER NERR
+
+      INTEGER MODDD
+      LOGICAL PEUSED,DISPC,DISPT,DISPB
+      CHARACTER*10 EXTPGRD,OUTKEY(5)
+      CHARACTER*50 TITL
+      CHARACTER*79 FLOWMODEL_NAME
+
+C GET FLOW MODEL NUMBER
+cbw coupling      
+      IF (NERR.NE.0) RETURN
+      FLOWMODEL=0
+cbw
+
+      PEFLOW = 0
+      CALL GETVALS('FLOW_MODEL ',FLOWMODEL_NAME,'CS',0,0,0,79,NDUM,NERR)
+      DO MODDD=1,$MXMOD
+         IF(FLOWMODEL_NAME.EQ.MODEL_NAMES(MODDD)) THEN        
+            PEFLOW = MODDD
+            FLOWMODEL = MODDD  
+            IF(LEVELC) THEN 
+               WRITE(NFOUT,
+     &         "(/' FLOW MODEL (PEFLOW =', I2, ')  ', T56, A23/)" )
+     &            MODDD, MODEL_NAMES(MODDD)
+            ENDIF
+            GO TO 1
+         ENDIF
+      ENDDO
+   1  CONTINUE
+
+      IF(PEFLOW.EQ.0.OR.PEFLOW.NE.$XMODEL) THEN 
+         NERR = NERR + 1
+         IF(LEVELC) THEN
+            WRITE(NFOUT,*)
+     &           'ERROR: FLOW MODEL ',PEFLOW,
+     &           ' CANNOT BE USED AS FLOWMODEL'
+         ENDIF
+      ENDIF
+ 
+C INPUT FLOW MODEL INITIAL SCALAR DATA
+
+$COMP      MODACT=$XMODEL
+$COMP      IF(PEFLOW.EQ.$XMODEL) CALL XISDAT (NERR)
+$COMP      MODACT=$PEMODEL
+
+C OUTPUT DEFAULTS EXTERNAL UNITX
+     
+      IF(LEVELC) THEN
+         WRITE(NFOUT,*)
+         TITL = '********'
+         CALL PRTTIT(TITL)
+         TITL = 'POROELASTIC MODEL'
+         CALL PRTTIT(TITL)
+         WRITE(NFOUT,"(' DEFAULT EXTERNAL UNITS:')")
+         WRITE(NFOUT,5) 
+      ENDIF
+   5  FORMAT('     DISPLACEMENT',T59,'[in.]'/
+     &       '     STRESS      ',T59,'[psi]'/
+     &       '     STARIN      ',T59,'[ft/ft]'/
+     &       '     TRACTION    ',T59,'[psi]'/
+     &       '     BIOTS 1/M   ',T59,'[1.0E6/psi]'/
+     &       '     ROCK DENSITY',T59,'[gm/cc]'/
+     &       '     FRICTION ANGLE',T59,'[deg]'/
+     &       '     COHESIVE STRENGTH',T59,'[psi]')
+
+C SET POROELASTIC MODEL DIMENSION PARAMETERS
+
+      NDIM_ELASTIC = 3
+      IF(NDIM_ELASTIC.EQ.3) THEN
+         NODES_PER_ELEMENT = 8
+         INTEGRATION_NODES = 8
+      ELSE
+         IF(NDIM_ELASTIC.EQ.2) THEN
+            NODES_PER_ELEMENT = 4
+            INTEGRATION_NODES = 4
+         ELSE
+            NODES_PER_ELEMENT = 2
+            INTEGRATION_NODES = 1
+         ENDIF
+      ENDIF
+      NDIM_BEFORE = 1 + 3 * (NDIM_ELASTIC - 1) ** 2
+      NDIM_PCONN = 2**NDIM_ELASTIC
+
+C READ INPUT POROELASTIC MODEL TYPE
+      
+      KERR=0
+      POROELASTIC_USED = 1
+
+      PEUSED = .FALSE.
+      CALL GETVAL('POROE ',PEUSED,'FG',0,0,0,0,NDUM,KERR)
+      IF(PEUSED.AND.POROELASTIC_USED.NE.5) POROELASTIC_USED = 1
+
+      PEUSED = .FALSE.
+      CALL GETVAL('DPOYI ',PEUSED,'FG',0,0,0,0,NDUM,KERR)
+      IF(PEUSED.AND.POROELASTIC_USED.NE.5) POROELASTIC_USED = 2
+
+      PEUSED = .FALSE.
+      CALL GETVAL('DPIYI ',PEUSED,'FG',0,0,0,0,NDUM,KERR)
+      IF(PEUSED.AND.POROELASTIC_USED.NE.5) POROELASTIC_USED = 3
+
+      PEUSED = .FALSE.
+      CALL GETVAL('MCYIE ',PEUSED,'FG',0,0,0,0,NDUM,KERR)
+      IF(PEUSED.AND.POROELASTIC_USED.NE.5) POROELASTIC_USED = 4
+
+      PEUSED = .FALSE.
+      CALL GETVAL('POROP ',PEUSED,'FG',0,0,0,0,NDUM,KERR)
+      IF(PEUSED) POROELASTIC_USED = 5
+
+      IF(LEVELC) WRITE (NFOUT,"(' POROELASTIC_USED',T59,I3)")
+     &   POROELASTIC_USED
+
+C INPUT PORE VOLUME ERROR TOLERANCE FOR ITERATIVE COUPLING APPROACH
+                                                                                
+      PE_PVTOL = 1.0D-4
+      CALL GETVAL('PEPVTOL ',PE_PVTOL,'R8',0,0,0,0,NDUM,KERR)
+      IF(LEVELC) THEN 
+      WRITE (NFOUT,"(' PORE VOLUME ERROR TOLERANCE',T55,
+     &  G10.3)") PE_PVTOL
+      ENDIF
+
+
+CBW  INPUT SWITCH CONTROLLING STRESS DEPENDENT PERMEABIITY      
+      SDPM =.FALSE.
+      CALL GETVAL('SDPERM ',SDPM,'FG',0,0,0,0,NDUM,KERR)
+      IF(LEVELC) THEN 
+      WRITE (NFOUT,"('SDPERM = ',T55,L10)") SDPM
+      ENDIF
+
+
+CBW  INPUT ROCK TYPE FOR DETERMINING RELATIONSHIP FOR STRESS DEPENDENCY
+      TYPESDP = 0
+      IF (SDPM) THEN
+         CALL GETVAL('TYPE_SDP ',TYPESDP,'I4',0,0,0,0,NDUM,KERR)
+         IF(LEVELC) THEN 
+         WRITE (NFOUT,"('TYPE_SDP = ',T55,I10)") TYPESDP
+         ENDIF
+      ENDIF
+
+CBW  INPUT COEFFICIENT FOR STRESS DEPENDENT PERMEABILITY FOR SPECIFIC 
+CBW  ROCK TYPE
+      COEFB=0.0
+      COEFM=0.0
+      COEFN=0.0
+      IF (SDPM) THEN
+         CALL GETVAL('COEF_B ',COEFB,'R8',0,0,0,0,NDUM,KERR)
+         CALL GETVAL('COEF_M ',COEFM,'R8',0,0,0,0,NDUM,KERR)
+         CALL GETVAL('COEF_N ',COEFN,'R8',0,0,0,0,NDUM,KERR)
+         IF(LEVELC) THEN 
+         WRITE (NFOUT,"('COEFB=',ES15.8,'COEFM=',ES15.8,
+     &         'COEFN=',ES15.8)") COEFB,COEFM,COEFN
+         ENDIF
+      ENDIF
+
+ 
+C INPUT LINEAR SOLVER TYPE FOR THE ELASTICITY SYSTEM 
+
+!BW Obsolete
+!BW       CALL PESOLVE_IDAT(KERR,1)
+!BW       IF(KERR.GT.0) THEN
+!BW          NERR=NERR+1
+!BW          RETURN
+!BW       ENDIF
+      
+C INPUT OUTPUT CONTROL FLAGS
+
+      OUTKEY(1) = 'OFF'
+      OUTKEY(2) = 'OFF'
+      OUTKEY(3) = 'OFF'
+      OUTKEY(4) = 'OFF'
+      OUTKEY(5) = 'OFF'
+
+      PROPOUT=.FALSE.
+      CALL GETVAL('EPROPOUT ',PROPOUT,'FG',0,0,0,0,NDUM,KERR)      
+      IF(PROPOUT) OUTKEY(1) = 'ON'
+     
+      STRSOUT = .FALSE.
+      CALL GETVAL('STRESSOUT ',STRSOUT,'FG',0,0,0,0,NDUM,KERR)
+      IF(STRSOUT) OUTKEY(2) = 'ON'
+
+      STRNOUT = .FALSE.
+      CALL GETVAL('STRAINOUT ',STRNOUT,'FG',0,0,0,0,NDUM,KERR)
+      IF(STRNOUT) OUTKEY(3) = 'ON'
+
+      ESTRSOUT = .FALSE.
+      CALL GETVAL('ESTRESSOUT ',ESTRSOUT,'FG',0,0,0,0,NDUM,KERR)
+      IF(ESTRSOUT) OUTKEY(4) = 'ON'
+
+      DISPOUT = 2
+      DISPC = .FALSE.
+      DISPT = .FALSE.
+      DISPB = .FALSE.
+
+      CALL GETVAL('DISPOUT_C ',DISPC,'FG',0,0,0,0,NDUM,KERR)
+      IF(DISPC) THEN
+         IF(DISPB.OR.DISPT) THEN
+            IF(LEVELC) WRITE(NFOUT,6) 
+            NERR = NERR + 1
+            RETURN
+         ELSE 
+            DISPOUT = 1
+            OUTKEY(5) = 'CENTER'
+         ENDIF
+      ENDIF
+
+      CALL GETVAL('DISPOUT_T ',DISPT,'FG',0,0,0,0,NDUM,KERR)
+      IF(DISPT) THEN
+         IF(DISPC.OR.DISPB) THEN
+            IF(LEVELC) WRITE(NFOUT,7)
+            NERR = NERR + 1
+            RETURN
+         ELSE
+            DISPOUT = 2
+            OUTKEY(5) = 'TOP'  
+         ENDIF    
+      ENDIF
+
+      CALL GETVAL('DISPOUT_B ',DISPB,'FG',0,0,0,0,NDUM,KERR)
+      IF(DISPB) THEN
+         IF(DISPC.OR.DISPT) THEN
+            IF(LEVELC) WRITE(NFOUT,8)
+            NERR = NERR + 1
+            RETURN
+         ELSE
+            DISPOUT = 3
+            OUTKEY(5) = 'BOTTOM'
+         ENDIF
+      ENDIF
+
+  6   FORMAT(/'ERROR: DISPOUT_C CAN NOT BE USED TOGETHER WITH DISPOUT_T 
+     & OR DISPOUT_B')
+  7   FORMAT(/'ERROR: DISPOUT_T CAN NOT BE USED TOGETHER WITH DISPOUT_C 
+     & OR DISPOUT_B')
+  8   FORMAT(/'ERROR: DISPOUT_B CAN NOT BE USED TOGETHER WITH DISPOUT_C 
+     & OR DISPOUT_T')
+            
+      IF(LEVELC) WRITE(NFOUT,9) (OUTKEY(I),I=1,5)
+  9   FORMAT(/' ELASTIC PROPERTIES OUT  (PROPOUT)',T60,A10 
+     &       /' AVERAGE STRESS OUT      (STRSOUT)',T60,A10
+     &       /' AVERAGE STRAIN OUT      (STRNOUT)',T60,A10
+     &       /' EFFECTIVE STRESS OUT    (ESTRSOUT)',T60,A10
+     &       /' AVERAGE OUT             (DISPOUT)',T60,A10)
+
+C INPUT INITIAL STRESS AND GRADIENT DATA
+
+      INIT_STRESS = 0
+      DO I=1,3
+         STINIT(I) = 0.0D0
+         STGRAD(I) = 0.0D0
+      ENDDO
+      CALL DEFAULT(EXTPRES)
+      CALL GETVAL('STINIT[psi] ',STINIT,'R8',3,0,0,0,NDUM,KERR)
+      IF(NDUM.GT.0) THEN
+         IF(INIT_STRESS.EQ.1) THEN
+            IF(LEVELC) WRITE(NFOUT,12)
+            NERR = NERR + 1
+            RETURN
+         ELSE
+            IF(INIT_STRESS.EQ.0) INIT_STRESS = 2
+            IF(LEVELC) WRITE(NFOUT,11) 
+     &                 STINIT(1)*CVMPRES,EXTPRES,
+     &                 STINIT(2)*CVMPRES,EXTPRES,
+     &                 STINIT(3)*CVMPRES,EXTPRES 
+         ENDIF
+      ENDIF
+  11  FORMAT(/' INITIAL STRESS IN X (STINIT(1))',T48,F10.3,1X,A10
+     &       /' INITIAL STRESS IN Y (STINIT(2))',T48,F10.3,1X,A10 
+     &       /' INITIAL STRESS IN Z (STINIT(3))',T48,F10.3,1X,A10)
+  12  FORMAT(/' ERROR: STINIT IS NOT ALLOWED WITH STRXX,YY,ZZ')
+
+      CALL GETVAL('STGRAD[psi/ft] ',STGRAD,'R8',3,0,0,0,NDUM,KERR)
+      IF(NDUM.GT.0) THEN
+         IF(INIT_STRESS.EQ.1) THEN
+            IF (LEVELC) WRITE (NFOUT, 14)
+            NERR = NERR + 1
+            RETURN
+         ELSE
+            EXTPGRD = '[psi/ft]'
+            IF(INIT_STRESS.EQ.0) INIT_STRESS = 2
+            IF(LEVELC) WRITE(NFOUT,13)
+     &                 STGRAD(1),EXTPGRD,
+     &                 STGRAD(2),EXTPGRD,    
+     &                 STGRAD(3),EXTPGRD    
+         ENDIF
+      ENDIF
+  13  FORMAT(' STRESS GRADIENT IN X (STGRAD(1))',T48,F10.3,1X,A10/
+     &       ' STRESS GRADIENT IN Y (STGRAD(2))',T48,F10.3,1X,A10/
+     &       ' STRESS GRADIENT IN Z (STGRAD(3))',T48,F10.3,1X,A10)
+  14  FORMAT(' ERROR: STGRAD IS NOT ALLOWED WITH STRXX,YY,ZZ')
+
+      STDEPTH = 0.0D0
+      CALL DEFAULT(EXTDIST)
+      CALL GETVAL('STDEPTH[ft] ',STDEPTH,'R8',0,0,0,0,NDUM,KERR)
+      IF (NDUM.GT.0) THEN
+         IF (INIT_STRESS.EQ.1) THEN
+            IF (LEVELC) WRITE(NFOUT,15)
+            NERR = NERR + 1
+            RETURN
+         ELSE
+            IF(LEVELC) WRITE(NFOUT,16) STDEPTH*CVMDIST,EXTDIST
+         ENDIF
+      ENDIF
+  15  FORMAT (/'ERROR: STDEP IS NOT ALLOWED WITH STRXX,YY,ZZ')
+  16  FORMAT (/' STRESS REFERENCE DEPTH (STDEPTH)',T50,F10.2,1X,A10)
+
+cbw
+c     get HYPRE solver ID and relative tolerance
+$HYPRE      SOLVER_ID = 2
+$HYPRE      CALL GETVAL('HYPREID ',SOLVER_ID,'I4',0,0,0,0,NDUM,KERR)
+$HYPRE      HYPRETOL = 1.D-8
+$HYPRE      CALL GETVAL('HYPRETOL ',HYPRETOL,'R8',0,0,0,0,NDUM,KERR)
+cbw
+
+      NERR=NERR+KERR
+      END
+
+C*********************************************************************
+      SUBROUTINE PEIADAT(NERR)
+C*********************************************************************
+C Input poroelastic model initial grid element array data
+C
+C NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C        (INPUT AND OUTPUT INTEGER)
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'unitsex.h'
+
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pebdary.h'
+
+      EXTERNAL PEPROP_DEFAULT,PEPROP
+      INTEGER  NDUM,NERR,KERR,JEPROP(8)
+ 
+C FLOW MODEL GRID ELEMENT ARRAY INPUT 
+
+cbw $BLACKI      IF (PEFLOW.EQ.BLACKI) CALL IIADAT(NERR)
+$COMP      MODACT=$XMODEL
+$COMP      IF(PEFLOW.EQ.$XMODEL) CALL XIADAT (NERR)
+$COMP      MODACT=$PEMODEL
+        
+C -----------------------------------------------------
+C EXTRACT INITIAL PRINCIPLE STRESSES 
+C -----------------------------------------------------
+C INITIAL STRESS IN X DIRECTION
+
+      KERR = 0
+      CALL DEFAULT(EXTPRES)
+      CALL GETGRDA ('STRXXINIT[psi] ',1,NDUM,KERR)
+      IF(KERR.GT.0) THEN
+         IF (LEVELC) WRITE (NFOUT,40)
+         NERR = NERR + 1
+         RETURN
+      ELSE 
+         IF(NDUM.GT.0) THEN
+            IF(INIT_STRESS.EQ.2.OR.ISTTOP) THEN
+               IF(LEVELC) WRITE (NFOUT, 41)
+               NERR = NERR + 1
+               RETURN
+            ELSE
+               IF(INIT_STRESS.EQ.0) INIT_STRESS = 1    
+               TITU='ELEMENT STRESS XX IN FAULT BLOCK'
+               CALL GEAOUT(N_STRXX_INIT,1,1)
+            ENDIF
+         ENDIF
+      ENDIF
+  40  FORMAT (/' ERROR: INVALID STRXX SPECIFIED')
+  41  FORMAT (/' ERROR: STRXX IS NOT ALLOWED WITH STINIT')
+
+C INIITIAL STRESS IN Y DIRECTION
+
+      KERR = 0
+      CALL DEFAULT(EXTPRES)
+      CALL GETGRDA ('STRYYINIT[psi] ',1,NDUM,KERR)
+      IF(KERR.GT.0) THEN
+         IF(LEVELC) WRITE (NFOUT,42)
+         NERR = NERR + 1
+         RETURN
+      ELSE 
+         IF(NDUM.GT.0) THEN
+            IF(INIT_STRESS.EQ.2) THEN 
+               IF(LEVELC) WRITE (NFOUT, 43)
+               NERR = NERR + 1
+               RETURN
+            ELSE
+               IF(INIT_STRESS.EQ.0) INIT_STRESS = 1
+               TITU = 'ELEMENT STRESS YY FOR FAULT BLOCK'
+               CALL GEAOUT(N_STRYY_INIT,1,1)
+            ENDIF
+         ENDIF
+      ENDIF
+  42  FORMAT (/' ERROR: INVALID STRYY SPECIFIED')
+  43  FORMAT (/' ERROR: STRYY IS NOT ALLOWED WITH STINIT')
+
+C INITIAL STRESS IN Z DIRECTION
+
+      KERR = 0
+      CALL DEFAULT(EXTPRES)
+      CALL GETGRDA ('STRZZINIT[psi] ',1,NDUM,KERR)
+      IF (KERR.GT.0) THEN
+         IF (LEVELC) WRITE (NFOUT,44)
+         NERR = NERR + 1
+         RETURN
+      ELSE
+         IF(NDUM.GT.0) THEN
+            IF(INIT_STRESS.EQ.2) THEN
+               IF(LEVELC) WRITE (NFOUT, 45)
+               NERR = NERR + 1
+               RETURN
+            ELSE
+               IF(INIT_STRESS.EQ.0) INIT_STRESS = 1
+               TITU = 'ELEMENT STRESS ZZ IN FAULT BLOCK'
+               CALL GEAOUT(N_STRZZ_INIT,1,1)
+            ENDIF
+         ENDIF
+      ENDIF
+  44  FORMAT (/' ERROR: INVALID STRZZ SPECIFIED')
+  45  FORMAT (/' ERROR: STRZZ IS NOT ALLOWED WITH STINIT')
+    
+C -----------------------------------------------------
+C EXTRACT THE ELASTIC PROPERTIES OF GRID ELEMENTS
+C -----------------------------------------------------
+C SET DEFAULT VALUES FIRST
+
+      JEPROP(2) = N_MODUL
+      JEPROP(3) = N_POISS
+      JEPROP(4) = N_BIOTA
+      JEPROP(5) = N_BIOTM
+      JEPROP(6) = N_ROCKD
+
+      JEPROP(1) = 5
+      CALL CALLWORK(PEPROP_DEFAULT,JEPROP)
+
+C INPUT MODULUS
+
+      KERR = 0
+      CALL DEFAULT(EXTPRES)
+      CALL GETGRDA('MODULUS[psi] ',1,NDUM,KERR)
+      IF(KERR.GT.0) THEN
+         IF (LEVELC) WRITE(NFOUT,46)
+         NERR = NERR + 1
+         RETURN
+      ELSE
+         IF(PROPOUT) THEN
+            TITU = 'ELASTIC MODULUS IN FAULT BLOCK'
+            CALL GEAOUT(N_MODUL,1,1)
+         ENDIF
+      ENDIF
+  46  FORMAT(/'ERROR: INVALID MODULUS VALUE SPECIFIED')
+
+C INPUT POISSON RATIO
+
+      KERR = 0
+      CALL GETGRDA('POISSON ',1,NDUM,KERR)
+      IF(KERR.GT.0) THEN
+         IF (LEVELC) WRITE(NFOUT,48)
+         NERR = NERR + 1
+         RETURN
+      ELSE 
+         IF(PROPOUT) THEN
+            TITU = 'POISSONS RATIO IN FAULT BLOCK'
+            CALL GEAOUT(N_POISS,1,1)
+         ENDIF
+      ENDIF
+  48  FORMAT(/'ERROR: INVALID POISSON RATIO SPECIFIED')
+
+C INPUT BIOTA
+
+      KERR = 0
+      CALL GETGRDA('BIOTA ',1,NDUM,KERR)
+      IF(KERR.GT.0) THEN
+         IF (LEVELC) WRITE(NFOUT,50)
+         NERR = NERR + 1
+         RETURN
+      ELSE
+         IF(PROPOUT) THEN
+            TITU = 'BIOTS CONSTANT ALPHA IN FAULT BLOCK'
+            CALL GEAOUT(N_BIOTA,1,1)
+         ENDIF
+      ENDIF
+  50  FORMAT(/'ERROR: INVALID BIOTA VALUE SPECIFIED')
+
+C INPUT BIOTM
+
+      KERR = 0
+      CALL GETGRDA('BIOTM[1/psi] ',1,NDUM,KERR)
+      IF(KERR.GT.0) THEN
+         IF (LEVELC) WRITE(NFOUT,52)
+         NERR = NERR + 1
+         RETURN
+      ELSE 
+         IF(PROPOUT) THEN
+            TITU = 'BIOTS CONSTANT 1/M IN FAULT BLOCK'
+            CALL GEAOUT(N_BIOTM,1,1)
+         ENDIF
+      ENDIF
+  52  FORMAT(/'ERROR: INVALID BIOTM VALUE SPECIFIED')
+
+C INPUT ROCKD
+
+      KERR = 0
+      CALL GETGRDA('ROCKD[gm/cc] ',1,NDUM,KERR)
+      IF(KERR.GT.0) THEN
+         IF (LEVELC) WRITE(NFOUT,54)
+         NERR = NERR + 1
+         RETURN
+      ELSE 
+         IF(PROPOUT) THEN
+           TITU = 'ROCK DENSITY IN FAULT BLOCK'
+           CALL GEAOUT(N_ROCKD,1,1)
+         ENDIF
+      ENDIF
+  54  FORMAT(/'ERROR: INVALID ROCK DENSITY VALUE SPECIFIED')
+
+C INPUT BOUNDARY ELEMENT DAT
+
+      CALL PEBDARY(1,NERR)
+      IF(KERR.GT.0) THEN
+         IF (LEVELC) WRITE(NFOUT,55)
+         NERR = NERR + 1
+         RETURN
+      ENDIF
+  55  FORMAT(/'ERROR: BOUNDARY CONDITION INPUT ERROR') 
+
+C CONVERT AND SET SOME ELASTIC PROPERTIES
+                                                                                
+cbw      JEPROP(1) = 8
+      JEPROP(1) = 7
+      JEPROP(2) = N_MODUL
+      JEPROP(3) = N_POISS
+      JEPROP(4) = N_BIOTA
+      JEPROP(5) = N_BIOTM
+      JEPROP(6) = N_ROCKD
+      JEPROP(7) = N_POR
+      JEPROP(8) = N_ECR
+cbw      JEPROP(8) = N_DISP_COMP
+cbw      JEPROP(9) = N_ECR
+
+      CALL CALLWORK(PEPROP,JEPROP)
+
+      END
+C********************************************************************
+      SUBROUTINE PETDATA(NERR)
+C********************************************************************
+C Input poroelastic model transient data
+C
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+C********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+
+C INPUT FLOW MODEL TRANSIENT DATA
+         
+cbw $BLACKI      IF(PEFLOW.EQ.BLACKI) CALL ITDATA (NERR)
+
+$COMP      MODACT=$XMODEL
+$COMP      IF(PEFLOW.EQ.$XMODEL) CALL XTDATA(NERR)
+$COMP      MODACT=$PEMODEL
+
+        
+C INPUT BOUNDARY CONDITION DATA
+
+      KERR = 0
+c     CALL PEBDARY(2,KERR)
+      IF(KERR.GT.0) THEN
+         IF (LEVELC) WRITE(NFOUT,50)
+         NERR = NERR + 1
+         RETURN
+      ENDIF
+
+  50  FORMAT(/'ERROR: TRANSIENT BOUNDARY CONDITION INPUT ERROR')
+
+       END
+C********************************************************************
+      SUBROUTINE PEPROP_DEFAULT(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                         KL1,KL2,KEYOUT,NBLK,MODUL,POISS,BIOTA,   
+     &                         BIOTM,ROCKD)
+C********************************************************************
+C Set the default value for the elastic properties       
+C
+C INPUT:  
+C   MODUL(I,J,K)=ELASTIC MODULUS (PSI)         
+C   POISS(I,J,K)=POISSON'S RATIO                
+C   BIOTA(I,J,K)=BIOT'S CONSTANT, ALPHA          
+C   BIOTM(I,J,K)=BIOT'S CONSTANT, 1/M             
+C   ROCKD(I,J,K)=ROCK DENSITY (GM/CC)              
+C
+C OUTPUT:
+C   MODUL(I,J,K)=ELASTIC MODULUS (PSI)              
+C   POISS(I,J,K)=POISSON'S RATIO                     
+C   BIOTA(I,J,K)=BIOT'S CONSTANT, ALPHA               
+C   BIOTM(I,J,K)=BIOT'S CONSTANT, 1/M                  
+C   ROCKD(I,J,K)=ROCK DENSITY (GM/CC)                   
+C********************************************************************
+
+C DUMMY VARIABLES
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  MODUL(IDIM,JDIM,KDIM), POISS(IDIM,JDIM,KDIM)
+      REAL*8  BIOTA(IDIM,JDIM,KDIM), BIOTM(IDIM,JDIM,KDIM)
+      REAL*4  ROCKD(IDIM,JDIM,KDIM)
+
+C LOCAL VARIABLE
+      INTEGER I,J,K,JL1,JL2
+
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               MODUL(I,J,K) = 0.0D0
+               POISS(I,J,K) = 0.0D0
+               BIOTA(I,J,K) = 1.0D0
+               BIOTM(I,J,K) =-1.0D0
+               ROCKD(I,J,K) = 2.7  
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+C*********************************************************************
+      SUBROUTINE PEPROP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,MODUL,POISS,BIOTA,BIOTM,ROCKD,POR,
+     &                  ECR)
+C*********************************************************************
+C Convert Young's modulus and Poisson's ratio to LAME's constants.
+C Set BIOTM if not entered.
+C Compute rock compressibility according to different boundary conditions
+C Compute rock compressibility for flow (disp_comp/pv)
+C
+C INPUT:
+C    MODUL(I,J,K) = YOUNG''S MODULUS (PSI)
+C    POISS(I,J,K) = POISSON'S RATIO (PSI)
+C    BIOTA(I,J,K) = BIOT'S CONSTANT ALPHA
+C    ROCKD(I,J,K) = ROCK DENSITY IN G/CC
+C    POR(I,J,K) = INITIAL POROSITY
+C
+C OUTPUT:
+C    MODUL(I,J,K) = LAME'S CONSTANT LAMBDA (PSI)
+C    POISS(I,J,K) = LAME'S CONSTANT MU (PSI)
+C    BIOTM(I,J,K) = BIOT'S CONSTANT 1/M
+C    ROCKD(I,J,K) = ROCK DENSITY IN LB/Cubic-Ft
+C    ECR(I,J,K) = ROCK COMPRESSIBILITY FOR FLOW (1/(PSI*FT^3))
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pebdary.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),     KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  MODUL(IDIM,JDIM,KDIM),     POISS(IDIM,JDIM,KDIM)
+      REAL*8  BIOTA(IDIM,JDIM,KDIM),     BIOTM(IDIM,JDIM,KDIM)
+      REAL*4  ECR(IDIM,JDIM,KDIM)
+      REAL*4  POR(IDIM,JDIM,KDIM),       ROCKD(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,JL1,JL2,KK,IOFF,JOFF,KOFF,KERR
+      REAL*8  V1,V2,V3,V4,PV,U1,U2,X,ZERO,ONE,TWO,THREE,VP0
+      REAL*8  DX,DY,DZ,VB,BIOT_M
+      PARAMETER(ZERO=0.D0,ONE=1.D0,TWO=2.D0,THREE=3.D0)
+
+C CONVERT ET/E TO ET/(1-ET/E)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+      DO K = KL1,KL2
+         JL1 = JL1V(K)
+         JL2 = JL2V(K)
+         DO J = JL1,JL2
+            DO I = IL1,IL2
+               IF(KEYOUT(I,J,K).LE.0) GO TO 1
+               DZ = DZREC(K+KOFF,NBLK)
+               DY = DYREC(J+JOFF,NBLK)
+               DX = DXREC(I+IOFF,NBLK) 
+               VB = DX * DY * DZ
+               V1 = MODUL(I,J,K)
+               V2 = POISS(I,J,K)
+               V3 = BIOTA(I,J,K)
+               V4 = BIOTM(I,J,K)
+               PV = POR(I,J,K)/VB
+               IF(V4.EQ.-ONE) THEN
+                  IF(V1.GT.ZERO) THEN
+                     U1 = THREE*(ONE-V3)*(V3-PV)*(ONE-TWO*V2)/V1
+                     IF(U1.LT.ZERO) U1 = ZERO
+                  ENDIF
+               ELSE
+                  U1 = 1.0D-6*V4
+               ENDIF
+               BIOTM(I,J,K) = U1
+
+               X = 1.0D0 - 2.0D0 * V2
+               IF(X.GE.ZERO) THEN
+                  MODUL(I,J,K) = V2 * V1 / ((1.0D0 + V2)* X)
+               ELSE
+                  MODUL(I,J,K) = 1.0D15
+               ENDIF
+               POISS(I,J,K) = 0.5D0 * V1 / (1.0D0 + V2)
+               IF(PV.LE.ZERO) BIOTA(I,J,K) = ZERO
+               ROCKD(I,J,K) = ROCKD(I,J,K) * 62.42795
+   1           CONTINUE
+            ENDDO
+         ENDDO
+      ENDDO
+
+C COMPUTE ROCK COMPRESSIBILITY DUE TO VOLUMETRIC STRAIN
+
+!bw      KK = 0
+!bw      IF(ITYPE_BOUNDARY(3,2,NBLK).GE.2) KK = 1
+!bw      IF(ITYPE_BOUNDARY(4,2,NBLK).GE.2) KK = 1
+!bw      IF(ITYPE_BOUNDARY(5,3,NBLK).GE.2) KK = 1
+!bw      IF(ITYPE_BOUNDARY(6,3,NBLK).GE.2) KK = 1
+cbw      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+     
+      DO K = KL1,KL2
+         DZ = DZREC(K+KOFF,NBLK)
+         JL1 = JL1V(K)
+         JL2 = JL2V(K)
+         DO J = JL1,JL2
+            DY = DYREC(J+JOFF,NBLK)
+            DO I = IL1,IL2
+               IF(KEYOUT(I,J,K).LE.0) GO TO 2
+               VP0 = POR(I,J,K)
+               BIOT_M = BIOTM(I,J,K)
+               IF(VP0.GT.ZERO) THEN
+                  DX = DXREC(I+IOFF,NBLK) 
+                  V1 = MODUL(I,J,K)
+                  V2 = POISS(I,J,K)
+                  V3 = BIOTA(I,J,K)
+                  VB = DX * DY * DZ
+!bw                  IF(KK.GT.0) THEN
+!bw                     ECR(I,J,K) = (3.0D0*V3*V3/(3.0D0*V1 + 2.0D0*V2) +
+!bw     &               BIOT_M)/(VP0*VB)
+                     ECR(I,J,K) = (3.0D0*V3*V3/(3.0D0*V1 + 2.0D0*V2) +
+     &               BIOT_M)*VB
+!bw                  ELSE
+!bw                     ECR(I,J,K) = (V3*V3/(V1+2.0D0*V2)+BIOT_M)/
+!bw     &               (VP0*VB)
+!bw                     ECR(I,J,K) = (V3*V3/(V1+2.0D0*V2)+BIOT_M)*VB
+!bw                  ENDIF
+               ELSE
+!bw                  ECR(I,J,K) = 1.0D0/(VP0*VB)
+                  ECR(I,J,K) = 1.0D-6*VB
+               ENDIF
+  2            CONTINUE
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+
+C********************************************************************
+C                     END OF FILE PEIDATA.F
+C********************************************************************

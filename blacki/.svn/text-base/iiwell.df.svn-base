@@ -1,0 +1,1248 @@
+C  IBWELL.F - IMPLICIT BLACK OIL MODEL WELL ROUTINE
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE IBWELL   (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                       KEYOUT,NBLK,DEPTH,POIL,PWAT,PGAS,TRNDAT,
+C                       DUNK,TLAMB,DGRO,COF,SGAS,RESID)
+C  SUBROUTINE IWELSUMS (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,KEYOUT,
+C                       NBLK,DEPTH,POIL,PWAT,PGAS,DUNK,TLAMB,DGRO,SGAS)
+C  SUBROUTINE IWDATA   (NERR,KINP)
+C  SUBROUTINE CWELDEN  (PWB,QW,QDO,QTG,DNW,DNO,DNG,DDNW,DDNO,DDNG,FFG)
+C  SUBROUTINE IWBD3P   (K,Q,P,H,W4W,W5W,W6W,W4DO,W5DO,W6DO,W4TG,W5TG,W6TG,
+C                       D,DDP)
+C  ENTRY GETDEN        (DNWS,DNOS,DNGS,DDNWS,DDNOS,DDNGS)
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     5/19/97   ALPHA CODE for hydrology model
+C  Joe Eaton        8/29/97   Debug checkout, add 3rd phase
+C  QIN LU          10/20/97   CALCULATED WELLS JACOBIAN MATRIX AND
+C                             RESIDUALS
+C  QIN LU          11/17/97   COMPLETE ALL WELL TYPES 
+c  Malgo Peszynska   2/1/99   cleaned up the code, implemented the IWELSUMS
+c                             and wellbore density part of IBWELL for
+c                             pressure specified wells using the John Wheeler
+c                             write-up for wells 
+c  Qin Lu           4/26/99   Added water mass rate specified injection well, 
+c                             total mass rate specified production well and
+c                             oil mass rate specified production well according
+c                             to John Wheeler well model in hydrology model. 
+C  JOHN WHEELER    10/19/99   REVISE WELL CALCULATIONS TO MORE PRECISELY
+C                             ACCOUNT FOR DISOLVED GAS IN THE WELLBORE
+C  JOHN WHEELER    12/01/99   MADE WELL CALCULATIONS MORE GERERIC AND ROBUST
+C  JOHN WHEELER    12/21/00   IMPROVED GENERAL TREATMENT OF WELLS
+C*********************************************************************
+      SUBROUTINE IBWELL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                 KEYOUT,NBLK,DEPTH,POIL,PWAT,PGAS,TRNDAT,
+     &                 DUNK,TLAMB,DGRO,COF,SGAS,RESID,OIL)
+C*********************************************************************
+ 
+C  ROUTINE EVALUATES WELL CONTRIBUTIONS TO COEFFICIENTS AND RESIDUALS.
+C  THIS IS A WORK ROUTINE.
+
+C  DEPTH(I,J,K) = GRID ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+C  PGAS(I,J,K) = GAS PRESSURE , PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/BBL (INPUT, REAL*8)
+C  DUNK(I,J,K,2) = WATER DENSITY, LB/BBL (INPUT, REAL*8)
+C  DUNK(I,J,K,3) = GAS DENSITY, LB/BBL (INPUT, REAL*8) 
+
+C  TLAMB(I,J,K,1) = OIL LAMBDA, STBO/BBL (INPUT, REAL*8)
+C  TLAMB(I,J,K,2) = WATER LAMBDA, STBW/BBL
+C  TLAMB(I,J,K,3) = GAS LAMBDA, MSCF/BBL
+
+C  TRNDAT(I,J,K,) = MISC. PHYSICAL DATA (INPUT, REAL*8)
+C                   (SEE IARYDAT.H FOR DEFINITIONS)
+
+C  DGRO(I,J,K) = DISOLVED GAS-OIL RATIO, MSCF/STBO (INPUT, REAL*8)
+
+C  SGAS(I,J,K) = GAS SATURATION (INPUT, REAL*4)
+
+C  COF(I,J,K,N,M,L) = JACOBIAN COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+
+C  RESID(I,J,K,N)= RESIDUALS (INPUT AND OUTPUT, REAL*8)
+
+C  OIL(I,J,K) = OIL STOCK TANK VOLUME / UNIT PORE VOLUME (INPUT, REAL*8)
+
+C  NOTE:  WATCH OUT FOR THE UNITS ON THE EQUATIONS
+C         ELEMENT EQUATIONS        STB
+C         WELL RATE EQUATION       LB
+C         DENSITY EQUATION         LB/BBL
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'ifluid.h'
+      INCLUDE 'ibaldat.h'
+      INCLUDE 'unitsex.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 DEPTH(IDIM,JDIM,KDIM),     POIL(IDIM,JDIM,KDIM),
+     &       PWAT(IDIM,JDIM,KDIM),      PGAS(IDIM,JDIM,KDIM),     
+     &       DUNK(IDIM,JDIM,KDIM,3),    RESID(IDIM,JDIM,KDIM,3),
+     &       TLAMB(IDIM,JDIM,KDIM,3),   DGRO(IDIM,JDIM,KDIM),
+     &       OIL(IDIM,JDIM,KDIM)
+      REAL*4 COF(IDIM,JDIM,KDIM,$NUMCOF,3,3),
+     &       TRNDAT(IDIM,JDIM,KDIM,*), SGAS(IDIM,JDIM,KDIM)
+
+      REAL*8 TE,PQ,DP,DUB1,DUB2,DUB3,DUB4,DUB5,WBDEN,PWB,
+     & DNW,DNO,DNG,BHP,CVF,CDT,RO,G,WHL,QW,QO,QG,WV4W,WV5W,WV6W,
+     & WV4DO,WV5DO,WV6DO,WV4TG,WV5TG,WV6TG,WV4LO,WV5LO,WV6LO,
+     & WV4FG,WV5FG,WV6FG,DTOB,DTOE,DMDW,DMDO,DMDG,DDP,PQLB,
+     & BETWP,BETWO,BETWG,BETOP,BETOO,BETOG,BETGP,BETGO,BETGG,
+     & ALAM,DDNW,DDNO,DDNG,RNO
+      LOGICAL LK
+
+      DATA LOCK/$MXWELL*.FALSE./,PRMMN/.05/
+
+C bag8 - CVF = sq-ft cp / md psi day
+      CVF = CONV_FACTOR
+
+      IF((NHISUSE == 0).AND.(NSTEP < 1)) GO TO 9
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     & ' ENTERING SUBROUTINE IBWELL, OLD TAG =',MSGTAG($HMODEL+1)
+
+C  SET GRAVITY CONSTANT TO UNITS PSI BBL / FT LB
+
+    9 CONTINUE
+
+      G=.178107585530824D0*GRAV
+
+C  EVALUATE WELL TERMS AT TIME N + 1
+
+      TE=TIM+DELTIM
+      IF((NHISUSE == 0).AND.(NSTEP < 1)) TE=TIM
+      CDT=CVF*DELTIM
+      NERRC=0
+
+C  GET LOCAL TO GLOBAL INDEX OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  LOOP OVER THE WELLS
+
+      DO 101 IW=1,NUMWEL
+      LK=.TRUE.
+      LINSYSW(IW)=0
+
+C  LOOP OVER THE WELL ELEMENTS IN WELL IW
+
+      DO 102 L=1,NUMELE(IW)
+      IF (LOCWEL(6,L,IW).EQ.MYPRC.AND.LOCWEL(1,L,IW).EQ.NBLK) THEN
+
+C  CALCULATIONS MADE ONCE PER WELL
+C  LOOK UP BHP OR WELL RATE
+C  COMPUTE WELLBORE DENSITY AND, IF NOT SPECIFIED, BHP
+
+         IF (LK) THEN
+            LK=.FALSE.
+            CALL LOOKUP(NTABPQ(IW),TE,PQ,DUB1)
+            IF (PQ.EQ.0.D0) GO TO 101
+
+            WHL=.5D0*G*(DEPTOP(IW)-DEPBG(IW))
+            WV4W=WELVEC(4,IW)
+            WV5W=WELVEC(5,IW)
+            WV6W=WELVEC(6,IW)
+            WV4DO=WELVEC(10,IW)
+            WV5DO=WELVEC(11,IW)
+            WV6DO=WELVEC(12,IW)
+            WV4FG=WELVEC(16,IW)
+            WV5FG=WELVEC(17,IW)
+            WV6FG=WELVEC(18,IW)
+            WV4TG=WELVEC(19,IW)+WV4FG
+            WV5TG=WELVEC(20,IW)+WV5FG
+            WV6TG=WELVEC(21,IW)+WV6FG
+            DWELBHP(IW)=0.D0
+            DWELDEN(IW)=0.D0
+
+            IF (KWELL(IW).LT.31) THEN
+               GO TO (101,1,2,3),KWELL(IW)+1
+            ELSE
+               GO TO (31,32,33,34,35),KWELL(IW)-30
+            ENDIF
+            GO TO 101
+
+C  WATER INJECTION WELL, PRESSURE SPECIFIED (TYPE 1)
+
+    1       BHP=PQ
+            WELBHP(IW)=PQ
+            IF (WELDEN(IW).LE.0.D0) WELDEN(IW)=WV4W/WELVEC(1,IW)
+            CALL IWBD3P (1,DUB1,BHP,WHL,WV4W,WV5W,WV6W,0.D0,0.D0,0.D0,
+     &        0.D0,0.D0,0.D0,WELDEN(IW),DDP)
+            WBDEN=WELDEN(IW)
+            DUB3=WV4W*BHP+WV5W*WBDEN-WV6W
+            IF (NEWT.LT.4.OR.DUB3.LE.0.D0) QWOC(IW)=DUB3
+            GO TO 103
+
+C  WATER INJECTION WELL, TOTAL MASS RATE SPECIFIED (TYPE 2)
+
+    2       PQLB=PQ
+            LINSYSW(IW)=0
+            IF (STBEXT) PQLB=WSTDEN*PQ
+            IF (WELDEN(IW).LE.0.D0) THEN
+               WELDEN(IW)=WV4W/WELVEC(1,IW)
+               WELBHP(IW)=(PQLB-WV5W*WELDEN(IW)+WV6W)/WV4W
+            ENDIF
+            CALL IWBD3P (2,PQLB,WELBHP(IW),WHL,WV4W,WV5W,WV6W,
+     &         0.D0,0.D0,0.D0,0.D0,0.D0,0.D0,WELDEN(IW),DDP)
+            WBDEN=WELDEN(IW)
+            BHP=WELBHP(IW)
+
+C           IF (NEWT.EQ.1) LOCK(IW)=.FALSE.  !GXL 
+            IF (NEWT.LE.2) LOCK(IW)=.FALSE.
+            
+            IF (LOCK(IW)) GO TO 221
+
+            DUB2=0.D0
+            DO 222 LL=1,NUMELE(IW)
+            I=LOCWEL(3,LL,IW)-IOFF
+            J=LOCWEL(4,LL,IW)-JOFF
+            K=LOCWEL(5,LL,IW)-KOFF
+            DNW=DUNK(I,J,K,2)
+            ALAM=TLAMB(I,J,K,2)
+            IF (ALAM.LT.PRMMN*DNW/WSTDEN) ALAM=PRMMN*DNW/WSTDEN
+            PWB=BHP+WBDEN*G*(ELEDEP(LL,IW)-DEPBG(IW))
+            DP=PWB-PWAT(I,J,K)-G*DNW*(ELEDEP(LL,IW)-DEPTH(I,J,K))
+            DUB1=CDT*ELECONS(LL,IW)*ALAM*DP/WATVIS
+            DUB2=DUB2+(DUB1-ELERATE(1,LL,IW))**2
+  222       ELERATE(1,LL,IW)=DUB1
+C           DUB2=SQRT(DUB2/NUMELE(IW))              !GXLCRR
+            DUB2=SQRT(DUB2/NUMELE(IW))*WSTDEN
+C           IF (DUB2.LT..02D0*PQLB) LOCK(IW)=.TRUE. !GXLCRR
+            IF (DUB2.LT..02D0*PQLB.AND.NEWT.GT.2) LOCK(IW)=.TRUE.
+          
+  221       QRESID(IW)=0.D0
+            DRESID(IW)=0.D0
+            QCOFN(1,IW)=DELTIM*WV4W
+            QCOFN(2,IW)=DELTIM*WV5W
+            DCOFN(1,IW)=DELTIM*PQLB*DDP/(WBDEN*WBDEN)
+            DCOFN(2,IW)=-DELTIM*PQLB*(1.D0-DDP*WHL)/(WBDEN*WBDEN)
+            GO TO 103
+
+C  GAS INJECTION WELL, PRESSURE SPECIFIED (TYPE 3)
+
+    3       BHP=PQ
+            WELBHP(IW)=PQ
+            IF (WELDEN(IW).LE.0.D0) WELDEN(IW)=WV4FG/WELVEC(13,IW)
+            CALL IWBD3P (1,DUB1,BHP,WHL,0.D0,0.D0,0.D0,
+     &         0.D0,0.D0,0.D0,WV4FG,WV5FG,WV6FG,WELDEN(IW),DDP)
+            WBDEN=WELDEN(IW)
+            DUB3=WV4FG*BHP+WV5FG*WBDEN-WV6FG
+            IF (NEWT.LT.4.OR.DUB3.LE.0.D0) QGOC(IW)=DUB3
+            GO TO 103
+
+C  PRODUCTION WELL, PRESSURE SPECIFIED (TYPE 31)
+C  NOTE THAT THE RATE IS NEGATIVE FOR ALL PRODUCTION RATES
+
+   31       BHP=PQ
+            WELBHP(IW)=PQ            
+            IF (WELDEN(IW).LE.0.D0) WELDEN(IW)=(WV4W+WV4DO+WV4TG)
+     &         /(WELVEC(1,IW)+WELVEC(7,IW)+WELVEC(13,IW))
+            CALL IWBD3P (1,DUB1,BHP,WHL,WV4W,WV5W,WV6W,
+     &        WV4DO,WV5DO,WV6DO,WV4TG,WV5TG,WV6TG,WELDEN(IW),DDP)
+            WBDEN=WELDEN(IW)
+
+            DUB1=WV4W*BHP+WV5W*WBDEN-WV6W
+            IF (NEWT.LT.4.OR.DUB1.GE.0.D0) QWOC(IW)=DUB1
+            IF (QWOC(IW).GE.0.D0) THEN
+              WV4W=0.D0
+              WV5W=0.D0
+              WV6W=0.D0
+              CALL IWBD3P (1,DUB1,BHP,WHL,WV4W,WV5W,WV6W,
+     &        WV4DO,WV5DO,WV6DO,WV4TG,WV5TG,WV6TG,WBDEN,DDP)
+            ENDIF
+
+            DUB1=WV4DO*BHP+WV5DO*WBDEN-WV6DO
+            IF (NEWT.LT.4.OR.DUB1.GE.0.D0) QOOC(IW)=DUB1
+            IF (QOOC(IW).GE.0.D0) THEN
+              WV4DO=0.D0
+              WV5DO=0.D0
+              WV6WO=0.D0
+              WV4TG=WV4FG
+              WV5TG=WV5FG
+              WV6TG=WV6FG
+              CALL IWBD3P (1,DUB1,BHP,WHL,WV4W,WV5W,WV6W,
+     &        WV4DO,WV5DO,WV6DO,WV4TG,WV5TG,WV6TG,WBDEN,DDP)
+            ENDIF
+
+            DUB1=WV4FG*BHP+WV5FG*WBDEN-WV6FG
+            IF (NEWT.LT.4.OR.DUB1.GE.0.D0) QGOC(IW)=DUB1
+            IF (QGOC(IW).GE.0.D0) THEN
+               WV4TG=WV4TG-WV4FG
+               WV5TG=WV5TG-WV5FG
+               WV6TG=WV6TG-WV6FG
+               WV4FG=0.D0
+               WV5FG=0.D0
+               WV6FG=0.D0
+               CALL IWBD3P (1,DUB1,BHP,WHL,WV4W,WV5W,WV6W,
+     &         WV4DO,WV5DO,WV6DO,WV4TG,WV5TG,WV6TG,WBDEN,DDP)
+            ENDIF
+
+            WELDEN(IW)=WBDEN
+            GO TO 103
+
+C  PRODUCTION, TOTAL MASS RATE (stbw EQUIVALENT) SPECIFIED (TYPE 32)
+
+   32       KR=2
+            PQLB=PQ
+            IF (STBEXT) PQLB=WSTDEN*PQ
+            GO TO 104
+
+C  PRODUCTION, DEAD OIL MASS RATE SPECIFIED (TYPE 33)
+
+   33       KR=3
+            PQLB=PQ
+            IF (STBEXT) PQLB=OSTDEN*PQ
+            GO TO 104
+            
+C  PRODUCTION, WATER MASS RATE SPECIFIED (TYPE 34)
+
+   34       KR=4
+            PQLB=PQ
+            IF (STBEXT) PQLB=WSTDEN*PQ
+            GO TO 104
+            
+C  PRODUCTION, GAS MASS RATE SPECIFIED (TYPE 35)
+
+   35       KR=5
+            PQLB=PQ
+            IF (STBEXT) PQLB=GSTDEN*PQ
+
+C  GENERIC PRODUCTION CODE FOR RATE SPECIFIED WELLS
+
+  104       LINSYSW(IW)=0
+            IF (WELDEN(IW).LE.0.D0) THEN
+               WELDEN(IW)=(WV4W+WV4DO+WV4TG)/(WELVEC(1,IW)+WELVEC(7,IW)
+     &            +WELVEC(13,IW))
+               WELBHP(IW)=(WV6W+WV6DO+WV6TG-(WV5W+WV5DO+WV5TG)
+     &            *WELDEN(IW)-PQLB)/(WV4W+WV4DO+WV4TG)
+            ENDIF
+            CALL IWBD3P (KR,-PQLB,WELBHP(IW),WHL,WV4W,WV5W,WV6W,
+     &         WV4DO,WV5DO,WV6DO,WV4TG,WV5TG,WV6TG,WELDEN(IW),DDP)
+            WBDEN=WELDEN(IW)
+            BHP=WELBHP(IW)
+
+C           IF (NEWT.EQ.1) LOCK(IW)=.FALSE.  !GXL
+            IF (NEWT.LE.2) LOCK(IW)=.FALSE.
+            QW=WV4W*BHP+WV5W*WBDEN-WV6W
+            QO=WV4DO*BHP+WV5DO*WBDEN-WV6DO
+            QG=WV4FG*BHP+WV5FG*WBDEN-WV6FG
+            IF (LOCK(IW)) GO TO 105
+
+            IF (QW.GE.0.D0) THEN
+               WV4W=0.D0
+               WV5W=0.D0
+               WV6W=0.D0
+               CALL IWBD3P (KR,-PQLB,BHP,WHL,WV4W,WV5W,WV6W,
+     &            WV4DO,WV5DO,WV6DO,WV4TG,WV5TG,WV6TG,WBDEN,DDP)
+               QW=0.D0
+               QO=WV4DO*BHP+WV5DO*WBDEN-WV6DO
+               QG=WV4FG*BHP+WV5FG*WBDEN-WV6FG
+            ENDIF
+
+            IF (QO.GE.0.D0) THEN
+               WV4DO=0.D0
+               WV5DO=0.D0
+               WV6DO=0.D0
+               WV4TG=WV4FG
+               WV5TG=WV5FG
+               WV6TG=WV6FG
+               CALL IWBD3P (KR,-PQLB,BHP,WHL,WV4W,WV5W,WV6W,
+     &            WV4DO,WV5DO,WV6DO,WV4TG,WV5TG,WV6TG,WBDEN,DDP)
+               QW=WV4W*BHP+WV5W*WBDEN-WV6W
+               QO=0.D0
+               QG=WV4FG*BHP+WV5FG*WBDEN-WV6FG
+            ENDIF
+
+            IF (QG.GE.0.D0) THEN
+               WV4TG=WV4TG-WV4FG
+               WV5TG=WV5TG-WV5FG
+               WV6TG=WV6TG-WV6FG
+               WV4FG=0.D0
+               WV5FG=0.D0
+               WV6FG=0.D0
+               CALL IWBD3P (KR,-PQLB,BHP,WHL,WV4W,WV5W,WV6W,
+     &            WV4DO,WV5DO,WV6DO,WV4TG,WV5TG,WV6TG,WBDEN,DDP)
+               QW=WV4W*BHP+WV5W*WBDEN-WV6W
+               QO=WV4DO*BHP+WV5DO*WBDEN-WV6DO
+               QG=0.D0
+            ENDIF
+
+            QWOC(IW)=QW
+            QOOC(IW)=QO
+            QGOC(IW)=QG
+            WELDEN(IW)=WBDEN
+            WELBHP(IW)=BHP
+
+            DUB1=0.D0
+            DUB2=0.D0
+            DUB3=0.D0
+            DO 106 LL=1,NUMELE(IW)
+            I=LOCWEL(3,LL,IW)-IOFF
+            J=LOCWEL(4,LL,IW)-JOFF
+            K=LOCWEL(5,LL,IW)-KOFF
+            PWB=BHP+WBDEN*G*(ELEDEP(LL,IW)-DEPBG(IW))
+            DTOE=G*(ELEDEP(LL,IW)-DEPTH(I,J,K))
+
+            IF (QW.LT.0.D0) THEN
+               DNW=DUNK(I,J,K,2)
+               DP=PWB-PWAT(I,J,K)-DNW*DTOE
+               DUB4=CDT*ELECONS(LL,IW)*TLAMB(I,J,K,2)*DP/WATVIS
+               DUB1=DUB1+(DUB4-ELERATE(1,LL,IW))**2
+               ELERATE(1,LL,IW)=DUB4
+            ELSE
+               ELERATE(1,LL,IW)=0.D0
+            ENDIF
+
+            IF (QO.LT.0.D0) THEN
+               DNO=DUNK(I,J,K,1)
+               DP=PWB-POIL(I,J,K)-DNO*DTOE
+               DUB4=CDT*ELECONS(LL,IW)*TLAMB(I,J,K,1)*DP/OILVIS
+               DUB2=DUB2+(DUB4-ELERATE(2,LL,IW))**2
+               ELERATE(2,LL,IW)=DUB4
+               DUB5=DUB4*DGRO(I,J,K)
+            ELSE
+               ELERATE(2,LL,IW)=0.D0
+               DUB5=0.D0
+            ENDIF
+
+            IF (QG.LT.0.D0) THEN
+               DNG=DUNK(I,J,K,3)
+               DP=PWB-PGAS(I,J,K)-DNG*DTOE
+               DUB4=DUB5+CDT*ELECONS(LL,IW)*TLAMB(I,J,K,3)*DP/GASVIS
+               DUB3=DUB3+(DUB4-ELERATE(3,LL,IW))**2
+               ELERATE(3,LL,IW)=DUB4
+            ELSE
+               ELERATE(3,LL,IW)=DUB5
+            ENDIF
+
+  106       CONTINUE
+            DUB1=SQRT(DUB1/NUMELE(IW))
+            DUB2=SQRT(DUB2/NUMELE(IW))
+            DUB3=SQRT(DUB3/NUMELE(IW))
+            DUB1=WSTDEN*DUB1+OSTDEN*DUB2+GSTDEN*DUB3
+C           IF (DUB1.LT..02D0*PQLB) LOCK(IW)=.TRUE.  !GXLCRR
+            IF (DUB1.LT..02D0*PQLB.AND.NEWT.GT.2) LOCK(IW)=.TRUE.
+
+
+  105       CALL GETDEN(DNW,DNO,DNG,DDNW,DDNO,DDNG)
+            DMDW=1.D0/WBDEN-1.D0/DNW
+            DMDO=1.D0/WBDEN-1.D0/DNO
+            DMDG=1.D0/WBDEN-1.D0/DNG
+            QRESID(IW)=0.D0
+            DRESID(IW)=0.D0
+            WV4LO=WV4DO+WV4TG-WV4FG
+            WV5LO=WV5DO+WV5TG-WV5FG
+            WV6LO=WV6DO+WV6TG-WV6FG
+            QO=WV4LO*BHP+WV5LO*WBDEN-WV6LO
+            DCOFN(1,IW)=DELTIM*(WV4W*DMDW+WV4LO*DMDO+WV4FG*DMDG+QW
+     &         *DDNW/(DNW*DNW)+QO*DDNO/(DNO*DNO)+QG*DDNG/(DNG*DNG))
+            DUB1=1.D0/(WBDEN*WBDEN)
+            DCOFN(2,IW)=DELTIM*(WV5W*DMDW+WV5LO*DMDO+WV5FG*DMDG
+     &        +QW*(WHL*DDNW/(DNW*DNW)-DUB1)
+     &        +QO*(WHL*DDNO/(DNO*DNO)-DUB1)
+     &        +QG*(WHL*DDNG/(DNG*DNG)-DUB1))
+
+            GO TO (132,133,134,135) KR-1
+  132       QCOFN(1,IW)=DELTIM*(WV4W+WV4LO+WV4FG)
+            QCOFN(2,IW)=DELTIM*(WV5W+WV5LO+WV5FG)
+            GO TO 103
+  133       QCOFN(1,IW)=DELTIM*WV4DO
+            QCOFN(2,IW)=DELTIM*WV5DO
+            GO TO 103
+  134       QCOFN(1,IW)=DELTIM*WV4W
+            QCOFN(2,IW)=DELTIM*WV5W
+            GO TO 103
+  135       QCOFN(1,IW)=DELTIM*WV4TG
+            QCOFN(2,IW)=DELTIM*WV5TG
+            GO TO 103
+
+         ENDIF
+
+C  SET LOCAL GRID INDEXES AND TEST KEYOUT
+
+  103    WELIPC(7,IW) = BHP 
+         I=LOCWEL(3,L,IW)-IOFF
+         J=LOCWEL(4,L,IW)-JOFF
+         K=LOCWEL(5,L,IW)-KOFF
+         IF (KEYOUT(I,J,K).LT.1) GO TO 102
+
+         DNO=DUNK(I,J,K,1)
+         DNW=DUNK(I,J,K,2)
+         DNG=DUNK(I,J,K,3)
+         DTOB=G*(ELEDEP(L,IW)-DEPBG(IW))
+         DTOE=G*(ELEDEP(L,IW)-DEPTH(I,J,K))
+         PWB=BHP+WBDEN*DTOB
+
+C  BRANCH ON WELL TYPE
+
+         IF (KWELL(IW).LT.31) THEN
+            GO TO (102,201,202,203),KWELL(IW)+1
+         ELSE
+            GO TO (231,232,232,232,232),KWELL(IW)-30
+         ENDIF
+         GO TO 102
+
+C  WATER INJECTION WELL, PRESSURE SPECIFIED (TYPE 1)
+                                  
+  201    IF (QWOC(IW).LE.0.D0) GO TO 102
+         DP=PWB-PWAT(I,J,K)-DNW*DTOE
+         ALAM=TLAMB(I,J,K,2)
+         IF (ALAM.LT.PRMMN*DNW/WSTDEN) THEN
+            IF (DP.GT.0.D0) THEN
+               ALAM=PRMMN*DNW/WSTDEN
+            ELSE
+               ALAM=0.D0
+            ENDIF
+         ENDIF
+         DUB1=CDT*ELECONS(L,IW)/WATVIS
+         DUB2=ALAM*(1.D0+DTOE*TRNDAT(I,J,K,10))
+         BETWP=DUB1*(TRNDAT(I,J,K,5)*DP-DUB2*TRNDAT(I,J,K,14))
+         BETWO=DUB1*(TRNDAT(I,J,K,4)*DP-DUB2*TRNDAT(I,J,K,15))
+         BETWG=DUB1*(TRNDAT(I,J,K,6)*DP-DUB2*TRNDAT(I,J,K,16))
+         COF(I,J,K,1,1,1)=COF(I,J,K,1,1,1)+BETWP
+         COF(I,J,K,1,1,2)=COF(I,J,K,1,1,2)+BETWO
+         COF(I,J,K,1,1,3)=COF(I,J,K,1,1,3)+BETWG
+         QW=DUB1*ALAM*DP
+         RESID(I,J,K,1)=RESID(I,J,K,1)-QW
+         WELIPC(3,IW)=WELIPC(3,IW)+QW
+         GO TO 102
+
+C  WATER INJECTION WELL, MASS (STOCK TANK VOLUME) RATE SPECIFIED (TYPE 2)
+
+  202    IF (LOCK(IW)) THEN
+            QCOFW(1,L,IW)=0.D0
+            QCOFW(2,L,IW)=0.D0
+            QCOFW(3,L,IW)=0.D0
+            VCOFQ(1,L,IW)=0.D0
+            VCOFD(1,L,IW)=0.D0
+         ELSE
+            ALAM=TLAMB(I,J,K,2)
+            IF (ALAM.LT.PRMMN*DNW/WSTDEN) THEN
+               IF (DP.GT.0.D0) THEN
+                  ALAM=PRMMN*DNW/WSTDEN
+               ELSE
+                  ALAM=0.D0
+               ENDIF
+            ENDIF
+            DP=PWB-PWAT(I,J,K)-DNW*DTOE
+            DUB1=CDT*ELECONS(L,IW)/WATVIS
+            DUB2=ALAM*(1.D0+DTOE*TRNDAT(I,J,K,10))
+            BETWP=DUB1*(TRNDAT(I,J,K,5)*DP-DUB2*TRNDAT(I,J,K,14))
+            BETWO=DUB1*(TRNDAT(I,J,K,4)*DP-DUB2*TRNDAT(I,J,K,15))
+            BETWG=DUB1*(TRNDAT(I,J,K,6)*DP-DUB2*TRNDAT(I,J,K,16))
+            COF(I,J,K,1,1,1)=COF(I,J,K,1,1,1)+BETWP
+            COF(I,J,K,1,1,2)=COF(I,J,K,1,1,2)+BETWO
+            COF(I,J,K,1,1,3)=COF(I,J,K,1,1,3)+BETWG
+            QCOFW(1,L,IW)=BETWP*WSTDEN
+            QCOFW(2,L,IW)=BETWO*WSTDEN
+            QCOFW(3,L,IW)=BETWG*WSTDEN
+            VCOFQ(1,L,IW)=DUB1*ALAM
+            VCOFD(1,L,IW)=DUB1*ALAM*DTOB
+            ELERATE(1,L,IW)=DUB1*ALAM*DP
+         ENDIF
+         DCOFW(1,L,IW)=0.D0
+         DCOFW(2,L,IW)=0.D0
+         DCOFW(3,L,IW)=0.D0
+         VCOFQ(2,L,IW)=0.D0
+         VCOFQ(3,L,IW)=0.D0
+         VCOFD(2,L,IW)=0.D0
+         VCOFD(3,L,IW)=0.D0
+         RESID(I,J,K,1)=RESID(I,J,K,1)-ELERATE(1,L,IW)
+         WELIPC(3,IW)=WELIPC(3,IW)+ELERATE(1,L,IW)
+         GO TO 102
+
+C  GAS INJECTION WELL, PRESSURE SPECIFIED (TYPE 3)
+                                  
+  203    IF (QGOC(IW).LE.0.D0) GO TO 102
+         DUB1=CDT*ELECONS(L,IW)/GASVIS
+         DNG=DUNK(I,J,K,3)
+         DP=PWB-PGAS(I,J,K)-DNG*DTOE
+         ALAM=TLAMB(I,J,K,3)
+         IF (ALAM.LT.PRMMN*DNG/GSTDEN) THEN
+            IF (DP.GT.0.D0) THEN
+               ALAM=PRMMN*DNG/GSTDEN
+            ELSE
+               ALAM=0.D0
+            ENDIF
+         ENDIF
+         DUB2=ALAM*(1.D0+DTOE*TRNDAT(I,J,K,12))
+         IF (SGAS(I,J,K).GT.0.) THEN
+            BETGP=DUB1*(TRNDAT(I,J,K,7)*DP-DUB2*TRNDAT(I,J,K,17))
+            BETGO=DUB1*(TRNDAT(I,J,K,8)*DP-DUB2*TRNDAT(I,J,K,18))
+            BETGG=DUB1*(TRNDAT(I,J,K,9)*DP-DUB2*TRNDAT(I,J,K,19))
+         ELSE
+            BETGP=DUB1*(TRNDAT(I,J,K,7)*DP-DUB2)
+            BETGO=0.D0
+            BETGG=0.D0
+         ENDIF
+         COF(I,J,K,1,3,1)=COF(I,J,K,1,3,1)+BETGP
+         COF(I,J,K,1,3,2)=COF(I,J,K,1,3,2)+BETGO
+         COF(I,J,K,1,3,3)=COF(I,J,K,1,3,3)+BETGG
+         QG=DUB1*ALAM*DP
+         RESID(I,J,K,3)=RESID(I,J,K,3)-QG
+         WELIPC(5,IW)=WELIPC(5,IW)+QG
+         GO TO 102
+
+C  PRODUCTION WELL, PRESSURE SPECIFIED (TYPE 31)
+
+  231    IF (QWOC(IW).LT.0.D0) THEN
+            DP=PWB-PWAT(I,J,K)-DNW*DTOE
+            ALAM=TLAMB(I,J,K,2)
+            DUB1=CDT*ELECONS(L,IW)/WATVIS
+            DUB2=ALAM*(1.D0+DTOE*TRNDAT(I,J,K,10))
+            BETWP=DUB1*(TRNDAT(I,J,K,5)*DP-DUB2*TRNDAT(I,J,K,14))
+            BETWO=DUB1*(TRNDAT(I,J,K,4)*DP-DUB2*TRNDAT(I,J,K,15))
+            BETWG=DUB1*(TRNDAT(I,J,K,6)*DP-DUB2*TRNDAT(I,J,K,16))
+            COF(I,J,K,1,1,1)=COF(I,J,K,1,1,1)+BETWP
+            COF(I,J,K,1,1,2)=COF(I,J,K,1,1,2)+BETWO
+            COF(I,J,K,1,1,3)=COF(I,J,K,1,1,3)+BETWG
+            QW=DUB1*ALAM*DP
+            RESID(I,J,K,1)=RESID(I,J,K,1)-QW
+            WELIPC(4,IW)=WELIPC(4,IW)-QW
+         ENDIF
+
+         IF(QOOC(IW).LT.0.D0) THEN
+            DP=PWB-POIL(I,J,K)-DNO*DTOE
+            ALAM=TLAMB(I,J,K,1)
+            DUB1=CDT*ELECONS(L,IW)/OILVIS
+            DUB2=ALAM*(1.D0+DTOE*TRNDAT(I,J,K,11))
+            BETOP=DUB1*(TRNDAT(I,J,K,2)*DP-DUB2)
+            QO=DUB1*ALAM*DP
+            RO=DGRO(I,J,K)
+            IF (SGAS(I,J,K).GT.0.) THEN
+               BETOO=DUB1*TRNDAT(I,J,K,1)*DP
+               BETOG=DUB1*TRNDAT(I,J,K,3)*DP
+               BETGP=RO*BETOP+TRNDAT(I,J,K,13)*QO
+C              !GXLADD
+               BETGO=RO*BETOO     
+               BETGG=RO*BETOG     
+            ELSE
+C              BETOO=DUB1*(TRNDAT(I,J,K,1)*DP-ALAM*TRNDAT(I,J,K,8)) !GXLCRR
+C              BETOG=DUB1*(TRNDAT(I,J,K,3)*DP-ALAM*TRNDAT(I,J,K,9)) !GXLCRR
+               BETOO=DUB1*(TRNDAT(I,J,K,1)*DP-ALAM*DTOE*TRNDAT(I,J,K,8))
+               BETOG=DUB1*(TRNDAT(I,J,K,3)*DP-ALAM*DTOE*TRNDAT(I,J,K,9))
+               BETGP=RO*BETOP
+C              !GXLADD
+               RNO=1.D0/OIL(I,J,K)      
+               BETGO=RO*BETOO-RNO*RO*QO 
+               BETGG=RO*BETOG+RNO*QO    
+            ENDIF
+C           BETGO=RO*BETOO    !GXL COMMENT OFF
+C           BETGG=RO*BETOG    !GXL COMMENT OFF
+            COF(I,J,K,1,2,1)=COF(I,J,K,1,2,1)+BETOP
+            COF(I,J,K,1,2,2)=COF(I,J,K,1,2,2)+BETOO
+            COF(I,J,K,1,2,3)=COF(I,J,K,1,2,3)+BETOG
+            COF(I,J,K,1,3,1)=COF(I,J,K,1,3,1)+BETGP
+            COF(I,J,K,1,3,2)=COF(I,J,K,1,3,2)+BETGO
+            COF(I,J,K,1,3,3)=COF(I,J,K,1,3,3)+BETGG
+            RESID(I,J,K,2)=RESID(I,J,K,2)-QO
+            WELIPC(2,IW)=WELIPC(2,IW)-QO
+            QG=RO*QO
+            RESID(I,J,K,3)=RESID(I,J,K,3)-QG
+            WELIPC(6,IW)=WELIPC(6,IW)-QG
+         ENDIF
+
+         IF(QGOC(IW).LT.0.D0.AND.SGAS(I,J,K).GT.0.D0) THEN
+            DNG=DUNK(I,J,K,3)
+            DP=PWB-PGAS(I,J,K)-DNG*DTOE
+            ALAM=TLAMB(I,J,K,3)
+            DUB1=CDT*ELECONS(L,IW)/GASVIS
+            DUB2=ALAM*(1.D0+DTOE*TRNDAT(I,J,K,12))
+            BETGP=DUB1*(TRNDAT(I,J,K,7)*DP-DUB2*TRNDAT(I,J,K,17))
+            BETGO=DUB1*(TRNDAT(I,J,K,8)*DP-DUB2*TRNDAT(I,J,K,18))
+            BETGG=DUB1*(TRNDAT(I,J,K,9)*DP-DUB2*TRNDAT(I,J,K,19))
+            COF(I,J,K,1,3,1)=COF(I,J,K,1,3,1)+BETGP
+            COF(I,J,K,1,3,2)=COF(I,J,K,1,3,2)+BETGO
+            COF(I,J,K,1,3,3)=COF(I,J,K,1,3,3)+BETGG
+            QG=DUB1*ALAM*DP
+            RESID(I,J,K,3)=RESID(I,J,K,3)-QG
+            WELIPC(6,IW)=WELIPC(6,IW)-QG
+         ENDIF
+
+         GO TO 102
+
+C  PRODUCTION WELL, TOTAL MASS RATE SPECIFIED (KR=2) (TYPE 32)
+C  PRODUCTION WELL, OIL MASS RATE SPECIFIED   (KR=3) (TYPE 33)
+C  PRODUCTION WELL, WATER MASS RATE SPECIFIED (KR=4) (TYPE 34)
+C  PRODUCTION WELL, GAS MASS RATE SPECIFIED   (KR=5) (TYPE 35)
+
+  232    IF (QWOC(IW).GE.0.D0.AND.QOOC(IW).GE.0.D0
+     &      .AND.QOOC(IW).GE.0.D0) GO TO 102
+
+         DO 107 M=1,3
+         QCOFW(M,L,IW)=0.D0
+         DCOFW(M,L,IW)=0.D0
+         VCOFQ(M,L,IW)=0.D0
+  107    VCOFD(M,L,IW)=0.D0
+
+         IF (LOCK(IW)) GO TO 108
+
+         PWB=BHP+WBDEN*DTOB
+
+         IF (QWOC(IW).LT.0.D0) THEN
+            DP=PWB-PWAT(I,J,K)-DNW*DTOE
+            ALAM=TLAMB(I,J,K,2)
+            DUB1=CDT*ELECONS(L,IW)/WATVIS
+            DUB2=ALAM*(1.D0+DTOE*TRNDAT(I,J,K,10))
+            BETWP=DUB1*(TRNDAT(I,J,K,5)*DP-DUB2*TRNDAT(I,J,K,14))
+            BETWO=DUB1*(TRNDAT(I,J,K,4)*DP-DUB2*TRNDAT(I,J,K,15))
+            BETWG=DUB1*(TRNDAT(I,J,K,6)*DP-DUB2*TRNDAT(I,J,K,16))
+            COF(I,J,K,1,1,1)=COF(I,J,K,1,1,1)+BETWP
+            COF(I,J,K,1,1,2)=COF(I,J,K,1,1,2)+BETWO
+            COF(I,J,K,1,1,3)=COF(I,J,K,1,1,3)+BETWG
+            IF (KR.EQ.2.OR.KR.EQ.4) THEN
+               QCOFW(1,L,IW)=BETWP*WSTDEN
+               QCOFW(2,L,IW)=BETWO*WSTDEN
+               QCOFW(3,L,IW)=BETWG*WSTDEN
+            ENDIF
+            DCOFW(1,L,IW)=BETWP*DMDW*WSTDEN
+            DCOFW(2,L,IW)=BETWO*DMDW*WSTDEN
+            DCOFW(3,L,IW)=BETWG*DMDW*WSTDEN
+            VCOFQ(1,L,IW)=DUB1*ALAM
+            VCOFD(1,L,IW)=DUB1*ALAM*DTOB
+            ELERATE(1,L,IW)=DUB1*ALAM*DP
+         ELSE
+            ELERATE(1,L,IW)=0.D0
+         ENDIF
+
+         IF (QOOC(IW).LT.0.D0) THEN
+            DP=PWB-POIL(I,J,K)-DNO*DTOE
+            ALAM=TLAMB(I,J,K,1)
+            DUB1=CDT*ELECONS(L,IW)/OILVIS
+            DUB2=ALAM*(1.D0+DTOE*TRNDAT(I,J,K,11))
+            BETOP=DUB1*(TRNDAT(I,J,K,2)*DP-DUB2)
+            QO=DUB1*ALAM*DP
+            RO=DGRO(I,J,K)
+            IF (SGAS(I,J,K).GT.0.) THEN
+               BETOO=DUB1*TRNDAT(I,J,K,1)*DP
+               BETOG=DUB1*TRNDAT(I,J,K,3)*DP
+C              BETGP=RO*BETOP+TRNDAT(I,J,K,13)*DUB1*ALAM*DP
+               BETGP=RO*BETOP+TRNDAT(I,J,K,13)*QO
+C              !GXLADD
+               BETGO=RO*BETOO 
+               BETGG=RO*BETOG
+            ELSE
+C              BETOO=DUB1*(TRNDAT(I,J,K,1)*DP-ALAM*TRNDAT(I,J,K,8)) !GXLCRR
+C              BETOG=DUB1*(TRNDAT(I,J,K,3)*DP-ALAM*TRNDAT(I,J,K,9)) !GXLCRR
+               BETOO=DUB1*(TRNDAT(I,J,K,1)*DP-ALAM*DTOE*TRNDAT(I,J,K,8))
+               BETOG=DUB1*(TRNDAT(I,J,K,3)*DP-ALAM*DTOE*TRNDAT(I,J,K,9))
+               BETGP=RO*BETOP
+C              !GXLADD
+               RNO=1.D0/OIL(I,J,K)      
+               BETGO=RO*BETOO-RNO*RO*QO 
+               BETGG=RO*BETOG+RNO*QO    
+            ENDIF
+C           BETGO=RO*BETOO   !GXL COMMENT OFF
+C           BETGG=RO*BETOG   !GXL COMMENT OFF
+            COF(I,J,K,1,2,1)=COF(I,J,K,1,2,1)+BETOP
+            COF(I,J,K,1,2,2)=COF(I,J,K,1,2,2)+BETOO
+            COF(I,J,K,1,2,3)=COF(I,J,K,1,2,3)+BETOG
+            COF(I,J,K,1,3,1)=COF(I,J,K,1,3,1)+BETGP
+            COF(I,J,K,1,3,2)=COF(I,J,K,1,3,2)+BETGO
+            COF(I,J,K,1,3,3)=COF(I,J,K,1,3,3)+BETGG
+            DUB2=OSTDEN+RO*GSTDEN
+
+            GO TO (82,83,86,85), KR-1
+   82       QCOFW(1,L,IW)=QCOFW(1,L,IW)+BETOP*DUB2
+            QCOFW(2,L,IW)=QCOFW(2,L,IW)+BETOO*DUB2
+            QCOFW(3,L,IW)=QCOFW(3,L,IW)+BETOG*DUB2
+            GO TO 86
+C  83       QCOFW(1,L,IW)=QCOFW(1,L,IW)+BETOP  !GXLCRR
+C           QCOFW(2,L,IW)=QCOFW(2,L,IW)+BETOO  !GXLCRR
+C           QCOFW(3,L,IW)=QCOFW(3,L,IW)+BETOG  !GXLCRR
+   83       QCOFW(1,L,IW)=QCOFW(1,L,IW)+BETOP*OSTDEN
+            QCOFW(2,L,IW)=QCOFW(2,L,IW)+BETOO*OSTDEN
+            QCOFW(3,L,IW)=QCOFW(3,L,IW)+BETOG*OSTDEN
+            GO TO 86
+C  85       QCOFW(1,L,IW)=QCOFW(1,L,IW)+BETOP*RO*GSTDEN !GXLCRR
+C           QCOFW(2,L,IW)=QCOFW(2,L,IW)+BETOO*RO*GSTDEN !GXLCRR
+C           QCOFW(3,L,IW)=QCOFW(3,L,IW)+BETOG*RO*GSTDEN !GXLCRR
+   85       QCOFW(1,L,IW)=QCOFW(1,L,IW)+BETGP*GSTDEN  
+            QCOFW(2,L,IW)=QCOFW(2,L,IW)+BETGO*GSTDEN  
+            QCOFW(3,L,IW)=QCOFW(3,L,IW)+BETGG*GSTDEN  
+
+   86       DCOFW(1,L,IW)=DCOFW(1,L,IW)+BETOP*DMDO*DUB2
+            DCOFW(2,L,IW)=DCOFW(2,L,IW)+BETOO*DMDO*DUB2
+            DCOFW(3,L,IW)=DCOFW(3,L,IW)+BETOG*DMDO*DUB2
+            DUB1=DUB1*ALAM
+            VCOFQ(2,L,IW)=DUB1
+            VCOFD(2,L,IW)=DUB1*DTOB
+            ELERATE(2,L,IW)=DUB1*DP
+            DUB1=RO*DUB1
+            VCOFQ(3,L,IW)=DUB1
+            VCOFD(3,L,IW)=DUB1*DTOB
+            ELERATE(3,L,IW)=DUB1*DP
+         ELSE
+            ELERATE(2,L,IW)=0.D0
+            ELERATE(3,L,IW)=0.D0
+         ENDIF
+
+         IF(QGOC(IW).LT.0.D0.AND.SGAS(I,J,K).GT.0.D0) THEN
+            DNG=DUNK(I,J,K,3)
+            DP=PWB-PGAS(I,J,K)-DNG*DTOE
+            ALAM=TLAMB(I,J,K,3)
+            DUB1=CDT*ELECONS(L,IW)/GASVIS
+            DUB2=ALAM*(1.D0+DTOE*TRNDAT(I,J,K,12))
+            BETGP=DUB1*(TRNDAT(I,J,K,7)*DP-DUB2*TRNDAT(I,J,K,17))
+            BETGO=DUB1*(TRNDAT(I,J,K,8)*DP-DUB2*TRNDAT(I,J,K,18))
+            BETGG=DUB1*(TRNDAT(I,J,K,9)*DP-DUB2*TRNDAT(I,J,K,19))
+            COF(I,J,K,1,3,1)=COF(I,J,K,1,3,1)+BETGP
+            COF(I,J,K,1,3,2)=COF(I,J,K,1,3,2)+BETGO
+            COF(I,J,K,1,3,3)=COF(I,J,K,1,3,3)+BETGG
+            IF (KR.EQ.2.OR.KR.EQ.5) THEN
+               QCOFW(1,L,IW)=QCOFW(1,L,IW)+BETGP*GSTDEN
+               QCOFW(2,L,IW)=QCOFW(2,L,IW)+BETGO*GSTDEN
+               QCOFW(3,L,IW)=QCOFW(3,L,IW)+BETGG*GSTDEN
+            ENDIF
+            DCOFW(1,L,IW)=DCOFW(1,L,IW)+BETGP*DMDO*GSTDEN
+            DCOFW(2,L,IW)=DCOFW(2,L,IW)+BETGO*DMDO*GSTDEN
+            DCOFW(3,L,IW)=DCOFW(3,L,IW)+BETGG*DMDO*GSTDEN
+            DUB1=DUB1*ALAM
+            VCOFQ(3,L,IW)=VCOFQ(3,L,IW)+DUB1
+            VCOFD(3,L,IW)=VCOFD(3,L,IW)+DUB1*DTOB
+            ELERATE(3,L,IW)=DUB1*DP+ELERATE(3,L,IW)
+         ENDIF
+
+  108    RESID(I,J,K,2)=RESID(I,J,K,2)-ELERATE(2,L,IW)
+         WELIPC(2,IW)=WELIPC(2,IW)-ELERATE(2,L,IW)
+         RESID(I,J,K,1)=RESID(I,J,K,1)-ELERATE(1,L,IW)
+         WELIPC(4,IW)=WELIPC(4,IW)-ELERATE(1,L,IW)
+         RESID(I,J,K,3)=RESID(I,J,K,3)-ELERATE(3,L,IW)
+         WELIPC(6,IW)=WELIPC(6,IW)-ELERATE(3,L,IW)
+
+         GO TO 102
+
+      ENDIF
+
+  102 CONTINUE
+
+      IF((NHISUSE == 0).AND.(NSTEP < 1)) GO TO 101
+
+      IF (BUGKEY(8).AND..NOT.LK) THEN
+         IF (KWELL(IW).LT.31) THEN
+            IF (KWELL(IW).EQ.0) GO TO 101
+            WRITE (NFBUG,109) IW,BHP,WBDEN,WELIPC(3,IW)
+  109       FORMAT(' WELL',I4,', BHP',F10.3,', WBDEN',F10.4,', QWI',
+     &         G12.5)
+         ELSE
+            WRITE (NFBUG,110) IW,BHP,WBDEN,WELIPC(2,IW),WELIPC(4,IW),
+     &      WELIPC(6,IW)
+  110       FORMAT(' WELL',I4,', BHP',F10.3,', WBDEN',F10.4,', QWP',
+     &      G12.5/T12,', QOP',G12.5,', QGP',G12.5)
+         ENDIF
+      ENDIF
+
+  101 CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE IWELSUMS(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,DEPTH,POIL,PWAT,PGAS,DUNK,TLAMB,
+     &                   DGRO,SGAS)
+C*********************************************************************
+ 
+C  ROUTINE EVALUATES SUMS REQUIRED FOR WELLBORE CALCULATIONS.
+C  THIS IS A WORK ROUTINE.
+
+C  DEPTH(I,J,K) = GRID ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  PGAS(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/BBL (INPUT, REAL*8)
+C  DUNK(I,J,K,2) = WATER DENSITY, LB/BBL (INPUT, REAL*8)
+C  DUNK(I,J,K,3) = GAS DENSITY, LB/BBL (INPUT, REAL*8)
+
+C  TLAMB(I,J,K,1) = OIL LAMBDA, STBO/BBL (INPUT, REAL*8)
+C  TLAMB(I,J,K,2) = WATER LAMBDA, STBW/BBL
+C  TLAMB(I,J,K,3) = GAS LAMBDA, MSCF/BBL
+
+C  DGRO(I,J,K) = DISOLVED GAS-OIL RATIO, MSCF/STBO (INPUT, REAL*8)
+
+C  SGAS(I,J,K) = GAS SATURATION (INPUT, REAL*4)
+
+C  OUTPUT TO WELVEC() IN /IBALDAT/
+C  WATER PHASE:
+C     WELVEC(1,IW)      bbl/psi day       WATER
+C     WELVEC(2,IW)      bbl ft/psi day    WATER
+C     WELVEC(3,IW)      bbl/day           WATER
+C     WELVEC(4,IW)      lb/psi day        WATER
+C     WELVEC(5,IW)      lb ft/psi day     WATER
+C     WELVEC(6,IW)      lb/day            WATER
+C  OIL PHASE:
+C     WELVEC(7,IW)      bbl/psi day       LIVE OIL
+C     WELVEC(8,IW)      bbl ft/psi day    LIVE OIL
+C     WELVEC(9,IW)      bbl/day           LIVE OIL
+C     WELVEC(10,IW)     lb/psi day        DEAD OIL
+C     WELVEC(11,IW)     lb ft/psi day     DEAD OIL
+C     WELVEC(12,IW)     lb/day            DEAD OIL
+C     WELVEC(19,IW)     lb/psi day        DISOLVED GAS
+C     WELVEC(20,IW)     lb ft/psi day     DISOLVED GAS
+C     WELVEC(21,IW)     lb/day            DISOLVED GAS
+C  GAS PHASE:
+C     WELVEC(13,IW)     bbl/psi day       FREE GAS
+C     WELVEC(14,IW)     bbl ft/psi day    FREE GAS
+C     WELVEC(15,IW)     bbl/day           FREE GAS
+C     WELVEC(16,IW)     lb/psi day        FREE GAS
+C     WELVEC(17,IW)     lb ft/psi day     FREE GAS
+C     WELVEC(18,IW)     lb/day            FREE GAS
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+ 
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'ifluid.h'
+      INCLUDE 'ibaldat.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),     KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 DEPTH(IDIM,JDIM,KDIM),      POIL(IDIM,JDIM,KDIM),
+     &       PWAT(IDIM,JDIM,KDIM),       DUNK(IDIM,JDIM,KDIM,3),
+     &       PGAS(IDIM,JDIM,KDIM),       TLAMB(IDIM,JDIM,KDIM,3),
+     &       DGRO(IDIM,JDIM,KDIM)
+      REAL*8 FAC,DTOB,DTOE,P,CVF,G,WLAM,OLAM,GLAM,DUB1,WD,OD,GD
+      DIMENSION SGAS(IDIM,JDIM,KDIM)
+
+      DATA PRMMN/.05/
+
+C bag8 - CVF = sq-ft cp / md psi day
+      CVF = CONV_FACTOR
+
+C  SET GRAVITY CONSTANT TO UNITS PSI BBL / FT LB
+
+      G=.178107585530824D0*GRAV
+
+C  GET LOCAL TO GLOBAL INDEX OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  LOOP OVER THE WELLS FORMING SUMS
+
+      DO 1 IW=1,NUMWEL
+      DEPBG(IW)=DEPBOT(IW)
+
+      NE = NUMELE(IW)
+      DO 2 L=1,NE
+      IF (LOCWEL(6,L,IW).EQ.MYPRC.AND.LOCWEL(1,L,IW).EQ.NBLK) THEN
+         I=LOCWEL(3,L,IW)-IOFF
+         J=LOCWEL(4,L,IW)-JOFF
+         K=LOCWEL(5,L,IW)-KOFF
+         IF (KEYOUT(I,J,K).NE.1) GO TO 2
+         OLAM=TLAMB(I,J,K,1)
+         WLAM=TLAMB(I,J,K,2)
+         GLAM=TLAMB(I,J,K,3)
+         OD=DUNK(I,J,K,1)
+         WD=DUNK(I,J,K,2)
+         GD=DUNK(I,J,K,3)
+         IF (KWELL(IW).LT.31) THEN
+            IF (WLAM.LT.PRMMN*WD/WSTDEN) WLAM=PRMMN*WD/WSTDEN
+            DUB1=OSTDEN+GSTDEN*DGRO(I,J,K)
+            IF (OLAM.LT.PRMMN*OD/DUB1) OLAM=PRMMN*OD/DUB1
+            IF (GLAM.LT.PRMMN*GD/GSTDEN) GLAM=PRMMN*GD/GSTDEN
+         ENDIF
+         DTOB=G*(ELEDEP(L,IW)-DEPBOT(IW))
+         DTOE=G*(ELEDEP(L,IW)-DEPTH(I,J,K))
+
+C WATER PHASE
+
+         FAC=CVF*ELECONS(L,IW)*WLAM*WSTDEN/WATVIS
+         P=PWAT(I,J,K)+WD*DTOE
+         WELVEC(4,IW)=WELVEC(4,IW)+FAC
+         WELVEC(5,IW)=WELVEC(5,IW)+FAC*DTOB
+         WELVEC(6,IW)=WELVEC(6,IW)+FAC*P
+         FAC=FAC/WD
+         WELVEC(1,IW)=WELVEC(1,IW)+FAC
+         WELVEC(2,IW)=WELVEC(2,IW)+FAC*DTOB
+         WELVEC(3,IW)=WELVEC(3,IW)+FAC*P
+
+C OIL PHASE
+
+         DUB1=CVF*ELECONS(L,IW)*OLAM/OILVIS
+         FAC=OSTDEN*DUB1
+         P=POIL(I,J,K)+OD*DTOE
+         WELVEC(10,IW)=WELVEC(10,IW)+FAC
+         WELVEC(11,IW)=WELVEC(11,IW)+FAC*DTOB
+         WELVEC(12,IW)=WELVEC(12,IW)+FAC*P
+C        FAC=FAC/OD      !GXLCRR
+         FAC=FAC*(OSTDEN+RO*GSTDEN)/(OSTDEN*OD) 
+         WELVEC(7,IW)=WELVEC(7,IW)+FAC
+         WELVEC(8,IW)=WELVEC(8,IW)+FAC*DTOB
+         WELVEC(9,IW)=WELVEC(9,IW)+FAC*P
+
+C DISOLVED GAS
+
+         FAC=DGRO(I,J,K)*DUB1*GSTDEN
+         WELVEC(19,IW)=WELVEC(19,IW)+FAC
+         WELVEC(20,IW)=WELVEC(20,IW)+FAC*DTOB
+         WELVEC(21,IW)=WELVEC(21,IW)+FAC*P
+
+C GAS PHASE
+
+         FAC=CVF*ELECONS(L,IW)*GLAM*GSTDEN/GASVIS
+         P=PGAS(I,J,K)+GD*DTOE
+         WELVEC(16,IW)=WELVEC(16,IW)+FAC
+         WELVEC(17,IW)=WELVEC(17,IW)+FAC*DTOB
+         WELVEC(18,IW)=WELVEC(18,IW)+FAC*P
+         FAC=FAC/GD
+         WELVEC(13,IW)=WELVEC(13,IW)+FAC
+         WELVEC(14,IW)=WELVEC(14,IW)+FAC*DTOB
+         WELVEC(15,IW)=WELVEC(15,IW)+FAC*P
+
+      ENDIF
+    2 CONTINUE
+    1 CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE IWDATA (NERR,KINP)
+C*********************************************************************
+
+C  Inputs black oil model well data (both initial and transient)
+
+C  NERR = Error number stepped by 1 on error (input & output, INTEGER)
+
+C  KINP = Input type
+C       = 1 ==> initial data
+C       = 2 ==> transient data
+
+C*********************************************************************
+
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+
+      NERR=NERR
+
+      END
+C*********************************************************************
+      SUBROUTINE CWELDEN (PWB,QW,QDO,QTG,DNW,DNO,DNG,DDNW,DDNO,
+     &   DDNG,FFG)
+C*********************************************************************
+
+C  Computes wellbore phase densities given average wellbore pressure and
+C  3 rates
+
+C  PWB = Average wellbore pressure (input, REAL*8)
+
+C  QW,QDO,QTG = Flow rates of water, dead oil, and total gas in lb/day units
+C               Must have the same sign or be zero (input, REAL*8)
+
+C  DNW,DNO,DNG = Densities of water, live oil, and gas phases in the
+C                wellbore, lb/bbl (output, REAL*8)
+
+C  DDNW,DDNO,DDNG = Derivatives of wellbore densities wrt pressure
+C                   (output, REAL*8)
+
+C  FFG = Fraction of the total gas that is free gas in the wellbore
+C        (output, REAL*8)
+
+C*********************************************************************
+      INCLUDE 'control.h'
+
+      INCLUDE 'ifluid.h'
+
+      REAL*8 PWB,QW,QDO,QTG,FFG,DNW,DNO,DNG,DDNW,DDNO,DDNG,B,DB,
+     &   RSO,DRSO,RO,DUB
+
+      IF (QW.EQ.0.D0) THEN
+         DNW=WSTDEN
+         DDNW=0.D0
+      ELSE
+         CALL LOOKUP(NRBW,PWB,B,DB)
+         DNW=WSTDEN*B
+         DDNW=WSTDEN*DB
+      ENDIF
+
+      FFG=0.D0
+      IF (QDO.EQ.0.D0) THEN
+
+         DNO=OSTDEN
+         DDNO=0.D0
+         FFG=1.D0
+         IF (QTG.EQ.0.D0) THEN
+            DNG=GSTDEN
+            DDNG=0.D0
+         ELSE
+            CALL LOOKUP(NBG,PWB,B,DB)
+            DNG=GSTDEN/B
+            DDNG=-DNG*DB/B
+         ENDIF
+
+      ELSE
+
+         IF (QTG.EQ.0.D0) THEN
+            DNG=GSTDEN
+            DDNG=0.D0
+            FFG=0.D0
+            CALL LOOKUP(NBOD,PWB,B,DB)
+            DNO=OSTDEN/B
+            DDNO=-DNO*DB/B
+         ELSE
+            CALL LOOKUP(NRSO,PWB,RSO,DRSO)
+            IF (ABS(QTG/GSTDEN).GT.RSO*ABS(QDO/OSTDEN)) THEN
+C              FFG=1.D0-RSO*GSTDEN/OSTDEN      !GXLCRR
+               FFG=1.D0-RSO*QDO*GSTDEN/(OSTDEN*QTG)
+               CALL LOOKUP(NBSO,PWB,B,DB)
+               DNO=(OSTDEN+GSTDEN*RSO)/B
+               DDNO=(GSTDEN*DRSO-DNO*DB)/B
+               CALL LOOKUP(NBG,PWB,B,DB)
+               DNG=GSTDEN/B
+               DDNG=-DNG*DB/B
+            ELSE
+               FFG=0.D0
+               RO=QTG*OSTDEN/(QDO*GSTDEN)
+               CALL BOUNSAT(PWB,RO,RSO,DRSO,B,DB,DUB)
+               DNO=(OSTDEN+GSTDEN*RO)/B
+               DDNO=-DNO*DB/B
+C              !GXL ADD
+               DNG=GSTDEN
+            ENDIF
+         ENDIF
+
+      ENDIF
+
+      END
+C*********************************************************************
+      SUBROUTINE IWBD3P (K,Q,P,H,W4W,W5W,W6W,W4DO,W5DO,W6DO,
+     &   W4TG,W5TG,W6TG,D,DDP)
+C*********************************************************************
+
+C  Computes wellbore density and optionally bottom hole pressure when
+C  there are one to three phases in the wellbore
+
+C  K = 1 ==> BHP specified (input, INTEGER)
+C    = 2 ==> Total rate specified
+C    = 3 ==> Dead oil rate specified
+C    = 4 ==> Water rate specified
+C    = 5 ==> Total gas rate specified
+
+C  Q = Flow rate for rate specified wells (input, REAL*8) (DOBHP=TRUE)
+C      Must have units of lb/day
+
+C  P = Bottom-hole pressure (input and output, REAL*8)
+
+C  H = Gravity factor correcting to mid wellbore  (input, REAL*8)
+C    =.5D0*G*(DEPTOP(IW)-DEPBOT(IW))
+
+C  W4W,W5W,W6W    = Well sums for water, dead oil, and total gas
+C  W4DO,W5DO,W6DO   (input, REAL*8)
+C  W4TG,W5TG,W6TG
+
+C  D = Wellbore density (input and output, REAL*8)
+
+C  DDP = Derivative of wellbore density wrt bottom-hole pressure
+C        Only if K > 1 (output, REAL*8)
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+
+      REAL*8 D,P,H,DUB1,FF,DFF,W4W,W5W,W6W,W4DO,W5DO,W6DO,W4TG,W5TG,
+     &   W6TG,W4A,W5A,W6A,W4LO,W5LO,W4FG,W5FG,Q,AA,BB,PWB,DNW,DNO,DNG,
+     &   QW,QDO,QTG,QLO,QFG,QT,QDT,TOL,SD,DDP,FFG,FFGM,DDNW,DDNO,DDNG,
+     &   W4T,W5T,DNWS,DNOS,DNGS,DDNWS,DDNOS,DDNGS
+
+      DATA DNW/0.D0/,DNO/0.D0/,DNG/0.D0/,DDNW/0.D0/,DDNO/0.D0/,
+     &   DDNG/0.D0/
+
+      W4T=W4W+W4DO+W4TG
+      W5T=W5W+W5DO+W5TG
+      IF (W4T.EQ.0.D0) THEN
+         DDP=0.D0
+         RETURN
+      ENDIF
+
+      GO TO (2,2,3,4,5),K
+
+    2 W4A=W4T
+      W5A=W5T
+      W6A=W6W+W6DO+W6TG
+      GO TO 9
+
+    3 W4A=W4DO
+      W5A=W5DO
+      W6A=W6DO
+      GO TO 9
+
+    4 W4A=W4W
+      W5A=W5W
+      W6A=W6W
+      GO TO 9
+
+    5 W4A=W4TG
+      W5A=W5TG
+      W6A=W6TG
+
+    9 AA=(Q+W6A)/W4A
+      BB=W5A/W4A
+
+      DO 10 II=1,10
+      IF (K.NE.1) P=AA-D*BB
+      PWB=P+H*D
+C     QW=W4W*PWB+W5W*D-W6W       !GXLCRR
+C     QDO=W4DO*PWB+W5DO*D-W6DO   !GXLCRR
+C     QTG=W4TG*PWB+W5TG*D-W6TG   !GXLCRR
+      QW=W4W*P+W5W*D-W6W
+      QDO=W4DO*P+W5DO*D-W6DO
+      QTG=W4TG*P+W5TG*D-W6TG
+      TOL=1.D-8*ABS(QW+QDO+QTG)
+      IF (ABS(QW).LT.TOL) QW=0.D0
+      IF (ABS(QDO).LT.TOL) QDO=0.D0
+      IF (ABS(QTG).LT.TOL) QTG=0.D0
+
+      CALL CWELDEN (PWB,QW,QDO,QTG,DNW,DNO,DNG,DDNW,DDNO,DDNG,FFG)
+
+      FFGM=1.D0-FFG
+      W4LO=W4DO+FFGM*W4TG
+      W5LO=W5DO+FFGM*W5TG
+      W4FG=FFG*W4TG
+      W5FG=FFG*W5TG
+      QLO=QDO+FFGM*QTG
+      QFG=FFG*QTG
+
+      QT=QW+QLO+QFG
+      QDT=QW/DNW+QLO/DNO+QFG/DNG
+      FF=D-QT/QDT
+      SD=QW*DDNW/(DNW*DNW)+QLO*DDNO/(DNO*DNO)+QFG*DDNG/(DNG*DNG)
+      DFF=1.D0-(QDT*W5T-QT*(W5W/DNW+W5LO/DNO+W5FG/DNG-H*SD))/(QDT*QDT)
+      IF (K.NE.1) THEN
+         DDP=(QDT*W4T-QT*(W4W/DNW+W4LO/DNO+W4FG/DNG-SD))/(QDT*QDT)
+         DFF=DFF+BB*DDP
+      ENDIF
+      DUB1=FF/DFF
+      IF (DUB1.GT.3.D0) DUB1=3.D0
+      IF (DUB1.LT.-3.D0) DUB1=-3.D0
+      D=D-DUB1
+      IF (ABS(DUB1).LT.1.D-6*D) GO TO 11
+   10 CONTINUE
+
+   11 IF (K.NE.1) P=AA-D*BB
+      RETURN
+
+      ENTRY GETDEN(DNWS,DNOS,DNGS,DDNWS,DDNOS,DDNGS)
+
+C  BECAUSE OF THE ITERATION SCHEME, THESE NUMBERS ARE NOT PRECISE.  THEY
+C  CAN BE USED ONLY IN THE JACOBIAN
+
+      DNWS=DNW
+      DNOS=DNO
+      DNGS=DNG
+      DDNWS=DDNW
+      DDNOS=DDNO
+      DDNGS=DDNG
+
+      END

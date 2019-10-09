@@ -1,0 +1,405 @@
+C PESOLVE.F - POROELASTIC MODEL SOLVERS
+C ROUTINES INCLUDED IN THIS FILE:
+C
+C     PEDIRECT(NEWCOF,NERR)
+C
+C     SUBROUTINE ELASTIC3D_BANDED(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                      KL1,KL2,KEYOUT,NBLK,KEYOUT_CR,EBEFORE,
+C                      EDIAG,DILU,EFACTOR,MXDIM)
+C
+C     SUBROUTINE ELASTIC3D_BACK_BANDED(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+C                      JL2V,KL1,KL2,KEYOUT,NBLK,KEYOUT_CR,
+C                      ZERO_NODE,DILU,EFACTOR,RHS,VARD,MXDIM)
+C    
+C CODE HISTORY:
+C      XIULI GAI    05/14/2001
+C***********************************************************************
+      SUBROUTINE PEDIRECT(NEWCOF,NERR)
+C***********************************************************************
+C Call direct solver work routines to solve the linear elastic system.
+C
+C INPUT:
+C   NEWCOF = INDICATOR OF MATRIX FACTORIZATION
+C          = .TRUE.  FACTOR THE STIFFNESS MATRIX
+C          = .FALSE. DONOT FACTOR THE STIFFNESS MATRIX
+C 
+C   NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pemodel.h'
+
+      INTEGER NERR
+      LOGICAL NEWCOF
+      INTEGER KERR,N4,JFACT(7),JSOLVE(8)
+      DATA JFACT/7*0/, JSOLVE/8*0/
+      
+      EXTERNAL ELASTIC3D_BANDED,ELASTIC3D_BACK_BANDED
+
+C FACTOR STIFFNESS MATRIX
+
+      NERRC=0  
+      IF(NEWCOF) THEN
+         JFACT(1) = 6
+         JFACT(2) = N_KEYOUT_CR
+         JFACT(3) = N_EBEFORE
+         JFACT(4) = N_EDIAG   
+         JFACT(5) = N_DINV
+         JFACT(6) = N_FACTOR
+         JFACT(7) = N_I4U
+         I4UTIL = MXBAND
+         CALL CALLWORK(ELASTIC3D_BANDED,JFACT)
+      ENDIF
+
+C BACK SOLVE FOR SOLUTIONS
+
+      JSOLVE(1) = 7
+      JSOLVE(2) = N_KEYOUT_CR
+      JSOLVE(3) = N_ZERO_NODE
+      JSOLVE(4) = N_DINV
+      JSOLVE(5) = N_FACTOR
+      JSOLVE(6) = N_ERESID
+      JSOLVE(7) = N_VARD 
+      JSOLVE(8) = N_I4U 
+      I4UTIL = MXBAND
+      CALL CALLWORK(ELASTIC3D_BACK_BANDED,JSOLVE)
+      
+      END
+C***********************************************************************
+      SUBROUTINE ELASTIC3D_BANDED(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                           KL1,KL2,KEYOUT,NBLK,KEYOUT_CR,EBEFORE,
+     &                           EDIAG,DILU,EFACTOR,MXDIM)
+C***********************************************************************
+C Generates banded factored matrix for elastic equations. EDILU is
+C inverted during the setup process
+C
+C INPUT:
+C   KEYOUT_CR(J) = KEYOUT VALUE FOR A CORNER POINT
+C   EBEFORE(L,K,J) = OFF DIAGONAL COEF. OF GLOBAL STIFFNESS MATRIX
+C   EDIAG(L,J) = DIAGONAL COEF. OF GLOBAL STIFFNESS MATRIX
+C   MXDIM = MAXIMUM BANDWIDTH OF THE BANDED FACTORED MATRIX
+C
+C OUTPUT:
+C   DILU(L,J) = DIAGONAL COEF. OF THE FACTORED MATRIX
+C   EFACTOR(L,K,J) = OFF DIAGONAL COEF. OF THE FACTORED MATRIX
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,MXDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(*),KEYOUT_CR(*)
+      REAL*8  EFACTOR(9,MXDIM,*),   EBEFORE(9,13,*)
+      REAL*8  EDIAG(6,*),           DILU(6,*)
+
+      INTEGER I,J,K,L,IDIR,ICOL,IROW,N123P
+      REAL*8  DTMP(6,IDIM*JDIM*KDIM),DL_PROD(9,MXDIM)
+      REAL*8  D11,D21,D31,D22,D32,D33,U1,U2,U3,L11,L21,L31,L12,L22,L32
+      REAL*8  L13,L23,L33,DET,ZERO,ONE
+      PARAMETER(ZERO = 0.0D0, ONE = 1.0D0)
+
+      N123P = IDIM * JDIM * KDIM
+
+C INITIALIZE DTMP AND DL_PROD TO ZERO
+
+      DO J = 1,N123P
+         DO K = 1,6
+            DTMP(K,J) = ZERO
+            DILU(K,J) = ZERO
+         ENDDO
+         DO I = 1,MXDIM
+            DO K = 1,9
+               EFACTOR(K,I,J) = ZERO
+            ENDDO
+         ENDDO
+      ENDDO
+      DO I = 1,MXDIM
+         DO K = 1,9
+            DL_PROD(K,I) = ZERO
+         ENDDO
+      ENDDO
+
+C PUT EBEFORE VALUE INTO EFACTOR
+
+      DO J = 1,N123P
+         IF(KEYOUT_CR(J).LE.0) CYCLE
+         DO IDIR = 1,NDIM_BEFORE
+            I = IOFFSET(IDIR,NBLK)
+            DO K = 1,9
+               EFACTOR(K,I,J) = EBEFORE(K,IDIR,J)
+            ENDDO
+         ENDDO
+      ENDDO
+
+C PERFORM FACTORIZATION BY COLUMNS
+  
+      DO J = 1,N123P
+         IF(KEYOUT_CR(J).LE.0) CYCLE
+         IF(EDIAG(1,J).LE.ZERO) THEN
+            DO K = 1,6
+               DTMP(K,J) = ZERO
+               DILU(K,J) = ZERO
+            ENDDO
+            CYCLE
+         ENDIF
+
+         K = 1
+         DO ICOL = J - 1,MAX(1,J-NBAND(NBLK)),-1
+            IF(KEYOUT_CR(ICOL).LE.0) GO TO 1            
+            DL_PROD(1,K) = DTMP(1,ICOL) * EFACTOR(1,K,J)
+     &                   + DTMP(2,ICOL) * EFACTOR(4,K,J)
+     &                   + DTMP(3,ICOL) * EFACTOR(7,K,J)
+            DL_PROD(2,K) = DTMP(2,ICOL) * EFACTOR(1,K,J)
+     &                   + DTMP(4,ICOL) * EFACTOR(4,K,J)
+     &                   + DTMP(5,ICOL) * EFACTOR(7,K,J)
+            DL_PROD(3,K) = DTMP(3,ICOL) * EFACTOR(1,K,J)
+     &                   + DTMP(5,ICOL) * EFACTOR(4,K,J)
+     &                   + DTMP(6,ICOL) * EFACTOR(7,K,J)
+            DL_PROD(4,K) = DTMP(1,ICOL) * EFACTOR(2,K,J)
+     &                   + DTMP(2,ICOL) * EFACTOR(5,K,J)
+     &                   + DTMP(3,ICOL) * EFACTOR(8,K,J)
+            DL_PROD(5,K) = DTMP(2,ICOL) * EFACTOR(2,K,J)
+     &                   + DTMP(4,ICOL) * EFACTOR(5,K,J)
+     &                   + DTMP(5,ICOL) * EFACTOR(8,K,J)
+            DL_PROD(6,K) = DTMP(3,ICOL) * EFACTOR(2,K,J)
+     &                   + DTMP(5,ICOL) * EFACTOR(5,K,J)
+     &                   + DTMP(6,ICOL) * EFACTOR(8,K,J)
+            DL_PROD(7,K) = DTMP(1,ICOL) * EFACTOR(3,K,J)
+     &                   + DTMP(2,ICOL) * EFACTOR(6,K,J)
+     &                   + DTMP(3,ICOL) * EFACTOR(9,K,J)
+            DL_PROD(8,K) = DTMP(2,ICOL) * EFACTOR(3,K,J)
+     &                   + DTMP(4,ICOL) * EFACTOR(6,K,J)
+     &                   + DTMP(5,ICOL) * EFACTOR(9,K,J)
+            DL_PROD(9,K) = DTMP(3,ICOL) * EFACTOR(3,K,J)
+     &                   + DTMP(5,ICOL) * EFACTOR(6,K,J)
+     &                   + DTMP(6,ICOL) * EFACTOR(9,K,J)
+   1        K = K + 1
+         ENDDO
+         D11 = EDIAG(1,J)
+         D21 = EDIAG(2,J)
+         D31 = EDIAG(3,J)
+         D22 = EDIAG(4,J)
+         D32 = EDIAG(5,J)
+         D33 = EDIAG(6,J)
+
+C CALCULATE DILU FOR DIAGONAL ENTRY J
+
+         DO K = 1,MIN(J - 1,NBAND(NBLK))
+            IF(KEYOUT_CR(J-K).LE.0) CYCLE  
+            D11 = D11 - EFACTOR(1,K,J) * DL_PROD(1,K)
+     &                - EFACTOR(4,K,J) * DL_PROD(2,K)
+     &                - EFACTOR(7,K,J) * DL_PROD(3,K)
+            D21 = D21 - EFACTOR(2,K,J) * DL_PROD(1,K)
+     &                - EFACTOR(5,K,J) * DL_PROD(2,K)
+     &                - EFACTOR(8,K,J) * DL_PROD(3,K)
+            D31 = D31 - EFACTOR(3,K,J) * DL_PROD(1,K)
+     &                - EFACTOR(6,K,J) * DL_PROD(2,K)
+     &                - EFACTOR(9,K,J) * DL_PROD(3,K)
+            D22 = D22 - EFACTOR(2,K,J) * DL_PROD(4,K)
+     &                - EFACTOR(5,K,J) * DL_PROD(5,K)
+     &                - EFACTOR(8,K,J) * DL_PROD(6,K)
+            D32 = D32 - EFACTOR(3,K,J) * DL_PROD(4,K)
+     &                - EFACTOR(6,K,J) * DL_PROD(5,K)
+     &                - EFACTOR(9,K,J) * DL_PROD(6,K)
+            D33 = D33 - EFACTOR(3,K,J) * DL_PROD(7,K)
+     &                - EFACTOR(6,K,J) * DL_PROD(8,K)
+     &                - EFACTOR(9,K,J) * DL_PROD(9,K)
+         ENDDO
+
+C CREATE INVERSE AND PUT VALUE IN DILU
+
+         U1 = D22 * D33 - D32 * D32
+         U2 = D32 * D31 - D21 * D33
+         U3 = D21 * D32 - D22 * D31
+         DET = ONE / (D11 * U1 + D21 * U2 + D31 * U3)
+         DILU(1,J) = U1 * DET
+         DILU(2,J) = U2 * DET
+         DILU(3,J) = U3 * DET
+         DILU(4,J) = (D11 * D33 - D31 * D31) * DET
+         DILU(5,J) = (D21 * D31 - D11 * D32) * DET
+         DILU(6,J) = (D11 * D22 - D21 * D21) * DET
+         DTMP(1,J) = D11
+         DTMP(2,J) = D21
+         DTMP(3,J) = D31
+         DTMP(4,J) = D22
+         DTMP(5,J) = D32
+         DTMP(6,J) = D33
+         D11 = DILU(1,J)
+         D21 = DILU(2,J)
+         D31 = DILU(3,J)
+         D22 = DILU(4,J)
+         D32 = DILU(5,J)
+         D33 = DILU(6,J)
+
+C PROCESS EACH ENTRY L(J,:,J+IROW) IN COLUMN J
+
+         DO IROW = 1,MIN(NBAND(NBLK),N123P-J)
+            I = J + IROW
+            IF(KEYOUT_CR(I).LE.0) CYCLE
+            L11 = EFACTOR(1,IROW,I)
+            L21 = EFACTOR(2,IROW,I)
+            L31 = EFACTOR(3,IROW,I)
+            L12 = EFACTOR(4,IROW,I)
+            L22 = EFACTOR(5,IROW,I)
+            L32 = EFACTOR(6,IROW,I)
+            L13 = EFACTOR(7,IROW,I)
+            L23 = EFACTOR(8,IROW,I)
+            L33 = EFACTOR(9,IROW,I)
+            L = 1
+            DO K = IROW+1,MIN(I-1,NBAND(NBLK))
+               IF(KEYOUT_CR(I-K).LE.0) GO TO 2
+               L11 = L11 - EFACTOR(1,K,I) * DL_PROD(1,L)
+     &                   - EFACTOR(4,K,I) * DL_PROD(2,L)
+     &                   - EFACTOR(7,K,I) * DL_PROD(3,L)
+               L21 = L21 - EFACTOR(2,K,I) * DL_PROD(1,L)
+     &                   - EFACTOR(5,K,I) * DL_PROD(2,L)
+     &                   - EFACTOR(8,K,I) * DL_PROD(3,L)
+               L31 = L31 - EFACTOR(3,K,I) * DL_PROD(1,L)
+     &                   - EFACTOR(6,K,I) * DL_PROD(2,L)
+     &                   - EFACTOR(9,K,I) * DL_PROD(3,L)
+               L12 = L12 - EFACTOR(1,K,I) * DL_PROD(4,L)
+     &                   - EFACTOR(4,K,I) * DL_PROD(5,L)
+     &                   - EFACTOR(7,K,I) * DL_PROD(6,L)
+               L22 = L22 - EFACTOR(2,K,I) * DL_PROD(4,L)
+     &                   - EFACTOR(5,K,I) * DL_PROD(5,L)
+     &                   - EFACTOR(8,K,I) * DL_PROD(6,L)
+               L32 = L32 - EFACTOR(3,K,I) * DL_PROD(4,L)
+     &                   - EFACTOR(6,K,I) * DL_PROD(5,L)
+     &                   - EFACTOR(9,K,I) * DL_PROD(6,L)
+               L13 = L13 - EFACTOR(1,K,I) * DL_PROD(7,L)
+     &                   - EFACTOR(4,K,I) * DL_PROD(8,L)
+     &                   - EFACTOR(7,K,I) * DL_PROD(9,L)
+               L23 = L23 - EFACTOR(2,K,I) * DL_PROD(7,L)
+     &                   - EFACTOR(5,K,I) * DL_PROD(8,L)
+     &                   - EFACTOR(8,K,I) * DL_PROD(9,L)
+               L33 = L33 - EFACTOR(3,K,I) * DL_PROD(7,L)
+     &                   - EFACTOR(6,K,I) * DL_PROD(8,L)
+     &                   - EFACTOR(9,K,I) * DL_PROD(9,L)
+  2            L = L + 1
+            ENDDO
+
+C TRIANGULAR PORTION OF MATRIX TIMES INVERSE(DIAGONAL)
+
+            EFACTOR(1,IROW,I) = L11 * D11 + L12 * D21 + L13 * D31
+            EFACTOR(2,IROW,I) = L21 * D11 + L22 * D21 + L23 * D31
+            EFACTOR(3,IROW,I) = L31 * D11 + L32 * D21 + L33 * D31
+            EFACTOR(4,IROW,I) = L11 * D21 + L12 * D22 + L13 * D32
+            EFACTOR(5,IROW,I) = L21 * D21 + L22 * D22 + L23 * D32
+            EFACTOR(6,IROW,I) = L31 * D21 + L32 * D22 + L33 * D32
+            EFACTOR(7,IROW,I) = L11 * D31 + L12 * D32 + L13 * D33
+            EFACTOR(8,IROW,I) = L21 * D31 + L22 * D32 + L23 * D33
+            EFACTOR(9,IROW,I) = L31 * D31 + L32 * D32 + L33 * D33
+         ENDDO
+      ENDDO
+
+      END
+
+C***********************************************************************
+      SUBROUTINE ELASTIC3D_BACK_BANDED(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+     &                          JL2V,KL1,KL2,KEYOUT,NBLK,KEYOUT_CR,
+     &                          ZERO_NODE,DILU,EFACTOR,RHS,VARD,MXDIM) 
+C*********************************************************************** 
+C Back solve for displacement solutions
+C
+C INPUT:
+C   KEYOUT_CR(J) = KEYOUT VALUE FOR A CORNER POINT
+C   ZERO_NODE(J) = FALG TO TURN ON/OFF THE POROELASTIC CALCULATION
+C   DILU(L,J) = DIAGONAL COEF. OF THE FACTORED MATRIX
+C   EFACTOR(L,K,J) = OFF DIAGONAL COEF. OF THE FACTORED MATRIX
+C   RHS(J,L) = RESIDUALS OF THE FORCE BALANCE EQUATIONS
+C   MXDIM = MAXIMUM BANDWIDTH OF THE BANDED FACTORED MATRIX
+C
+C OUTPUT:
+C   VARD(J,L) = DISPLACEMENT SOLUTIONS (IN)
+C***********************************************************************
+      INCLUDE 'pemodel.h'
+     
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(*),KEYOUT_CR(*)
+      REAL*8  DILU(6,*),             EFACTOR(9,MXDIM,*)
+      REAL*8  RHS(IDIM*JDIM*KDIM,3), VARD(IDIM*JDIM*KDIM,3)
+      LOGICAL ZERO_NODE(*)
+
+      INTEGER I,J,L,K,N123P
+      REAL*8  X1,X2,X3,ZERO
+      PARAMETER(ZERO = 0.0D0)
+
+      N123P = IDIM * JDIM * KDIM
+      
+C PERFORM BACKSOLVE FOR LOWER TRIANGLUAR MATRIX 
+  
+      DO J = 1,N123P 
+         IF(KEYOUT_CR(J).LE.0) CYCLE       
+         IF(ZERO_NODE(J)) THEN 
+            VARD(J,1) = ZERO
+            VARD(J,2) = ZERO
+            VARD(J,3) = ZERO
+         ELSE 
+            X1 = RHS(J,1)
+            X2 = RHS(J,2)
+            X3 = RHS(J,3)
+            L = J - 1
+            DO I = 1,MIN(NBAND(NBLK),J-1)
+               IF(KEYOUT_CR(L).LE.0) GO TO 1
+               X1 = X1 - EFACTOR(1,I,J) * VARD(L,1)
+     &                 - EFACTOR(4,I,J) * VARD(L,2)   
+     &                 - EFACTOR(7,I,J) * VARD(L,3)
+               X2 = X2 - EFACTOR(2,I,J) * VARD(L,1)    
+     &                 - EFACTOR(5,I,J) * VARD(L,2)    
+     &                 - EFACTOR(8,I,J) * VARD(L,3)
+               X3 = X3 - EFACTOR(3,I,J) * VARD(L,1)    
+     &                 - EFACTOR(6,I,J) * VARD(L,2)    
+     &                 - EFACTOR(9,I,J) * VARD(L,3)
+   1           L = L - 1
+            ENDDO
+            VARD(J,1) = X1
+            VARD(J,2) = X2
+            VARD(J,3) = X3
+         ENDIF
+      ENDDO
+
+C MULTIPLY BY INVERSE DIAGONAL
+
+      DO J= 1,N123P
+         IF(KEYOUT_CR(J).LE.0.OR.ZERO_NODE(J)) CYCLE
+         X1 = VARD(J,1)
+         X2 = VARD(J,2)
+         X3 = VARD(J,3)
+         VARD(J,1) = DILU(1,J) * X1 + DILU(2,J) * X2 
+     &             + DILU(3,J) * X3
+         VARD(J,2) = DILU(2,J) * X1 + DILU(4,J) * X2 
+     &             + DILU(5,J) * X3
+         VARD(J,3) = DILU(3,J) * X1 + DILU(5,J) * X2 
+     &             + DILU(6,J) * X3
+      ENDDO
+
+C PERFORM BACKSOLVE FOR UPPER TRIANGULAR MATRIX (L-TRANSPOSE)
+     
+      DO J = N123P,1,-1
+         IF(KEYOUT_CR(J).LE.0.OR.ZERO_NODE(J)) CYCLE
+         X1 = VARD(J,1)
+         X2 = VARD(J,2)
+         X3 = VARD(J,3)
+         L = J - 1
+         DO I = 1,MIN(NBAND(NBLK),J-1)
+            IF(KEYOUT_CR(L).LE.0) GO TO 2
+            VARD(L,1) = VARD(L,1) - EFACTOR(1,I,J) * X1   
+     &                            - EFACTOR(2,I,J) * X2   
+     &                            - EFACTOR(3,I,J) * X3
+            VARD(L,2) = VARD(L,2) - EFACTOR(4,I,J) * X1   
+     &                            - EFACTOR(5,I,J) * X2   
+     &                            - EFACTOR(6,I,J) * X3
+            VARD(L,3) = VARD(L,3) - EFACTOR(7,I,J) * X1   
+     &                            - EFACTOR(8,I,J) * X2   
+     &                            - EFACTOR(9,I,J) * X3
+   2        L = L - 1
+         ENDDO
+      ENDDO
+
+      END
+C*********************************************************************
+C                    END OF PESOLVE.F
+C*********************************************************************

@@ -1,0 +1,209 @@
+C  XIADAT.DF - PROCESS INITIAL DATA FOR THE EOS COMPOSITIONAL MODEL
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE XIADAT (NERR)
+
+C  CODE HISTORY:        
+C     THE IPARS TEAM          04/02/1997    FRAMEWORK
+C     RICK DEAN               03/23/2001    INITIAL VERSION
+C     SUNIL G. THOMAS         09/01/2007    THERMAL AND CO2 APPS, 2-PH
+C                           - 09/31/2009    HYSTERESIS, EVMFEM, ETC.
+C     GURPREET SINGH          09/15/2015    AQUEOUS COMPONENTS
+C*********************************************************************
+      SUBROUTINE XIADAT (NERR)
+C*********************************************************************
+
+C  Complete the input for the compositional model
+
+C  NERR = Error number incremented by 1 on error (input & output, INTEGER*4)
+
+C*********************************************************************
+      USE xgendat
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'unitsex.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'xarydat.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xresprop.h'
+      INCLUDE 'xparam.h'
+$POWER      INCLUDE 'msjunk.h'
+
+      INTEGER IARG(3),NERR,KERR,NDUM,NDUM1
+      EXTERNAL SETARYR8,CPYARYR8,SETARYR4
+
+      INTEGER IDBG(3)
+      EXTERNAL DBGOUTR8,DBGOUTR4
+      IDBG(1)=2
+      IDBG(3)=N_I4U
+
+C-------input initial pressure 
+      CALL DEFAULT(EXTPRES)
+      KERR=0
+      CALL GETGRDA ('PRES[psi] ',1,NDUM1,KERR)
+      IF (KERR > 0) THEN
+         IF (LEVELC) WRITE (NFOUT,'(/,A)')
+     &               ' ERROR 505 - INVALID INITIAL PRESSURE'
+         NERR=NERR+1
+      ENDIF
+
+C-------input water saturation as function for cells
+      IF(NPH > 1) THEN
+         CALL GETGRDA ('SWINIT ',1,NDUM1,KERR)
+      ELSE
+         KERR = 0
+         IARG(1)=2
+         IARG(2)=N_SAT
+         R8UTIL=ONE
+         IARG(3)=N_R8U
+         CALL CALLWORK (SETARYR8,IARG)
+      ENDIF
+      IF (KERR > 0) THEN
+         IF (LEVELC) WRITE (NFOUT,'(/,A)')
+     &               ' ERROR 505 - INVALID INITIAL WATER SATURATION'
+         NERR=NERR+1
+      ENDIF
+
+C-------input initial fluid mole fraction for nonaqueous components
+      IF(NPH > 1) THEN
+         CALL GETGRDA ('CONC ',1,NDUM1,KERR)
+      ENDIF
+      IF (KERR > 0) THEN
+         IF (LEVELC) WRITE (NFOUT,'(/,A)')
+     &               ' ERROR 505 - INVALID INITIAL COMPOSITION'
+         NERR=NERR+1
+      ENDIF
+
+C-------input initial concentration of aqueous components
+      IF (NAQ>0) THEN
+         CALL GETGRDA('CONCAQ ',1,NDUM1,KERR)
+      ENDIF
+      IF (KERR>0) THEN
+         IF (LEVELC) WRITE (NFOUT,'(/,A)')
+     &               'ERROR 505 - INVALID INITIAL AQUEOUS COMPOSITION'
+         NERR = NERR + 1
+       ENDIF
+          
+
+C-------input initial reservoir rock density
+      IARG(1)=2
+      IARG(2)=N_XRHOS
+      R8UTIL=165.434D0
+      IARG(3)=N_R8U
+      CALL CALLWORK (SETARYR8,IARG)
+      CALL DEFAULT(EXTDENS)
+      KERR=0
+      CALL GETGRDA ('XRHOS[lb/cu-ft] ',1,NDUM1,KERR)
+      IF (KERR > 0) THEN
+         IF (LEVELC) WRITE (NFOUT,'(/,A)')
+     &               ' ERROR 505 - INVALID ROCK DENSITY'
+         NERR=NERR+1
+      ENDIF
+
+C-------input initial reservoir temperature
+      IARG(1)=2
+      IARG(2)=N_TEMPR
+      R8UTIL=TEN_P2
+      IARG(3)=N_R8U
+      CALL CALLWORK (SETARYR8,IARG)
+      CALL DEFAULT(EXTTEMP)
+      KERR=0
+      CALL GETGRDA ('TEMPR[F] ',1,NDUM1,KERR)
+      IF (KERR > 0) THEN
+         IF (LEVELC) WRITE (NFOUT,'(/,A)')
+     &               ' ERROR 505 - INVALID INITIAL TEMPERATURE'
+         NERR=NERR+1
+      ENDIF
+
+C-------input reference pressure
+C-------set default to be initial reservoir pressure
+      IARG(1)=2
+      IARG(2)=N_PRES
+      IARG(3)=N_REFPRES
+      CALL CALLWORK (CPYARYR8,IARG)
+      CALL DEFAULT(EXTPRES)
+      KERR=0
+      CALL GETGRDA ('PORPRES[psi] ',1,NDUM1,KERR)
+      IF (KERR > 0) THEN
+         IF (LEVELC) WRITE (NFOUT,'(/,A)')
+     &               ' ERROR 505 - INVALID REFERENCE PRESSURE'
+         NERR=NERR+1
+      ENDIF
+
+C-------input rock compressibility
+      IARG(1)=2
+      IARG(2)=N_CR
+      R4UTIL=THREE*TEN_M6
+      IARG(3)=N_R4U
+      CALL CALLWORK (SETARYR4,IARG)
+      CALL DEFAULT(EXTCOMP)
+      KERR=0
+      CALL GETGRDA ('CR[/psi] ',1,NDUM1,KERR)
+      IF (KERR > 0) THEN
+         IF (LEVELC) WRITE (NFOUT,'(/,A)')
+     &               ' ERROR 505 - INVALID ROCK COMPRESSIBILITY'
+         NERR=NERR+1
+      ENDIF
+
+      RETURN
+      END
+
+
+C SUBROUTINES TO OUTPUT ARRAYS AND KEYOUT FOR DEBUG PURPOSES
+C*********************************************************************
+      SUBROUTINE DBGOUTR8(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,ARRY,N)
+C*********************************************************************
+      IMPLICIT NONE
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,JL1V(KDIM),JL2V(KDIM),
+     &        KEYOUT(IDIM,JDIM,KDIM),NBLK,N
+      INTEGER I,J,K,L,IOFF,JOFF,KOFF,IERR
+      REAL*8 ARRY(IDIM,JDIM,KDIM,N)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+ 
+      DO L=1,N 
+        DO K=KL1,KL2
+           DO J=JL1V(K),JL2V(K)
+              DO I=IL1,IL2
+                 IF(KEYOUT(I,J,K).NE.1) CYCLE
+C                 WRITE(0,*) 'I,J,K,KEY,ARRY: ',I+IOFF,J+JOFF,K+KOFF,
+                 WRITE(0,*) 'I,J,K,KEY,ARRY: ',I,J,K,KEYOUT(I,J,K),
+     &                      ARRY(I,J,K,L)
+              ENDDO
+           ENDDO
+        ENDDO
+      ENDDO
+
+      RETURN
+      END
+
+
+C*********************************************************************
+      SUBROUTINE DBGOUTR4(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,ARRY,N)
+C*********************************************************************
+      IMPLICIT NONE
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,JL1V(KDIM),JL2V(KDIM),
+     &        KEYOUT(IDIM,JDIM,KDIM),NBLK,N
+      INTEGER I,J,K,L,IOFF,JOFF,KOFF,IERR
+      REAL*4 ARRY(IDIM,JDIM,KDIM,N)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+
+      DO L=1,N 
+        DO K=KL1,KL2
+           DO J=JL1V(K),JL2V(K)
+              DO I=IL1,IL2
+                 IF(KEYOUT(I,J,K).NE.1) CYCLE
+C                 WRITE(0,*) 'I,J,K,L,KEY,ARRY: ',I+IOFF,J+JOFF,K+KOFF,L,
+                 WRITE(0,*) 'I,J,K,KEY,ARRY: ',I,J,K,L,KEYOUT(I,J,K),
+     &                      ARRY(I,J,K,L)
+              ENDDO
+           ENDDO
+        ENDDO
+      ENDDO
+
+      RETURN
+      END

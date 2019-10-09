@@ -1,0 +1,1212 @@
+// -----------------------------------------------------------------
+// file: visPV3.c
+//
+// (fully unstructured) visualization interface to PV3
+//
+// MPeszynska, 10/01/02
+// 
+// uses similar basic data structures to visual3.dc
+//
+// XGAI, 08/13/03
+// Add in flags indicating corner point variables so that interpolation
+// is not necessary for such variables.
+//-----------------------------------------------------------------
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <math.h>
+
+#include "pV3.h"
+
+#include "cfsimple.h"
+#include "visualc.h"
+
+// ---------------------------------------------------
+// declararation of this is the actual PV3_routine 
+void _vis_PV3(
+  const _F_INTEGER * const IDIM,
+  const _F_INTEGER * const JDIM,
+  const _F_INTEGER * const KDIM,
+  const _F_INTEGER * const LDIM,
+  const _F_INTEGER * const IL1,
+  const _F_INTEGER * const IL2,
+  const _F_INTEGER * const JLV1,
+  const _F_INTEGER * const JLV2,
+  const _F_INTEGER * const KL1,
+  const _F_INTEGER * const KL2,
+  const _F_INTEGER * const KEYOUT,
+  const _F_INTEGER * const NBLK,
+ // fixed parameters
+ const int flag,
+ const _F_REAL_8  * const vis_xrec,
+ const _F_REAL_8 * const vis_yrec,
+ const _F_REAL_8 * const vis_zrec,
+ const _F_REAL_4  * const vis_dxrec,
+ const _F_REAL_4 * const vis_dyrec,
+ const _F_REAL_4 * const vis_dzrec,
+ const int nscl, const int nvec,
+ _F_REAL_8 * * r8_scl_list,
+ _F_REAL_8 * * r8_vec_list
+);
+
+static void PV3_IPARSinit();
+
+// -----------------------------------------------------------
+// global grid info values needed by PV3 
+
+static _F_INTEGER PV3_Maxblk,PV3_Maxpls,PV3_Kinc,PV3_Jinc;
+static _F_INTEGER  PV3_Kbeg,PV3_Kend,PV3_Ibeg,PV3_Iend,PV3_Nblk;
+static _F_INTEGER  *PV3_PV3_Nblk;
+
+static _F_REAL_8  *  PV3_xrec, *  PV3_yrec, *  PV3_zrec;
+static _F_REAL_4  *  PV3_dxrec, *  PV3_dyrec, *  PV3_dzrec;
+static _F_REAL_8 * * PV3_r8_scl_list;
+static _F_INTEGER * PV3_KEYOUT;
+static _F_INTEGER * PV3_JLV1;
+static _F_INTEGER * PV3_JLV2;
+
+static int * PV3_nnodes;
+int PV3_Top,PV3_Bottom,PV3_East,PV3_West,PV3_South,PV3_North;
+
+static _F_REAL_4 PV3_Xscale=1.0;
+static _F_REAL_4 PV3_Xorig=0.0;
+
+// ----------------------------------------------
+// copy all or n of str2 to str1, pad with blanks
+int strcopn(int n, char *str1, char *str2)
+{
+    int i,l;
+
+    for(i=0;i<n;i++)
+      if(str2[i]=='\0')break;
+      else str1[i]=str2[i];
+    l=i;
+    for(i=l;i<n;i++)str1[i]=' ';
+
+    return i;
+}
+
+/* strcpn copies str2 into str1 up to, but not including the first null */
+
+int strcpn(char *str1, char *str2)
+{
+    int i;
+
+    i = 0;
+    while (str2[i] != '\0') {
+      str1[i] = str2[i];
+      i++;
+    }
+
+    return i;
+}
+
+// -----------------------------------------------
+
+static char *PV3tkeys;
+static INT   PV3vars=0;
+
+static INT   PV3typevar[MAXVISVARS] ;
+static INT   PV3keys [MAXVISVARS] ;
+static float *PV3lims;
+
+#define LEN_TKEYS 40
+static INT len_tkeys = LEN_TKEYS;
+/*
+  Note: for tkeys, the string length should be greater than 32 characters
+  we fix it here to 40 to avoid any problems 
+*/
+#define MAXH  80
+static char PV3helpHeader[MAXH];
+  
+//----------------------------------------------------------
+// set the characters and limits of the vis variables in _Vis_pars->name
+//
+#define myvis_PV3_set     _F_NAME_(VIS_PV3_SET,vis_pv3_set)
+
+void myvis_PV3_set(
+		   _F_INTEGER   *narg, 
+		   _F_CHARACTER *keys, 
+		   _F_REAL_4    *lim1,
+		   _F_REAL_4    *lim2 
+		    )	
+{
+  const int nvar = *narg;
+  int i;
+  int hpos=0;
+  // first time only
+  if( (nvar <=0) || (PV3vars !=0) && (PV3vars !=nvar)) {
+    return;
+  } 
+  PV3vars=nvar;
+
+/*
+  Note: for tkeys, the string length should be greater than 32 characters
+        to avoid any problems with a null character.  pV3 copies only
+        the first 32 characters of these strings
+*/
+
+  PV3tkeys=(char *)malloc(nvar*LEN_TKEYS*sizeof(char));
+  PV3lims= (float *)malloc(nvar*2*sizeof(float));
+
+  if(_Myprc==0)
+  printf("\n********** IPARS-PV3: %d variables: ***********",PV3vars);
+
+  for (i=0; i<nvar; i++) {
+    int m,k;char *s;
+
+    PV3typevar[i] =1;             // hardcode: means: var is a scalar
+    PV3keys[i]    =(int)keys[i];
+    PV3lims[i*2]  =lim1[i];
+    PV3lims[i*2+1]=lim2[i];
+    {
+      int k=strcopn(LEN_TKEYS,(s=&PV3tkeys[i*LEN_TKEYS]),_Vis_pars[i].name);
+      if(_Myprc==0){
+	printf("\nPV3var (%d): <key=%c> (%6.2f,%6.2f) [", 
+	       i,(char)PV3keys[i],PV3lims[i*2],PV3lims[i*2+1]);    
+	for(m=0;m<k;m++)printf("%c",s[m]);
+      }
+    }
+    if(_Myprc==0)
+      printf("]");
+    {
+      int l=strlen(_Vis_pars[i].name);
+      s=&PV3helpHeader[hpos];
+      if(hpos+l+5<MAXH){
+	k=strcopn(l,s,_Vis_pars[i].name);
+	hpos+=l;
+	s=&PV3helpHeader[hpos];k=strcopn(l,s," [");
+	hpos+=2;
+	s=&PV3helpHeader[hpos];s[0]=(char)PV3keys[i];
+	hpos+=1;
+	s=&PV3helpHeader[hpos];k=strcopn(l,s,"] ");
+	hpos+=2;
+      }
+    }
+  }
+  if(_Myprc==0)
+    printf("*********************************************\n");
+  PV3helpHeader[MAXH-1]='\0';
+  if(_Myprc==0)
+    printf("%s\n",PV3helpHeader);
+  if(_Myprc==0)
+    printf("*********************************************\n");
+  
+}
+
+//----------------------------------------------------------
+// set the scaling of X variable
+//
+#define myvis_PV3scale     _F_NAME_(PV3scale,pv3scale)
+
+void myvis_PV3scale(
+		    _F_REAL_4    *scale,
+		   _F_REAL_4    *orig
+		    )	
+{
+  PV3_Xscale = *scale;
+  PV3_Xorig =  *orig;
+}
+// --------------------------------------------------------------
+// pass parameters etc. to PV3 in a fully unstructured form 
+//
+#define MYvis_PV3output     _F_NAME_(VIS_PV3OUTPUT,vis_pv3output)
+
+void MYvis_PV3output (
+
+// first 12 IPARS parameters passed to callwork
+
+  const _F_INTEGER * const IDIM,
+  const _F_INTEGER * const JDIM,
+  const _F_INTEGER * const KDIM,
+  const _F_INTEGER * const LDIM,
+  const _F_INTEGER * const IL1,
+  const _F_INTEGER * const IL2,
+  const _F_INTEGER * const JLV1,
+  const _F_INTEGER * const JLV2,
+  const _F_INTEGER * const KL1,
+  const _F_INTEGER * const KL2,
+  const _F_INTEGER * const KEYOUT,
+  const _F_INTEGER * const NBLK,
+
+  // visualization parameters: flag, x,y,z and number of variables
+  // to be output : first number of scalars, next number of vectors
+
+  const _F_INTEGER * ivisflag,
+  const _F_REAL_8  * const vis_xrec, 
+  const _F_REAL_8 * const vis_yrec, 
+  const _F_REAL_8 * const vis_zrec,
+  const _F_REAL_4  * const vis_dxrec, 
+  const _F_REAL_4 * const vis_dyrec, 
+  const _F_REAL_4 * const vis_dzrec,
+  const _F_INTEGER * numscalar,
+  const _F_INTEGER * numvector, 
+
+  // list of all the UNNAMED variables: first scalar, next vector
+  ...
+  )
+{
+ 
+// read all the common parameters into global variables of this file  
+
+  const int flag= *ivisflag;
+  const int nvec=*numvector;
+  const int nscl=*numscalar;
+  const int narg= nvec+nscl;
+
+  // this output is replaced by PV3HelpHEADER when PV3 server is running
+  /**
+  printf( "PV3 output in block=%d nvisvars=%d, step=%d tim=%g\n",
+	  *NBLK-1,narg, _Nstep, _Time);
+	  */
+  
+  if((narg <=0) || (narg>MAXVISVARS) || (narg != PV3vars)) return;
+  else {
+    //  ------------------------ read the argument list 
+    // read parameters passed in the argument list  : vectors and scalars
+    
+    va_list ap;
+    int i;
+    
+    _F_REAL_8 * * r8_scl_list
+      =(_F_REAL_8 * *) malloc((nscl)*(sizeof(_F_REAL_8 *)));
+    _F_REAL_8 * * r8_vec_list
+      =(_F_REAL_8 * *) malloc((nvec)*(sizeof(_F_REAL_8 *)));
+
+    if( (nscl>0) && (r8_scl_list == NULL) )
+      {fprintf(stderr,"\n No memory :-(\n");exit(-1);}
+
+    if( (nvec>0) && (r8_vec_list == NULL) )
+      {fprintf(stderr,"\n No memory :-(\n");exit(-1);}
+
+    va_start(ap, numvector); // numvector=last NAMED parameter 
+    
+    for(i=0;i< (nscl);i++) {
+      r8_scl_list[i]=  va_arg(ap, _F_REAL_8 *) ;
+    }
+    
+    for(i=0;i< (nvec);i++) {
+      r8_vec_list[i]=  va_arg(ap, _F_REAL_8 *) ;
+    }
+      
+    va_end(ap);  
+
+    //
+    // if last time vis routine was called with different flag, reset Vis_cnt
+    //
+
+    //
+    // call vis routine appropriate to flag 
+    //
+
+    _vis_PV3
+      (
+       IDIM, JDIM,   KDIM,   LDIM,   IL1, IL2,   
+       JLV1,   JLV2,   KL1, KL2,   KEYOUT,   NBLK,
+       flag,
+       vis_xrec, vis_yrec, vis_zrec,
+       vis_dxrec, vis_dyrec, vis_dzrec,
+	       nscl, nvec, r8_scl_list, r8_vec_list
+       ); 
+    
+    
+    free(r8_scl_list);
+    free(r8_vec_list);
+  }    
+}   
+
+// ----------------------------------------------------------------
+// the actual unstructured grid routine
+// 
+
+void _vis_PV3
+(
+ const _F_INTEGER * const IDIM,
+  const _F_INTEGER * const JDIM,
+  const _F_INTEGER * const KDIM,
+  const _F_INTEGER * const LDIM,
+  const _F_INTEGER * const IL1,
+  const _F_INTEGER * const IL2,
+  const _F_INTEGER * const JLV1,
+  const _F_INTEGER * const JLV2,
+  const _F_INTEGER * const KL1,
+  const _F_INTEGER * const KL2,
+  const _F_INTEGER * const KEYOUT,
+  const _F_INTEGER * const NBLK,
+ // fixed parameters
+ const int flag, // dummy parameter, 
+                 // left for compatibility with Tecplot routines
+ const _F_REAL_8  * const vis_xrec, 
+ const _F_REAL_8 * const vis_yrec, 
+ const _F_REAL_8 * const vis_zrec,
+
+ const _F_REAL_4  * const vis_dxrec, 
+ const _F_REAL_4 * const vis_dyrec, 
+ const _F_REAL_4 * const vis_dzrec,
+ const int nscl, const int nvec,
+ _F_REAL_8 * * r8_scl_list,
+ _F_REAL_8 * * r8_vec_list
+ )
+{  
+  const int maxblk = (*IDIM)*(*JDIM)*(*KDIM);
+  const int maxpls = (*IDIM +1)*(*JDIM +1)*(*KDIM +1);
+  const int   kinc = (*IDIM) * (*JDIM) ;
+  const int   jinc = (*IDIM) ;
+  const int   kbeg = (*KL1) ;
+  const int   kend = (*KL2) ;
+  const int   ibeg =  *IL1 ;
+  const int   iend =  *IL2 ;
+  const int   nblk = *NBLK-1;
+
+  // -------------------------------- copy parameters to globals
+
+  PV3_Maxblk=maxblk;
+  PV3_Maxpls=maxpls;
+  PV3_Kinc= kinc;
+  PV3_Jinc=jinc;
+  PV3_Kbeg=kbeg;
+  PV3_Kend=kend;
+  PV3_Ibeg=ibeg;
+  PV3_Iend=iend;
+  PV3_Nblk=nblk;
+  PV3_PV3_Nblk=(_F_INTEGER *) NBLK;
+  
+  PV3_xrec=(_F_REAL_8 *)vis_xrec;
+  PV3_yrec=(_F_REAL_8 *)vis_yrec;
+  PV3_zrec=(_F_REAL_8 *)vis_zrec;
+
+  PV3_dxrec=(_F_REAL_4 *)vis_dxrec;
+  PV3_dyrec=(_F_REAL_4 *)vis_dyrec;
+  PV3_dzrec=(_F_REAL_4 *)vis_dzrec;
+  
+  PV3_KEYOUT = (_F_INTEGER *)KEYOUT;
+  PV3_JLV1 = (_F_INTEGER *)JLV1;
+  PV3_JLV2 = (_F_INTEGER *)JLV2;
+
+  PV3_r8_scl_list=(_F_REAL_8 * * )r8_scl_list;
+
+  // -------------------------------- unstructured grid setup or output
+
+  if (_Vis_cnt[nblk]++ ==0) {
+      int * nnodes;
+      
+      // reset all structures and 
+      // allocate auxiliary and permanent structures      
+      //
+
+      _Nodes[nblk]= (NODE *) malloc((maxpls+1)*sizeof(NODE));
+      nnodes = (int *) malloc(maxpls*sizeof(int));
+      // initialize the array to zero 
+      if (nnodes !=NULL)
+	memset((void *)nnodes, (int) 0, maxpls*sizeof(int));     
+
+      if ( (nnodes!=NULL) && (_Nodes[nblk] != NULL) ) {
+	int k,j,i,inode=0,igblk=0;
+	int ogblk=0;
+	_F_INTEGER igoff,jgoff,kgoff,nofferr;
+	_F_INTEGER idgoff,jdgoff,kdgoff;
+	
+	// 
+	// count the nodes and blocks, set the nnodes and _Nodes
+	//
+	
+	for(k=kbeg;k<=kend;k++) {
+	  const int jbeg =  ( JLV1[k-1] );
+	  const int jend =  ( JLV2[k-1] );	   	    
+	  
+	  for ( j = jbeg ; j <= jend ;j++ ) {
+	    for ( i= ibeg; i <= iend ; i++) {	      
+	      
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+	      
+	      const int index = gindex(i,j,k);	    
+	      ogblk++;
+	      
+	      if ( KEYOUT[index] == 1 ) {	      
+		//	      touch each of the 8 vertices 
+		int gi;NODE *curr_node;
+		
+		igblk++;		
+
+// mpesz: note: this order is "circular" 
+//        and NOT "bow-tie" as for visual3
+
+
+		gi=gindex(i,j,k); // same as index of the gridblock below
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j,k);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j+1,k);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j+1;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i,j+1,k);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j+1;curr_node->k=k;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i,j,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j;curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j;curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i+1,j+1,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i+1;curr_node->j=j+1;
+		  curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+		gi=gindex(i,j+1,k+1);
+		if(nnodes[gi]<=0) {
+		  inode++;curr_node=&(_Nodes[nblk][inode]);
+		  curr_node->i=i;curr_node->j=j+1;curr_node->k=k+1;
+		  nnodes[gi]=inode;
+		}
+#undef gindex		
+	      } // end if KEYOUT 
+	    } // end loop i 
+	  } // end loop j 
+	} // end loop k 	  
+	
+	printf("\n*********************************************");
+	printf("\nPV3 (unstruct) grid: %d nodes, %d cells, %d all-keyed\n",
+	       inode,igblk,ogblk);
+	  
+	_Nnod[nblk]=inode;_Ngblk[nblk]=igblk;
+	PV3_nnodes = nnodes ;
+      }
+   // ----------- compute init info about surfaces 
+
+    mySURF();
+
+    // ----------- call pv3 INIT 
+
+    PV3_IPARSinit();
+    
+  } // end Vis_cnt
+
+  // request that PV3 grabs new data from memory
+  {
+    float curr_time=(float)_Time;
+
+    pV_UPDATE(&curr_time);
+  }
+} 
+
+static char IPARS_PV3_title[] = "          IPARS with pV3";
+
+//**********************************************************************
+void PV3_IPARSinit() {
+
+    char   titl[80];
+    char   blank[] = " ";
+
+    static INT zero = 0, one =1, cid;
+
+    INT    istat;
+    int    len_titl, len_blank;
+/*
+  Some workspace and other unimportant variables (file pointers...)
+*/
+    register int i;
+    int      dummy, nb, irv;
+    float    chord, omega, t;
+    char     answer;
+
+    cid = _Myprc+1;	
+    printf("\n%s %s %d\n",IPARS_PV3_title," on processor ",cid);
+    
+    istat     = 0;
+    // istat determines whether we wait for vis or not 
+    // istat =3 means wait for vis and terminate with vis
+    // istat =0 means do not wait no matter what
+
+    len_titl  = strcpn(titl,IPARS_PV3_title);
+    len_blank = 1;
+
+    pV_INIT (titl, &cid, blank, blank, &one, &zero, PV3tkeys, &PV3vars,
+             PV3keys, PV3tkeys, PV3typevar, PV3lims, &zero, NULL, &zero,
+             &istat, len_titl, len_blank, len_blank, LEN_TKEYS, LEN_TKEYS);
+
+    printf("IPARS PV3 after pV_Init istat = %d\n",istat);
+    printf("\n*********************************************\n");
+
+}
+
+
+//------------------------------------------------------------------
+// counts the faces on the boundary
+
+static int mySURF() 
+{
+  const int maxblk = PV3_Maxblk;
+  const int maxpls = PV3_Maxpls;
+  const int   kinc = PV3_Kinc;
+  const int   jinc = PV3_Jinc;
+  const int   kbeg = PV3_Kbeg;
+  const int   kend = PV3_Kend;
+  const int   ibeg =  PV3_Ibeg;
+  const int   iend =  PV3_Iend;
+  int   nblk = PV3_Nblk;
+  int  *NBLK=&nblk;
+  
+  int k,j,i;
+  int i1=0,i2=0,j1=0,j2=0,k1=0,k2=0;
+
+  for(k=kbeg;k<=kend;k++) {
+    const int jbeg =  ( PV3_JLV1[k-1] );
+    const int jend =  ( PV3_JLV2[k-1] );
+    
+    for ( j = jbeg ; j <= jend ;j++ ) {	      
+      for ( i= ibeg; i <= iend ; i++) {	      
+	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+#define PV3gindex(i,j,k)   PV3_nnodes[gindex ( (i),(j),(k)) ]
+
+	// cell numbers 
+	const int gijk=gindex(i,j,k);     // this cell
+	const int gi1 =gindex(i-1,j,k);   // top
+	const int gi2 =gindex(i+1,j,k);   // bottom
+	const int gj1 =gindex(i,j-1,k);   // west
+	const int gj2 =gindex(i,j+1,k);   // east
+	const int gk1 =gindex(i,j,k-1);   // south
+	const int gk2 =gindex(i,j,k+1);   // north
+	
+	if ( PV3_KEYOUT[gijk] == 1 ) {// check which face may be on external
+
+	  if (PV3_KEYOUT[gi1] == 0) {
+	    i1++;
+	  }
+	  if (PV3_KEYOUT[gi2] == 0) {
+	    i2++;
+	  }
+	  if (PV3_KEYOUT[gj1] == 0) {
+	    j1++;
+	  }
+	  if (PV3_KEYOUT[gj2] == 0) {
+	    j2++;
+	  }
+	  if (PV3_KEYOUT[gk1] == 0) {
+	    k1++;
+	  }
+	  if (PV3_KEYOUT[gk2] == 0) {
+	    k2++;
+	  }
+	} // end if KEYOUT 
+      } // end loop i 
+    } // end loop j 
+  } // end loop k 	  
+#undef PV3gindex
+#undef gindex
+	
+  printf(
+ "PV3 surfaces: Top(%d) Bottom(%d) East(%d) West(%d) North(%d) South(%d)\n",
+ i1,i2,j1,j2,k1,k2);
+  
+  PV3_Top =   i1;
+  PV3_Bottom =i2;
+  PV3_East =  j1;
+  PV3_West =  j2;
+  PV3_North = k1;
+  PV3_South = k2;
+  
+}
+
+//***********************************************************
+// this is pV3 grid  
+
+pREFIX
+pVGRID (float *xyz)
+{  
+  const int maxblk = PV3_Maxblk;
+  const int maxpls = PV3_Maxpls;
+  const int   kinc = PV3_Kinc;
+  const int   jinc = PV3_Jinc;
+  const int   kbeg = PV3_Kbeg;
+  const int   kend = PV3_Kend;
+  const int   ibeg =  PV3_Ibeg;
+  const int   iend =  PV3_Iend;
+  int   nblk = PV3_Nblk;
+  _F_INTEGER  *NBLK=&PV3_Nblk;
+
+  int kc=0;
+  // -------------------------------- copy grid info to PV3 structures 
+    
+  if ( (_Nodes[nblk] != NULL) ) {
+    //    int k,j,i,inode=0,igblk=0;
+    //int ogblk=0;
+    int inode;
+    _F_INTEGER igoff,jgoff,kgoff,nofferr;
+    _F_INTEGER idgoff,jdgoff,kdgoff;
+    
+    // get the global offsets for vis_xrec,vis_yrec,vis_zrec 
+    
+    myblkoff(PV3_PV3_Nblk,&igoff,&jgoff,&kgoff,&nofferr);
+
+    // modify offsets to include offset of (0,0,0) block
+    // igoff etc. are offsets for xrec, idgoff are for dxrec
+    igoff+=_Mxrecxp*nblk;jgoff+=_Myrecyp*nblk;kgoff+=_Mzreczp*nblk;
+
+    // copy x,y,z information to PV3 structures 
+    //
+    for (inode=1;inode <=_Nnod[nblk];inode++) {
+      
+      const int 
+	i=_Nodes[nblk][inode].i,
+	j=_Nodes[nblk][inode].j,
+	k=_Nodes[nblk][inode].k;
+
+      // ------------------------------------------
+      // PV3: here we do the scaling of x,y,z parameters 
+   
+      xyz[3*(inode-1)]   = (PV3_xrec[i+igoff-1]-PV3_Xorig)*PV3_Xscale;
+      xyz[3*(inode-1)+1] = PV3_yrec[j+jgoff-1];
+      xyz[3*(inode-1)+2]  =PV3_zrec[k+kgoff-1];
+
+    } // end inode
+    
+  } 
+}
+
+
+
+//***********************************************************
+// this is pV3 struct etc. 
+
+pREFIX
+pVSTRUC(INT *knode,   INT *kequiv, INT *kcel1,  INT *kcel2,   INT *kcel3,   
+        INT *kcel4,   INT *knptet, INT *kptet,  INT *knblock, INT *blocks, 
+        INT *kphedra, INT *ksurf,  INT *knsurf, INT *hint )
+{
+  int   nblk = PV3_Nblk;
+
+  *knode   = _Nnod[nblk]; // number of nodes 
+  *kequiv  = 0;
+  *kcel1   = 0;
+  *kcel2   = 0;
+  *kcel3   = 0;
+
+  *kcel4   = _Ngblk[nblk]; // number of cells 
+
+  *knptet  = 0;
+  *kptet   = 0;
+  *knblock = 0;
+  *kphedra = 0;
+
+  // total # of faces 
+  *ksurf   = PV3_Top+PV3_Bottom+PV3_West+PV3_East+PV3_South+PV3_North;
+  
+  //  total of all ensembles of faces: top, bottom, etc. 
+  *knsurf  = 6; 
+
+  printf("\n\nPVSTRUC nodes=%d cells =%d faces=%d\n",*knode,*kcel4,*ksurf);
+
+}
+
+pREFIX
+pVCELL (INT *cel1, INT *cel2, INT *cel3, INT *cel4, INT *nptet, INT *ptet)
+{
+  const int maxblk = PV3_Maxblk;
+  const int maxpls = PV3_Maxpls;
+  const int   kinc = PV3_Kinc;
+  const int   jinc = PV3_Jinc;
+  const int   kbeg = PV3_Kbeg;
+  const int   kend = PV3_Kend;
+  const int   ibeg =  PV3_Ibeg;
+  const int   iend =  PV3_Iend;
+  int   nblk = PV3_Nblk;
+  int  *NBLK=&nblk;
+  
+  int k,j,i,kc=0;
+
+  for(k=kbeg;k<=kend;k++) {
+    const int jbeg =  ( PV3_JLV1[k-1] );
+    const int jend =  ( PV3_JLV2[k-1] );
+    
+    for ( j = jbeg ; j <= jend ;j++ ) {	      
+      for ( i= ibeg; i <= iend ; i++) {	      
+	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+	const int gi=gindex(i,j,k);
+	
+	if ( PV3_KEYOUT[gi] == 1 ) {	      
+	  cel4[kc++]=PV3_nnodes[gindex(i,j,k)];
+	  cel4[kc++]=PV3_nnodes[gindex(i+1,j,k)];
+	  cel4[kc++]=PV3_nnodes[gindex(i+1,j+1,k)]; 
+	  cel4[kc++]=PV3_nnodes[gindex(i,j+1,k)];
+	  cel4[kc++]=PV3_nnodes[gindex(i,j,k+1)];
+	  cel4[kc++]=PV3_nnodes[gindex(i+1,j,k+1)];
+	  cel4[kc++]=PV3_nnodes[gindex(i+1,j+1,k+1)];
+	  cel4[kc++]=PV3_nnodes[gindex(i,j+1,k+1)];
+	  
+	} // end if KEYOUT 
+      } // end loop i 
+    } // end loop j 
+  } // end loop k 	  
+#undef gindex
+
+ // free ((void *)PV3_nnodes);
+	//  printf("\n\nPVCELL OK\n");
+
+}
+
+pREFIX
+pVSCAL (INT *key, float *v) 
+{
+  // copy the necessary globals 
+  int         nblk = PV3_Nblk;
+  const int maxblk = PV3_Maxblk;
+  const int   jinc = PV3_Jinc;
+  const int   kinc = PV3_Kinc;
+  
+  int lvar          = *key-1;
+  const int ldimoff = (_Vis_pars[lvar].ldim-1)*maxblk;
+  _F_REAL_8 *ptr    = & ( PV3_r8_scl_list[lvar][ldimoff] );
+      
+  // local vars
+  int inode, count;
+  _F_REAL_8 scalval;
+  _F_INTEGER idgoff,jdgoff,kdgoff,nofferr;
+  
+  // ---------------------------------------------------
+      
+  //printf("\nPVSCAL Got nblk=%d VARIABLE=%d\n",nblk,lvar);
+
+  // get the global offsets for vis_xrec,vis_yrec,vis_zrec   
+
+  myblkoff(PV3_PV3_Nblk,&idgoff,&jdgoff,&kdgoff,&nofferr);
+
+  // modify offsets to include offset of (0,0,0) block
+  // igoff etc. are offsets for xrec, idgoff are for dxrec
+
+  idgoff+=(_Mxrecxp-1)*nblk;jdgoff+=(_Myrecyp-1)*nblk;
+  kdgoff+=(_Mzreczp-1)*nblk;
+  
+  // copy the values of the scalar variables (interpolated 
+  // from cell-centered data) to PV3 structures 
+  
+  for(inode=1;inode<=_Nnod[nblk];inode++) {
+      
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+      
+      const int 
+	i2=_Nodes[nblk][inode].i,
+	j2=_Nodes[nblk][inode].j,
+	k2=_Nodes[nblk][inode].k;
+       
+      if(_Vis_pars[lvar].vnodal == 0) 
+      {
+      // -------------------------
+      // interpolation for nonuniform grid
+      //
+      const int i1=i2-1,j1=j2-1,k1=k2-1;
+      int i111=gindex(i1,j1,k1),i211=gindex(i2,j1,k1),
+	i121=gindex(i1,j2,k1),i221=gindex(i2,j2,k1),
+	i112=gindex(i1,j1,k2),i212=gindex(i2,j1,k2),
+	i122=gindex(i1,j2,k2),i222=gindex(i2,j2,k2);	      
+
+#undef gindex 
+
+#define gcheck(ind)  ( ( (*ind)>=0 ) && ((*ind) <maxblk) ? 1 : (*ind=0) )
+      
+      const int s111=gcheck(&i111),s121=gcheck(&i121),
+	s211=gcheck(&i211),s221=gcheck(&i221),
+	s112=gcheck(&i112),s122=gcheck(&i122),
+	s212=gcheck(&i212),s222=gcheck(&i222);
+      
+#undef gcheck
+      
+#define icheck(ind)  ( (ind)>=0  ? (ind) : 0 )
+	int di1= icheck(i1+idgoff-1) ;
+	int di2=i2+idgoff-1;
+	int dj1= icheck(j1+jdgoff-1) ;
+	int dj2=j2+jdgoff-1;
+	int dk1= icheck(k1+kdgoff-1) ;
+	int dk2=k2+kdgoff-1;
+#undef icheck
+	
+	_F_REAL_8
+	  dx1=(_F_REAL_8) PV3_dxrec[di1],dx2=(_F_REAL_8) PV3_dxrec[di2],
+	  dy1=(_F_REAL_8) PV3_dyrec[dj1],dy2=(_F_REAL_8) PV3_dyrec[dj2],
+	  dz1=(_F_REAL_8) PV3_dzrec[dk1],dz2=(_F_REAL_8) PV3_dzrec[dk2];
+	
+	scalval=sint3Dnonuniform_with_ghosts
+	  (
+	   s111,s211,s121,s221,s112,s212,s122,s222,
+	   PV3_KEYOUT[i111],PV3_KEYOUT[i211],PV3_KEYOUT[i121],PV3_KEYOUT[i221],
+	   PV3_KEYOUT[i112],PV3_KEYOUT[i212],PV3_KEYOUT[i122],PV3_KEYOUT[i222],
+	   ptr[i111],ptr[i211],ptr[i121],ptr[i221],
+	   ptr[i112],ptr[i212],ptr[i122],ptr[i222],
+	   dx1,dx2,dy1,dy2,dz1,dz2,
+	   &count);     
+	
+      }
+      else       
+      {
+      // -------------------------
+      //corner point variables, no need for interpolation
+      // 
+      i222=gindex(i2,j2,k2);
+      scalval=prt[i222];
+      }
+      // copy THIS scalar variable to PV3 buffer
+
+      v[inode-1]=scalval;
+
+      
+      if(inode<2){
+	printf("*********************************************\n");
+	printf("PV3 SCALVAL var=%d node=%d val=%g\n",
+	       lvar,inode-1,scalval);
+      }
+
+  }// inode	
+  
+  printf("*********************************************\n");
+  printf("%s\n",PV3helpHeader);
+  printf("*********************************************\n");
+
+}
+
+
+/* strcpb copies str2 into str1 up to, but not including the first null and
+   then pads with blanks to the len character */
+
+int
+strcpb(char *str1, char *str2, int len)
+{
+    int i,j;
+
+    i = 0;
+    while (str2[i] != '\0') {
+      str1[i] = str2[i];
+      i++;
+    }
+    for (j = i; j < len; j++) str1[j] = ' ';
+
+    return i;
+}
+
+
+#define ALLFACES 6
+#define AF       ALLFACES
+#define AS       3
+#define AC       20
+
+#define TOP    0
+#define BOTTOM 1
+#define WEST   2
+#define EAST   3
+#define SOUTH  4
+#define NORTH  5
+
+
+pREFIX
+pVSURFACE (INT *nsurf, INT *scon, INT *scel, char *tsurf, int tsurfLEN)
+{
+  const int maxblk = PV3_Maxblk;
+  const int maxpls = PV3_Maxpls;
+  const int   kinc = PV3_Kinc;
+  const int   jinc = PV3_Jinc;
+  const int   kbeg = PV3_Kbeg;
+  const int   kend = PV3_Kend;
+  const int   ibeg =  PV3_Ibeg;
+  const int   iend =  PV3_Iend;
+  int   nblk = PV3_Nblk;
+  int  *NBLK=&nblk;
+  
+  int k,j,i;
+  int i1=0,i2=0,j1=0,j2=0,k1=0,k2=0;
+  int gf=0;
+
+  /// =============================================================
+  // loop 1: Top 
+
+  for(k=kbeg;k<=kend;k++) {
+    const int jbeg =  ( PV3_JLV1[k-1] );
+    const int jend =  ( PV3_JLV2[k-1] );
+    
+    for ( j = jbeg ; j <= jend ;j++ ) {	      
+      for ( i= ibeg; i <= iend ; i++) {	      
+	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+#define PV3gindex(i,j,k)   PV3_nnodes[gindex ( (i),(j),(k)) ]
+
+	// cell numbers 
+	const int gijk=gindex(i,j,k);     // this cell
+	const int gi1 =gindex(i-1,j,k);   // top
+	if ( PV3_KEYOUT[gijk] == 1 ) {// check which face may be on external
+
+	  if (PV3_KEYOUT[gi1] == 0) {
+	    scel[gf+i1+0] = PV3gindex(i,j,k);
+	    scel[gf+i1+1] = PV3gindex(i,j+1,k);
+	    scel[gf+i1+2] = PV3gindex(i,j+1,k+1);
+	    scel[gf+i1+3] = PV3gindex(i,j,k+1);
+	/*
+	    printf("\nFilled TOP scell %d ... %d",
+		   gf+i1+0,gf+i1+3);
+	*/
+	    i1+=4;
+
+	  }
+	} // end if KEYOUT 
+      } // end loop i 
+    } // end loop j 
+  } // end loop k 	  
+#undef PV3gindex
+#undef gindex
+
+  // end loop 1 
+  // ---------------------------------------
+
+  gf+=i1;
+  nsurf[AS*TOP    + 0] = gf/4;   
+  nsurf[AS*TOP    + 1] = 1;   // 1=render. 4=grey etc.
+  strcpb(&tsurf[TOP*AC], "Top", AC);
+
+  /// =============================================================
+  // loop 2: Bottom
+
+  for(k=kbeg;k<=kend;k++) {
+    const int jbeg =  ( PV3_JLV1[k-1] );
+    const int jend =  ( PV3_JLV2[k-1] );
+    
+    for ( j = jbeg ; j <= jend ;j++ ) {	      
+      for ( i= ibeg; i <= iend ; i++) {	      
+	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+#define PV3gindex(i,j,k)   PV3_nnodes[gindex ( (i),(j),(k)) ]
+
+	// cell numbers 
+	const int gijk=gindex(i,j,k);     // this cell
+	const int gi2 =gindex(i+1,j,k);   // bottom
+	if ( PV3_KEYOUT[gijk] == 1 ) {// check which face may be on external
+
+	  if (PV3_KEYOUT[gi2] == 0) {
+	    scel[gf+i2+0] = PV3gindex(i+1,j,k);
+	    scel[gf+i2+1] = PV3gindex(i+1,j+1,k);
+	    scel[gf+i2+2] = PV3gindex(i+1,j+1,k+1);
+	    scel[gf+i2+3] = PV3gindex(i+1,j,k+1);
+	/*
+	    printf("\nFilled scell %d ... %d",
+		   gf+i2+0,gf+i2+3);
+	*/
+	    i2+=4;
+	  }
+	} // end if KEYOUT 
+      } // end loop i 
+    } // end loop j 
+  } // end loop k 	  
+#undef PV3gindex
+#undef gindex
+
+  // end loop 2 
+  // ---------------------------------------
+
+  gf+=i2;
+  nsurf[AS*BOTTOM + 0] = gf/4;   
+  nsurf[AS*BOTTOM + 1] = 1;   // 1=render. 4=grey etc.
+  strcpb(&tsurf[BOTTOM*AC], "Bottom", AC);
+
+  /// =============================================================
+  // loop 3: West
+
+  for(k=kbeg;k<=kend;k++) {
+    const int jbeg =  ( PV3_JLV1[k-1] );
+    const int jend =  ( PV3_JLV2[k-1] );
+    
+    for ( j = jbeg ; j <= jend ;j++ ) {	      
+      for ( i= ibeg; i <= iend ; i++) {	      
+	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+#define PV3gindex(i,j,k)   PV3_nnodes[gindex ( (i),(j),(k)) ]
+
+	// cell numbers 
+	const int gijk=gindex(i,j,k);     // this cell
+	const int gj1 =gindex(i,j-1,k);   // west
+	if ( PV3_KEYOUT[gijk] == 1 ) {// check which face may be on external
+
+	  if (PV3_KEYOUT[gj1] == 0) {
+	    scel[gf+j1+0] = PV3gindex(i,j,k);
+	    scel[gf+j1+1] = PV3gindex(i+1,j,k);
+	    scel[gf+j1+2] = PV3gindex(i+1,j,k+1);
+	    scel[gf+j1+3] = PV3gindex(i,j,k+1);
+	    j1+=4;
+	  }
+	} // end if KEYOUT 
+      } // end loop i 
+    } // end loop j 
+  } // end loop k 	  
+#undef PV3gindex
+#undef gindex
+
+  // end loop 3 
+  // ---------------------------------------
+
+  gf+=j1;
+  nsurf[AS*WEST + 0] = gf/4;   
+  nsurf[AS*WEST + 1] = 1;   // 1=render. 4=grey etc.
+  strcpb(&tsurf[WEST*AC], "West", AC);
+
+  /// =============================================================
+  // loop 4: East
+
+  for(k=kbeg;k<=kend;k++) {
+    const int jbeg =  ( PV3_JLV1[k-1] );
+    const int jend =  ( PV3_JLV2[k-1] );
+    
+    for ( j = jbeg ; j <= jend ;j++ ) {	      
+      for ( i= ibeg; i <= iend ; i++) {	      
+	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+#define PV3gindex(i,j,k)   PV3_nnodes[gindex ( (i),(j),(k)) ]
+
+	// cell numbers 
+	const int gijk=gindex(i,j,k);     // this cell
+	const int gj2 =gindex(i,j+1,k);   // east	
+	if ( PV3_KEYOUT[gijk] == 1 ) {// check which face may be on external
+
+	  if (PV3_KEYOUT[gj2] == 0) {
+	    scel[gf+j2+0] = PV3gindex(i,j+1,k);
+	    scel[gf+j2+1] = PV3gindex(i+1,j+1,k);
+	    scel[gf+j2+2] = PV3gindex(i+1,j+1,k+1);
+	    scel[gf+j2+3] = PV3gindex(i,j+1,k+1);
+	    j2+=4;
+	  }
+	} // end if KEYOUT 
+      } // end loop i 
+    } // end loop j 
+  } // end loop k 	  
+#undef PV3gindex
+#undef gindex
+
+  // end loop 4 
+  // ---------------------------------------
+  gf+=j2;
+  nsurf[AS*EAST + 0] = gf/4;   
+  nsurf[AS*EAST + 1] = 1;   // 1=render. 4=grey etc.
+  strcpb(&tsurf[EAST*AC], "East", AC);
+
+  /// =============================================================
+  // loop 5: South
+
+  for(k=kbeg;k<=kend;k++) {
+    const int jbeg =  ( PV3_JLV1[k-1] );
+    const int jend =  ( PV3_JLV2[k-1] );
+    
+    for ( j = jbeg ; j <= jend ;j++ ) {	      
+      for ( i= ibeg; i <= iend ; i++) {	      
+	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+#define PV3gindex(i,j,k)   PV3_nnodes[gindex ( (i),(j),(k)) ]
+
+	// cell numbers 
+	const int gijk=gindex(i,j,k);     // this cell
+	const int gk1 =gindex(i,j,k-1);   // south
+	if ( PV3_KEYOUT[gijk] == 1 ) {// check which face may be on external
+
+	  if (PV3_KEYOUT[gk1] == 0) {
+	    scel[gf+k1+0] = PV3gindex(i,j,k);
+	    scel[gf+k1+1] = PV3gindex(i+1,j,k);
+	    scel[gf+k1+2] = PV3gindex(i+1,j+1,k);
+	    scel[gf+k1+3] = PV3gindex(i,j+1,k);
+	    k1+=4;
+	  }
+	} // end if KEYOUT 
+      } // end loop i 
+    } // end loop j 
+  } // end loop k 	  
+#undef PV3gindex
+#undef gindex
+
+  // end loop 5 
+  // ---------------------------------------
+  gf+=k1;
+  nsurf[AS*SOUTH + 0] = gf/4;  
+  nsurf[AS*SOUTH + 1] = 1;   // 1=render. 4=grey etc.
+  strcpb(&tsurf[SOUTH*AC], "South", AC);
+
+  /// =============================================================
+  // loop 6: NOrth
+
+  for(k=kbeg;k<=kend;k++) {
+    const int jbeg =  ( PV3_JLV1[k-1] );
+    const int jend =  ( PV3_JLV2[k-1] );
+    
+    for ( j = jbeg ; j <= jend ;j++ ) {	      
+      for ( i= ibeg; i <= iend ; i++) {	      
+	
+#define gindex(i,j,k)   ( ( (k)-1 )*kinc+ ( (j)-1)*jinc + ( (i) -1) )
+#define PV3gindex(i,j,k)   PV3_nnodes[gindex ( (i),(j),(k)) ]
+
+	// cell numbers 
+	const int gijk=gindex(i,j,k);     // this cell
+	const int gk2 =gindex(i,j,k+1);   // north
+	if ( PV3_KEYOUT[gijk] == 1 ) {// check which face may be on external
+
+	  if (PV3_KEYOUT[gk2] == 0) {
+	    scel[gf+k2+0] = PV3gindex(i,j,k+1);
+	    scel[gf+k2+1] = PV3gindex(i+1,j,k+1);
+	    scel[gf+k2+2] = PV3gindex(i+1,j+1,k+1);
+	    scel[gf+k2+3] = PV3gindex(i,j+1,k+1);
+	    k2+=4;
+	  }
+	} // end if KEYOUT 
+      } // end loop i 
+    } // end loop j 
+  } // end loop k 	  
+#undef PV3gindex
+#undef gindex
+
+  // end loop 6 
+  // ---------------------------------------
+  
+  gf+=k2;
+
+  nsurf[AS*NORTH + 0] = gf/4;   
+  nsurf[AS*NORTH + 1] = 1;    // 1=render. 4=grey etc.
+  strcpb(&tsurf[NORTH*AC], "North", AC);
+  // ==================================== end of all loops 
+
+  /*
+  for(i=0;i<AS*NORTH+1;i++)
+    printf("\nNSurf %d -> %d",i,nsurf[i]);
+  */
+}
+
+#undef ALLFACES 
+#undef AF       
+#undef AS       
+#undef AC       
+
+#undef TOP    
+#undef BOTTOM 
+#undef WEST   
+#undef EAST   
+#undef SOUTH  
+#undef NORTH  
+
+
+
+

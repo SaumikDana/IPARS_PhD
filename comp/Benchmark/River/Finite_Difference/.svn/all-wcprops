@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/repos/csm/!svn/ver/352/IPARSv3.1/comp/Benchmark/River/Finite_Difference
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/repos/csm/!svn/ver/352/IPARSv3.1/comp/Benchmark/River/Finite_Difference/IPARS.IN
+END
+input.dat
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/repos/csm/!svn/ver/352/IPARSv3.1/comp/Benchmark/River/Finite_Difference/input.dat
+END
+keyout.dat
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/repos/csm/!svn/ver/352/IPARSv3.1/comp/Benchmark/River/Finite_Difference/keyout.dat
+END

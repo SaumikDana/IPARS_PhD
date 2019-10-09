@@ -1,0 +1,544 @@
+C BCGS_WORKLA.F -- BCGS SOLVER LIN.ALGEBRA WORK ROUTINES
+C
+C ROUTINES IN THIS FILE:
+C
+C     SUBROUTINE IG_DDOT(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE IG_DDOT2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE IG_DSCAL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE IG_DAXPY(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE IG_DAXPY2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE IG_DCOPY(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE IG_DCOPY2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE IG_DZERO(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X)
+C     SUBROUTINE IG_DSWEEP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE IG_DSWEEP2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE IG_MATVEC(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y,AB,AD)
+C     SUBROUTINE IG_MATVEC2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y,AB,AD)
+C     SUBROUTINE IG_MEAS(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X)
+C     SUBROUTINE IG_MEAS2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X)
+C
+C CODE HISTORY:
+C
+C     YURI VASSILEVSKI 01/17/2002   INITIAL CODE
+C     YURI VASSILEVSKI 04/06/2002   BUGS IN I,J,K LOOP ARE FIXED
+C     SUNIL G. THOMAS 3-6/1-31/2008 MODS TO ACCOMODATE FLOW COUPLED TO 
+C                                   REACTIVE TRANSPORT AS WELL AS ISOLATED 
+C                                   SCALAR PDE SOLVES. NOTE: HAD TO CHANGE 
+C                                   MEQ TO MODEQS(FMODBLK(NBLK)) INSTEAD OF 
+C                                   NUMEQS(NBLK). MAY CLEAN THIS SO IT IS
+C                                   UNIFIED WITHOUT COPYING BLAS ROUTINES
+C***********************************************************************
+      SUBROUTINE IG_DDOT(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                      KL1,KL2,KEYOUT,NBLK,X,Y)
+C***********************************************************************
+C Work routine performs x.y
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,*), Y(IDIM,JDIM,KDIM,*)
+
+      INTEGER I,J,K,L,JL1,JL2,MEQ
+      REAL*8  DTEMP
+
+C      MEQ=NUMEQS(NBLK)
+      MEQ=MODEQS(FMODBLK(NBLK))
+      DTEMP=0.D0
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               DO L=1,MEQ
+                  IF (KEYOUT(I,J,K).EQ.1)           
+     &            DTEMP=DTEMP+X(I,J,K,L)*Y(I,J,K,L)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO                  
+
+      DINRM(1)=DINRM(1)+DTEMP
+      END         
+
+C***********************************************************************
+      SUBROUTINE IG_DDOT2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                      KL1,KL2,KEYOUT,NBLK,X,Y)
+C***********************************************************************
+C Work routine performs x.y
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM), Y(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,L,JL1,JL2
+      REAL*8  DTEMP
+
+      DTEMP=0.D0
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K).EQ.1)
+     &         DTEMP=DTEMP+X(I,J,K)*Y(I,J,K)
+            ENDDO
+         ENDDO
+      ENDDO
+
+      DINRM(1)=DINRM(1)+DTEMP
+      END
+      
+C***********************************************************************
+      SUBROUTINE IG_DAXPY(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                    KL2,KEYOUT,NBLK,X,Y)
+C***********************************************************************
+C Work routine performs y=y+alpha*x
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM) 
+      REAL*8  X(IDIM,JDIM,KDIM,*),  Y(IDIM,JDIM,KDIM,*)
+
+      INTEGER I,J,K,L,JL1,JL2,MEQ
+
+C      MEQ=NUMEQS(NBLK)
+      MEQ=MODEQS(FMODBLK(NBLK))
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K).NE.1) CYCLE
+               DO L=1,MEQ
+                  Y(I,J,K,L)=Y(I,J,K,L)+ALPHA*X(I,J,K,L)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+    
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_DAXPY2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                     KL2,KEYOUT,NBLK,X,Y)
+C***********************************************************************
+C Work routine performs y=y+alpha*x for single unknowns (non-model 
+C dependent) such as temperature
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM), Y(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,L,JL1,JL2
+
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K).NE.1) CYCLE
+               Y(I,J,K)=Y(I,J,K)+ALPHA*X(I,J,K)
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_DSCAL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,X)
+C***********************************************************************
+C Work routine performs x=alpha*x
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,*)
+      INTEGER I,J,K,L,JL1,JL2,MEQ
+
+C      MEQ=NUMEQS(NBLK)
+      MEQ=MODEQS(FMODBLK(NBLK))
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K).NE.1) CYCLE
+               DO L=1,MEQ
+                  X(I,J,K,L)=ALPHA*X(I,J,K,L)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+     
+      END
+
+
+C***********************************************************************
+      SUBROUTINE IG_DSCAL2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                     KL2,KEYOUT,NBLK,X)
+C***********************************************************************
+C Work routine performs x=alpha*x for single unknowns (model independent 
+C arrays) such as temperature
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM)
+      INTEGER I,J,K,L,JL1,JL2
+
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K).NE.1) CYCLE
+               X(I,J,K)=ALPHA*X(I,J,K)
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_DSHOW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,X,Y)
+C***********************************************************************
+C Work routine show x,y
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,*),Y(IDIM,JDIM,KDIM,*)
+      INTEGER I,J,K,L,JL1,JL2,MEQ
+
+C      MEQ=NUMEQS(NBLK)
+      MEQ=MODEQS(FMODBLK(NBLK))
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K).NE.1) CYCLE
+               DO L=1,MEQ
+                 write(*,*)I+IOFF,J+JOFF,K+KOFF,L,X(I,J,K,L),Y(I,J,K,L)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+     
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_DCOPY(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,X,Y)
+C***********************************************************************
+C Work routine copy x to y
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,*),  Y(IDIM,JDIM,KDIM,*)
+
+      INTEGER I,J,K,L,JL1,JL2,MEQ
+
+C      MEQ=NUMEQS(NBLK)
+      MEQ=MODEQS(FMODBLK(NBLK))
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K).NE.1) CYCLE
+               DO L=1,MEQ
+                  Y(I,J,K,L)=X(I,J,K,L)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO 
+
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_DCOPY2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                     KL2,KEYOUT,NBLK,X,Y)
+C***********************************************************************
+C Work routine copy x to y for single unknowns (model independent)
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM),  Y(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,L,JL1,JL2
+
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K).NE.1) CYCLE
+               Y(I,J,K)=X(I,J,K)
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_DSWEEP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                 KL1,KL2, KEYOUT,NBLK,X,Y)
+C***********************************************************************
+C Work routine sweep x <-> y
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,*),  Y(IDIM,JDIM,KDIM,*)
+
+      INTEGER I,J,K,L,JL1,JL2,MEQ
+      REAL*8 dummy
+
+C      MEQ=NUMEQS(NBLK)
+      MEQ=MODEQS(FMODBLK(NBLK))
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K).NE.1) CYCLE
+               DO L=1,MEQ
+                  dummy = Y(I,J,K,L)
+                  Y(I,J,K,L)=X(I,J,K,L)
+                  X(I,J,K,L)=dummy
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO 
+
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_DSWEEP2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                      KL1,KL2,KEYOUT,NBLK,X,Y)
+C***********************************************************************
+C Work routine sweep x <-> y for single (model independent) unknowns 
+C such as temperature 
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM),  Y(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,L,JL1,JL2
+      REAL*8 dummy
+
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K).NE.1) CYCLE
+               dummy = Y(I,J,K)
+               Y(I,J,K)=X(I,J,K)
+               X(I,J,K)=dummy
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_MATVEC(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,COF,X,Y)
+C***********************************************************************
+C Work routine performs multiplication of a matrix and a vector: 
+C Y=alpha*AX
+C  COF(I,J,K,N,L,M)  = JACOBIAN COEFFICIENTS (INPUT, REAL*4)
+
+C  X(I,J,K,L) = VECTOR(INPUT, REAL*8)
+
+C  Y(I,J,K,L)= VECTOR(OUTPUT, REAL*8)
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM)
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF,*)
+      REAL*8  X(IDIM,JDIM,KDIM,*), Y(IDIM,JDIM,KDIM,*)
+      REAL*8  DUB1
+
+
+
+C      MEQ=NUMEQS(NBLK)
+      MEQ=MODEQS(FMODBLK(NBLK))
+
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2
+      IF (KEYOUT(I,J,K).NE.1) GO TO 1
+
+      DO 2 ME=1,MEQ
+      DUB1=0d0
+      DO 3 MV=1,MEQ
+      M=ME+(MV-1)*MEQ
+      DUB1=DUB1+COF(I,J,K,1,M)*X(I,J,K,MV)
+      IF (I.GT.1) DUB1=DUB1+COF(I,J,K,2,M)*X(I-1,J,K,MV)
+      IF (I.LT.IDIM) DUB1=DUB1+COF(I,J,K,3,M)*X(I+1,J,K,MV)
+      IF (J.GT.1) DUB1=DUB1+COF(I,J,K,4,M)*X(I,J-1,K,MV)
+      IF (J.LT.JDIM) DUB1=DUB1+COF(I,J,K,5,M)*X(I,J+1,K,MV)
+      IF (K.GT.1) DUB1=DUB1+COF(I,J,K,6,M)*X(I,J,K-1,MV)
+      IF (K.LT.KDIM) DUB1=DUB1+COF(I,J,K,7,M)*X(I,J,K+1,MV)
+    3 CONTINUE
+      Y(I,J,K,ME) = ALPHA * DUB1
+    2 CONTINUE 
+    1 CONTINUE
+
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_MATVEC2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,COF,X,Y)
+C***********************************************************************
+C Work routine performs multiplication of a matrix and a vector: 
+C Y=alpha*AX
+C Specific for single arrays such as temperature (non-model dependent)
+C  COF(I,J,K,N)  = JACOBIAN COEFFICIENTS (INPUT, REAL*4)
+
+C  X(I,J,K) = VECTOR(INPUT, REAL*8)
+
+C  Y(I,J,K)= VECTOR(OUTPUT, REAL*8)
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'bcgs_la.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM)
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF)
+      REAL*8  X(IDIM,JDIM,KDIM), Y(IDIM,JDIM,KDIM)
+      REAL*8  DUB1
+
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2
+
+      IF (KEYOUT(I,J,K).NE.1) GO TO 1
+
+      DUB1=0d0
+      DUB1=DUB1+COF(I,J,K,1)*X(I,J,K)
+      IF (I.GT.1) DUB1=DUB1+COF(I,J,K,2)*X(I-1,J,K)
+      IF (I.LT.IDIM) DUB1=DUB1+COF(I,J,K,3)*X(I+1,J,K)
+      IF (J.GT.1) DUB1=DUB1+COF(I,J,K,4)*X(I,J-1,K)
+      IF (J.LT.JDIM) DUB1=DUB1+COF(I,J,K,5)*X(I,J+1,K)
+      IF (K.GT.1) DUB1=DUB1+COF(I,J,K,6)*X(I,J,K-1)
+      IF (K.LT.KDIM) DUB1=DUB1+COF(I,J,K,7)*X(I,J,K+1)
+      Y(I,J,K) = ALPHA * DUB1
+    1 CONTINUE
+
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_MEAS(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                      KL1,KL2,KEYOUT,NBLK,X)
+C***********************************************************************
+C Work routine calculates multigrid convergence measures for x
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,*)
+
+      INTEGER I,J,K,L,JL1,JL2,MEQ,NM
+
+C      MEQ=NUMEQS(NBLK)
+      MEQ=MODEQS(FMODBLK(NBLK))
+      NM=FMODBLK(NBLK)
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+             IF (KEYOUT(I,J,K).EQ.1)  THEN
+               DO L=1,MEQ
+                  RMAX(NM,L)=MAX(RMAX(NM,L),DABS(X(I,J,K,L)))
+                  RTOT(NM,L)=RTOT(NM,L)+X(I,J,K,L)
+               ENDDO
+             END IF
+            ENDDO
+         ENDDO
+      ENDDO
+      END
+
+C***********************************************************************
+      SUBROUTINE IG_MEAS2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                    KL1,KL2,KEYOUT,NBLK,X)
+C***********************************************************************
+C Work routine calculates multigrid convergence measures for x for 
+C single-unknown indended for model-independent arrays.
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'mulgrdc.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,L,JL1,JL2
+
+      DO K=KL1,KL2
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2
+            DO I=IL1,IL2
+             IF (KEYOUT(I,J,K).EQ.1)  THEN
+                RMAX12=MAX(RMAX12,DABS(X(I,J,K)))
+                RTOT12=RTOT12+X(I,J,K)
+             END IF
+            ENDDO
+         ENDDO
+      ENDDO
+      END

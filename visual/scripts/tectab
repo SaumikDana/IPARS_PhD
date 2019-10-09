@@ -1,0 +1,36 @@
+#! /bin/csh
+#
+# TECTAB
+# 
+# C - shell utility to combine data points and splines output
+#                   from IPARS in one .plt file  for all arguments
+#                   from command line
+# usage:
+#   tectab {tablist}
+# note: the easiest way to use it is though mtectab
+#
+# MPeszynska, 3/14/99
+###################################################################
+set number = 0
+#
+# if desired, remove all the old (and possibly irrelevant .plt files)
+#if ( ! (-e "*__?.plt") ) then
+#    rm -f *__?.plt
+#endif
+foreach arg ($*)	
+	@ number ++
+#
+#	echo 'argument number '$number' is '$arg
+#
+	rm -f dum
+	cat $arg ${arg}.out > dum
+	preplot dum ${arg}.plt
+#	echo "produced file ${arg}.plt"
+end			
+#
+exit 0
+#
+endshell: 
+echo "TECTAB ended in error. End."
+set status = 14
+

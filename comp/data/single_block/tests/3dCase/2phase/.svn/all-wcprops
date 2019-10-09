@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/repos/csm/!svn/ver/123/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase
+END
+3dOilHWatInj_Temp18Kd.eps
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase/3dOilHWatInj_Temp18Kd.eps
+END
+co2_prob1_2a3dSI.dat
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase/co2_prob1_2a3dSI.dat
+END
+oil_watT_3dc0.dat
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/repos/csm/!svn/ver/123/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase/oil_watT_3dc0.dat
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase/IPARS.IN
+END
+CapPres.dat
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase/CapPres.dat
+END
+CapPres0.dat
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase/CapPres0.dat
+END
+mcrplt0.tgz
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase/mcrplt0.tgz
+END
+wells2to25.dat
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase/wells2to25.dat
+END
+P1_2relprm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase/P1_2relprm.dat
+END
+P1_2MDrelprm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/3dCase/2phase/P1_2MDrelprm.dat
+END

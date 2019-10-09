@@ -1,0 +1,622 @@
+C  SPRB3.F - TRANSPORT EVALUATION FOR DIAGONAL TENSOR PERMEABILITY
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE CALLHSPRB3( NAMEROUTINE, ITRAN )
+C  SUBROUTINE HSPRB3X (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,TCOFX,DEPTH,POIL,PWAT,DUNK,RELPRM,
+C                     DPCSW,COF,SEPARABLE)
+C  SUBROUTINE HSPRB3Y (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,TCOFY,DEPTH,POIL,PWAT,DUNK,RELPRM,
+C                     DPCSW,COF,SEPARABLE)
+C  SUBROUTINE HSPRB3Z (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,TCOFZ,DEPTH,POIL,PWAT,DUNK,RELPRM,
+C                     DPCSW,COF,SEPARABLE)
+
+C  CODE HISTORY:
+
+C  YURI VASSILEVSKI 2/23/00    STORING PRESSURE BLOCK IN SEPARABLE
+
+C*********************************************************************
+      SUBROUTINE CALLHSPRB3( NAMEROUTINE, ITRAN )
+C*********************************************************************
+      EXTERNAL NAMEROUTINE
+      INTEGER  ITRAN(*)
+
+      INCLUDE 'sol.h'
+      INCLUDE 'sprhandle.h'
+
+      IF (PREC.EQ.10.or.PREC.EQ.11.or.PREC.EQ.12) THEN
+          N_RESIDCOPY = ITRAN(10)
+          ITRAN(10)=N_SEPARABLE
+          CALL CALLWORK(NAMEROUTINE,ITRAN)
+          ITRAN(10)=N_RESIDCOPY
+      END IF
+ 
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE HSPRB3X(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,TCOFX,DEPTH,POIL,PWAT,DUNK,
+     &                   RELPRM,DPCSW,COF,SEPARABLE)
+C*********************************************************************
+
+C  Hydrology model x transport for diagonal tensor permeability
+
+C  TCOFX(I,J,K) = X TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  DUNK(I,J,K,2) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  RELPRM(I,J,K,N) = RELATIVE PERMEABILITY DATA (INPUT, REAL*8)
+
+C  DPCSW(I,J,K) = DERIVATIVE OF Pc WRT Sw, PSI (INPUT, REAL*8)
+
+C  COF(I,J,K,N,M,L) = JACOBIAN COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+
+C  SEPARABLE(*) = WORK ARRAY FOR SEPARABLE PRECONDITIONER; STORES FIRST
+C                 3*(IDIM+JDIM+KDIM) ELEMENTS HERE
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'hfluids.h'
+      INCLUDE 'sprb.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 TCOFX(IDIM,JDIM,KDIM),       POIL(IDIM,JDIM,KDIM),
+     &       PWAT(IDIM,JDIM,KDIM),        DEPTH(IDIM,JDIM,KDIM),
+     &       DUNK(IDIM,JDIM,KDIM,2),      DPCSW(IDIM,JDIM,KDIM),
+     &       RELPRM(IDIM,JDIM,KDIM,4)
+      REAL*4 COF(IDIM,JDIM,KDIM,$NUMCOF,2)
+      REAL*8 SEPARABLE(*)
+      REAL*8 DOP,DWP,DUB1,DUB2,DUB3,DD,G2,TVW,TVO
+      REAL*8 SDUB2, DUM, DUM1, DUM2
+
+c Indices of the trace lines
+      call BLKOFF(NBLK,NXO,NYO,NZO,ierr)
+      Itrace = ILINEINDX(NBLK) - NXO
+      Jtrace = JLINEINDX(NBLK) - NYO
+      Ktrace = KLINEINDX(NBLK) - NZO
+      IF (heter) THEN
+       DO 11 I = 1, 3*IDIM*JDIM
+         SEPARABLE(I) = 0.0D0
+ 11    CONTINUE
+      ELSE
+       DO 12 I = 1, 3*IDIM
+         SEPARABLE(I) = 0.0D0
+ 12    CONTINUE
+      END IF
+
+
+      G2=.5D0*GRAV
+      TVW=DELTIM/WATVIS
+      TVO=DELTIM/OILVIS
+      IL2P=IL2+1
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2P
+
+C the SEPARABLE needs two dimensional traces
+      IF (heter) THEN
+       IF (TCOFX(I,J,K).NE.0.D0) THEN
+    
+C  OIL EQUATION, X TRANSPORT AT I - 1/2
+
+C  PIERS VARIABLES MAPPED INTO IPARS VARIABLES - OIL EQUATION
+C  CYOP(I,J,K)  --> RELPRM(I,J,K,1)
+C  CYON(I,J,K)  --> RELPRM(I,J,K,2)
+C  DPO(I,J,K)   --> DUNK(I,J,K,1)
+
+C  CCOP(I,J-1,K-1)   --> COF(I,J,K,1,1,1)
+C  CCON(I,J-1,K-1)   --> COF(I,J,K,1,1,2)
+C  CXOP(I-1,J-1,K-1) --> COF(I,J,K,2,1,1), COF(I-1,J,K,3,1,1)
+C  DXON(I-1,J-1,K-1) --> COF(I,J,K,2,1,2)
+C  CCOP(I-1,J-1,K-1) --> COF(I-1,J,K,1,1,1)
+C  CCON(I-1,J-1,K-1) --> COF(I-1,J,K,1,1,2)
+C  CXON(I-1,J-1,K-1) --> COF(I-1,J,K,3,1,2)
+
+         DD=(DEPTH(I,J,K)-DEPTH(I-1,J,K))*G2
+         DOP=POIL(I,J,K)-POIL(I-1,J,K)-(DUNK(I,J,K,1)+DUNK(I-1,J,K,1))
+     &       *DD
+C Test added to produce same jacobian on different machines
+         IF (DABS(DOP).LT.1.0D-12*POIL(I,J,K)) DOP = 0.0D0
+         DUB1=TVO*TCOFX(I,J,K)
+         IF (DOP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I-1,J,K,1)*DUNK(I-1,J,K,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (K.eq.Ktrace) THEN
+                  II = I + (J-1)*IDIM 
+                  SEPARABLE(II+IDIM*JDIM)=SEPARABLE(II+IDIM*JDIM)+SDUB2
+                  SEPARABLE(II)=SEPARABLE(II)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I-1,J,K).GT.0) THEN
+               IF (K.eq.Ktrace) THEN
+                  II = I - 1 + (J-1)*IDIM 
+                  SEPARABLE(II+IDIM*JDIM)=SEPARABLE(II+IDIM*JDIM)+SDUB2
+                  SEPARABLE(II+2*IDIM*JDIM)=
+     &            SEPARABLE(II+2*IDIM*JDIM)-SDUB2
+               END IF
+            ENDIF
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (K.eq.Ktrace) THEN
+                  II = I + (J-1)*IDIM
+                  SEPARABLE(II+IDIM*JDIM)=SEPARABLE(II+IDIM*JDIM)+SDUB2
+                  SEPARABLE(II)=SEPARABLE(II)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I-1,J,K).GT.0) THEN
+               IF (K.eq.Ktrace) THEN
+                  II = I - 1 + (J-1)*IDIM
+                  SEPARABLE(II+IDIM*JDIM)=SEPARABLE(II+IDIM*JDIM)+SDUB2
+                  SEPARABLE(II+2*IDIM*JDIM)=
+     &            SEPARABLE(II+2*IDIM*JDIM)-SDUB2 
+               END IF
+            ENDIF
+         ENDIF
+
+       ENDIF
+
+C the SEPARABLE needs one dimensional traces
+      ELSE
+       IF (TCOFX(I,J,K).NE.0.D0) THEN
+    
+C  OIL EQUATION, X TRANSPORT AT I - 1/2
+
+C  PIERS VARIABLES MAPPED INTO IPARS VARIABLES - OIL EQUATION
+C  CYOP(I,J,K)  --> RELPRM(I,J,K,1)
+C  CYON(I,J,K)  --> RELPRM(I,J,K,2)
+C  DPO(I,J,K)   --> DUNK(I,J,K,1)
+
+C  CCOP(I,J-1,K-1)   --> COF(I,J,K,1,1,1)
+C  CCON(I,J-1,K-1)   --> COF(I,J,K,1,1,2)
+C  CXOP(I-1,J-1,K-1) --> COF(I,J,K,2,1,1), COF(I-1,J,K,3,1,1)
+C  DXON(I-1,J-1,K-1) --> COF(I,J,K,2,1,2)
+C  CCOP(I-1,J-1,K-1) --> COF(I-1,J,K,1,1,1)
+C  CCON(I-1,J-1,K-1) --> COF(I-1,J,K,1,1,2)
+C  CXON(I-1,J-1,K-1) --> COF(I-1,J,K,3,1,2)
+
+         DD=(DEPTH(I,J,K)-DEPTH(I-1,J,K))*G2
+         DOP=POIL(I,J,K)-POIL(I-1,J,K)-(DUNK(I,J,K,1)+DUNK(I-1,J,K,1))
+     &       *DD
+C Test added to produce same jacobian on different machines
+         IF (DABS(DOP).LT.1.0D-12*POIL(I,J,K)) DOP = 0.0D0
+         DUB1=TVO*TCOFX(I,J,K)
+         IF (DOP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I-1,J,K,1)*DUNK(I-1,J,K,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (J.eq.Jtrace.and.K.eq.Ktrace) THEN
+                  II = I 
+                  SEPARABLE(II+IDIM)=SEPARABLE(II+IDIM)+SDUB2
+                  SEPARABLE(II)=SEPARABLE(II)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I-1,J,K).GT.0) THEN
+               IF (J.eq.Jtrace.and.K.eq.Ktrace) THEN
+                  II = I - 1  
+                  SEPARABLE(II+IDIM)=SEPARABLE(II+IDIM)+SDUB2
+                  SEPARABLE(II+2*IDIM)=SEPARABLE(II+2*IDIM)-SDUB2
+               END IF
+            ENDIF
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (J.eq.Jtrace.and.K.eq.Ktrace) THEN
+                  II = I 
+                  SEPARABLE(II+IDIM)=SEPARABLE(II+IDIM)+SDUB2
+                  SEPARABLE(II)=SEPARABLE(II)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I-1,J,K).GT.0) THEN
+               IF (J.eq.Jtrace.and.K.eq.Ktrace) THEN
+                  II = I - 1  
+                  SEPARABLE(II+IDIM)=SEPARABLE(II+IDIM)+SDUB2
+                  SEPARABLE(II+2*IDIM)=SEPARABLE(II+2*IDIM)-SDUB2
+               END IF
+            ENDIF
+         ENDIF
+
+       ENDIF
+
+      ENDIF
+c end if heterogenous
+
+    1 CONTINUE
+      END
+
+C*********************************************************************
+      SUBROUTINE HSPRB3Y(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,TCOFY,DEPTH,POIL,PWAT,DUNK,
+     &                   RELPRM,DPCSW,COF,SEPARABLE)
+C*********************************************************************
+
+C  Hydrology model y transport for diagonal tensor permeability
+
+C  TCOFY(I,J,K) = Y TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  DUNK(I,J,K,2) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  RELPRM(I,J,K,N) = RELATIVE PERMEABILITY DATA (INPUT, REAL*8)
+
+C  DPCSW(I,J,K) = DERIVATIVE OF Pc WRT Sw, PSI (INPUT, REAL*8)
+
+C  COF(I,J,K,N,M,L) = JACOBIAN COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+
+C  SEPARABLE(*) = WORK ARRAY FOR SEPARABLE PRECONDITIONER; STORES FIRST
+C                 3*(IDIM+JDIM+KDIM) ELEMENTS HERE
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'hfluids.h'
+      INCLUDE 'sprb.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 TCOFY(IDIM,JDIM,KDIM),       POIL(IDIM,JDIM,KDIM),
+     &       PWAT(IDIM,JDIM,KDIM),        DEPTH(IDIM,JDIM,KDIM),
+     &       DUNK(IDIM,JDIM,KDIM,2),      DPCSW(IDIM,JDIM,KDIM),
+     &       RELPRM(IDIM,JDIM,KDIM,4)
+      REAL*4 COF(IDIM,JDIM,KDIM,$NUMCOF,2)
+      REAL*8 SEPARABLE(*)
+      REAL*8 DOP,DWP,DUB1,DUB2,DUB3,DD,G2,TVW,TVO
+      REAL*8 SDUB2, DUM, DUM1, DUM2
+
+c Indexes of the trace lines
+      call BLKOFF(NBLK,NXO,NYO,NZO,ierr)
+      Itrace = ILINEINDX(NBLK) - NXO
+      Jtrace = JLINEINDX(NBLK) - NYO
+      Ktrace = KLINEINDX(NBLK) - NZO
+      IF (heter) THEN
+       DO 11 J = 1, 3*JDIM*IDIM
+         SEPARABLE(3*IDIM*JDIM+J) = 0.0D0
+ 11    CONTINUE
+      ELSE
+       DO 12 J = 1, 3*JDIM
+         SEPARABLE(3*IDIM+J) = 0.0D0
+ 12    CONTINUE
+      END IF
+
+
+      G2=.5D0*GRAV
+      TVW=DELTIM/WATVIS
+      TVO=DELTIM/OILVIS
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2P=JL2V(K)+1
+      DO 1 J=JL1,JL2P
+      DO 1 I=IL1,IL2
+
+C the SEPARABLE needs two dimensional traces
+      IF (heter) THEN
+       IF (TCOFY(I,J,K).NE.0.D0) THEN
+    
+C  OIL EQUATION, Y TRANSPORT AT J - 1/2
+
+         DD=(DEPTH(I,J,K)-DEPTH(I,J-1,K))*G2
+         DOP=POIL(I,J,K)-POIL(I,J-1,K)-(DUNK(I,J,K,1)+DUNK(I,J-1,K,1))
+     &       *DD
+C Test added to produce same jacobian on different machines
+         IF (DABS(DOP).LT.1.0D-12*POIL(I,J,K)) DOP = 0.0D0
+         DUB1=TVO*TCOFY(I,J,K)
+         IF (DOP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I,J-1,K,1)*DUNK(I,J-1,K,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (K.eq.Ktrace) THEN
+                  JJ = I + (J-1)*IDIM 
+                  SEPARABLE(4*IDIM*JDIM+JJ)=
+     &            SEPARABLE(4*IDIM*JDIM+JJ)+SDUB2
+                  SEPARABLE(3*IDIM*JDIM+JJ)=
+     &            SEPARABLE(3*IDIM*JDIM+JJ)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I,J-1,K).GT.0) THEN
+               IF (K.eq.Ktrace) THEN
+                  JJ =  I + (J-2)*IDIM
+                  SEPARABLE(4*IDIM*JDIM+JJ)=
+     &            SEPARABLE(4*IDIM*JDIM+JJ)+SDUB2
+                  SEPARABLE(5*IDIM*JDIM+JJ)=
+     &            SEPARABLE(5*IDIM*JDIM+JJ)-SDUB2
+               END IF
+            ENDIF
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (K.eq.Ktrace) THEN
+                  JJ = I + (J-1)*IDIM 
+                  SEPARABLE(4*IDIM*JDIM+JJ)=
+     &            SEPARABLE(4*IDIM*JDIM+JJ)+SDUB2
+                  SEPARABLE(3*IDIM*JDIM+JJ)=
+     &            SEPARABLE(3*IDIM*JDIM+JJ)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I,J-1,K).GT.0) THEN
+               IF (K.eq.Ktrace) THEN
+                  JJ = I + (J-2)*IDIM 
+                  SEPARABLE(4*IDIM*JDIM+JJ)=
+     &            SEPARABLE(4*IDIM*JDIM+JJ)+SDUB2
+                  SEPARABLE(5*IDIM*JDIM+JJ)=
+     &            SEPARABLE(5*IDIM*JDIM+JJ)-SDUB2
+               END IF
+            ENDIF
+         ENDIF
+
+       ENDIF
+
+      ELSE
+C the SEPARABLE needs one dimensional traces
+       IF (TCOFY(I,J,K).NE.0.D0) THEN
+    
+C  OIL EQUATION, Y TRANSPORT AT J - 1/2
+
+         DD=(DEPTH(I,J,K)-DEPTH(I,J-1,K))*G2
+         DOP=POIL(I,J,K)-POIL(I,J-1,K)-(DUNK(I,J,K,1)+DUNK(I,J-1,K,1))
+     &       *DD
+C Test added to produce same jacobian on different machines
+         IF (DABS(DOP).LT.1.0D-12*POIL(I,J,K)) DOP = 0.0D0
+         DUB1=TVO*TCOFY(I,J,K)
+         IF (DOP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I,J-1,K,1)*DUNK(I,J-1,K,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (I.eq.Itrace.and.K.eq.Ktrace) THEN
+                  JJ = J 
+                  SEPARABLE(3*IDIM+JDIM+JJ)=
+     &            SEPARABLE(3*IDIM+JDIM+JJ)+SDUB2
+                  SEPARABLE(3*IDIM+JJ)=SEPARABLE(3*IDIM+JJ)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I,J-1,K).GT.0) THEN
+               IF (I.eq.Itrace.and.K.eq.Ktrace) THEN
+                  JJ = J - 1 
+                  SEPARABLE(3*IDIM+JDIM+JJ)=
+     &            SEPARABLE(3*IDIM+JDIM+JJ)+SDUB2
+                  SEPARABLE(3*IDIM+2*JDIM+JJ)=
+     &            SEPARABLE(3*IDIM+2*JDIM+JJ)-SDUB2
+               END IF
+            ENDIF
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (I.eq.Itrace.and.K.eq.Ktrace) THEN
+                  JJ = J 
+                  SEPARABLE(3*IDIM+JDIM+JJ)=
+     &            SEPARABLE(3*IDIM+JDIM+JJ)+SDUB2
+                  SEPARABLE(3*IDIM+JJ)=SEPARABLE(3*IDIM+JJ)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I,J-1,K).GT.0) THEN
+               IF (I.eq.Itrace.and.K.eq.Ktrace) THEN
+                  JJ = J - 1 
+                  SEPARABLE(3*IDIM+JDIM+JJ)=
+     &            SEPARABLE(3*IDIM+JDIM+JJ)+SDUB2
+                  SEPARABLE(3*IDIM+2*JDIM+JJ)=
+     &            SEPARABLE(3*IDIM+2*JDIM+JJ)-SDUB2
+               END IF
+            ENDIF
+         ENDIF
+
+
+       ENDIF
+      ENDIF
+c end if heterogenous
+
+    1 CONTINUE
+      END
+
+C*********************************************************************
+      SUBROUTINE HSPRB3Z(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,TCOFZ,DEPTH,POIL,PWAT,DUNK,
+     &                   RELPRM,DPCSW,COF,SEPARABLE)
+C*********************************************************************
+
+C  Hydrology model z transport for diagonal tensor permeability
+
+C  TCOFZ(I,J,K) = Z TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  DUNK(I,J,K,2) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  RELPRM(I,J,K,N) = RELATIVE PERMEABILITY DATA (INPUT, REAL*8)
+
+C  DPCSW(I,J,K) = DERIVATIVE OF Pc WRT Sw, PSI (INPUT, REAL*8)
+
+C  COF(I,J,K,N,M,L) = JACOBIAN COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+
+C  SEPARABLE(*) = WORK ARRAY FOR SEPARABLE PRECONDITIONER; STORES FIRST
+C                 3*(IDIM+JDIM+KDIM) ELEMENTS HERE
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'hfluids.h'
+      INCLUDE 'sprb.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 TCOFZ(IDIM,JDIM,KDIM),       POIL(IDIM,JDIM,KDIM),
+     &       PWAT(IDIM,JDIM,KDIM),        DEPTH(IDIM,JDIM,KDIM),
+     &       DUNK(IDIM,JDIM,KDIM,2),      DPCSW(IDIM,JDIM,KDIM),
+     &       RELPRM(IDIM,JDIM,KDIM,4)
+      REAL*4 COF(IDIM,JDIM,KDIM,$NUMCOF,2,2)
+      REAL*8 SEPARABLE(*)
+      REAL*8 DOP,DWP,DUB1,DUB2,DUB3,DD,G2,TVW,TVO
+      REAL*8 SDUB2, DUM, DUM1, DUM2
+      INTRINSIC min,max
+
+c Indexes of the trace lines
+      call BLKOFF(NBLK,NXO,NYO,NZO,ierr)
+      Itrace = ILINEINDX(NBLK) - NXO
+      Jtrace = JLINEINDX(NBLK) - NYO
+      Ktrace = KLINEINDX(NBLK) - NZO
+      IF (heter) THEN
+       DO 11 K = 1, 3*KDIM
+         SEPARABLE(6*IDIM*JDIM+K) = 0.0D0
+ 11    CONTINUE
+      ELSE
+       DO 12 K = 1, 3*KDIM
+         SEPARABLE(3*IDIM+3*JDIM+K) = 0.0D0
+ 12    CONTINUE
+      END IF
+
+      G2=.5D0*GRAV
+      TVW=DELTIM/WATVIS
+      TVO=DELTIM/OILVIS
+      KL2P=KL2+1
+      DO 1 K=KL1,KL2P
+      IF ( K .eq. KL1 ) then
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+      ELSE IF (K.LT.KL2P) THEN
+         JL1=min( JL1V(K-1) , JL1V(K) )
+         JL2=max( JL2V(K-1) , JL2V(K) )
+      ELSE
+         JL1=JL1V(KL2)
+         JL2=JL2V(KL2)
+      ENDIF
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2
+
+C the SEPARABLE needs two dimensional traces
+      IF (heter) THEN
+       IF (TCOFZ(I,J,K).NE.0.D0) THEN
+    
+C  OIL EQUATION, Z TRANSPORT AT K - 1/2
+
+         DD=(DEPTH(I,J,K)-DEPTH(I,J,K-1))*G2
+         DOP=POIL(I,J,K)-POIL(I,J,K-1)-(DUNK(I,J,K,1)+DUNK(I,J,K-1,1))
+     &       *DD
+C Test added to produce same jacobian on different machines
+         IF (DABS(DOP).LT.1.0D-12*POIL(I,J,K)) DOP = 0.0D0
+         DUB1=TVO*TCOFZ(I,J,K)
+         IF (DOP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I,J,K-1,1)*DUNK(I,J,K-1,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(6*IDIM*JDIM+KDIM+K)=
+     &            SEPARABLE(6*IDIM*JDIM+KDIM+K)+SDUB2
+                  SEPARABLE(6*IDIM*JDIM+K)=
+     &            SEPARABLE(6*IDIM*JDIM+K)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I,J,K-1).GT.0) THEN
+               IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(6*IDIM*JDIM+KDIM+K-1)=
+     &            SEPARABLE(6*IDIM*JDIM+KDIM+K-1)+SDUB2
+                  SEPARABLE(6*IDIM*JDIM+2*KDIM+K-1)=
+     &            SEPARABLE(6*IDIM*JDIM+2*KDIM+K-1)-SDUB2
+               END IF
+            ENDIF
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(6*IDIM*JDIM+KDIM+K)=
+     &            SEPARABLE(6*IDIM*JDIM+KDIM+K)+SDUB2
+                  SEPARABLE(6*IDIM*JDIM+K)=
+     &            SEPARABLE(6*IDIM*JDIM+K)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I,J,K-1).GT.0) THEN
+               IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(6*IDIM*JDIM+KDIM+K-1)=
+     &            SEPARABLE(6*IDIM*JDIM+KDIM+K-1)+SDUB2
+                  SEPARABLE(6*IDIM*JDIM+2*KDIM+K-1)=
+     &            SEPARABLE(6*IDIM*JDIM+2*KDIM+K-1)-SDUB2
+               END IF
+            ENDIF
+         ENDIF
+
+       ENDIF
+C the SEPARABLE needs one dimensional traces
+      ELSE
+       IF (TCOFZ(I,J,K).NE.0.D0) THEN
+    
+C  OIL EQUATION, Z TRANSPORT AT K - 1/2
+
+         DD=(DEPTH(I,J,K)-DEPTH(I,J,K-1))*G2
+         DOP=POIL(I,J,K)-POIL(I,J,K-1)-(DUNK(I,J,K,1)+DUNK(I,J,K-1,1))
+     &       *DD
+C Test added to produce same jacobian on different machines
+         IF (DABS(DOP).LT.1.0D-12*POIL(I,J,K)) DOP = 0.0D0
+         DUB1=TVO*TCOFZ(I,J,K)
+         IF (DOP.LT.0.0D0) THEN
+            DUB2=DUB1*RELPRM(I,J,K-1,1)*DUNK(I,J,K-1,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(3*IDIM+3*JDIM+KDIM+K)=
+     &            SEPARABLE(3*IDIM+3*JDIM+KDIM+K)+SDUB2
+                  SEPARABLE(3*IDIM+3*JDIM+K)=
+     &            SEPARABLE(3*IDIM+3*JDIM+K)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I,J,K-1).GT.0) THEN
+               IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(3*IDIM+3*JDIM+KDIM+K-1)=
+     &            SEPARABLE(3*IDIM+3*JDIM+KDIM+K-1)+SDUB2
+                  SEPARABLE(3*IDIM+3*JDIM+2*KDIM+K-1)=
+     &            SEPARABLE(3*IDIM+3*JDIM+2*KDIM+K-1)-SDUB2
+               END IF
+            ENDIF
+         ELSE
+            DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+            SDUB2=DUB2
+            IF (KEYOUT(I,J,K).GT.0) THEN
+               IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(3*IDIM+3*JDIM+KDIM+K)=
+     &            SEPARABLE(3*IDIM+3*JDIM+KDIM+K)+SDUB2
+                  SEPARABLE(3*IDIM+3*JDIM+K)=
+     &            SEPARABLE(3*IDIM+3*JDIM+K)-SDUB2
+               END IF
+            ENDIF
+            IF (KEYOUT(I,J,K-1).GT.0) THEN
+               IF (I.eq.Itrace.and.J.eq.Jtrace) THEN
+                  SEPARABLE(3*IDIM+3*JDIM+KDIM+K-1)=
+     &            SEPARABLE(3*IDIM+3*JDIM+KDIM+K-1)+SDUB2
+                  SEPARABLE(3*IDIM+3*JDIM+2*KDIM+K-1)=
+     &            SEPARABLE(3*IDIM+3*JDIM+2*KDIM+K-1)-SDUB2
+               END IF
+            ENDIF
+         ENDIF
+
+       ENDIF
+      ENDIF
+c end if heterogenous
+
+    1 CONTINUE
+      END
+
+

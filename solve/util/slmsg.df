@@ -1,0 +1,58 @@
+c---->------------------------------------------------------------------<
+      SUBROUTINE SLMSGUNIT( NUNIT )
+      IMPLICIT NONE
+      INTEGER  NUNIT
+c---->
+c  IPARS common block with output parameters
+c
+      INCLUDE 'control.h'
+c---->
+      if ( MYPRC .eq. 0 ) then
+        NUNIT = NFOUT
+      else
+        NUNIT = 0
+      end if
+      return
+      end
+c---->------------------------------------------------------------------<
+      SUBROUTINE SLMSG( MSG )
+      IMPLICIT NONE
+c---->
+c  IPARS common block with output parameters
+c
+      INCLUDE 'control.h'
+c---->
+      CHARACTER*(*) MSG
+c---->
+      if ( MYPRC .eq. 0 ) then
+c        if ( LEVELA .or. LEVELB .or. LEVELD .or. LEVELE ) then
+          WRITE (NFOUT,*) MSG
+c        end if
+      end if
+      return
+      end
+
+c---->------------------------------------------------------------------<
+      SUBROUTINE SLDIE( MSG )
+      IMPLICIT NONE
+c---->
+c  IPARS common block with output parameters
+c
+      INCLUDE 'control.h'
+$MANY      INCLUDE 'mpif.h'
+$MANY$PV3      INCLUDE  'mpipv3.h'
+c---->
+      CHARACTER*(*) MSG
+c---->
+      INTEGER       IE
+c
+      if ( MYPRC .eq. 0 .or. LEVELE ) then
+        WRITE (NFOUT,*) MSG
+      end if
+      STOP 20
+$MANY$PV3      call MPI_ABORT( MPI_COMM_PV3 , MPI_ERR_UNKNOWN , IE )
+$MANY$NOPV3      call MPI_ABORT( MPI_COMM_WORLD , MPI_ERR_UNKNOWN , IE )
+      return
+      end
+c---->------------------------------------------------------------------<
+

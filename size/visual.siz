@@ -1,0 +1,43 @@
+$ ############ TecPlot Include File ############
+
+Replace_Symbols
+
+VISUAL  ""      $ Enable visual code 
+PV3     C       $ Disable PV3 output
+NOPV3   ""      $ Disable PV3 output
+TEC     ""      $ Enable tecplot output
+
+
+MXVFNAM         50              $ max length of vis. root file name
+MXVARS          30              $ max number of vis variables
+VMXSLI   3	     $ max number of rectangular slices
+
+Source_Directory
+../visual/tecplot/
+Source_Files
+vistec.dc      .c
+vistabf.df     .f
+visual1.dc     .c
+visual2.dc     .c
+visual3.dc     .c
+visual5.dc     .c
+visual6.dc     .c
+
+Source_Directory
+../visual/source/
+Source_Files
+visout.df      .f
+visslice.df    .f
+wellvis.df     .f
+visipol.c      .c
+visual.dc      .c
+visuals.dc     .c
+
+Source_Directory
+../visual/includes/
+Source_Files
+vistab.dh      .h
+vistabc.h      .h
+visualc.dh     .h
+visual.dh      .h
+vis_sli.dh     .h

@@ -1,0 +1,25 @@
+
+Note: 1) Use SAMG as a stand alone solver
+      2) Use SAMG as a preconditioner for the whole matrix (press and sat) accelerated by GMRES
+
+Currently, I am not very sure how the SAMG handle the parallel situation or how to incorporate
+IPARS and SAMG for multiple processors. IPARS uses domain decomposition method. The block matrixes
+are computed by each processor individuals. What about SAMG? Does it require the imput of entire
+matrix for the whole domain or it requires submatrix from each processors?
+
+If IPARS and SAMG hands parallel part differently, e.g. use different domain decomposition, I guess
+we have to use SAMG for subdomain solves as a preconditioner. In that case we may need extra 
+sweeps of RB lsor after block Jacobi preconditioning by SAMG. Then we may need to do the following 
+as in using SAMG for the pressure block in the two stage preconditioners.
+
+ (a). allocate memory for solve_data->pwork (for 3 equations instead of one)
+ (b). all slpresslinesorsolco after calling SAMG for lsor sweeps for pressure and saturations together.
+
+ (*) An alternative solution is to apply directly the second stage lsor solve (as in the two-stage 
+preconditioners) after calling SAMG. 
+
+
+What I am doing now?
+  Currently, I am just thinking about the single processor case and ignore the above (a) and (b) 
+steps. Later, if it is necessare in parallel case, we can work it out either by implement (a) and (b)
+or (*).

@@ -1,0 +1,395 @@
+TITLE(2)="TRANSPORT with flow model=SINGLE_PHASE_IMPLICIT"
+
+DESCRIPTION()=
+"LENGTH (FT) : 400"
+"WIDTH (FT) : 400"
+"THICKNESS (FT) : 20"
+"GRID BLOCKS : 10X20X20   4000 GRID ELEMENTS"
+"DATE : 6/9/98"
+
+BLOCKMODEL(1) = "TRANSPORT_CHEMISTRY"
+
+$ I/O OPTIONS
+
+OUTLEVEL = 2 
+REPORT_BAL_ALL 
+
+TIMEEND = 150.
+$TIMEEND = 20.
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ FLOW MODEL SPECIFICATION AND DATA 
+
+FLOW_MODEL = "SINGLE_PHASE_IMPLICIT"
+
+$$$ model specific parameters
+FLCOMP = 4.2E-5
+
+$$$ initial conditions (oil/water implicit)
+
+PINIT = 500.  
+
+$$$ solver options (flow part), GMRES solver
+
+LSOL_TOL = 1.E-5
+GMRES_PREC = 15
+N_GS_STEP = 5
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ TRANSPORT-CHEMISTRY PART
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$                                                                         $
+$                        TRANSPORT-CHEMSITRY DATA                         $
+$                                                                         $
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+$====================================================================$
+$                    GENERAL (CONTROL) DATA                          $
+$====================================================================$
+
+N_CONC_STEPS = 2
+ODE_ALG_TYPE = "RUNGE_KUTTA_4"
+N_RXNSTEPS = 1
+NSPECIES = 10
+
+$====================================================================$
+$                    TRANSPORT PARAMETERS                            $
+$====================================================================$
+
+$NO_ADVECTION        
+$NO_DISPERSION
+
+MOLECULAR_DIFFUSIVITY(,,) = 1.0
+TMP_LSOL_TOL = 1.E-10
+LONGITUDINAL_DISPERSIVITY(,) = 1.0
+TRANSVERSE_DISPERSIVITY(,) = 0.2
+
+$====================================================================$
+$                    CHEMISTRY PARAMETERS                            $
+$====================================================================$
+
+N_COMPONENTS = 6    N_PRODUCTS = 4
+
+$-------------------------------------$
+$     COMPONENT #1  (SPECIES #1)      $
+$-------------------------------------$
+  NAME_SPECIES(1) =              "TRACE" 
+  MOLECULAR_WEIGHT(1) =          1.0    
+  EQ_PARTITIONING_COEFF(,1) =    1.0 
+  PHASE_TYPE(1) =                "FLOWING" 
+  COMP_CHARGE(1) =               0.0
+
+$-------------------------------------$
+$     COMPONENT #2  (SPECIES #2)      $
+$-------------------------------------$
+  NAME_SPECIES(2) =              "TOL_S"            
+  MOLECULAR_WEIGHT(2) =          62.0    
+  EQ_PARTITIONING_COEFF(,2) =    1.0 
+  PHASE_TYPE(2) =                "STATIONARY"
+  COMP_CHARGE(2) =               0.0
+
+$-------------------------------------$
+$     COMPONENT #3  (SPECIES #3)      $
+$-------------------------------------$
+  NAME_SPECIES(3) =              "TOL_F"
+  MOLECULAR_WEIGHT(3) =          62.0
+  EQ_PARTITIONING_COEFF(,3) =    1.0
+  PHASE_TYPE(3) =                "FLOWING"
+  COMP_CHARGE(3) =               0.0
+
+$-------------------------------------$
+$     COMPONENT #4  (SPECIES #4)      $
+$-------------------------------------$
+  NAME_SPECIES(4) =              "OXYGEN"
+  MOLECULAR_WEIGHT(4) =          32.0
+  EQ_PARTITIONING_COEFF(,4) =    1.0
+  PHASE_TYPE(4) =                "FLOWING"
+  COMP_CHARGE(4) =               0.0
+
+
+$-------------------------------------$
+$     COMPONENT #5  (SPECIES #5)      $
+$-------------------------------------$
+  NAME_SPECIES(5) =              "NITROGEN"
+  MOLECULAR_WEIGHT(5) =          28.0
+  EQ_PARTITIONING_COEFF(,5) =    1.0
+  PHASE_TYPE(5) =                "FLOWING"
+  COMP_CHARGE(5) =               0.0
+
+$-------------------------------------$
+$     COMPONENT #6  (SPECIES #6)      $
+$-------------------------------------$
+  NAME_SPECIES(6) =              "MICROBEL"
+  MOLECULAR_WEIGHT(6) =          62.0
+  EQ_PARTITIONING_COEFF(,6) =    1.0
+  PHASE_TYPE(6) =                "FLOWING"
+  COMP_CHARGE(6) =               0.0
+
+
+$-------------------------------------$
+$     PRODUCT #1   (SPECIES #7)       $
+$-------------------------------------$
+  NAME_SPECIES(7) =              "TOL_DIS"
+  MOLECULAR_WEIGHT(7) =          62.0  
+  EQ_PARTITIONING_COEFF(,7) =    1.0 
+  PHASE_TYPE(7) =                "STATIONARY"   
+                                 $ "STATIONARY" or "FLOWING"
+  CHEMICAL_REACTION_TYPES(1) =   "MASS_ACTION"
+                                 $  "EQUILIBRIUM" "MASS_ACTION" or "MONOD"
+ $PK_EQUILIBRIUM(1) =            N/A
+  STOICH(1,) =                   0.0 -1.0 1.0 0.0 0.0 0.0
+  RATE_LAW_POWERS(1,) =          0.0 0.0 1.0 0.0 0.0 0.0
+  PK_FORWARD(,1) =               0.0
+  PK_BACKWARD(,1) =              -0.75
+ $HALF_SAT_CONST(,1) =           N/A    
+
+
+$-------------------------------------$
+$     PRODUCT #2   (SPECIES #8)       $
+$-------------------------------------$
+  NAME_SPECIES(8) =              "DGRPRD_I"
+  MOLECULAR_WEIGHT(8) =          62.0
+  EQ_PARTITIONING_COEFF(,8) =    1.0
+  PHASE_TYPE(8) =                "FLOWING"
+                                 $ "STATIONARY" or "FLOWING"
+  CHEMICAL_REACTION_TYPES(2) =   "MONOD"
+                                 $  "EQUILIBRIUM" "MASS_ACTION" or "MONOD"
+ $PK_EQUILIBRIUM(2) =            N/A
+  STOICH(2,) =                   0.0 0.0 10.87 62.5 0.0 -0.5
+  RATE_LAW_POWERS(2,) =          0.0 0.0 0.0 0.0 0.0 1.0
+  PK_FORWARD(,2) =               6.16
+  PK_BACKWARD(,2) =              -99.0
+  HALF_SAT_CONST(,2) =           0.0 0.0 5.356E-3 8.850E-5 0.0 0.0       
+                         $ 0.0 0.0 1.8913E-4 3.125E-6 0.0 0.0
+
+$-------------------------------------$
+$     PRODUCT #3   (SPECIES #9)       $
+$-------------------------------------$
+  NAME_SPECIES(9) =              "DGRPRD_II"
+  MOLECULAR_WEIGHT(9) =          62.0
+  EQ_PARTITIONING_COEFF(,9) =    1.0
+  PHASE_TYPE(9) =                "FLOWING"
+                                 $ "STATIONARY" or "FLOWING"
+  CHEMICAL_REACTION_TYPES(3) =   "MONOD"
+                                 $  "EQUILIBRIUM" "MASS_ACTION" or "MONOD"
+ $PK_EQUILIBRIUM(3) =            N/A
+  STOICH(3,) =                   0.0 0.0 10.87 0.0 92.8571 -0.5
+  RATE_LAW_POWERS(3,) =          0.0 0.0 0.0 0.0 0.0 1.0
+  PK_FORWARD(,3) =               6.16
+  PK_BACKWARD(,3) =              -99.0
+  HALF_SAT_CONST(,3) =           0.0 0.0 5.356E-3 0.0 2.630E-3 0.0
+           $  0.0 0.0 1.8913E-4 0.0 9.2857E-5 0.0
+
+$-------------------------------------$
+$     PRODUCT #4   (SPECIES #10)      $
+$-------------------------------------$
+  NAME_SPECIES(10)=              "DEAD_MICR"
+  MOLECULAR_WEIGHT(10)=          62.0
+  EQ_PARTITIONING_COEFF(,10)=    1.0
+  PHASE_TYPE(10)=                "FLOWING"
+                                 $ "STATIONARY" or "FLOWING"
+  CHEMICAL_REACTION_TYPES(4) =   "MASS_ACTION"
+                                 $  "EQUILIBRIUM" "MASS_ACTION" or "MONOD"
+ $PK_EQUILIBRIUM(4) =            N/A
+  STOICH(4,) =                   0.0 0.0 0.0 0.0 0.0 1.0
+  RATE_LAW_POWERS(4,) =          0.0 0.0 0.0 0.0 0.0 1.0
+  PK_FORWARD(,4) =               -10.0
+  PK_BACKWARD(,4) =              -99.0
+ $HALF_SAT_CONST(,4) =           N/A
+
+
+$====================================================================$
+$                      INITIAL CONDITIONS                            $
+$====================================================================$
+
+$ -------------- initial conditions for concentrations ------------- $
+         TRACE1(,1 TO 2,) = 1.00         $ trace
+         TOL_S1(,1 TO 2,) = 3.0          $ NAPL_pool
+         TOL_F1(,1 TO 2,) = 0.1          $ NAPL(aq)
+        OXYGEN1(,1 TO 2,) = 0.0          $ O2
+      NITROGEN1(,1 TO 2,) = 0.0          $ N2
+      MICROBEL1(,1 TO 2,) = 6.12         $ Microbel
+       TOL_DIS1(,1 TO 2,) = 3.0          $ NAPL_pool
+      DGRPRD_I1(,1 TO 2,) = 0.0          $ DegrProd1
+     DGRPRD_II1(,1 TO 2,) = 0.0          $ DegrProd2
+     DEAD_MICR1(,1 TO 2,) = 0.0          $ Deadmicr1
+
+         TRACE1(,3 TO 20,) = 0.00         $ trace
+         TOL_S1(,3 TO 20,) = 0.00         $ NAPL_pool
+         TOL_F1(,3 TO 20,) = 0.0          $ NAPL(aq)
+        OXYGEN1(,3 TO 20,) = 7.485E-3     $ O2       (2.643E-4M)
+      NITROGEN1(,3 TO 20,) = 1.459E-2     $ N2       (5.153E-4M)
+      MICROBEL1(,3 TO 20,) = 0.0          $ Microbel
+       TOL_DIS1(,3 TO 20,) = 0.0          $ NAPL_pool
+      DGRPRD_I1(,3 TO 20,) = 0.0          $ DegrProd1
+     DGRPRD_II1(,3 TO 20,) = 0.0          $ DegrProd2
+     DEAD_MICR1(,3 TO 20,) = 0.0          $ Deadmicr1
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$                                                                         $
+$                 END OF TRANSPORT-CHEMSITRY DATA                         $
+$                                                                         $
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ FAULT BLOCK AND MESH DATA
+
+DOWN() = 1 0 0
+NX(1) = 10  NY(1) = 20  NZ(1) = 20
+DX() = 2.   DY() = 20.  DZ() = 20.
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ ROCK PROPERTIES
+
+$ POROSITY
+
+POROSITY1() = .2
+
+$ PERMEABILITIES
+
+XPERM1() = 200.  
+XPERM1(3,,) = 2000.  
+XPERM1(6,,) = 1000.  
+XPERM1(,8,1 TO 12) = 2.
+XPERM1(,12,8 TO 20) = 2.
+
+YPERM1() = 1000.
+YPERM1(3,,) = 10000.
+YPERM1(6,,) = 5000.
+YPERM1(,8,1 TO 12) = 10.
+YPERM1(,12,8 TO 20) = 10.
+
+ZPERM1() = 1000.
+ZPERM1(3,,) = 10000.
+ZPERM1(6,,) = 5000.
+ZPERM1(,8,1 TO 12) = 10.
+ZPERM1(,12,8 TO 20) = 10.
+
+$ RELATIVE PERMS
+
+KOSW(1) Block        $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .8
+  Derivative  0 At .8
+  Constraint  1 At  0
+  Nodes  .2  .58
+  Data  0.  1. , .1  .67 , .2  .46 , .4  .2 , .6  .055 , .7  .015 , .8  0
+EndBlock
+
+KWSW(1) Block        $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .15
+  Derivative  0 At .15
+  Constraint  1 At   1
+  Nodes  .55  .7  .75
+  Data  .15  0 , .3  .035 , .4  .085 , .6  .28 , .8  .776 , 1  1
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Spline3
+  Extrapolation Same
+  Nodes  .25  .4  .7  .9
+  Pole   .12
+  Data
+  .16   9. , .2   6.12 , .225 4.86 , .25  4.22 , .275 3.78 , .325 3.2
+  .375 2.74 , .45  2.28 , .55  1.94 , .65  1.74 , .75  1.61 , .85  1.54
+  .925 1.44 , .95  1.37 , .975 1.14 , 1.0  .7
+EndBlock
+
+NUMWELL=2
+
+WELLNAME(1) = "FIRST WELL"
+KINDWELL(1) = 1
+WELLTOP(1 TO 3,1,1) = 0. 2*5.
+WELLBOTTOM(1 TO 3,1,1) = 15. 2*5.
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  510.
+EndBlock
+
+WELLNAME(2) = "SECOND WELL"
+KINDWELL(2) = 3
+WELLTOP(1 TO 3,1,2) = 0. 395. 395.
+WELLBOTTOM(1 TO 3,1,2) = 20. 395. 395.
+WELLPQ(2) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  480.  30.  350.
+EndBlock
+
+$------------------ output visual data for initial concs ----------------
+$$$$$$ request the output below if you want to see the variables
+$$ after initialization and before the first time step is taken
+$$ NOTE: currently only VISINIT OR (PERMOUT, WELLOUT) can be specified.
+$$ if VISINIT and either one of PERMOUT, WELLOUT is spciified, the latter
+$$ are ignored, as is in the current data file
+$$$$$ ....
+$$ after initialization you may want to see the values of primaries:
+$ set variables
+$VIS_SCL = 11
+$VIS_SCL_NAMES(1) = "PRES"
+$VIS_SCL_NAMES(2) = "DEAD_MICR"
+$VIS_SCL_NAMES(3) = "TRACE"
+$VIS_SCL_NAMES(4) = "TOL_S"
+$VIS_SCL_NAMES(5) = "TOL_F"
+$VIS_SCL_NAMES(6) = "OXYGEN"
+$VIS_SCL_NAMES(7) = "NITROGEN"
+$VIS_SCL_NAMES(8) = "MICROBEL"
+$VIS_SCL_NAMES(9) = "TOL_DIS"
+$VIS_SCL_NAMES(10) = "DGRPRD_I"
+$VIS_SCL_NAMES(11) = "DGRPRD_II"
+$VIS_NVEC = 0
+$ .. and set the flag
+$VISINIT
+$ .. and use a special file name (the default is TEC)
+$VIS_FNAME = "INIT"
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+DELTIM = 0.05  DTIMMUL = 1.0001  DTIMMAX = 0.1  
+TIMOUT = 40.  DTIMOUT = 60.
+TIMRES = 40.
+CVTOL = .1E-6
+$ visualization paramaters
+VISOUT = 5.  DVISOUT = 5.
+VIS_SCL = 11
+VISFLAG = 3
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "DEAD_MICR"
+VIS_SCL_NAMES(3) = "TRACE"
+VIS_SCL_NAMES(4) = "TOL_S"
+VIS_SCL_NAMES(5) = "TOL_F"
+VIS_SCL_NAMES(6) = "OXYGEN"
+VIS_SCL_NAMES(7) = "NITROGEN"
+VIS_SCL_NAMES(8) = "MICROBEL"
+VIS_SCL_NAMES(9) = "TOL_DIS"
+VIS_SCL_NAMES(10) = "DGRPRD_I"
+VIS_SCL_NAMES(11) = "DGRPRD_II"
+VIS_NVEC = 1
+VIS_VEC_NAMES(1) = "TRV"
+VIS_FNAME = "TRT_BIOREM_"
+EndTime
+
+BeginTime    40.
+TIMOUT = 100.  DTIMMAX = 3.
+FORMAT = TRUE  TIMRES = 365.25  DTIMRES = 730.5
+$DVISOUT = 10.
+N_CONC_STEPS = 4.
+EndTime
+
+BeginTime    100.
+DTIMMAX = 6.  TIMOUT = 365.25   DTIMOUT = 365.25
+DVISOUT = 10.
+N_CONC_STEPS = 8.
+EndTime
+
+BeginTime    200.
+DTIMMAX = 10.
+EndTime
+
+BeginTime    365.25
+DTIMMAX = 15.  FORMAT = FALSE
+EndTime

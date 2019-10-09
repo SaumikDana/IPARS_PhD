@@ -1,0 +1,19 @@
+$ ############ VTK Include File ############
+
+Replace_Symbols
+
+TEC     C       $ Disable tecplot output
+VTK     ""      $ Enable vtk output
+
+Source_Directory
+../visual/vtk/
+Source_Files
+visvtk.dc      .c
+visual7.dcpp   .cpp
+visual8.dcpp   .cpp
+vtkmem.dc      .c
+
+Source_Directory
+../visual/includes/
+Source_Files
+visvtk.dh      .h

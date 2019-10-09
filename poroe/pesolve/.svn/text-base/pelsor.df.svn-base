@@ -1,0 +1,60 @@
+C PCG.F
+C***********************************************************************
+      SUBROUTINE PELSOR(KERR)
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+     
+      INTEGER KERR
+
+      INTEGER AB,AD,R,X,Z,B,IARG(2)
+      INTEGER ICONVG,ITER
+      REAL*8  ONE
+      PARAMETER (ONE=-1.D0)
+
+      AB=N_EBEFORE
+      AD=N_EDIAG
+      B=N_ERESID
+      X=N_VARD
+      R=N_R
+      Z=N_Z
+      IARG(1)=1
+      IARG(2)=Z
+
+C GET THE INITIAL RESIDUAL
+
+      CALL PE_CVG(ICONVG,B)
+      DO I=1,PE_MEQ
+         PE_RMAX0(I)=PE_RMAX(I)
+         PE_RTOT0(I)=PE_RTOT(I)
+      ENDDO
+
+C     CALL PE_LSOR_UX(B,X,AB,AD)
+      
+C ITERATION LOOP
+
+      PE_ITER=0
+      DO ITER=1,PE_ITMAX
+         PE_ITER=ITER
+         CALL PE_LSOR(AB,AD,B,X)
+         CALL PE_GS_UX(AB,AD,B,X) 
+         CALL PE_MATVEC(X,R,AB,AD)
+         CALL PE_DSCALE(ONE,R,B)
+         CALL PE_CVG(ICONVG,R)         
+         IF (ICONVG.NE.0) GOTO 1
+         CALL PE_SOLVE2D(AB,AD,B,X)
+      ENDDO
+
+C STOPPING CRITERION NOT SATISFIED
+     
+      PE_ITER=PE_ITMAX+1
+      KERR=KERR+1
+
+   1  CONTINUE
+      END
+
+C***********************************************************************
+C                      END OF PCG.DF
+C***********************************************************************
+

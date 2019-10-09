@@ -1,0 +1,151 @@
+#! /bin/csh -f
+##################################################################
+# 
+# shell script to tar all the Tecplot visulization files
+# according to the info in Vis.inf, TEC_blks, TEC_info.
+# works as follows: appends all the files to
+# the file tecco.tr : 
+# see teccotar for a safer but more limited version
+# usage: just type teccotr
+
+# MPeszynska, 8/20/98
+##################################################################
+####### process the parameters
+set TARGETFILE = tecco.tr
+set MYNAME = TECCOTR
+set tarlist = "Vis.inf"
+####
+echo "------------------------------------------------------------------"
+echo "$MYNAME utility will delete and create a new tar file <$TARGETFILE>."
+echo "-------------------------------------------------------------------"
+echo "Do you want to proceed ?"
+set reply = $<
+if ( $reply != "y" ) then
+	exit 1
+	goto endshell
+endif
+echo "===================================================================="
+rm -f $TARGETFILE
+##############################
+#
+# process Vis.inf to set the main parameters
+if ( ! (-e Vis.inf) ) then
+        echo "File Vis.inf does not exist."
+        goto endshell
+endif
+set rootname   = `awk ' NR == 1 { print $3; } ' Vis.inf `
+set nprocessor = `awk ' NR == 2 { print $3; } ' Vis.inf `
+set style      = `awk ' NR == 3 { print $3; } ' Vis.inf `
+set visflag    = `awk ' NR == 4 { print $3; } ' Vis.inf `
+#
+if ( $style != 1) then
+# (possibly a POWER PC - maybe tar is not even available ...)
+	echo "Use a different script. The style is incompatible."
+	goto endshell
+else
+	echo "Processing files with root=$rootname, for $nprocessor procs."
+endif
+## set file names 
+set infoname = "${rootname}_info"
+set blkname  = "${rootname}_blks"
+#
+#### initialize 
+set zonelist = ()
+set number = 0
+set nsteps = 0
+set flist=()
+#
+##### process the files
+#
+set procnum = 0		
+set nsets = 0
+while ( $procnum < $nprocessor )	
+  #
+  ##### get the list of blocks on the current processor
+  #
+  set blkfile = "$blkname.$procnum"
+  set tarlist = "${tarlist} ${blkfile}"
+  rm -f zonedum
+  awk ' { \
+	printf("%s ", $NF);  \
+  }' $blkfile > zonedum
+  set blklist = `cat zonedum`
+#
+  echo "list of blocks for processor $procnum is $blklist"
+#
+  ######################## process all the blocks for the given processor
+  foreach fblock ($blklist)
+	#
+	##### get the list of zones from the INFO file
+	#
+	set infofile = "$infoname.$fblock.$procnum"
+        set tarlist = "${tarlist} ${infofile}"
+	####################### get all the time steps
+	rm -f zonedum
+	awk -F. ' NR > 2{ \
+	printf("%s ", $NF);  \
+	}' $infofile > zonedum
+	set zonelist = `cat zonedum`
+	set csteps = 0
+	foreach zone ($zonelist)
+		@ csteps ++	
+	end	
+#	echo "for proc $procnum counted $csteps $nsteps"
+	if ( $procnum == 0 ) then
+		set nsteps = $csteps
+	else
+		if ( $nsteps != $csteps )  then
+		 echo "Warning: different number of time steps for $procnum"
+		 goto endshell
+		endif
+		set nsteps = $csteps
+	endif
+#
+# append the new name of the file to the tarlist
+#
+    echo "list of zones for $fblock.$procnum is $zonelist"
+    set tarlist = "${tarlist} $rootname.$fblock.$procnum.$visflag.init"
+    set initfile = "$rootname.$fblock.$procnum.$visflag.init"
+
+    # tar the file INIT up immediately (could be the first one)
+    if ( -e "$TARGETFILE" ) then
+	# echo "Executing: tar -uvf $TARGETFILE $initfile"
+	tar -uvf $TARGETFILE $initfile
+    else
+	# echo "Executing: tar -cvf $TARGETFILE $initfile"
+	tar -cvf $TARGETFILE $initfile
+    endif	
+    echo " Tarring file $initfile  .... done."
+
+    foreach zone ($zonelist)
+	@ zonenum ++
+	set filename = "${rootname}.${fblock}.${procnum}"
+	set filename = "${filename}.${visflag}.${zone}"
+
+	# echo "Executing: tar -uvf $TARGETFILE $filename"
+	tar -uvf $TARGETFILE $filename
+        echo " Tarring file $filename  .... done."
+    end
+    @ nsets++
+  end # foreach loop for nfblocks
+#  echo "-----------------------------"	
+  @ procnum++	
+end # loop for nprocessor
+
+echo "========================================="
+echo "Finished tarring the visualization files OK."
+echo "========================================="
+
+######## exit OK
+exit 0
+######## exit on error
+endshell: 
+echo "$MYNAME ended in error. End."
+exit 1
+
+
+
+
+
+
+

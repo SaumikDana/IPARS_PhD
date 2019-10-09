@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/repos/csm/!svn/ver/150/IPARSv3.1/comp/data/single_block/tests/hloss/1dtest1ph
+END
+1dTempTest.dat
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/repos/csm/!svn/ver/150/IPARSv3.1/comp/data/single_block/tests/hloss/1dtest1ph/1dTempTest.dat
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/150/IPARSv3.1/comp/data/single_block/tests/hloss/1dtest1ph/IPARS.IN
+END
+tmpr_soln.dat
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/repos/csm/!svn/ver/150/IPARSv3.1/comp/data/single_block/tests/hloss/1dtest1ph/tmpr_soln.dat
+END

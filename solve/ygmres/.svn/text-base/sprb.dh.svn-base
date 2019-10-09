@@ -1,0 +1,38 @@
+C  common blocks needed for maintaining the separable preconditioner
+c  common with TRAN3?,DIVIDE
+      INTEGER ILINEINDX($MXBLKS),JLINEINDX($MXBLKS),KLINEINDX($MXBLKS)
+      COMMON /TRACEINDEX/ ILINEINDX,JLINEINDX,KLINEINDX
+      SAVE   /TRACEINDEX/
+
+c  common with PRECSOL,PRECPREP
+      double precision a3($MXRECXP*$MXRECYP,$MXBLKS),
+     &                 a2($MXRECXP*$MXRECYP,$MXBLKS),
+     &                 a1($MXRECZP,$MXBLKS) 
+      double precision b3($MXRECXP*$MXRECYP,$MXBLKS),
+     &                 b2($MXRECXP*$MXRECYP,$MXBLKS),
+     &                 b1($MXRECZP,$MXBLKS) 
+      double precision d3($MXRECXP*$MXRECYP,$MXBLKS),
+     &                 d2($MXRECXP*$MXRECYP,$MXBLKS),
+     &                 d1($MXRECZP,$MXBLKS)
+c     double precision a2($MXRECYP,$MXBLKS),a1($MXRECZP,$MXBLKS),
+c    &                 a3($MXRECXP,$MXBLKS)
+c     double precision b2($MXRECYP,$MXBLKS),b1($MXRECZP,$MXBLKS),
+c    &                 b3($MXRECXP,$MXBLKS)
+c     double precision d2($MXRECYP,$MXBLKS),d1($MXRECZP,$MXBLKS),
+c    &                 d3($MXRECXP,$MXBLKS)
+      integer n2($MXBLKS),n1($MXBLKS),n3($MXBLKS),ilf($MXBLKS),
+     &        iuf($MXBLKS),ldf2($MXBLKS),ldf3($MXBLKS),
+     &        Lvalue($MXBLKS),Lindex($MXBLKS),
+     &        MPI_COMM_FBLOCK
+      double precision ch($MXBLKS)
+      logical          heter
+      common/fastsolver/a1,b1,d1,a2,b2,d2,a3,b3,d3,ch,
+     &                  n1,n2,n3,ldf2,ldf3,ilf,iuf
+     &                  ,Lvalue,Lindex,MPI_COMM_FBLOCK
+     &                  ,heter
+      save/fastsolver/
+
+      INTEGER PRCBLK($MXBLKS),NPCBLK($MXBLKS)
+      common/proc_block/ PRCBLK,NPCBLK
+      save/proc_block/
+

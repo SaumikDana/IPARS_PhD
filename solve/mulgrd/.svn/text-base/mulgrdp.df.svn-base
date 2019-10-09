@@ -1,0 +1,1495 @@
+C  MULGRDP.F - MG MULTIPROCESSOR ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE FILMSMG (NLEV,NYMG,NZMG,N0MAPMG,PRCMAPMG,KTMP,NERR)
+C  SUBROUTINE EXMLSTMG(NLEV)
+C  SUBROUTINE R8UPDMG2(MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+C                      MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE CORMAPMG(MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+C                      MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE R8MATCH2(MGLF,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,JMG1F,
+C                      JMG2F,KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,
+C                      MAPMG,KEYMGF,KEYMGC,COFMGF,COFMGC,
+C                      DUKMGF,DUKMGC,RESMGF,RESMGC)
+C  SUBROUTINE R8MATCH3(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                      KL2,KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,
+C                      JMG2,KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE R8SMCOF2(MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+C                      MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE R8SMRES2(MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+C                      MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C  SUBROUTINE FILMSMGE(NLEV,NYMG,NZMG,N0MAPMG,PRCMAPMG,NERR)
+C  SUBROUTINE EXMLSTMGE(NLEV,NBLK)
+
+C  CODE HISTORY:
+C  YURI VASSILEVSKI 3/30/02    INITIAL CODE
+
+C  NOTES:
+
+C     1)  The routines in this file are required when $MANY is invoked
+C         in the .siz file.
+
+
+C*********************************************************************
+C*********************************************************************
+      SUBROUTINE FILMSMG(NLEV,NYMG,NZMG,N0MAPMG,PRCMAPMG,KTMP,NERR)
+C*********************************************************************
+
+C  Sets up message system for updating the communication layer around
+C  the MG elements assigned to a processor.This routine should not be
+C  called for dynamic load balancing.  
+
+C  NLEV  number of MG levels of layers (input, INTEGER)
+
+C  NYMG(n,b) Y dimension of BLOCK b FOR LEVEL n (input, INTEGER)
+
+C  NZMG(n,b) Z dimension of BLOCK b FOR LEVEL n (input, INTEGER)
+
+C  N0MAPMG(n,b) BASE LOCATION FOR BLOCK b IN PRCMAPMG for LEVEL n
+C                                               (input, INTEGER)
+
+C  PRCMAPMG(M,n) = PROCESSOR ASSIGNMENTS FOR EACH MG GRID COLUMN IN EACH
+C  BLOCK OF GRID ELEMENTS FOR LEVEL n.PRCMAP INDEXES ARE GLOBAL,NOT LOCAL.
+C                                               (input, INTEGER)
+
+C KTMP = 1 ==> ONLY 5 point template ==> adjacent elements only 
+C KTMP = 2 ==> square (9 point template) 
+
+
+C  NERR = Error number steped by 1 on error (input & output, INTEGER)
+
+C*********************************************************************
+
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mulgrdpp.h'
+      INTEGER NLEV,NYMG($MXMGLV+1,$MXBLKS),NZMG($MXMGLV+1,$MXBLKS),NERR
+      INTEGER N0MAPMG($MXMGLV+1,$MXBLKS),PRCMAPMG($MXCOLS/4,$MXMGLV+1)
+
+      INTEGER JS1(4),KS1(4),JS2(8),KS2(8)
+      DATA JS1/1,-1,0,0/,KS1/0,0,1,-1/
+      DATA JS2/-1,-1,-1,0,0,1,1,1/,KS2/-1,0,1,-1,1,-1,0,1/
+
+
+C  INITIALIZE
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)' PROC',MYPRC,
+     & ' ENTERING SUBROUTINE FILMSMG'
+
+      IF (NLEV.LT.1) RETURN
+      DO 100 I=1,NLEV
+      DO 100 J=1,$MXBLKS
+  100 MSGSMG(I,J)=0
+      IF (JLAY.LT.1.OR.KLAY.LT.1) RETURN
+
+C  5 or 9 POINT TEMPLATE
+      IF (KTMP.NE.1.and.KTMP.NE.2) GO TO 111
+      NUMTMP=KTMP
+
+      DO 1 NL=1,NLEV 
+      LSTINDMG(NL)=0
+      DO 1 M=1,NUMBLK
+      NY=NYMG(NL,M)
+      NZ=NZMG(NL,M)
+      N0=N0MAPMG(NL,M)
+      NYM=NYMG(NL,M)
+      MG=0
+
+C  BUILD LIST OF PROCESSOR TARGETS FOR 5 OR 9 POINT TEMPLATE
+
+      DO 2 J=1,NY
+      DO 2 K=1,NZ
+      MS=PRCMAPMG(N0+NYM*(K-1)+J,NL)
+      IF (MS.EQ.MYPRC) THEN
+         DO 3 MM=1,4*NUMTMP
+         IF (NUMTMP.EQ.1) THEN
+          JT=J+JS1(MM)
+          KT=K+KS1(MM)
+         ELSE
+          JT=J+JS2(MM)
+          KT=K+KS2(MM)
+         END IF
+         IF (JT.GT.0.AND.JT.LE.NY.AND.KT.GT.0.AND.KT.LE.NZ) THEN
+            MR=PRCMAPMG(N0+NYM*(KT-1)+JT,NL)
+            IF (MR.NE.MYPRC.AND.MR.GE.0) THEN
+               DO 4 L=1,MG
+               IF (MR.EQ.MSGTRGMG(L,NL,M)) GO TO 3
+    4          CONTINUE
+               IF (MG.EQ.$MXMPP) GO TO 213
+               MG=MG+1
+               MSGTRGMG(MG,NL,M)=MR
+            ENDIF
+         ENDIF
+    3    CONTINUE
+      ENDIF
+    2 CONTINUE
+      MSGSMG(NL,M)=MG
+
+C  BUILD MESSAGE LISTS FOR 5 OR 9 POINT TEMPLATE
+
+      DO 5 MN=1,MG
+      MR=MSGTRGMG(MN,NL,M)
+      MSGSNDFMG(MN,NL,M)=LSTINDMG(NL)+1
+      MSGSNDLMG(MN,NL,M)=LSTINDMG(NL)
+      DO 5 J=1,NY
+      DO 5 K=1,NZ
+      MS=PRCMAPMG(N0+NYM*(K-1)+J,NL)
+      IF (MS.EQ.MYPRC) THEN
+         DO 6 MM=1,4*NUMTMP
+         IF (NUMTMP.EQ.1) THEN
+          JT=J+JS1(MM)
+          KT=K+KS1(MM)
+         ELSE
+          JT=J+JS2(MM)
+          KT=K+KS2(MM)
+         END IF
+         IF (JT.GT.0.AND.JT.LE.NY.AND.KT.GT.0.AND.KT.LE.NZ) THEN
+            MF=PRCMAPMG(N0+NYM*(KT-1)+JT,NL)
+            IF (MF.EQ.MR.AND.MF.GE.0) THEN
+               MJK1=MSGSNDFMG(MN,NL,M)
+               MJK2=MSGSNDLMG(MN,NL,M)
+               DO 7 MJK=MJK1,MJK2
+               IF (MSGINDMG(1,MJK,NL).EQ.J.AND.MSGINDMG(2,MJK,NL).EQ.K)
+     &            GO TO 6
+    7          CONTINUE
+               IF (LSTINDMG(NL).GE.$MXMGI) GO TO 113
+               LSTINDMG(NL)=LSTINDMG(NL)+1
+               MSGSNDLMG(MN,NL,M)=LSTINDMG(NL)
+               MSGINDMG(1,LSTINDMG(NL),NL)=J
+               MSGINDMG(2,LSTINDMG(NL),NL)=K
+            ENDIF
+         ENDIF
+    6    CONTINUE
+      ENDIF
+    5 CONTINUE
+
+    1 CONTINUE
+
+
+C  EXCHANGE MESSAGE LISTS
+
+      CALL EXMLSTMG (NLEV)
+
+      RETURN
+
+  111 NERR=NERR+1
+      WRITE (*,112) MYPRC
+  112 FORMAT (/' ERROR # 201; WRONG KTMP, PROC',I5)
+      RETURN
+
+  113 NERR=NERR+1
+      WRITE (*,114) MYPRC
+  114 FORMAT (/' ERROR # 201; TOO MANY MESSAGE ELEMENTS, PROC',I5)
+      RETURN
+
+  213 NERR=NERR+1
+      WRITE (*,214) MYPRC
+  214 FORMAT (/' ERROR # 201; TOO MANY MESSAGE TARGETS, PROC',I5)
+
+      END
+C*********************************************************************
+      SUBROUTINE EXMLSTMG (NLEV)
+C*********************************************************************
+
+C  Exchanges message lists for updating the communication layer.
+
+C  NLEV  number of levels of layers (input, INTEGER)
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mulgrdpp.h'
+$MPI      INCLUDE 'mpif.h'
+$MPI      INTEGER IREQ($MXMPP),ISTAT(MPI_STATUS_SIZE)
+$MPI      LOGICAL FLAG
+
+      MTM=MODACT+1
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)' PROC',MYPRC,
+     & ' ENTERING SUBROUTINE EXMLSTMG, OLD TAG =',MSGTAG(MTM)
+
+C  LOOP OVER LEVELS AND FAULT BLOCKS
+
+      IERR=0
+      CALL TIMON(2)
+      DO 1 NL=1,NLEV
+      DO 1 NB=1,NUMBLK
+      NM2=MSGSMG(NL,NB)
+
+      MSGTAG(MTM)=MSGTAG(MTM)+1
+      IF (MSGTAG(MTM).GT.MSGTAG2(MTM)) MSGTAG(MTM)=MSGTAG1(MTM)
+
+C  SEND MESSAGE LISTS (NONBLOCKING) BLOCKING!
+
+      DO 2 NM=1,NM2
+      NE1=MSGSNDFMG(NM,NL,NB)
+      NE2=MSGSNDLMG(NM,NL,NB)
+      MLEN=(NE2-NE1+1)*2
+
+$MPI      CALL MPI_SEND(MSGINDMG(1,NE1,NL),MLEN,MPI_INTEGER,
+$MPI     & MSGTRGMG(NM,NL,NB),MSGTAG(MTM),MPI_COMM_WORLD,IERR)
+c$MPI      CALL MPI_ISEND(MSGINDMG(1,NE1,NL),MLEN,MPI_INTEGER,
+c$MPI     & MSGTRGMG(NM,NL,NB),MSGTAG(MTM),MPI_COMM_WORLD,IREQ(NM),IERR)
+
+      IF (IERR.GT.0) GO TO 13
+    2 CONTINUE
+
+C  RECEIVE MESSAGE LISTS (BLOCKING, ANY SOURCE)
+
+      DO 3 NM=1,NM2
+      MLEN=($MXMGI-LSTINDMG(NL))*2
+
+$MPI      CALL MPI_RECV(MSGINDMG(1,LSTINDMG(NL)+1,NL),MLEN,MPI_INTEGER,
+$MPI     & MPI_ANY_SOURCE,MSGTAG(MTM),MPI_COMM_WORLD,ISTAT,IERR)
+$MPI      CALL MPI_GET_COUNT(ISTAT,MPI_INTEGER,NI,IERR)
+$MPI      MS=ISTAT(MPI_SOURCE)
+
+      IF (IERR.GT.0) GO TO 13
+      MSGSRCMG(NM,NL,NB)=MS
+      MSGRCVFMG(NM,NL,NB)=LSTINDMG(NL)+1
+      LSTINDMG(NL)=LSTINDMG(NL)+NI/2
+    3 MSGRCVLMG(NM,NL,NB)=LSTINDMG(NL)
+
+C  WAIT FOR SEND COMPLETION
+C$MPI      CALL MPI_BARRIER(MPI_COMM_WORLD,IERR)
+c      DO 7 NM=1,NM2
+c$MPI    9 CALL MPI_TEST(IREQ(NM),FLAG,ISTAT,IERR)
+c      IF (IERR.GT.0) GO TO 13
+c$MPI      IF (.NOT.FLAG) GO TO 9
+c    7 CONTINUE
+
+    1 CONTINUE
+
+C  EXITS
+
+      CALL TIMOFF(2)
+      IF (LEVELE) WRITE (*,6) MYPRC
+    6 FORMAT('MESSAGE LIST EXCHANGE COMPLETE: MYPRC =',I5)
+
+      IF (LEVELE) THEN
+         DO 11 NL=1,NLEV
+         DO 11 NB=1,NUMBLK
+         M2=MSGSMG(NL,NB)
+         DO 11 M=1,M2
+
+         LI1=MSGSNDFMG(M,NL,NB)
+         LI2=MSGSNDLMG(M,NL,NB)
+
+         WRITE(*,16) MYPRC,LI2-LI1+1,MSGTRGMG(M,NL,NB),NB,NL
+   16    FORMAT(' PROC',I4,' SENDING',I5,' COLUMNS TO PROC',I4,
+     &      ', BLOCK',I3,', LEVEL  ',I2)
+
+         IF (BUGKEY(3)) THEN
+            LA=LI1
+   14       LB=LA+6
+            IF (LB.GT.LI2) LB=LI2
+            WRITE(*,10) MYPRC,MSGTRGMG(M,NL,NB),
+     &         (MSGINDMG(1,L,NL),MSGINDMG(2,L,NL),L=LA,LB)
+   10       FORMAT(' SEND FROM',I3,' TO',I3,' JK =',7(2I3,','))
+            LA=LB+1
+            IF (LB.LT.LI2) GO TO 14
+         ENDIF
+
+         LI1=MSGRCVFMG(M,NL,NB)
+         LI2=MSGRCVLMG(M,NL,NB)
+
+         WRITE(*,17) MYPRC,LI2-LI1+1,MSGTRGMG(M,NL,NB),NB,NL
+   17    FORMAT(' PROC',I4,' RECEIVING',I5,' COLUMNS FROM PROC',I4,
+     &      ', BLOCK',I3,', LEVEL  ',I2)
+
+         IF (BUGKEY(3)) THEN
+            LA=LI1
+   15       LB=LA+6
+            IF (LB.GT.LI2) LB=LI2
+            WRITE(*,12) MYPRC,MSGSRCMG(M,NL,NB),
+     &         (MSGINDMG(1,L,NL),MSGINDMG(2,L,NL),L=LA,LB)
+   12       FORMAT(' RECV AT',I3,' FROM',I3,' JK =',7(2I3,','))
+            LA=LB+1
+            IF (LB.LT.LI2) GO TO 15
+         ENDIF
+
+   11    CONTINUE
+      ENDIF
+
+      RETURN
+   13 WRITE (*,*) ' MESSAGE ERROR',IERR,' IN EXMLSTMG FOR PROC',MYPRC
+      CALL KILLPRC(IERR)
+
+      END
+C*********************************************************************
+      SUBROUTINE R8UPDMG2(MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C   9 point template     
+C  Exchanges communication layer data for MGLV level of MG
+C  for 1 fault block and 1 REAL*8 2d array DUKMG.
+C  THIS IS A MGWORK3 ROUTINE
+
+C*********************************************************************
+      USE scrat1mod
+
+      PARAMETER (NDB=$MXREAD/8)
+      INCLUDE 'control.h'
+!      INCLUDE 'scrat1.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mulgrdc.h'
+      INCLUDE 'mulgrdpp.h'
+$MPI      INCLUDE 'mpif.h'
+$MPI      INTEGER IREQ($MXMPP),ISTATS(MPI_STATUS_SIZE,$MXMPP)
+$MPI      INTEGER ISTATR(MPI_STATUS_SIZE)
+      INTEGER MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*8  RESMG(JDMG,KDMG,*), COFMG(JDMG,KDMG,$NCOFMG,*)
+      REAL*8  DUKMG(JDMG,KDMG,*),  B(NDB)
+
+      MTM=MODACT+1
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)' PROC',MYPRC,
+     & ' ENTERING SUBROUTINE R8UPDMG2, BLOCK =',NBLK,
+     & ', OLD TAG =',MSGTAG(MTM)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      MEQ=NUMEQS(NBLK)
+      M2=MSGSMG(MGLV,NBLK)
+
+c     DO 10 LL=1,MEQ
+
+      MSGTAG(MTM)=MSGTAG(MTM)+1
+      IF (MSGTAG(MTM).GT.MSGTAG2(MTM)) MSGTAG(MTM)=MSGTAG1(MTM)
+
+      IF (M2.LE.0) GO TO 10
+
+C  NONBLOCKING SENDS
+
+      NFE1=1
+      DO 2 M=1,M2
+      LI1=MSGSNDFMG(M,MGLV,NBLK)
+      LI2=MSGSNDLMG(M,MGLV,NBLK)
+      NFE2=NFE1
+      DO 1 L=LI1,LI2
+      J=MSGINDMG(1,L,MGLV)-JOFFMG(MGLV,NBLK)
+      K=MSGINDMG(2,L,MGLV)-KOFFMG(MGLV,NBLK)
+      DO 1 I=1,1
+      DO 1 LL=1,MEQ
+C                IDIM
+      B(NFE2)=DUKMG(J,K,LL)
+    1 NFE2=NFE2+1
+
+$MPI      CALL MPI_ISEND(B(NFE1),NFE2-NFE1,MPI_DOUBLE_PRECISION,
+$MPI     &MSGTRGMG(M,MGLV,NBLK),MSGTAG(MTM),MPI_COMM_WORLD,IREQ(M),IERR)
+
+      IF (IERR.GT.0) GO TO 13
+    2 NFE1=NFE2
+
+C  RECEIVE
+
+      LENM=NDB-NFE1+1
+      DO 3 M=1,M2
+
+$MPI      CALL MPI_RECV(B(NFE1),LENM,MPI_DOUBLE_PRECISION,
+$MPI     & MPI_ANY_SOURCE,MSGTAG(MTM),MPI_COMM_WORLD,ISTATR,IERR)
+$MPI      MS=ISTATR(MPI_SOURCE)
+
+      IF (IERR.GT.0) GO TO 13
+      DO 5 MM=1,M2
+      IF (MS.EQ.MSGSRCMG(MM,MGLV,NBLK)) THEN
+         LI1=MSGRCVFMG(MM,MGLV,NBLK)
+         LI2=MSGRCVLMG(MM,MGLV,NBLK)
+         GO TO 6
+      ENDIF
+    5 CONTINUE
+      IERR=1
+      GO TO 13
+
+    6 NFE2=NFE1
+      DO 4 L=LI1,LI2
+      J=MSGINDMG(1,L,MGLV)-JOFFMG(MGLV,NBLK)
+      K=MSGINDMG(2,L,MGLV)-KOFFMG(MGLV,NBLK)
+      DO 4 I=1,1
+      DO 4 LL=1,MEQ
+C               IDIM
+      DUKMG(J,K,LL)=B(NFE2)
+    4 NFE2=NFE2+1
+
+    3 CONTINUE
+
+C  WAIT FOR SEND COMPLETION
+
+$MPI      CALL MPI_WAITALL (M2,IREQ,ISTATS,IERR)
+
+      IF (IERR.GT.0) THEN
+         NER1=4
+         NER2=M2
+         GO TO 13
+      ENDIF
+
+C  TERMINATE 4TH INDEX LOOP
+
+   10 CONTINUE
+
+C  EXITS
+
+      RETURN
+
+   13 WRITE (*,*) ' MESSAGE ERROR',IERR,' IN R8UPDMG2 FOR PROC',MYPRC,
+     & ', BLOCK',NBLK,', LOC',NER1,', DATA',NER2
+      CALL KILLPRC(IERR)
+
+      END
+C*********************************************************************
+      SUBROUTINE CORMAPMG(MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C  9 point template  
+C  Corrects 2 INTEGER 2d arrays MAPMG and KEYMG IN GHOST CELLS
+C  of  communication layer for MGLV level of MG
+C  for 1 fault block
+C  THIS IS A MGWORK3 ROUTINE
+
+C*********************************************************************
+      USE scrat1mod
+
+      PARAMETER (NDB=$MXREAD/8)
+      INCLUDE 'control.h'
+!      INCLUDE 'scrat1.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mulgrdc.h'
+      INCLUDE 'mulgrdpp.h'
+$MPI      INCLUDE 'mpif.h'
+$MPI      INTEGER IREQ($MXMPP),ISTATS(MPI_STATUS_SIZE,$MXMPP)
+$MPI      INTEGER ISTATR(MPI_STATUS_SIZE)
+      INTEGER MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*8  RESMG(JDMG,KDMG,*), COFMG(JDMG,KDMG,$NCOFMG,*)
+      REAL*8  DUKMG(JDMG,KDMG,*)
+
+      INTEGER INTB(NDB)
+
+      MTM=MODACT+1
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)' PROC',MYPRC,
+     & ' ENTERING SUBROUTINE CORMAPMG, BLOCK =',NBLK,
+     & ', OLD TAG =',MSGTAG(MTM)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      M2=MSGSMG(MGLV,NBLK)
+
+C CORRECT MAPMG IN MY CELLS
+      MSGTAG(MTM)=MSGTAG(MTM)+1
+      IF (MSGTAG(MTM).GT.MSGTAG2(MTM)) MSGTAG(MTM)=MSGTAG1(MTM)
+
+      IF (M2.LE.0) GO TO 88
+
+C  NONBLOCKING SENDS
+
+      NFE1=1
+      DO 82 M=1,M2
+      LI1=MSGRCVFMG(M,MGLV,NBLK)
+      LI2=MSGRCVLMG(M,MGLV,NBLK)
+      NFE2=NFE1
+      DO 81 L=LI1,LI2
+      J=MSGINDMG(1,L,MGLV)-JOFFMG(MGLV,NBLK)
+      K=MSGINDMG(2,L,MGLV)-KOFFMG(MGLV,NBLK)
+      INTB(NFE2)=MAPMG(J,K)
+   81 NFE2=NFE2+1
+
+$MPI      CALL MPI_ISEND(INTB(NFE1),NFE2-NFE1,MPI_INTEGER,
+$MPI     &MSGSRCMG(M,MGLV,NBLK),MSGTAG(MTM),MPI_COMM_WORLD,IREQ(M),IERR)
+
+      IF (IERR.GT.0) GO TO 13
+   82 NFE1=NFE2
+
+C  RECEIVE
+
+      LENM=NDB-NFE1+1
+      DO 83 M=1,M2
+
+$MPI       CALL MPI_RECV(INTB(NFE1),LENM,MPI_INTEGER,
+$MPI     & MPI_ANY_SOURCE,MSGTAG(MTM),MPI_COMM_WORLD,ISTATR,IERR)
+$MPI       MS=ISTATR(MPI_SOURCE)
+
+
+      IF (IERR.GT.0) GO TO 13
+      DO 85 MM=1,M2
+      IF (MS.EQ.MSGTRGMG(MM,MGLV,NBLK)) THEN
+         LI1=MSGSNDFMG(MM,MGLV,NBLK)
+         LI2=MSGSNDLMG(MM,MGLV,NBLK)
+         GO TO 86
+      ENDIF
+   85 CONTINUE
+      IERR=1
+      GO TO 13
+
+   86 NFE2=NFE1
+      DO 84 L=LI1,LI2
+      J=MSGINDMG(1,L,MGLV)-JOFFMG(MGLV,NBLK)
+      K=MSGINDMG(2,L,MGLV)-KOFFMG(MGLV,NBLK)
+       MP1 = INTB(NFE2)
+       MP2 = MAPMG(J,K)
+c      MAPMG(J,K)=INTB(NFE2)
+       IF (MOD(MP1,2).GT.0.or.MOD(MP2,2).GT.0) THEN
+         i1 = 1
+       ELSE
+         i1 = 0
+       ENDIF
+       IF (MOD(MP1,4).GT.1.or.MOD(MP2,4).GT.1) THEN
+         i2 = 1
+       ELSE
+         i2 = 0
+       ENDIF
+       IF (MOD(MP1,8).GT.3.or.MOD(MP2,8).GT.3) THEN
+         i3 = 1
+       ELSE
+         i3 = 0
+       ENDIF
+       IF (MP1.GT.7.or.MP2.GT.7) THEN
+         i4 = 1
+       ELSE
+         i4 = 0
+       ENDIF
+       MAPMG(J,K)=i1+i2*2+i3*4+i4*8
+   84 NFE2=NFE2+1
+
+   83 CONTINUE
+
+C  WAIT FOR SEND COMPLETION
+
+$MPI      CALL MPI_WAITALL (M2,IREQ,ISTATS,IERR)
+
+      IF (IERR.GT.0) THEN
+         NER1=4
+         NER2=M2
+         GO TO 13
+      ENDIF
+
+
+   88 CONTINUE
+
+C  UPDATE MAPMG AND KEYMG IN GHOST CELLS
+      DO 10 LL=1,2
+
+      MSGTAG(MTM)=MSGTAG(MTM)+1
+      IF (MSGTAG(MTM).GT.MSGTAG2(MTM)) MSGTAG(MTM)=MSGTAG1(MTM)
+
+      IF (M2.LE.0) GO TO 10
+
+C  NONBLOCKING SENDS
+
+      NFE1=1
+      DO 2 M=1,M2
+      LI1=MSGSNDFMG(M,MGLV,NBLK)
+      LI2=MSGSNDLMG(M,MGLV,NBLK)
+      NFE2=NFE1
+      DO 1 L=LI1,LI2
+      J=MSGINDMG(1,L,MGLV)-JOFFMG(MGLV,NBLK)
+      K=MSGINDMG(2,L,MGLV)-KOFFMG(MGLV,NBLK)
+      DO 1 I=1,1
+      IF (LL.EQ.1) THEN
+       INTB(NFE2)=MAPMG(J,K)
+      ELSE
+       INTB(NFE2)=KEYMG(J,K)
+      END IF
+    1 NFE2=NFE2+1
+
+$MPI      CALL MPI_ISEND(INTB(NFE1),NFE2-NFE1,MPI_INTEGER,
+$MPI     &MSGTRGMG(M,MGLV,NBLK),MSGTAG(MTM),MPI_COMM_WORLD,IREQ(M),IERR)
+
+      IF (IERR.GT.0) GO TO 13
+    2 NFE1=NFE2
+
+C  RECEIVE
+
+      LENM=NDB-NFE1+1
+      DO 3 M=1,M2
+
+$MPI      CALL MPI_RECV(INTB(NFE1),LENM,MPI_INTEGER,
+$MPI     & MPI_ANY_SOURCE,MSGTAG(MTM),MPI_COMM_WORLD,ISTATR,IERR)
+$MPI      MS=ISTATR(MPI_SOURCE)
+
+      IF (IERR.GT.0) GO TO 13
+      DO 5 MM=1,M2
+      IF (MS.EQ.MSGSRCMG(MM,MGLV,NBLK)) THEN
+         LI1=MSGRCVFMG(MM,MGLV,NBLK)
+         LI2=MSGRCVLMG(MM,MGLV,NBLK)
+         GO TO 6
+      ENDIF
+    5 CONTINUE
+      IERR=1
+      GO TO 13
+
+    6 NFE2=NFE1
+      DO 4 L=LI1,LI2
+      J=MSGINDMG(1,L,MGLV)-JOFFMG(MGLV,NBLK)
+      K=MSGINDMG(2,L,MGLV)-KOFFMG(MGLV,NBLK)
+      DO 4 I=1,1
+      IF (LL.EQ.1) THEN
+c      MAPMG(J,K)=INTB(NFE2)
+       MP1 = INTB(NFE2)
+       MP2 = MAPMG(J,K)
+       IF (MOD(MP1,2).GT.0.or.MOD(MP2,2).GT.0) THEN
+         i1 = 1
+       ELSE
+         i1 = 0
+       ENDIF
+       IF (MOD(MP1,4).GT.1.or.MOD(MP2,4).GT.1) THEN
+         i2 = 1
+       ELSE
+         i2 = 0
+       ENDIF
+       IF (MOD(MP1,8).GT.3.or.MOD(MP2,8).GT.3) THEN
+         i3 = 1
+       ELSE
+         i3 = 0
+       ENDIF
+       IF (MP1.GT.7.or.MP2.GT.7) THEN
+         i4 = 1
+       ELSE
+         i4 = 0
+       ENDIF
+       MAPMG(J,K)=i1+i2*2+i3*4+i4*8
+      ELSE
+       KEYMG(J,K)=-IABS(INTB(NFE2))
+      END IF
+    4 NFE2=NFE2+1
+
+    3 CONTINUE
+
+C  WAIT FOR SEND COMPLETION
+
+$MPI      CALL MPI_WAITALL (M2,IREQ,ISTATS,IERR)
+
+      IF (IERR.GT.0) THEN
+         NER1=4
+         NER2=M2
+         GO TO 13
+      ENDIF
+
+C  TERMINATE 4TH INDEX LOOP
+
+   10 CONTINUE
+
+C  EXITS
+
+      RETURN
+
+   13 WRITE (*,*) ' MESSAGE ERROR',IERR,' IN CORMAPMG FOR PROC',MYPRC,
+     & ', BLOCK',NBLK,', LOC',NER1,', DATA',NER2
+      CALL KILLPRC(IERR)
+
+      END
+C*********************************************************************
+      SUBROUTINE R8MATCH2(MGLF,NBLK,JDMGF,KDMGF,JDMGC,KDMGC,JMG1F,
+     &   JMG2F,KMG1F,KMG2F,JMG1C,JMG2C,KMG1C,KMG2C,
+     &   MAPMG,KEYMGF,KEYMGC,COFMGF,COFMGC,DUKMGF,DUKMGC,RESMGF,RESMGC)
+C*********************************************************************
+
+C  9 point template   
+C  MATCH 2D VALUES IN THE COMMUNICATION LAYER:
+C  IF KEYMGC=-1 and KEYMGF=1 THEN UPDATE THE VALUE OF DUKMG
+C  AT KEYMGF from THE NEIGHBORING PROCESSOR for 1 fault block
+C  THIS IS A MGWORK2 ROUTINE
+
+C*********************************************************************
+      USE scrat1mod
+
+      PARAMETER (NDB=$MXREAD/8)
+      INCLUDE 'control.h'
+!      INCLUDE 'scrat1.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mulgrdc.h'
+      INCLUDE 'mulgrdpp.h'
+$MPI      INCLUDE 'mpif.h'
+$MPI      INTEGER IREQ($MXMPP),ISTATS(MPI_STATUS_SIZE,$MXMPP)
+$MPI      INTEGER ISTATR(MPI_STATUS_SIZE)
+      INTEGER MAPMG(JDMGC,KDMGC),KEYMGF(JDMGF,KDMGF),
+     & KEYMGC(JDMGC,KDMGC)
+      REAL*8  DUKMGF(JDMGF,KDMGF,*),DUKMGC(JDMGC,KDMGC,*),
+     &   RESMGF(JDMGF,KDMGF,*),RESMGC(JDMGC,KDMGC,*),
+     &   COFMGF(JDMGF,KDMGF,$NCOFMG,*),COFMGC(JDMGC,KDMGC,$NCOFMG,*)
+
+      REAL*8   B(NDB),EMPTY
+      PARAMETER (EMPTY=1d30)
+
+
+      MTM=MODACT+1
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)' PROC',MYPRC,
+     & ' ENTERING SUBROUTINE R8MATCH2, BLOCK =',NBLK,
+     & ', OLD TAG =',MSGTAG(MTM)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      MEQ=NUMEQS(NBLK)
+      M2=MSGSMG(MGLF,NBLK)
+
+
+c     DO 10 LL=1,MEQ
+
+      MSGTAG(MTM)=MSGTAG(MTM)+1
+      IF (MSGTAG(MTM).GT.MSGTAG2(MTM)) MSGTAG(MTM)=MSGTAG1(MTM)
+
+      IF (M2.LE.0) GO TO 10
+
+C  NONBLOCKING SENDS
+
+      NFE1=1
+      DO 2 M=1,M2
+      LI1=MSGRCVFMG(M,MGLF,NBLK)
+      LI2=MSGRCVLMG(M,MGLF,NBLK)
+      NFE2=NFE1
+      DO 1 L=LI1,LI2
+      J=MSGINDMG(1,L,MGLF)-JOFFMG(MGLF,NBLK)
+      K=MSGINDMG(2,L,MGLF)-KOFFMG(MGLF,NBLK)
+      JC=(J+JOFFMG(MGLF,NBLK)+1)/2 - JOFFMG(MGLF+1,NBLK)
+      KC=(K+KOFFMG(MGLF,NBLK)+1)/2 - KOFFMG(MGLF+1,NBLK)
+      DO 1 I=1,1
+      DO 1 LL=1,MEQ
+      IF (KEYMGC(JC,KC).eq.1.and.KEYMGF(J,K).eq.-1) THEN
+          B(NFE2)=DUKMGF(J,K,LL)
+      ELSE
+          B(NFE2)=EMPTY
+      END IF
+      NFE2=NFE2+1
+    1 CONTINUE   
+
+$MPI      CALL MPI_ISEND(B(NFE1),NFE2-NFE1,MPI_DOUBLE_PRECISION,
+$MPI     &MSGSRCMG(M,MGLF,NBLK),MSGTAG(MTM),MPI_COMM_WORLD,IREQ(M),IERR)
+
+      IF (IERR.GT.0) GO TO 13
+    2 NFE1=NFE2
+
+C  RECEIVE
+
+      LENM=NDB-NFE1+1
+      DO 3 M=1,M2
+
+$MPI      CALL MPI_RECV(B(NFE1),LENM,MPI_DOUBLE_PRECISION,
+$MPI     & MPI_ANY_SOURCE,MSGTAG(MTM),MPI_COMM_WORLD,ISTATR,IERR)
+$MPI      MS=ISTATR(MPI_SOURCE)
+
+      IF (IERR.GT.0) GO TO 13
+      DO 5 MM=1,M2
+      IF (MS.EQ.MSGTRGMG(MM,MGLF,NBLK)) THEN
+         LI1=MSGSNDFMG(MM,MGLF,NBLK)
+         LI2=MSGSNDLMG(MM,MGLF,NBLK)
+         GO TO 6
+      ENDIF
+    5 CONTINUE
+      IERR=1
+      GO TO 13
+
+    6 NFE2=NFE1
+      DO 4 L=LI1,LI2
+      J=MSGINDMG(1,L,MGLF)-JOFFMG(MGLF,NBLK)
+      K=MSGINDMG(2,L,MGLF)-KOFFMG(MGLF,NBLK)
+      JC=(J+JOFFMG(MGLF,NBLK)+1)/2 - JOFFMG(MGLF+1,NBLK)
+      KC=(K+KOFFMG(MGLF,NBLK)+1)/2 - KOFFMG(MGLF+1,NBLK)
+      DO 4 I=1,1
+      DO 4 LL=1,MEQ
+      IF (KEYMGC(JC,KC).eq.-1.and.KEYMGF(J,K).eq.1.AND.B(NFE2).NE.EMPTY) 
+     &    DUKMGF(J,K,LL)=B(NFE2)
+      NFE2=NFE2+1
+    4 CONTINUE   
+
+    3 CONTINUE
+
+C  WAIT FOR SEND COMPLETION
+
+$MPI      CALL MPI_WAITALL (M2,IREQ,ISTATS,IERR)
+
+      IF (IERR.GT.0) THEN
+         NER1=4
+         NER2=M2
+         GO TO 13
+      ENDIF
+
+C  TERMINATE 4TH INDEX LOOP
+
+   10 CONTINUE
+
+C  EXITS
+
+      RETURN
+
+   13 WRITE (*,*) ' MESSAGE ERROR',IERR,' IN R8MATCH2 FOR PROC',MYPRC,
+     & ', BLOCK',NBLK,', LOC',NER1,', DATA',NER2
+      CALL KILLPRC(IERR)
+
+      END
+C*********************************************************************
+      SUBROUTINE R8MATCH3(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                  KL2,KEYOUT,NBLK,COF,DUNK,RESID,JDMG,KDMG,JMG1,
+     &                  JMG2,KMG1,KMG2,MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C   9 point template    
+C  MATCH 3D VALUES IN THE COMMUNICATION LAYER:
+C  IF KEYMG=-1 and KEYOUT=1 THEN UPDATE THE VALUE OF DUNK 
+C  AT KEYOUT from THE NEIGHBORING PROCESSOR for 1 fault block
+C  THIS IS A MGWORK1 ROUTINE
+
+C*********************************************************************
+      USE scrat1mod    
+ 
+$POWER      INCLUDE 'msjunk.h'
+      PARAMETER (NDB=$MXREAD/8)
+      INCLUDE 'control.h'
+!      INCLUDE 'scrat1.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mulgrdc.h'
+$MPI      INCLUDE 'mpif.h'
+$MPI      INTEGER IREQ($MXMPP),ISTATS(MPI_STATUS_SIZE,$MXMPP)
+$MPI      INTEGER ISTATR(MPI_STATUS_SIZE)
+
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM),
+     &   MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF,*)
+      REAL*8  DUNK(IDIM,JDIM,KDIM,*), RESID(IDIM,JDIM,KDIM,*),
+     &   DUKMG(JDMG,KDMG,*), RESMG(JDMG,KDMG,*),
+     &   COFMG(JDMG,KDMG,$NCOFMG,*),DUB
+
+      REAL*8 B(NDB),EMPTY
+      PARAMETER (EMPTY=1d30)
+
+      MTM=MODACT+1
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)' PROC',MYPRC,
+     & ' ENTERING SUBROUTINE R8MATCH3, BLOCK =',NBLK,
+     & ', OLD TAG =',MSGTAG(MTM)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      MEQ=NUMEQS(NBLK)
+      M2=MSGS(2,NBLK)
+
+
+c     DO 10 LL=1,MEQ
+
+      MSGTAG(MTM)=MSGTAG(MTM)+1
+      IF (MSGTAG(MTM).GT.MSGTAG2(MTM)) MSGTAG(MTM)=MSGTAG1(MTM)
+
+      IF (M2.LE.0) GO TO 10
+
+C  NONBLOCKING SENDS
+
+      NFE1=1
+      DO 2 M=1,M2
+      LI1=MSGRCVF(M,2,NBLK)
+      LI2=MSGRCVL(M,2,NBLK)
+      NFE2=NFE1
+      DO 1 L=LI1,LI2
+      J=MSGIND(1,L)-JOFF
+      K=MSGIND(2,L)-KOFF
+      JC=(J+JOFF+1)/2 - JOFFMG(1,NBLK)
+      KC=(K+KOFF+1)/2 - KOFFMG(1,NBLK)
+      DO 1 I=1,IDIM
+      DO 1 LL=1,MEQ
+      IF (KEYMG(JC,KC).eq.1.and.KEYOUT(I,J,K).eq.-1) THEN
+          B(NFE2)=DUNK(I,J,K,LL)
+      ELSE
+          B(NFE2)=EMPTY
+      END IF
+      NFE2=NFE2+1
+    1 CONTINUE
+
+$MPI      CALL MPI_ISEND(B(NFE1),NFE2-NFE1,MPI_DOUBLE_PRECISION,
+$MPI     & MSGSRC(M,2,NBLK),MSGTAG(MTM),MPI_COMM_WORLD,IREQ(M),IERR)
+
+      IF (IERR.GT.0) GO TO 13
+    2 NFE1=NFE2
+
+C  RECEIVE
+
+      LENM=NDB-NFE1+1
+      DO 3 M=1,M2
+
+$MPI      CALL MPI_RECV(B(NFE1),LENM,MPI_DOUBLE_PRECISION,
+$MPI     & MPI_ANY_SOURCE,MSGTAG(MTM),MPI_COMM_WORLD,ISTATR,IERR)
+$MPI      MS=ISTATR(MPI_SOURCE)
+
+      IF (IERR.GT.0) GO TO 13
+      DO 5 MM=1,M2
+      IF (MS.EQ.MSGTRG(MM,2,NBLK)) THEN
+         LI1=MSGSNDF(MM,2,NBLK)
+         LI2=MSGSNDL(MM,2,NBLK)
+         GO TO 6
+      ENDIF
+    5 CONTINUE
+      IERR=1
+      GO TO 13
+
+    6 NFE2=NFE1
+      DO 4 L=LI1,LI2
+      J=MSGIND(1,L)-JOFF
+      K=MSGIND(2,L)-KOFF
+      JC=(J+JOFF+1)/2 - JOFFMG(1,NBLK)
+      KC=(K+KOFF+1)/2 - KOFFMG(1,NBLK)
+      DO 4 I=1,IDIM
+      DO 4 LL=1,MEQ
+      IF(KEYMG(JC,KC).eq.-1.and.KEYOUT(I,J,K).eq.1.AND.B(NFE2).NE.EMPTY)
+     &    DUNK(I,J,K,LL)=B(NFE2)
+      NFE2=NFE2+1
+    4 CONTINUE   
+
+    3 CONTINUE
+
+C  WAIT FOR SEND COMPLETION
+
+$MPI      CALL MPI_WAITALL (M2,IREQ,ISTATS,IERR)
+
+      IF (IERR.GT.0) THEN
+         NER1=4
+         NER2=M2
+         GO TO 13
+      ENDIF
+
+C  TERMINATE 4TH INDEX LOOP
+
+   10 CONTINUE
+
+C  EXITS
+
+      RETURN
+
+   13 WRITE (*,*) ' MESSAGE ERROR',IERR,' IN R8MATCH3 FOR PROC',MYPRC,
+     & ', BLOCK',NBLK,', LOC',NER1,', DATA',NER2
+      CALL KILLPRC(IERR)
+
+      END
+
+
+
+
+
+C*********************************************************************
+      SUBROUTINE R8SMCOF2(MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C   9 point template   
+C  Sums values in the extended  communication layer data for MGLV 
+C  level of MG  for 1 fault block and 1 REAL*8 2d array COFMG.
+C  THIS IS A MGWORK3 ROUTINE
+
+C*********************************************************************
+      USE scrat1mod
+
+      PARAMETER (NDB=$MXREAD/8)
+      INCLUDE 'control.h'
+!      INCLUDE 'scrat1.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mulgrdc.h'
+      INCLUDE 'mulgrdpp.h'
+$MPI      INCLUDE 'mpif.h'
+$MPI      INTEGER IREQ($MXMPP),ISTATS(MPI_STATUS_SIZE,$MXMPP)
+$MPI      INTEGER ISTATR(MPI_STATUS_SIZE)
+      INTEGER MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*8  RESMG(JDMG,KDMG,*), COFMG(JDMG,KDMG,$NCOFMG,*)
+      REAL*8  DUKMG(JDMG,KDMG,*),  B(NDB)
+
+      MTM=MODACT+1
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)' PROC',MYPRC,
+     & ' ENTERING SUBROUTINE R8SMCOF2,BLOCK =',NBLK,
+     & ', OLD TAG =',MSGTAG(MTM)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      MEQ=NUMEQS(NBLK)
+      M2=MSGSMGE(MGLV,NBLK)
+
+c     DO 10 LL=1,$NCOFMG
+c     DO 10 LLL=1,MEQ*MEQ
+
+      MSGTAG(MTM)=MSGTAG(MTM)+1
+      IF (MSGTAG(MTM).GT.MSGTAG2(MTM)) MSGTAG(MTM)=MSGTAG1(MTM)
+
+      IF (M2.LE.0) GO TO 10
+
+C  NONBLOCKING SENDS
+
+      NFE1=1
+      DO 2 M=1,M2
+      LI1=MSGRCVFMGE(M,MGLV,NBLK)
+      LI2=MSGRCVLMGE(M,MGLV,NBLK)
+      NFE2=NFE1
+      DO 1 L=LI1,LI2
+      DO 1 LL=1,$NCOFMG
+      DO 1 LLL=1,MEQ*MEQ
+      J=MSGINDMGE(1,L,MGLV)-JOFFMG(MGLV,NBLK)
+      K=MSGINDMGE(2,L,MGLV)-KOFFMG(MGLV,NBLK)
+      B(NFE2)=COFMG(J,K,LL,LLL)
+    1 NFE2=NFE2+1
+
+$MPI      CALL MPI_ISEND(B(NFE1),NFE2-NFE1,MPI_DOUBLE_PRECISION,
+$MPI     &MSGSRCMGE(M,MGLV,NBLK),MSGTAG(MTM),MPI_COMM_WORLD,IREQ(M),IERR)
+
+      IF (IERR.GT.0) GO TO 13
+    2 NFE1=NFE2
+
+C  RECEIVE
+
+      LENM=NDB-NFE1+1
+      DO 3 M=1,M2
+
+$MPI      CALL MPI_RECV(B(NFE1),LENM,MPI_DOUBLE_PRECISION,
+$MPI     & MPI_ANY_SOURCE,MSGTAG(MTM),MPI_COMM_WORLD,ISTATR,IERR)
+$MPI      MS=ISTATR(MPI_SOURCE)
+
+      IF (IERR.GT.0) GO TO 13
+      DO 5 MM=1,M2
+      IF (MS.EQ.MSGTRGMGE(MM,MGLV,NBLK)) THEN
+         LI1=MSGSNDFMGE(MM,MGLV,NBLK)
+         LI2=MSGSNDLMGE(MM,MGLV,NBLK)
+         GO TO 6
+      ENDIF
+    5 CONTINUE
+      IERR=1
+      GO TO 13
+
+    6 NFE2=NFE1
+      DO 4 L=LI1,LI2
+      DO 4 LL=1,$NCOFMG
+      DO 4 LLL=1,MEQ*MEQ
+      J=MSGINDMGE(1,L,MGLV)-JOFFMG(MGLV,NBLK)
+      K=MSGINDMGE(2,L,MGLV)-KOFFMG(MGLV,NBLK)
+      COFMG(J,K,LL,LLL)=COFMG(J,K,LL,LLL)+B(NFE2)
+    4 NFE2=NFE2+1
+
+    3 CONTINUE
+
+C  WAIT FOR SEND COMPLETION
+
+$MPI      CALL MPI_WAITALL (M2,IREQ,ISTATS,IERR)
+
+      IF (IERR.GT.0) THEN
+         NER1=4
+         NER2=M2
+         GO TO 13
+      ENDIF
+
+C  TERMINATE 4TH INDEX LOOP
+
+   10 CONTINUE
+
+C  EXITS
+
+      RETURN
+
+   13 WRITE (*,*) ' MESSAGE ERROR',IERR,' IN R8SMCOF2 FOR PROC',MYPRC,
+     & ', BLOCK',NBLK,', LOC',NER1,', DATA',NER2
+      CALL KILLPRC(IERR)
+
+      END
+C*********************************************************************
+      SUBROUTINE R8SMRES2(MGLV,NBLK,JDMG,KDMG,JMG1,JMG2,KMG1,KMG2,
+     &   MAPMG,KEYMG,COFMG,DUKMG,RESMG)
+C*********************************************************************
+
+C   9 point template   
+C  Sums values in the extended  communication layer data for MGLV 
+C  level of MG  for 1 fault block and 1 REAL*8 2d array RESMG.
+C  THIS IS A MGWORK3 ROUTINE
+
+C*********************************************************************
+      USE scrat1mod
+
+      PARAMETER (NDB=$MXREAD/8)
+      INCLUDE 'control.h'
+!      INCLUDE 'scrat1.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mulgrdc.h'
+      INCLUDE 'mulgrdpp.h'
+$MPI      INCLUDE 'mpif.h'
+$MPI      INTEGER IREQ($MXMPP),ISTATS(MPI_STATUS_SIZE,$MXMPP)
+$MPI      INTEGER ISTATR(MPI_STATUS_SIZE)
+      INTEGER MAPMG(JDMG,KDMG),KEYMG(JDMG,KDMG)
+      REAL*8  RESMG(JDMG,KDMG,*), COFMG(JDMG,KDMG,$NCOFMG,*)
+      REAL*8  DUKMG(JDMG,KDMG,*),  B(NDB)
+
+      MTM=MODACT+1
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)' PROC',MYPRC,
+     & ' ENTERING SUBROUTINE R8SMRES2,BLOCK =',NBLK,
+     & ', OLD TAG =',MSGTAG(MTM)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      MEQ=NUMEQS(NBLK)
+      M2=MSGSMGE(MGLV,NBLK)
+
+c     DO 10 LL=1,MEQ
+
+      MSGTAG(MTM)=MSGTAG(MTM)+1
+      IF (MSGTAG(MTM).GT.MSGTAG2(MTM)) MSGTAG(MTM)=MSGTAG1(MTM)
+
+      IF (M2.LE.0) GO TO 10
+
+C  NONBLOCKING SENDS
+
+      NFE1=1
+      DO 2 M=1,M2
+      LI1=MSGRCVFMGE(M,MGLV,NBLK)
+      LI2=MSGRCVLMGE(M,MGLV,NBLK)
+      NFE2=NFE1
+      DO 1 L=LI1,LI2
+      DO 1 LL=1,MEQ
+      J=MSGINDMGE(1,L,MGLV)-JOFFMG(MGLV,NBLK)
+      K=MSGINDMGE(2,L,MGLV)-KOFFMG(MGLV,NBLK)
+      B(NFE2)=RESMG(J,K,LL)
+    1 NFE2=NFE2+1
+
+$MPI      CALL MPI_ISEND(B(NFE1),NFE2-NFE1,MPI_DOUBLE_PRECISION,
+$MPI     &MSGSRCMGE(M,MGLV,NBLK),MSGTAG(MTM),MPI_COMM_WORLD,IREQ(M),IERR)
+
+      IF (IERR.GT.0) GO TO 13
+    2 NFE1=NFE2
+
+C  RECEIVE
+
+      LENM=NDB-NFE1+1
+      DO 3 M=1,M2
+
+$MPI      CALL MPI_RECV(B(NFE1),LENM,MPI_DOUBLE_PRECISION,
+$MPI     & MPI_ANY_SOURCE,MSGTAG(MTM),MPI_COMM_WORLD,ISTATR,IERR)
+$MPI      MS=ISTATR(MPI_SOURCE)
+
+      IF (IERR.GT.0) GO TO 13
+      DO 5 MM=1,M2
+      IF (MS.EQ.MSGTRGMGE(MM,MGLV,NBLK)) THEN
+         LI1=MSGSNDFMGE(MM,MGLV,NBLK)
+         LI2=MSGSNDLMGE(MM,MGLV,NBLK)
+         GO TO 6
+      ENDIF
+    5 CONTINUE
+      IERR=1
+      GO TO 13
+
+    6 NFE2=NFE1
+      DO 4 L=LI1,LI2
+      DO 4 LL=1,MEQ
+      J=MSGINDMGE(1,L,MGLV)-JOFFMG(MGLV,NBLK)
+      K=MSGINDMGE(2,L,MGLV)-KOFFMG(MGLV,NBLK)
+      RESMG(J,K,LL)=RESMG(J,K,LL)+B(NFE2)
+    4 NFE2=NFE2+1
+
+    3 CONTINUE
+
+C  WAIT FOR SEND COMPLETION
+
+$MPI      CALL MPI_WAITALL (M2,IREQ,ISTATS,IERR)
+
+      IF (IERR.GT.0) THEN
+         NER1=4
+         NER2=M2
+         GO TO 13
+      ENDIF
+
+C  TERMINATE 4TH INDEX LOOP
+
+   10 CONTINUE
+
+C  EXITS
+
+      RETURN
+
+   13 WRITE (*,*) ' MESSAGE ERROR',IERR,' IN R8SMRES2 FOR PROC',MYPRC,
+     & ', BLOCK',NBLK,', LOC',NER1,', DATA',NER2
+      CALL KILLPRC(IERR)
+
+      END
+C*********************************************************************
+      SUBROUTINE FILMSMGE(NLEV,NYMG,NZMG,N0MAPMG,PRCMAPMG,NERR)
+C*********************************************************************
+
+C  Sets up message system for updating the extended communication 
+C  layer around the MG elements assigned to a processor.
+C  This layer is used in R8SMRES and R8SMCOF. This routine should not be
+C  called for dynamic load balancing.  
+
+C  NLEV  number of MG levels of layers (input, INTEGER)
+
+C  NYMG(n,b) Y dimension of BLOCK b FOR LEVEL n (input, INTEGER)
+
+C  NZMG(n,b) Z dimension of BLOCK b FOR LEVEL n (input, INTEGER)
+
+C  N0MAPMG(n,b) BASE LOCATION FOR BLOCK b IN PRCMAPMG for LEVEL n
+C                                               (input, INTEGER)
+
+C  PRCMAPMG(M,n) = PROCESSOR ASSIGNMENTS FOR EACH MG GRID COLUMN IN EACH
+C  BLOCK OF GRID ELEMENTS FOR LEVEL n.PRCMAP INDEXES ARE GLOBAL,NOT LOCAL.
+C                                               (input, INTEGER)
+
+C  NERR = Error number steped by 1 on error (input & output, INTEGER)
+
+C*********************************************************************
+      INTEGER NYMG($MXMGLV+1,$MXBLKS),NZMG($MXMGLV+1,$MXBLKS)
+      INTEGER N0MAPMG($MXMGLV+1,$MXBLKS),PRCMAPMG($MXCOLS/4,$MXMGLV+1)
+
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mulgrdc.h'
+      INCLUDE 'mulgrdpp.h'
+
+      INTEGER JS1(4),KS1(4),JS2(8),KS2(8)
+      DATA JS1/1,-1,0,0/,KS1/0,0,1,-1/
+      DATA JS2/-1,-1,-1,0,0,1,1,1/,KS2/-1,0,1,-1,1,-1,0,1/
+
+C  INITIALIZE
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)' PROC',MYPRC,
+     & ' ENTERING SUBROUTINE FLMSMGE'
+
+      DO 100 I=1,$MXMGLV+1
+      LSTINDMGE(I)=0
+      DO 100 J=1,$MXBLKS
+  100 MSGSMGE(I,J)=0
+      IF (JLAY.LT.1.OR.KLAY.LT.1) RETURN
+
+C  CUBE TEMPLATE
+
+      DO 11 MGL=1,NLEV
+      DO 11 M=1,NUMBLK
+      IF (MGL.EQ.1) THEN 
+       CALL BLKDIM (M,NX,NY,NZ,KERR)
+       N0=N0MAP(M)
+       NYM=NYMAP(M)
+      ELSE
+       NY=NYMG(MGL-1,M)
+       NZ=NZMG(MGL-1,M)
+       N0=N0MAPMG(MGL-1,M)-NYMG(MGL-1,M)
+       NYM=NYMG(MGL-1,M)
+      END IF
+      MG=0
+
+C  BUILD LIST OF PROCESSOR TARGETS FOR CUBE TEMPLATE
+
+      DO 12 J=1,NY
+      DO 12 K=1,NZ
+      IF (MGL.EQ.1) THEN 
+       MS=PRCMAP(N0+NYM*K+J)
+      ELSE
+       MS=PRCMAPMG(N0+NYM*K+J,MGL-1)
+      END IF
+      JC=(J+1)/2
+      KC=(K+1)/2
+      IF (MS.EQ.MYPRC) THEN
+         DO 13 MM=1,8
+         JT=J+JS2(MM)
+         KT=K+KS2(MM)
+         IF (JT.GT.0.AND.JT.LE.NY.AND.KT.GT.0.AND.KT.LE.NZ) THEN
+           JTC=(JT+1)/2
+           KTC=(KT+1)/2
+           IF (JC.EQ.JTC.AND.KC.EQ.KTC) THEN
+            IF (MGL.EQ.1) THEN 
+             MR=PRCMAP(N0+NYM*KT+JT)
+            ELSE
+             MR=PRCMAPMG(N0+NYM*KT+JT,MGL-1)
+            END IF
+            IF (MR.NE.MYPRC.AND.MR.GE.0) THEN
+               DO 14 L=1,MG
+               IF (MR.EQ.MSGTRGMGE(L,MGL,M)) GO TO 13
+   14          CONTINUE
+               IF (MG.EQ.$MXMPP) GO TO 213
+               MG=MG+1
+               MSGTRGMGE(MG,MGL,M)=MR
+            ENDIF
+           ENDIF
+         ENDIF
+   13    CONTINUE
+      ENDIF
+   12 CONTINUE
+      MSGSMGE(MGL,M)=MG
+
+C  BUILD MESSAGE LISTS FOR CUBE TEMPLATE
+
+      DO 15 MN=1,MG
+      MR=MSGTRGMGE(MN,MGL,M)
+      MSGSNDFMGE(MN,MGL,M)=LSTINDMGE(MGL)+1
+      MSGSNDLMGE(MN,MGL,M)=LSTINDMGE(MGL)
+      DO 15 J=1,NY
+      DO 15 K=1,NZ
+      IF (MGL.EQ.1) THEN 
+       MS=PRCMAP(N0+NYM*K+J)
+      ELSE
+       MS=PRCMAPMG(N0+NYM*K+J,MGL-1)
+      END IF
+      JC=(J+1)/2
+      KC=(K+1)/2
+      IF (MS.EQ.MYPRC) THEN
+         DO 16 MM=1,8
+         JT=J+JS2(MM)
+         KT=K+KS2(MM)
+         IF (JT.GT.0.AND.JT.LE.NY.AND.KT.GT.0.AND.KT.LE.NZ) THEN
+           JTC=(JT+1)/2
+           KTC=(KT+1)/2
+           IF (JC.EQ.JTC.AND.KC.EQ.KTC) THEN
+            IF (MGL.EQ.1) THEN 
+             MF=PRCMAP(N0+NYM*KT+JT)
+            ELSE
+             MF=PRCMAPMG(N0+NYM*KT+JT,MGL-1)
+            END IF
+            IF (MF.EQ.MR.AND.MF.GE.0) THEN
+               MJK1=MSGSNDFMGE(MN,MGL,M)
+               MJK2=MSGSNDLMGE(MN,MGL,M)
+               DO 17 MJK=MJK1,MJK2
+               IF (MSGINDMGE(1,MJK,MGL).EQ.JC.AND.
+     &             MSGINDMGE(2,MJK,MGL).EQ.KC) GO TO 16
+   17          CONTINUE
+               IF (LSTINDMGE(MGL).GE.$MXMGI) GO TO 113
+               LSTINDMGE(MGL)=LSTINDMGE(MGL)+1
+               MSGSNDLMGE(MN,MGL,M)=LSTINDMGE(MGL)
+               MSGINDMGE(1,LSTINDMGE(MGL),MGL)=JC
+               MSGINDMGE(2,LSTINDMGE(MGL),MGL)=KC
+            ENDIF
+           ENDIF
+         ENDIF
+   16    CONTINUE
+      ENDIF
+   15 CONTINUE
+
+   11 CONTINUE
+
+
+C  EXCHANGE MESSAGE LISTS
+
+   80 CALL EXMLSTMGE(NLEV)
+
+      RETURN
+
+  113 NERR=NERR+1
+      WRITE (*,114) MYPRC
+  114 FORMAT (/' ERROR # 201; TOO MANY MESSAGE ELEMENTS, PROC',I5)
+      RETURN
+
+  213 NERR=NERR+1
+      WRITE (*,214) MYPRC
+  214 FORMAT (/' ERROR # 201; TOO MANY MESSAGE TARGETS, PROC',I5)
+
+      END
+      SUBROUTINE EXMLSTMGE (NLEV)
+C*********************************************************************
+
+C  Exchanges message lists for updating the extended communication layer.
+
+C  NLEV  number of levels of layers (input, INTEGER)
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mulgrdc.h'
+      INCLUDE 'mulgrdpp.h'
+$MPI      INCLUDE 'mpif.h'
+$MPI      INTEGER IREQ($MXMPP),ISTAT(MPI_STATUS_SIZE)
+$MPI      LOGICAL FLAG
+
+      MTM=MODACT+1
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)' PROC',MYPRC,
+     & ' ENTERING SUBROUTINE EXMLSTMGE, OLD TAG =',MSGTAG(MTM)
+
+C  LOOP OVER TEMPLATES AND FAULT BLOCKS
+
+      IERR=0
+      CALL TIMON(2)
+      DO 1 NT=1,NLEV  
+      DO 1 NB=1,NUMBLK
+      NM2=MSGSMGE(NT,NB)
+
+      MSGTAG(MTM)=MSGTAG(MTM)+1
+      IF (MSGTAG(MTM).GT.MSGTAG2(MTM)) MSGTAG(MTM)=MSGTAG1(MTM)
+
+C  SEND MESSAGE LISTS (NONBLOCKING)
+
+      DO 2 NM=1,NM2
+      NE1=MSGSNDFMGE(NM,NT,NB)
+      NE2=MSGSNDLMGE(NM,NT,NB)
+      MLEN=(NE2-NE1+1)*2
+
+$MPI      CALL MPI_ISEND(MSGINDMGE(1,NE1,NT),MLEN,MPI_INTEGER,
+$MPI     & MSGTRGMGE(NM,NT,NB),MSGTAG(MTM),MPI_COMM_WORLD,IREQ(NM),IERR)
+
+      IF (IERR.GT.0) GO TO 13
+    2 CONTINUE
+
+C  RECEIVE MESSAGE LISTS (BLOCKING, ANY SOURCE)
+
+      DO 3 NM=1,NM2
+      MLEN=($MXMGI-LSTINDMGE(NT))*2
+
+$MPI      CALL MPI_RECV(MSGINDMGE(1,LSTINDMGE(NT)+1,NT),MLEN,MPI_INTEGER,
+$MPI     & MPI_ANY_SOURCE,MSGTAG(MTM),MPI_COMM_WORLD,ISTAT,IERR)
+$MPI      CALL MPI_GET_COUNT(ISTAT,MPI_INTEGER,NI,IERR)
+$MPI      MS=ISTAT(MPI_SOURCE)
+
+      IF (IERR.GT.0) GO TO 13
+      MSGSRCMGE(NM,NT,NB)=MS
+      MSGRCVFMGE(NM,NT,NB)=LSTINDMGE(NT)+1
+      LSTINDMGE(NT)=LSTINDMGE(NT)+NI/2
+    3 MSGRCVLMGE(NM,NT,NB)=LSTINDMGE(NT)
+
+C  WAIT FOR SEND COMPLETION
+
+C$MPI      CALL MPI_BARRIER(MPI_COMM_WORLD,IERR)
+      DO 7 NM=1,NM2
+
+$MPI    9 CALL MPI_TEST(IREQ(NM),FLAG,ISTAT,IERR)
+      IF (IERR.GT.0) GO TO 13
+$MPI      IF (.NOT.FLAG) GO TO 9
+
+    7 CONTINUE
+
+    1 CONTINUE
+
+C  EXITS
+
+      CALL TIMOFF(2)
+      IF (LEVELE) WRITE (*,6) MYPRC
+    6 FORMAT('MESSAGE LIST EXCHANGE COMPLETE: MYPRC =',I5)
+
+      IF (LEVELE) THEN
+         DO 11 KT=1,NLEV
+         DO 11 NB=1,NUMBLK
+         M2=MSGSMGE(KT,NB)
+         DO 11 M=1,M2
+
+         LI1=MSGSNDFMGE(M,KT,NB)
+         LI2=MSGSNDLMGE(M,KT,NB)
+
+         WRITE(*,16) MYPRC,LI2-LI1+1,MSGTRGMGE(M,KT,NB),NB,KT
+   16    FORMAT(' PROC',I4,' SENDING',I5,' COLUMNS TO PROC',I4,
+     &      ', BLOCK',I3,', STENCIL',I2)
+
+         IF (BUGKEY(3)) THEN
+            LA=LI1
+   14       LB=LA+6
+            IF (LB.GT.LI2) LB=LI2
+            WRITE(*,10) MYPRC,MSGTRGMGE(M,KT,NB),
+     &         (MSGINDMGE(1,L,KT),MSGINDMGE(2,L,KT),L=LA,LB)
+   10       FORMAT(' SEND FROM',I3,' TO',I3,' JK =',7(2I3,','))
+            LA=LB+1
+            IF (LB.LT.LI2) GO TO 14
+         ENDIF
+
+         LI1=MSGRCVFMGE(M,KT,NB)
+         LI2=MSGRCVLMGE(M,KT,NB)
+
+         WRITE(*,17) MYPRC,LI2-LI1+1,MSGTRGMGE(M,KT,NB),NB,KT
+   17    FORMAT(' PROC',I4,' RECEIVING',I5,' COLUMNS FROM PROC',I4,
+     &      ', BLOCK',I3,', STENCIL',I2)
+
+         IF (BUGKEY(3)) THEN
+            LA=LI1
+   15       LB=LA+6
+            IF (LB.GT.LI2) LB=LI2
+            WRITE(*,12) MYPRC,MSGSRCMGE(M,KT,NB),
+     &         (MSGINDMGE(1,L,KT),MSGINDMGE(2,L,KT),L=LA,LB)
+   12       FORMAT(' RECV AT',I3,' FROM',I3,' JK =',7(2I3,','))
+            LA=LB+1
+            IF (LB.LT.LI2) GO TO 15
+         ENDIF
+
+   11    CONTINUE
+      ENDIF
+
+      RETURN
+   13 WRITE (*,*) ' MESSAGE ERROR',IERR,' IN EXMLSTMGE FOR PROC',MYPRC
+      CALL KILLPRC(IERR)
+
+      END

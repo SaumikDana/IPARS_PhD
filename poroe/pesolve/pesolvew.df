@@ -1,0 +1,854 @@
+C PCG_ISTUB.F -- PCG SOLVER WORK ROUTINES
+C
+C ROUTINES IN THIS FILE:
+C
+C     SUBROUTINE PEW_DDOT(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                       KL1,KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE PEW_DAXPY(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,KEYCR,X,Y)
+C     SUBROUTINE PEW_DSCALE(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,KEYCR,X,Y)
+C     SUBROUTINE PEW_DCOPY(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,X,Y)
+C     SUBROUTINE PEW_MATVEC(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,KEYCR,X,Y,AB,AD,ZNODE)
+C     SUBROUTINE PEW_CVG(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                       KEYOUT,NBLK,KEYCR,X)
+C     SUBROUTINE PEW_BJLINE(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,KEYCR,AB,AD,R,Z,ZN)
+C     SUBROUTINE PEW_LSOR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                       KEYOUT,NBLK,KEYCR,AB,AD,R,Z,ZN)
+C     SUBROUTINE PEW_GS_UX(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,KEYCR,AB,AD,R,Z,ZN)
+C     SUBROUTINE PEW_RES_UX(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,KEYCR,AB,AD,R,Z,B,ZN)
+C
+C CODE HISTORY:
+C
+C     XIULI GAI        08/09/2OO1
+C***********************************************************************
+      SUBROUTINE PEW_DDOT(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,KEYCR,X,Y)
+C***********************************************************************
+C Work routine performs dot product of two vectors x and y
+C***********************************************************************
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KEYCR(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,3), Y(IDIM,JDIM,KDIM,3)
+
+      INTEGER I,J,K,L,JL1,JL2,NEQ
+      REAL*8  DTEMP
+
+      NEQ=PE_MEQ
+      DTEMP=0.D0
+
+      DO L=1,NEQ
+         DO K=KL1,KL2+1
+            JL1=JL1V(K)
+            JL2=JL2V(K)
+            DO J=JL1,JL2+1
+               DO I=IL1,IL2+1
+                  IF (KEYCR(I,J,K).GT.0)           
+     &            DTEMP=DTEMP+X(I,J,K,L)*Y(I,J,K,L)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO                  
+      DINRM=DINRM+DTEMP
+      END         
+      
+C***********************************************************************
+      SUBROUTINE PEW_DAXPY(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                  KL2,KEYOUT,NBLK,KEYCR,X,Y)
+C***********************************************************************
+C Work routine performs y=y+alpha*x
+C***********************************************************************
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM) 
+      INTEGER KEYCR(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,3),  Y(IDIM,JDIM,KDIM,3)
+
+      INTEGER I,J,K,L,JL1,JL2,NEQ
+
+      NEQ=PE_MEQ
+      DO L=1,NEQ
+         DO K=1,KDIM        
+            DO J = 1,JDIM           
+               DO I=IL1,IL2+1
+                  Y(I,J,K,L)=Y(I,J,K,L)+ALPHA*X(I,J,K,L)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+    
+      END
+
+C***********************************************************************
+      SUBROUTINE PEW_DSCALE(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                  KL2,KEYOUT,NBLK,KEYCR,X,Y)
+C***********************************************************************
+C Work routine performs x=y+alpha*x
+C***********************************************************************
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KEYCR(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,3), Y(IDIM,JDIM,KDIM,3)
+
+      INTEGER I,J,K,L,JL1,JL2,NEQ
+
+      NEQ=PE_MEQ
+      DO L=1,NEQ
+         DO K=1,KDIM          
+            DO J = 1,JDIM          
+               DO I=IL1,IL2+1 
+                  X(I,J,K,L)=Y(I,J,K,L)+ALPHA*X(I,J,K,L)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+     
+      END
+
+C***********************************************************************
+      SUBROUTINE PEW_DCOPY(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                  KL2,KEYOUT,NBLK,X,Y)
+C***********************************************************************
+C Work routine copy x to y
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,3),  Y(IDIM,JDIM,KDIM,3)
+
+      INTEGER I,J,K,L,JL1,JL2,NEQ
+      REAL*8  ALA
+
+      NEQ=PE_MEQ
+      DO L=1,NEQ
+         DO K=1,KDIM       
+            DO J = 1,JDIM          
+               DO I=IL1,IL2+1
+                  Y(I,J,K,L)=X(I,J,K,L)
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO 
+
+      END
+
+C***********************************************************************
+      SUBROUTINE PEW_MATVEC(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                  KL2,KEYOUT,NBLK,KEYCR,X,Y,AB,AD,ZNODE)
+C***********************************************************************
+C Work routine performs multiplication of a matrix and a vector: Y=AX
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemodel.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(*), KEYCR(*)
+      REAL*8  X(IDIM*JDIM*KDIM,3),   Y(IDIM*JDIM*KDIM,3)
+      REAL*8  AB(9,13,*),            AD(6,*)
+      LOGICAL ZNODE(*)
+
+      INTEGER I,J,N1P,N12P,N123P,JOF,KOF,JL1,JL2
+      INTEGER IAD(3,3),IAB(3,3),ID,IB,IE,JE
+      INTEGER NEQ,NOFF,IDIR
+      DATA    IAD/1,2,3, 2,4,5, 3,5,6/
+      DATA    IAB/1,4,7, 2,5,8, 3,6,9/
+
+      NEQ=PE_MEQ
+      NOFF=1+3*(NEQ-1)**2
+      N1P=IDIM
+      N12P=N1P*JDIM
+      N123P=N12P*KDIM
+
+C ZERO Y(3,I,J,K)
+
+      DO J=1,N123P
+         DO IE=1,3
+            Y(J,IE)=0.D0
+         ENDDO
+      ENDDO 
+       
+C PERFORM Y=AX
+
+      KOF = (KL1 - 2) * N12P
+      DO I3 = KL1,KL2+1
+         JL1=JL1V(I3)
+         JL2=JL2V(I3)
+         KOF = KOF + N12P
+         JOF = KOF + (JL1 - 2) * N1P
+         DO I2 = JL1,JL2 + 1
+            JOF = JOF + N1P
+            I = JOF + IL1 - 1
+            DO I1 = IL1, IL2 + 1
+               I = I + 1
+               IF(KEYCR(I).LE.0.OR.AD(1,I).LE.0.D0) CYCLE
+               DO IE=1,NEQ
+                  DO JE=1,NEQ
+                     ID=IAD(JE,IE)
+                     Y(I,IE)=Y(I,IE)+AD(ID,I)*X(I,JE)
+                  ENDDO
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+
+C CONTRIBUTION FROM OFF DIAGONAL TERMS
+
+      KOF = (KL1 - 3) * N12P
+      DO I3 = KL1-1,KL2+1
+         IF(I3.EQ.KL1-1) THEN
+            JL1=JL1V(KL1-1)
+            JL2=JL2V(KL1-1)
+         ELSE IF(I3.EQ.KL2+1) THEN
+            JL1=JL1V(KL2)
+            JL2=JL2V(KL2)
+         ELSE
+            JL1=MIN(JL1V(I3),JL1V(I3-1),JL1V(I3+1))
+            JL2=MAX(JL2V(I3),JL2V(I3-1),JL2V(I3+1))
+         ENDIF
+         KOF = KOF + N12P
+         JOF = KOF + (JL1 - 3) * N1P
+         DO I2 = JL1-1,JL2 + 1
+            JOF = JOF + N1P
+            I = JOF + IL1 - 1
+            DO I1 = IL1, IL2 + 1
+               I = I + 1
+               IF(KEYCR(I).EQ.0.OR.ZNODE(I)) CYCLE
+               DO IDIR=1,NOFF
+                  J=I-IOFFSET(IDIR,NBLK)                     
+                  IF(J.LE.0.OR.KEYCR(J).EQ.0.OR.ZNODE(J)) CYCLE
+                  IF(KEYCR(I).GT.0) THEN
+                     DO IE=1,NEQ
+                        DO JE=1,NEQ
+                           IB=IAB(JE,IE)
+                           Y(I,IE)=Y(I,IE)+AB(IB,IDIR,I)*X(J,JE)
+                        ENDDO                     
+                     ENDDO  
+                  ENDIF
+                  IF(KEYCR(J).GT.0) THEN
+                     DO IE=1,NEQ
+                        DO JE=1,NEQ 
+                           IB=IAB(IE,JE)
+                           Y(J,IE)=Y(J,IE)+AB(IB,IDIR,I)*X(I,JE)
+                        ENDDO   
+                     ENDDO 
+                  ENDIF
+               ENDDO
+            ENDDO   
+         ENDDO 
+      ENDDO
+      END
+
+C***********************************************************************
+      SUBROUTINE PEW_CVG(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,KEYCR,X)
+C***********************************************************************
+C Compute total, and maximum residual for convergence check
+C
+C INPUT:
+C   X(I,J,K,L) = RESIDUALS OF LINEAR SYSTEM
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KEYCR(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,*)
+
+      INTEGER I,J,K,L,JL1,JL2,NEQ
+      
+      NEQ=PE_MEQ
+      DO L=1,NEQ
+         PE_RMAX(L)=0.D0
+         PE_RTOT(L)=0.D0
+      ENDDO
+
+      DO K=KL1,KL2+1
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         DO J=JL1,JL2+1
+            DO I=IL1,IL2+1
+             IF (KEYCR(I,J,K).EQ.1)  THEN
+               DO L=1,NEQ
+                  PE_RMAX(L)=MAX(PE_RMAX(L),DABS(X(I,J,K,L)))
+                  PE_RTOT(L)=PE_RTOT(L)+X(I,J,K,L)
+               ENDDO
+             END IF
+            ENDDO
+         ENDDO
+      ENDDO      
+
+      END
+C***********************************************************************
+      SUBROUTINE PEW_BJLINE(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                  KL2,KEYOUT,NBLK,KEYCR,AB,AD,R,Z,ZN)
+C***********************************************************************
+C Perform one line Jacobi iteration.
+C 
+C INPUT:
+C   KEYCR(J) = KEYOUT VALUE FOR A CORNER  POINT
+C   AB(L,J) = OFF DIAGONAL COEF. OF STIFFNESS MATRIX
+C   AD(L,J) = DIAGONAL COEF. OF STIFFNESS MATRIX
+C   R(J,L) = RESIDUALS 
+C   Z(J,L) = DISPLACEMENTS AT LINEAR ITERATION K
+C   ZN(J) = FLAG TO TURN ON/OFF POROELASTIC CALCULATION ON A NODE
+C
+C OUTPOUT:
+C   Z(J,L) = DISPLACEMENTS AT LINEAR ITERATION K+1
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(*),KEYCR(*)
+      REAL*8  R(IDIM*JDIM*KDIM,3),Z(IDIM*JDIM*KDIM,3)
+      REAL*8  AB(9,13,*),AD(6,*)
+      LOGICAL ZN(*)
+
+      REAL*8  A(IDIM,3,9),DZ(3,IDIM,JDIM,KDIM),RL(IDIM,3),RTMP(3)
+      REAL*8  DUB1,DUB2,DUB3
+      INTEGER I,J,K,L,GI,GJ,IOFF,JOFF,KOFF,KERR,NOFF,JOF,KOF
+      INTEGER JJ,KK,JL1,JL2,N1P,N12P,NT,N,M1,M2,M3,IDIR,MEQM,MEQP,LM,LP
+      INTEGER LC,MEQ,MEQ2,MEQ3,NN,NNM,ID(3,3),IB(3,3)
+      DATA ID/1,2,3,2,4,5,3,5,6/,IB/1,4,7,2,5,8,3,6,9/
+ 
+      N1P=IDIM
+      N12P=IDIM*JDIM
+      NT=N12P*KDIM
+      MEQ=PE_MEQ
+      MEQ2=MEQ*2
+      MEQ3=MEQ*3
+      MEQM=MEQ-1
+      MEQP=MEQ+1
+      NOFF = NDIM_BEFORE
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+       
+      KOF=(KL1-2)*N12P
+      DO K=KL1,KL2+1
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         KOF=KOF+N12P
+         JOF=KOF+(JL1-2)*N1P
+         DO J=JL1,JL2+1
+            JOF=JOF+N1P
+
+C SET UP FOR ONE LINE
+
+            GI=JOF 
+            DO I=1,IDIM
+               GI=GI+1
+               DO L=1,MEQ
+                  DO M=1,MEQ3
+                     A(I,L,M)=0.D0
+                  ENDDO
+                  RL(I,L)=0.D0
+               ENDDO
+            ENDDO
+
+            N=0
+            GI=JOF+(IL1-1)      
+            DO I=IL1,IL2+1
+               GI=GI+1
+               IF(KEYCR(GI).LE.0.OR.ZN(GI)) GO TO 2
+               N=N+1
+               DO L=1,MEQ
+                  M1=1
+                  M2=M1+MEQ
+                  M3=M2+MEQ
+                  RL(N,L)=R(GI,L)
+                  DO M=1,MEQ
+                     A(N,L,M2)=AD(ID(M,L),GI)
+                     IF(I.GT.1) THEN
+                        A(N,L,M1)=AB(IB(M,L),13,GI)
+                     ENDIF
+                     IF(I.LT.IDIM) THEN
+                        A(N,L,M3)=AB(IB(L,M),13,GI+1)
+                     ENDIF
+                     M1=M1+1
+                     M2=M2+1
+                     M3=M3+1
+                  ENDDO
+               ENDDO
+   2           CONTINUE
+            ENDDO
+
+C SOLVE FOR ONE LINE
+            
+            IF(N.EQ.0) GO TO 1
+            NM1=N-1
+           
+C FORWARD ELIMINATION
+            
+            DO L=1,MEQM
+               LM=L+MEQ
+               LP=L+MEQP
+               DUB1=A(1,L,LM)
+               DUB3=RL(1,L)
+               DO LL=L+1,MEQ
+                  DUB2=A(1,LL,LM)/DUB1
+                  RL(1,LL)=RL(1,LL)-DUB2*DUB3
+                  DO M=LP,MEQ3
+                     A(1,LL,M)=A(1,LL,M)-DUB2*A(1,L,M)
+                  ENDDO   
+               ENDDO
+            ENDDO
+ 
+            LC=MEQ3
+            DO NN=2,N
+               NNM=NN-1
+               DO L=1,MEQ
+                  LM=L+MEQ
+                  LP=L+1
+                  DUB1=A(NNM,L,LM)
+                  DUB3=RL(NNM,L)
+                  DO LL=1,MEQ   
+                     DUB2=A(NN,LL,L)/DUB1
+                     RL(NN,LL)=RL(NN,LL)-DUB2*DUB3
+                     DO M=LP,MEQ2
+                        A(NN,LL,M)=A(NN,LL,M)-DUB2*A(NNM,L,M+MEQ)
+                     ENDDO
+                  ENDDO
+               ENDDO
+               IF (NN.EQ.N) LC=MEQ2
+               DO L=1,MEQM
+                  LM=L+MEQ
+                  LP=L+MEQP
+                  DUB1=A(NN,L,LM)
+                  DUB3=RL(NN,L) 
+                  DO LL=L+1,MEQ  
+                     DUB2=A(NN,LL,LM)/DUB1
+                     RL(NN,LL)=RL(NN,LL)-DUB2*DUB3
+                     DO M=LP,LC
+                        A(NN,LL,M)=A(NN,LL,M)-DUB2*A(NN,L,M)
+                     ENDDO
+                  ENDDO
+               ENDDO
+            ENDDO
+            
+C BACK SUBSTITUTION
+           
+            RL(N,MEQ)=RL(N,MEQ)/A(N,MEQ,MEQ2) 
+            DO L=MEQM,1,-1
+               DUB1=RL(N,L)
+               DO M=L+1,MEQ
+                  DUB1=DUB1-RL(N,M)*A(N,L,M+MEQ)
+               ENDDO
+               RL(N,L)=DUB1/A(N,L,L+MEQ)
+            ENDDO
+            DO NN=NM1,1,-1
+               NNP=NN+1
+               DO L=MEQ,1,-1
+                  DUB1=RL(NN,L)
+                  DO M=1,MEQ
+                     DUB1=DUB1-RL(NNP,M)*A(NN,L,M+MEQ2)
+                  ENDDO
+                  DO M=L+1,MEQ
+                     DUB1=DUB1-RL(NN,M)*A(NN,L,M+MEQ)
+                  ENDDO
+                  RL(NN,L)=DUB1/A(NN,L,L+MEQ)
+               ENDDO
+            ENDDO
+
+            N=0
+            GI=JOF+IL1-1
+            DO I=IL1,IL2+1
+               GI = GI+1
+               IF (KEYCR(GI).GT.0.AND..NOT.ZN(GI)) THEN
+                   N=N+1
+                   DO L=1,MEQ
+                      DZ(L,I,J,K)=+RL(N,L)
+                   ENDDO
+               ENDIF
+            ENDDO
+   1        CONTINUE
+         ENDDO
+      ENDDO  
+
+C UPDATE SOLUTION
+
+      KOF=(KL1-2)*N12P
+      DO K=KL1,KL2+1
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         KOF=KOF+N12P
+         JOF=KOF+(JL1-2)*N1P
+         DO J=JL1,JL2+1
+            JOF=JOF+N1P
+            GI=JOF+(IL1-1)
+            DO I=IL1,IL2+1
+               GI=GI+1
+               IF(KEYCR(GI).GT.0.AND..NOT.ZN(GI)) THEN
+                  DO L=1,MEQ
+                     Z(GI,L)=DZ(L,I,J,K)
+                  ENDDO
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+
+C***********************************************************************
+      SUBROUTINE PEW_LSOR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,KEYCR,AB,AD,R,Z,ZN)
+C***********************************************************************
+C Perform one line sor iteration 
+C
+C INPUT:
+C   KEYCR(J) = KEYOUT VALUE FOR A CORNER  POINT
+C   AB(L,J) = OFF DIAGONAL COEF. OF STIFFNESS MATRIX
+C   AD(L,J) = DIAGONAL COEF. OF STIFFNESS MATRIX
+C   R(J,L) = RESIDUALS
+C   Z(J,L) = DISPLACEMENTS AT LINEAR ITERATION K
+C   ZN(J) = FLAG TO TURN ON/OFF POROELASTIC CALCULATION ON A NODE
+C
+C OUTPOUT:
+C   Z(J,L) = DISPLACEMENTS AT LINEAR ITERATION K+1 
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(*),KEYCR(*)
+      REAL*8  R(IDIM*JDIM*KDIM,3),Z(IDIM*JDIM*KDIM,3)
+      REAL*8  AB(9,13,*),AD(6,*)
+      LOGICAL ZN(*)
+
+      REAL*8  A(IDIM,3,9),RL(IDIM,3),RTMP(3)
+      REAL*8  DUB1,DUB2,DUB3
+      INTEGER I,J,K,L,GI,GJ,IOFF,JOFF,KOFF,KERR,NOFF,JOF,KOF
+      INTEGER JJ,KK,JL1,JL2,N1P,N12P,NT,N,M1,M2,M3,IDIR,MEQM,MEQP,LM,LP
+      INTEGER LC,MEQ,MEQ2,MEQ3,NN,NNM,ID(3,3),IB(3,3)
+      DATA ID/1,2,3,2,4,5,3,5,6/,IB/1,4,7,2,5,8,3,6,9/
+
+      N1P=IDIM
+      N12P=IDIM*JDIM
+      NT=N12P*KDIM
+      MEQ=PE_MEQ
+      MEQ2=MEQ*2
+      MEQ3=MEQ*3
+      MEQM=MEQ-1
+      MEQP=MEQ+1
+      NOFF = NDIM_BEFORE
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+
+      KOF=(KL1-2)*N12P
+      DO K=KL1,KL2+1
+         KK=K+KOFF
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         KOF=KOF+N12P
+         JOF=KOF+(JL1-2)*N1P
+         DO J=JL1,JL2+1
+            JJ=J+JOFF
+            JOF=JOF+N1P
+
+            IF (MOD(JJ,2).NE.KRBJ.OR.MOD(KK,2).NE.KRBK) GO TO 1
+
+C SET UP FOR ONE LINE
+
+            DO I=1,IDIM
+               DO L=1,MEQ
+                  DO M=1,MEQ3
+                     A(I,L,M)=0.D0
+                  ENDDO
+                  RL(I,L)=0.D0
+               ENDDO
+            ENDDO
+            
+            N=0
+            GI=JOF+(IL1-1)
+            DO I=IL1,IL2+1
+               GI=GI+1
+               IF(KEYCR(GI).NE.1.OR.ZN(GI)) GO TO 2
+               N=N+1
+               DO L=1,MEQ
+                  M1=1
+                  M2=M1+MEQ
+                  M3=M2+MEQ
+                  RTMP(L)=R(GI,L)
+                  DO M=1,MEQ
+                     A(N,L,M2)=AD(ID(M,L),GI)
+                     RTMP(L)=RTMP(L)-AD(ID(M,L),GI)*Z(GI,M)
+                     IF(I.GT.1) THEN
+                        A(N,L,M1)=AB(IB(M,L),13,GI)
+                        RTMP(L)=RTMP(L)-AB(IB(M,L),13,GI)*Z(GI-1,M)
+                     ENDIF
+                     IF(I.LT.IDIM) THEN
+                        A(N,L,M3)=AB(IB(L,M),13,GI+1)
+                        RTMP(L)=RTMP(L)-AB(IB(L,M),13,GI+1)*Z(GI+1,M)
+                     ENDIF
+                     M1=M1+1
+                     M2=M2+1
+                     M3=M3+1
+                  ENDDO
+               ENDDO
+               DO IDIR=1,NOFF-1
+                  GJ=GI-IOFFSET(IDIR,NBLK)
+                  IF(GJ.LE.0.OR.KEYCR(GJ).EQ.0.OR.ZN(GJ)) GOTO 5
+                  DO L=1,MEQ
+                     DO M=1,MEQ
+                        RTMP(L)=RTMP(L)-AB(IB(M,L),IDIR,GI)*Z(GJ,M)
+                     ENDDO
+                  ENDDO
+   5              GJ=GI+IOFFSET(IDIR,NBLK)
+                  IF(GJ.GT.NT.OR.KEYCR(GJ).EQ.0.OR.ZN(GJ)) GOTO 4
+                  DO L=1,MEQ
+                     DO M=1,MEQ
+                        RTMP(L)=RTMP(L)-AB(IB(L,M),IDIR,GJ)*Z(GJ,M)
+                     ENDDO
+                  ENDDO
+   4              CONTINUE
+               ENDDO
+   3           CONTINUE
+               DO L=1,MEQ
+                  RL(N,L)=RTMP(L)
+               ENDDO
+   2           CONTINUE
+            ENDDO
+
+C SOLVE FOR ONE LINE
+
+            IF(N.EQ.0) GO TO 1
+            NM1=N-1
+
+C FORWARD ELIMINATION
+
+            DO L=1,MEQM
+               LM=L+MEQ
+               LP=L+MEQP
+               DUB1=A(1,L,LM)
+               DUB3=RL(1,L)
+               DO LL=L+1,MEQ
+                  DUB2=A(1,LL,LM)/DUB1
+                  RL(1,LL)=RL(1,LL)-DUB2*DUB3
+                  DO M=LP,MEQ3
+                     A(1,LL,M)=A(1,LL,M)-DUB2*A(1,L,M)
+                  ENDDO
+               ENDDO
+            ENDDO
+
+            LC=MEQ3
+            DO NN=2,N
+               NNM=NN-1
+               DO L=1,MEQ
+                  LM=L+MEQ
+                  LP=L+1
+                  DUB1=A(NNM,L,LM)
+                  DUB3=RL(NNM,L)
+                  DO LL=1,MEQ
+                     DUB2=A(NN,LL,L)/DUB1
+                     RL(NN,LL)=RL(NN,LL)-DUB2*DUB3
+                     DO M=LP,MEQ2
+                        A(NN,LL,M)=A(NN,LL,M)-DUB2*A(NNM,L,M+MEQ)
+                     ENDDO
+                  ENDDO
+               ENDDO
+               IF (NN.EQ.N) LC=MEQ2
+               DO L=1,MEQM
+                  LM=L+MEQ
+                  LP=L+MEQP
+                  DUB1=A(NN,L,LM)
+                  DUB3=RL(NN,L)
+                  DO LL=L+1,MEQ
+                     DUB2=A(NN,LL,LM)/DUB1
+                     RL(NN,LL)=RL(NN,LL)-DUB2*DUB3
+                     DO M=LP,LC
+                        A(NN,LL,M)=A(NN,LL,M)-DUB2*A(NN,L,M)
+                     ENDDO
+                  ENDDO
+               ENDDO
+            ENDDO
+
+c BACK SUBSTITUTION
+
+            RL(N,MEQ)=RL(N,MEQ)/A(N,MEQ,MEQ2)
+            DO L=MEQM,1,-1
+               DUB1=RL(N,L)
+               DO M=L+1,MEQ
+                  DUB1=DUB1-RL(N,M)*A(N,L,M+MEQ)
+               ENDDO
+               RL(N,L)=DUB1/A(N,L,L+MEQ)
+            ENDDO
+            DO NN=NM1,1,-1
+               NNP=NN+1
+               DO L=MEQ,1,-1
+                  DUB1=RL(NN,L)
+                  DO M=1,MEQ
+                     DUB1=DUB1-RL(NNP,M)*A(NN,L,M+MEQ2)
+                  ENDDO
+                  DO M=L+1,MEQ
+                     DUB1=DUB1-RL(NN,M)*A(NN,L,M+MEQ)
+                  ENDDO
+                  RL(NN,L)=DUB1/A(NN,L,L+MEQ)
+               ENDDO
+            ENDDO
+C UPDATE
+            N=0
+            GI=JOF+IL1-1
+            DO I=IL1,IL2+1
+               GI = GI+1
+               IF (KEYCR(GI).EQ.1.AND..NOT.ZN(GI)) THEN
+                   N=N+1
+                   DO L=1,MEQ
+                      Z(GI,L)=Z(GI,L)+1.333*RL(N,L)
+c                     Z(GI,L)=Z(GI,L)+RL(N,L)
+                   ENDDO
+               ENDIF
+            ENDDO
+   1        CONTINUE
+         ENDDO
+      ENDDO  
+
+      END
+
+C***********************************************************************
+      SUBROUTINE PEW_GS_UX(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                  KL2,KEYOUT,NBLK,KEYCR,AB,AD,R,Z,ZN)
+C***********************************************************************
+C Perform one RB Gauss-Seidel iteration only for vertical displacement 
+C unknown.
+C
+C INPUT:
+C   KEYCR(J) = KEYOUT VALUE FOR A CORNER  POINT
+C   AB(L,J) = OFF DIAGONAL COEF. OF STIFFNESS MATRIX
+C   AD(L,J) = DIAGONAL COEF. OF STIFFNESS MATRIX
+C   R(J,L) = RESIDUALS
+C   Z(J,L) = DISPLACEMENTS AT LINEAR ITERATION K
+C   ZN(J) = FLAG TO TURN ON/OFF POROELASTIC CALCULATION ON A NODE
+C
+C OUTPOUT:
+C   Z(J,L) = DISPLACEMENTS AT LINEAR ITERATION K+1
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(*),KEYCR(*)
+      REAL*8  R(IDIM*JDIM*KDIM,3),Z(IDIM*JDIM*KDIM,3)
+      REAL*8  AB(9,13,*),AD(6,*)
+      LOGICAL ZN(*)
+
+      REAL*8  A(IDIM,3),RL(IDIM),G(IDIM),Q(IDIM),RTMP,WI
+      INTEGER I,J,K,L,GI,GJ,IOFF,JOFF,KOFF,KERR,NOFF,JOF,KOF,JJ,KK
+      INTEGER JL1,JL2,N1P,N12P,NT,N,MEQ,ID(3),IB(3),IBT(3)
+      DATA ID/1,2,3/,IB/1,4,7/,IBT/1,2,3/
+
+      N1P=IDIM
+      N12P=IDIM*JDIM
+      NT=N12P*KDIM
+      NOFF = NDIM_BEFORE
+      MEQ=PE_MEQ
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+      KOF=(KL1-2)*N12P
+      DO K=KL1,KL2+1
+         KK=K+KOFF
+         JL1=JL1V(K)
+         JL2=JL2V(K)
+         KOF=KOF+N12P
+         JOF=KOF+(JL1-2)*N1P
+         DO J=JL1,JL2+1
+            JJ=J+JOFF
+            JOF=JOF+N1P
+            IF(MOD(JJ,2).NE.KRBJ.OR.MOD(KK,2).NE.KRBK) GO TO 1
+             
+C SET UP FOR ONE LINE
+
+            DO I=1,IDIM
+               A(I,1)=0.D0
+               A(I,1)=0.D0
+               A(I,2)=0.D0
+               A(I,3)=0.D0
+               RL(I)=0.D0
+            ENDDO
+
+            N=0
+            GI=JOF+(IL1-1)
+            DO I=IL1,IL2+1
+               GI=GI+1
+               IF(KEYCR(GI).NE.1.OR.ZN(GI)) GO TO 2
+               N=N+1
+               RTMP=R(GI,1)
+               A(N,2)=AD(1,GI)
+               DO M=1,MEQ
+                  RTMP=RTMP-AD(ID(M),GI)*Z(GI,M)
+               ENDDO
+               IF(I.GT.1) A(N,1)=AB(1,13,GI)
+               IF(I.LT.IDIM) A(N,3)=AB(1,13,GI+1)
+
+               DO IDIR=1,NOFF  
+                  GJ=GI-IOFFSET(IDIR,NBLK)
+                  IF(GJ.GT.0.AND.KEYCR(GJ).NE.0.AND..NOT.ZN(GJ)) THEN
+                     DO M=1,MEQ
+                        RTMP=RTMP-AB(IB(M),IDIR,GI)*Z(GJ,M)
+                     ENDDO
+                  ENDIF
+                  GJ=GI+IOFFSET(IDIR,NBLK)
+                  IF(GJ.LE.NT.AND.KEYCR(GJ).NE.0.AND..NOT.ZN(GJ)) THEN
+                     DO M=1,MEQ
+                        RTMP=RTMP-AB(IBT(M),IDIR,GJ)*Z(GJ,M)
+                     ENDDO
+                  ENDIF
+               ENDDO
+               RL(N)=RTMP
+   2           CONTINUE
+            ENDDO
+
+C SOLVE FOR ONE LINE
+          
+            IF(N.EQ.0) GO TO 1
+
+            WI=A(1,2)
+            G(1)=RL(1)/WI
+            DO I=2,N
+               Q(I-1)=A(I-1,3)/WI
+               WI=A(I,2)-A(I,1)*Q(I-1);   
+               G(I)=(RL(I)-A(I,1)*G(I-1))/WI   
+            ENDDO
+ 
+            RL(N)=G(N);
+            DO I=N-1,1,-1
+               RL(I)=G(I)-Q(I)*RL(I+1)
+            ENDDO
+
+C UPDATE SOLUTION
+
+            N=0
+            GI=JOF+IL1-1
+            DO I=IL1,IL2+1
+               GI = GI+1
+               IF (KEYCR(GI).EQ.1.AND..NOT.ZN(GI)) THEN
+                   N=N+1
+                   Z(GI,1)=Z(GI,1)+RL(N)
+               ENDIF
+            ENDDO
+   1        CONTINUE
+         ENDDO
+      ENDDO 
+
+      END
+
+C***********************************************************************
+C                           END OF PCG_ISTUB.DF 
+C***********************************************************************
+    

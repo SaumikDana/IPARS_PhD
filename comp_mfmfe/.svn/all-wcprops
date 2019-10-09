@@ -1,0 +1,215 @@
+K 25
+svn:wc:ra_dav:version-url
+V 44
+/repos/csm/!svn/ver/623/IPARSv3.1/comp_mfmfe
+END
+xiter.h
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xiter.h
+END
+xgendat.df
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/401/IPARSv3.1/comp_mfmfe/xgendat.df
+END
+xwell.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/573/IPARSv3.1/comp_mfmfe/xwell.df
+END
+xvisual.df
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/621/IPARSv3.1/comp_mfmfe/xvisual.df
+END
+xvisual.dh
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xvisual.dh
+END
+xcompwel.dh
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/464/IPARSv3.1/comp_mfmfe/xcompwel.dh
+END
+xrest.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/446/IPARSv3.1/comp_mfmfe/xrest.df
+END
+xarray.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/621/IPARSv3.1/comp_mfmfe/xarray.df
+END
+xquit.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xquit.df
+END
+xiadat.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/621/IPARSv3.1/comp_mfmfe/xiadat.df
+END
+xresprop.h
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xresprop.h
+END
+xwells.dh
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xwells.dh
+END
+xsprb3.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xsprb3.df
+END
+engbal.f
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/engbal.f
+END
+xthermal.df
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xthermal.df
+END
+xflash.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/404/IPARSv3.1/comp_mfmfe/xflash.df
+END
+xthermal.dh
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xthermal.dh
+END
+xparam.h
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xparam.h
+END
+xwdata.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/446/IPARSv3.1/comp_mfmfe/xwdata.df
+END
+xmodel.dh
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/539/IPARSv3.1/comp_mfmfe/xmodel.dh
+END
+xisdat.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/539/IPARSv3.1/comp_mfmfe/xisdat.df
+END
+xtran.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/518/IPARSv3.1/comp_mfmfe/xtran.df
+END
+xpore.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/591/IPARSv3.1/comp_mfmfe/xpore.df
+END
+xivdat.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/588/IPARSv3.1/comp_mfmfe/xivdat.df
+END
+xdiff.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/460/IPARSv3.1/comp_mfmfe/xdiff.df
+END
+xstep.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/623/IPARSv3.1/comp_mfmfe/xstep.df
+END
+xutil.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/467/IPARSv3.1/comp_mfmfe/xutil.df
+END
+xprop.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/518/IPARSv3.1/comp_mfmfe/xprop.df
+END
+xarydat.h
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/621/IPARSv3.1/comp_mfmfe/xarydat.h
+END
+xstdout.df
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/446/IPARSv3.1/comp_mfmfe/xstdout.df
+END
+xplace.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xplace.df
+END
+xdual.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xdual.df
+END
+HYST-1.f
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/HYST-1.f
+END
+xbaldat.dh
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xbaldat.dh
+END
+xtdata.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/xtdata.df
+END

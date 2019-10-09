@@ -1,0 +1,570 @@
+$ This data set is modified from the initial SPE9.  Well rates in particular
+$ are not related to SPE9.
+$ The permeability data are in file SPE9.xk and SPE9.yzk
+
+TITLE(1)="Heterogeneous Test Case black4.dat"
+
+DESCRIPTION()=
+"GRID ELEMENTS : 5000 ACTIVE ELEMENTS (15 x 24 x 25)"
+"DIMENSIONS : 359 ft x 7200 x 7500 ft"
+"DATE : 8/26/00"
+
+BLOCKMODEL(1)="BLACK_OIL_IMPLICIT"
+
+TIMEEND = 60.
+
+$ CONVGERGENCE TOLERANCE
+
+CVTOL= .5E-5
+
+$ I/O OPTIONS
+
+OUTLEVEL = 3      GEOMOUT    PROCOUT
+WELLOUTKEY = 2    WELLFILE = "black4.wel"    TYPICAL = 26
+$ TECPLOT="black4"    TECBASE="..\output\tecplot\base6.lay"
+
+$ FAULT BLOCK AND MESH DATA
+
+DOWN()=.99875  .05  0.
+
+NX(1) = 15  NY(1) = 24  NZ(1) = 25   XYZ111() = 9000.  0.  0.  
+
+DX() = 20 15 26 15 16 14 8 8 18 12 19 18 20 50 100
+DY() = 300.
+DZ() = 300.
+
+$ FLUID PROPERTIES
+
+STDENO = 44.9264  STDENW = 62.96305  STDENG = .0702
+OILVIS = 1.0      WATERVIS = .3      GASVIS = 0.015
+BOMODEL = 1  BOTESTP1 = 1000.  BOTESTP2 = 3900. MODREL(1) = 5
+
+$ INITIAL CONDITIONS
+
+DINIT = 9010.  PWINIT = 3550  SWINIT = 0.1763  SGINIT = 0.3
+
+$ POROSITY
+
+POROSITY1(1,,)  = .087 
+POROSITY1(2,,)  = .097 
+POROSITY1(3,,)  = .111 
+POROSITY1(4,,)  = .16 
+POROSITY1(5,,)  = .13 
+POROSITY1(6,,)  = .17 
+POROSITY1(7,,)  = .17 
+POROSITY1(8,,)  = .08 
+POROSITY1(9,,)  = .14 
+POROSITY1(10,,) = .13 
+POROSITY1(11,,) = .12 
+POROSITY1(12,,) = .105 
+POROSITY1(13,,) = .12 
+POROSITY1(14,,) = .116 
+POROSITY1(15,,) = .157 
+
+$ PERMEABILITIES
+
+Include spe9.xk
+Include spe9.yzk
+
+KOSW(1) Block        $ OIL RELATIVE PERMEABILITY VS Sw - SPE #9
+  Plot
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .8
+  Derivative  0 At .8
+  Constraint  1 At .15
+  Derivative  0 At .15
+  Nodes  .3473  .3633  .4385
+  Data .15      1.0      , 0.178350 0.991590 , 0.203350 0.978830
+  0.253350 0.943730
+  0.360000 0.700470 , 0.364395 0.642258 , 0.368790 0.584046
+  0.370000 0.568020 , 0.380000 0.434980
+  0.433450 0.125310 , 0.461390 0.094980 , 0.489320 0.070530
+  0.517250 0.051130 , 0.573120 0.024640 , 0.601060 0.016190
+  0.656930 0.005940 , 0.712800 0.001590 , 0.80     0.0
+EndBlock
+
+KWSW(1) Block        $ WATER RELATIVE PERMEABILITY VS Sw - SPE #9
+  Plot
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .18
+  Derivative  0 At .18
+  Constraint  1 At   1
+  Nodes  .2981  .4617  .8406
+  Data 0.18  0.0    , 0.253350 0.000030 , 0.360000 0.010340
+  0.364395 0.015548 , 0.368790 0.020756 , 0.370000 0.022190
+  0.380000 0.035890 , 0.400000 0.069530 , 0.433450 0.087900
+  0.461390 0.104910 , 0.489320 0.123290 , 0.517250 0.143030
+  0.573120 0.186590 , 0.601060 0.210380 , 0.656930 0.261900
+  0.712800 0.318650 , 0.811110 0.430920 , 0.881490 0.490000 , 1. 1.
+EndBlock
+
+KOSG(1) Block        $ OIL RELATIVE PERMEABILITY VS Sg - SPE #9
+  Plot
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  1 At  0
+  Constraint  0 At .4
+  Derivative  0 At .4
+  Nodes  .0717  .2565  
+  Data 0  0.991590 , .04  .6 , .1  .33 , .2  .1 , .3  .02 , .4   0
+EndBlock
+
+KGSG(1) Block        $ GAS RELATIVE PERMEABILITY VS Sg - SPE #9
+  Plot
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .04
+  Derivative  0 At .04
+  Constraint  1 At .85
+  Derivative  0 At .85
+  Nodes  .2315  .5454  .6349
+  Data .04 0 , .1 .022 , .2 .1 , .3 .24 , .4 .34 , .5 .42 , .6 .5
+  .7 .8125 , 0.85  1.
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE VS Sw - SPE #9
+  Plot
+  Interpolation Spline3
+  Extrapolation Same
+  Nodes  .3306  .5015
+  Pole   .1232
+  Data 0.156470 79.060 , 0.165850 40.010 , 0.178350 27.930
+0.203350 20.400 , 0.253350 15.550 , 0.360000  0.463
+0.400000 -1.604 , 0.433450 -1.710 , 0.461390 -1.780
+0.489320 -1.860 , 0.517250 -1.930 , 0.573120 -2.070
+0.601060 -2.130 , 0.656930 -2.260 , 0.712800 -2.380
+0.811110 -2.600 , 0.881490 -2.750
+EndBlock
+
+PCGO(1) Block        $ GAS-OIL CAPILLARY PRESSURE VS Sg - SPE #9
+  Plot
+  Interpolation Spline3
+  Extrapolation Same
+  Derivative  0 At .15
+  Nodes  .37
+  Data .15  3.9 , .3  3.5 , .4  3 , .5  2.5 , .6  2 , .7  1.5 , .8  1  
+  .9  .5 , .96 .2 , 1.  0  
+EndBlock
+
+RSO Block            $ DISSOLVED GAS-OIL RATIO VS Po - SPE #9
+                     $ Unit: (mscf of gas)/(stb of oil) 
+  Plot
+  Interpolation  Linear
+  Extrapolation Same
+  Data   
+     14.7   0.0
+      400   0.1651
+      800   0.3352
+     1200   0.4997
+     1600   0.6648
+     2000   0.8282
+     2400   0.9849
+     2800   1.1297
+     3200   1.2701
+     3600   1.3902
+     4000   1.500
+     4400   1.612
+EndBlock
+
+PSAT Block            $ SATURATION PRESSURE VS Rso - SPE #9
+                      $ Unit: (mscf of gas)/(stb of oil) 
+  Plot
+  Interpolation  Linear
+  Extrapolation Same
+  Reverse        $ x and y will be reversed in the data block
+  Data   
+     14.7   0.0
+      400   0.1651
+      800   0.3352
+     1200   0.4997
+     1600   0.6648
+     2000   0.8282
+     2400   0.9849
+     2800   1.1297
+     3200   1.2701
+     3600   1.3902
+     4000   1.500
+     4400   1.612
+EndBlock
+
+RBW Block            $ Reciprocal water formation volume factor
+                     $ if WATCOMP = 0.33D-5 1/psi
+  Plot
+  Interpolation Linear
+  Extrapolation Same
+  Data 
+  14.7     1.0
+  500.     1.001603
+  1000.    1.003257
+  1500.    1.004914
+  2000.    1.006573
+  2500.    1.008235
+  3000.    1.009900
+  3500.    1.01157
+  4000.    1.01324
+EndBlock
+
+BG Block             $ Gas formation volume factor vs Po
+                     $ [bbl/mscf]
+  Plot
+  Interpolation Linear
+  Extrapolation Same
+  Data 
+  14.7    160.16
+   400    5.877
+   800    2.939
+  1200    1.959
+  1600    1.478
+  2000    1.175
+  2400    0.980
+  2800    0.837
+  3200    0.730
+  3600    0.659
+  4000    0.588
+EndBlock
+
+BSO Block            $Formation volume factor for saturated oil
+                     $ Units of Bso are RB/STB
+  Plot
+  Interpolation Linear
+  Extrapolation Same
+  Data
+  14.7  1.000
+  400   1.012 
+  800   1.0255 
+  1200  1.038
+  1600  1.051
+  2000  1.063   
+  2400  1.075
+  2800  1.087
+  3200  1.0985
+  3600  1.110
+  4000  1.12
+EndBlock
+
+BOD Block            $ Formation volume factor for dead oil
+                     $ OILCOMP = .4D-4
+  Plot
+  Interpolation Linear
+  Extrapolation Same
+  Data
+  14.7       1.00000000
+  500.00     0.98077517
+  1000.0     0.96135455
+  1500.0     0.94231843
+  2000.0     0.92365932
+  2500.0     0.90536963
+  3000.0     0.88744211
+  3500.0     0.86986958
+  4000.0     0.85264498
+EndBlock
+
+NUMWELL=26
+
+$ WELL 1  AT J = 24 , K = 25
+WELLNAME(1) = "Well #1"
+KINDWELL(1) = 1
+WELLTOP(1 TO 3,1,1) =  9152  7050  7350
+WELLBOTTOM(1 TO 3,1,1) =  9359  7050  7350
+WELLPQ(1) Block     $ pressure limited for entire simulation
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  3870.  30.  4000.
+EndBlock
+
+$ WELL 2  AT J = 5 , K = 1
+WELLNAME(2) = "Well #2"
+KINDWELL(2) = 31
+WELLTOP(1 TO 3,1,2) =  9020  1350  150
+WELLBOTTOM(1 TO 3,1,2) =  9076  1350  150
+WELLPQ(2) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 3  AT J = 8 , K = 2
+WELLNAME(3) = "Well #3"
+KINDWELL(3) = 31  
+WELLTOP(1 TO 3,1,3) =  9020  2250  450
+WELLBOTTOM(1 TO 3,1,3) =  9076  2250  450
+WELLPQ(3) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 4  AT J = 11 , K = 3
+WELLNAME(4) = "Well #4"
+KINDWELL(4) = 31  
+WELLTOP(1 TO 3,1,4) =  9020  3150  750
+WELLBOTTOM(1 TO 3,1,4) =  9076  3150  750
+WELLPQ(4) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3550.,  300. 3000.
+EndBlock
+
+$ WELL 5  AT J = 10 , K = 4
+WELLNAME(5) = "Well #5"
+KINDWELL(5) = 31  
+WELLTOP(1 TO 3,1,5) =  9020  2850  1050
+WELLBOTTOM(1 TO 3,1,5) =  9076  2850  1050
+WELLPQ(5) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 6  AT J = 12 , K = 5
+WELLNAME(6) = "Well #6"
+KINDWELL(6) = 31
+WELLTOP(1 TO 3,1,6) =  9020  3450  1350
+WELLBOTTOM(1 TO 3,1,6) =  9076  3450  1350
+WELLPQ(6) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 7  AT J = 4 , K = 6
+WELLNAME(7) = "Well #7"
+KINDWELL(7) = 31
+WELLTOP(1 TO 3,1,7) =  9020  1050  1650
+WELLBOTTOM(1 TO 3,1,7) =  9076  1050  1650
+WELLPQ(7) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 8  AT J = 8 , K = 7
+WELLNAME(8) = "Well #8"
+KINDWELL(8) = 31
+WELLTOP(1 TO 3,1,8) =  9020  2250  1950
+WELLBOTTOM(1 TO 3,1,8) =  9076  2250  1950
+WELLPQ(8) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3500.,  300. 2700.
+EndBlock
+
+$ WELL 9  AT J = 14 , K = 8
+WELLNAME(9) = "Well #9"
+KINDWELL(9) = 31
+WELLTOP(1 TO 3,1,9) =  9020  4050  2250
+WELLBOTTOM(1 TO 3,1,9) =  9076  4050  2250
+WELLPQ(9) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 10  AT J = 11 , K = 9
+WELLNAME(10) = "Well #10"
+KINDWELL(10) = 31
+WELLTOP(1 TO 3,1,10) =  9020  3150  2550
+WELLBOTTOM(1 TO 3,1,10) =  9076  3150  2550
+WELLPQ(10) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3500.,  300. 2700.
+EndBlock
+
+$ WELL 11 AT J = 12 , K = 10
+WELLNAME(11) = "Well #11"
+KINDWELL(11) = 31
+WELLTOP(1 TO 3,1,11) =  9020  3450  2850
+WELLBOTTOM(1 TO 3,1,11) =  9076  3450  2850
+WELLPQ(11) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 12 AT J = 10 , K = 11
+WELLNAME(12) = "Well #12"
+KINDWELL(12) = 31
+WELLTOP(1 TO 3,1,12) =  9020  2850  3150
+WELLBOTTOM(1 TO 3,1,12) =  9076  2850  3150
+WELLPQ(12) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 13 AT J = 5 , K = 12
+WELLNAME(13) = "Well #13"
+KINDWELL(13) = 31
+WELLTOP(1 TO 3,1,13) =  9020  1350  3450
+WELLBOTTOM(1 TO 3,1,13) =  9076  1350  3450
+WELLPQ(13) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 14 AT J = 8 , K = 13
+WELLNAME(14) = "Well #14"
+KINDWELL(14) = 31
+WELLTOP(1 TO 3,1,14) =  9020  2250  3750
+WELLBOTTOM(1 TO 3,1,14) =  9076  2250  3750
+WELLPQ(14) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3560.,  300. 3000.
+EndBlock
+
+$ WELL 15 AT J = 11 , K = 14
+WELLNAME(15) = "Well #15"
+KINDWELL(15) = 31
+WELLTOP(1 TO 3,1,15) =  9020  3150  4050
+WELLBOTTOM(1 TO 3,1,15) =  9076  3150  4050
+WELLPQ(15) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3400.,  300. 2000.
+EndBlock
+
+$ WELL 16 AT J = 13 , K = 15
+WELLNAME(16) = "Well #16"
+KINDWELL(16) = 31
+WELLTOP(1 TO 3,1,16) =  9020  3750  4350
+WELLBOTTOM(1 TO 3,1,16) =  9076  3750  4350
+WELLPQ(16) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 17 AT J = 15 , K = 16
+WELLNAME(17) = "Well #17"
+KINDWELL(17) = 31
+WELLTOP(1 TO 3,1,17) =  9020  4350  4650
+WELLBOTTOM(1 TO 3,1,17) =  9076  4350  4650
+WELLPQ(17) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3560.,  300. 3000.
+EndBlock
+
+$ WELL 18 AT J = 11 , K = 17
+WELLNAME(18) = "Well #18"
+KINDWELL(18) = 31
+WELLTOP(1 TO 3,1,18) =  9020  3150  4950
+WELLBOTTOM(1 TO 3,1,18) =  9076  3150  4950
+WELLPQ(18) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3500.,  300. 2700.
+EndBlock
+
+$ WELL 19 AT J = 12 , K = 18
+WELLNAME(19) = "Well #19"
+KINDWELL(19) = 31
+WELLTOP(1 TO 3,1,19) =  9020  3450  5250
+WELLBOTTOM(1 TO 3,1,19) =  9076  3450  5250
+WELLPQ(19) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3500.,  300. 2700.
+EndBlock
+
+$ WELL 20 AT J = 5 , K = 19
+WELLNAME(20) = "Well #20"
+KINDWELL(20) = 31
+WELLTOP(1 TO 3,1,20) =  9020  1350  5550
+WELLBOTTOM(1 TO 3,1,20) =  9076  1350  5550
+WELLPQ(20) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 21 AT J = 8 , K = 20
+WELLNAME(21) = "Well #21"
+KINDWELL(21) = 31
+WELLTOP(1 TO 3,1,21) =  9020  2250  5850
+WELLBOTTOM(1 TO 3,1,21) =  9076  2250  5850
+WELLPQ(21) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3300.,  300. 2000.
+EndBlock
+
+$ WELL 22 AT J = 11 , K = 21
+WELLNAME(22) = "Well #22"
+KINDWELL(22) = 31
+WELLTOP(1 TO 3,1,22) =  9020  3150  6150
+WELLBOTTOM(1 TO 3,1,22) =  9076  3150  6150
+WELLPQ(22) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 23 AT J = 15 , K = 22
+WELLNAME(23) = "Well #23"
+KINDWELL(23) = 31
+WELLTOP(1 TO 3,1,23) =  9020  4350  6450
+WELLBOTTOM(1 TO 3,1,23) =  9076  4350  6450
+WELLPQ(23) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 24 AT J = 12 , K = 23
+WELLNAME(24) = "Well #24"
+KINDWELL(24) = 31
+WELLTOP(1 TO 3,1,24) =  9020  3450  6750
+WELLBOTTOM(1 TO 3,1,24) =  9076  3450  6750
+WELLPQ(24) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3550.,  300. 3000.
+EndBlock
+
+$ WELL 25 AT J = 10 , K = 24
+WELLNAME(25) = "Well #25"
+KINDWELL(25) = 31
+WELLTOP(1 TO 3,1,25) =  9020  2850  7050
+WELLBOTTOM(1 TO 3,1,25) =  9076  2850  7050
+WELLPQ(25) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+$ WELL 26 AT J = 17 , K = 25
+WELLNAME(26) = "Well #26"
+KINDWELL(26) = 31
+WELLTOP(1 TO 3,1,26) =  9020  4950  7350
+WELLBOTTOM(1 TO 3,1,26) =  9076  4950  7350
+WELLPQ(26) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0. 3590,  30. 3350.,  300. 2000.
+EndBlock
+
+EndInitial
+ 
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+DELTIM = 1.  DTIMMUL = 1.2  DTIMMAX = 2.0  TIMOUT = 100. DTIMOUT = 300.
+EndTime
+
+BeginTime    40.
+DTIMMAX = 4.
+EndTime
+
+BeginTime    100.
+DTIMMAX = 8.
+EndTime
+
+BeginTime    200.
+DTIMMAX = 10.
+EndTime

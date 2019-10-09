@@ -1,0 +1,25 @@
+$ ############ Dual Approximation Interface Include File ############
+$ ######################### Small Problems ##########################
+
+Replace_Symbols
+
+DUAL   ""        $ Enable dual approximation interface
+MXGEI  2100      $ Max total number of interface grid elements per processor
+MXFELE 9000      $ Max total number of interface couplings per processor
+MXIBUF  160      $ Max number of buffers for dual approximation interface
+
+Source_Directory
+../blocks/dual/
+Source_Files
+
+sblkc.dh      .h
+blksin.df     .f
+inface.dc     .c
+infcomm.df    .f
+
+Source_Directory
+../parall/
+Source_Files
+
+pdual.df      .f
+pdualm.dc     .c

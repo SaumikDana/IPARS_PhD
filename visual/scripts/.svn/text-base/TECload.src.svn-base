@@ -1,0 +1,25 @@
+#!MC 700
+## TECload.src
+###################### assume that we have numproc processors and nsteps zones
+$!VarSet |numproc| = 
+$!VarSet |nsteps| = 
+##################### TECload.src
+##################### read *.plt files for all processors 
+$!VarSet |mydir| = 
+$!READDATASET  
+  READDATAOPTION = NEW
+  RESETSTYLE = YES
+$!RemoveVar |mydir|
+###########################
+################### read the files 
+$!FIELDLAYERS SHOWMESH = NO
+$!FIELDLAYERS SHOWCONTOUR = YES
+$!FIELD   CONTOUR{CONTOURTYPE = FLOOD}
+$!GLOBALCONTOUR LEGEND{SHOW= TRUE}
+$!GLOBALCONTOUR VAR = 4
+###################### 
+
+
+
+
+

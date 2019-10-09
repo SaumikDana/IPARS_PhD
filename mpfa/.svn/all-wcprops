@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 38
+/repos/csm/!svn/ver/621/IPARSv3.1/mpfa
+END
+mpfa_tran.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/595/IPARSv3.1/mpfa/mpfa_tran.df
+END
+fcns.df
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/repos/csm/!svn/ver/563/IPARSv3.1/mpfa/fcns.df
+END
+mpfadual.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/455/IPARSv3.1/mpfa/mpfadual.df
+END
+impfa.df
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/repos/csm/!svn/ver/621/IPARSv3.1/mpfa/impfa.df
+END
+read3.df
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/repos/csm/!svn/ver/597/IPARSv3.1/mpfa/read3.df
+END
+mfarray.df
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/repos/csm/!svn/ver/621/IPARSv3.1/mpfa/mfarray.df
+END
+mpfaary.dh
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/repos/csm/!svn/ver/563/IPARSv3.1/mpfa/mpfaary.dh
+END
+buildmpfa.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/621/IPARSv3.1/mpfa/buildmpfa.df
+END

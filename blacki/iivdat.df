@@ -1,0 +1,759 @@
+C  IIVDAT.F - BLACK OIL MODEL INITIALIZATION CODE (AFTER INITIAL INPUT)
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE IIVDAT (NERR)
+C  SUBROUTINE IINIT  (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,POR,DEPTH,PWAT,OIL,GAS,KROCK)
+C  SUBROUTINE GOC    (SGI,DEPI,POI,PGI,DOI,DGI,FRSOI,KRB,DEPB,POB,PGB,
+C                      DOB,DGB,NERR)
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     7/16/97   INITIAL VERSION
+C  QIN LU           10/9/97   IN IINIT(), USE DEPA INSTEAD OF DEPC AS
+C                             REFERENCE DEPTH TO CALCULATE PWB,POB,PGB,PCOW,
+C                             PCGO,ADD CONTRAINT FROM RESIDUAL OIL SATURATION
+C                             SORW.
+c  M. Peszynska     2/8/98    added botest() to test for possible bad
+c                             bad data values causing bad Bo behavior
+C  JOHN WHEELER     11/1/99   IMPROVE INITIALLIZATION. ADD GOC ROUTINE
+C*********************************************************************
+      SUBROUTINE IIVDAT (NERR)
+C*********************************************************************
+
+C  Black oil model initialization after initial keyword input and 
+C  grid-element array creation
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+C  NOTES:
+
+C  TIMKLS(I) = TIMER CLASS
+C            = 0 ==> UNUSED
+C            = 1 ==> TOTAL TIME
+C            = 2 ==> COMMUNICATION TIMES
+C            = 3 ==> ALL REDUNDANT CALCULATION TIMES
+C            = 4 ==> MISCELLENOUS TIMES
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'times.h'
+      INCLUDE 'rock.h'
+      INCLUDE 'unitsex.h'
+      INCLUDE 'iarydat.h'
+      INCLUDE 'ibaldat.h'
+      INCLUDE 'ifluid.h'
+
+      INTEGER JSET(4),JINIT(10)
+      REAL*8 DUB
+
+      EXTERNAL IINIT,SETARYR8N
+
+C  DEFINE TIMERS (USE 20 TO 30)
+
+      TIMNAM(20)='PROPERTIES AND ACCUMULATION'
+      TIMKLS(20)=4
+      TIMNAM(21)='TRANSMISSABILITY TERMS'
+      TIMKLS(21)=4
+      TIMNAM(22)='PROPERTY COMMUNICATION'
+      TIMKLS(22)=2
+      TIMNAM(23)='WELL COMMUNICATION'
+      TIMKLS(23)=2
+
+C  CONVERT STOCK TANK DENSITIES TO BLACK-OIL UNITS
+
+      OSTDEN=5.614584D0*STDENO
+      WSTDEN=5.614584D0*STDENW
+      GSTDEN=1000.*STDENG
+
+C  CONVERT WELL CONVERSION FACTORS TO BLACK-OIL UNITS
+
+C        IF (.NOT.STBEXT) CVMWO=CVMWO*OSTDEN/WSTDEN
+C        IF (.NOT.SCFEXT) CVMWG=CVMWG*GSTDEN/WSTDEN
+      IF (STBEXT) THEN
+         CVMWELWB=1.D0
+         CVMWELOB=1.D0
+      ELSE
+         CVMWELWB=WSTDEN*CVMWELL
+         CVMWELOB=OSTDEN*CVMWELL
+      ENDIF
+      IF (SCFEXT) THEN
+         CVMWELGB=1.D0
+      ELSE
+         CVMWELGB=GSTDEN*CVMWELG
+      ENDIF
+
+C  LOOKUP GAS-OIL CAPILLARY PRESSURE FOR Sg = 0 (So = 1.)
+C  LOOKUP WATER-OIL CAPILLARY PRESSURE FOR So = 0 (Sw = 1.)
+
+      DO 1 I=1,MXROCK
+      IF (NPCGO(I).GT.0) CALL LOOKUP(NPCGO(I),1.D0,PCGO0(I),DUB)
+    1 CONTINUE
+
+C  INITIALIZE OIL PRESSURE AND CONCENTRATIONS
+C  COUNT GRID ELEMENTS AND ZERO VELOCITIES
+
+      NERRC=0
+
+      R8UTIL=0.D0
+      I4UTIL=9
+      JSET(1)=3
+      JSET(2)=N_VEL
+      JSET(3)=N_R8U
+      JSET(4)=N_I4U
+      CALL CALLWORK(SETARYR8N,JSET)
+
+      JINIT(1)=7
+      JINIT(2)=N_POR
+      JINIT(3)=N_DEPTH
+      JINIT(4)=N_POIL
+      JINIT(5)=N_OIL
+      JINIT(6)=N_GAS
+      JINIT(7)=N_SGAS
+      JINIT(8)=N_ROCK
+      CALL CALLWORK (IINIT,JINIT)
+      IF (NERRC.GT.0) GO TO 13
+
+      RETURN
+   13 NERR=NERR+1
+
+      END
+C*********************************************************************
+      SUBROUTINE IINIT (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &              KEYOUT,NBLK,POR,DEPTH,POIL,OIL,GAS,SGAS,KROCK)
+C*********************************************************************
+ 
+C  ROUTINE SETS UP INITIAL OIL PRESSURE AND CONCENTRATIONS.  IT ALSO
+C  CONVERTS POROSITY TO PORE VOLUME AND PRINTS A TYPICAL COLUMN OF DATA.
+C  THIS IS A WORK ROUTINE.
+
+C  POR(I,J,K)  = POROSITY AT ZERO PRESSURE (INPUT, REAL*4)
+C              = PORE VOLUME AT ZERO PRESSURE, bbl (OUTPUT, REAL*4)
+
+C  DEPTH(I,J,K) = GRID-BLOCK CENTER DEPTHS (INPUT, REAL*4)
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (OUTPUT, REAL*8)
+
+C  OIL(I,J,K)  = OIL STOCK TANK VOLUME PER UNIT PORE VOLUME (REAL*8)
+
+C  GAS(I,J,K)  = GAS STOCK TANK VOLUME PER UNIT PORE VOLUME (REAL*8)
+
+C  KROCK(I,J,K) = ROCK TYPE (INPUT, INTEGER)
+
+C  SGAS(I,J,K)  = GAS VOLUME PER UNIT PORE VOLUME (REAL*4)
+
+C*********************************************************************
+      USE scrat1mod
+      PARAMETER (NP=10)
+$POWER      INCLUDE 'msjunk.h'
+
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'rock.h'
+      INCLUDE 'wells.h'
+!      INCLUDE 'scrat1.h'
+
+      INCLUDE 'ifluid.h'
+      INCLUDE 'ibaldat.h'
+
+      COMMON /INITC/ DEPI(NP), POI(NP), PWI(NP), PGI(NP), DOI(NP),
+     &       DWI(NP), DGI(NP), SWI(NP), SGI(NP), FROI(NP), KRI(NP)
+      REAL*8 DEPI, POI, PWI, PGI, DOI, DWI, DGI, SWI, SGI, FROI
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KROCK(IDIM,JDIM,KDIM),    IW(IDIM,$MXWELL)
+      REAL*4  POR(IDIM,JDIM,KDIM),      SGAS(IDIM,JDIM,KDIM)
+      REAL*8  POIL(IDIM,JDIM,KDIM),     DEPTH(IDIM,JDIM,KDIM),
+     &        OIL(IDIM,JDIM,KDIM),      GAS(IDIM,JDIM,KDIM)
+
+      INTEGER NW($MXWELL),JW($MXWELL),KW($MXWELL),NWE($MXWELL)
+      REAL*4  PWBW(IDIM,$MXWELL),SWBW(IDIM,$MXWELL),SOBW(IDIM,$MXWELL),
+     &        SGBW(IDIM,$MXWELL),DEPBW(IDIM,$MXWELL)
+
+      REAL*8 DX,DY,DZ,SWA,SGA,DEPA,PWA,PGA,POA,BSO,RBW,RSO,BG,PCOW,
+     &       PCGO,DUB1,DUB2,DUB3,DWA,DGA,DOA,BO,BOA,ROA,BGA,TOLP,DRSO,
+     &       GRAVH,GD,F,DF,FROA
+
+      LOGICAL ONCEONLY,ONLYONCE,IFT,JFT,KFT,ONETYP
+      CHARACTER*80 AL($MXREAD/80),ALS
+      CHARACTER*1 ALS1(80)
+      EQUIVALENCE (A,AL),(ALS,ALS1)
+      DATA ONCEONLY/.TRUE./, ONLYONCE/.TRUE./, ONETYP/.TRUE./
+      DATA TOLP /1.D-7/
+
+C  SET GRAVITY CONSTANT TO .5 * PSI BBL / FT LB
+
+      GRAVH=.08905379276541D0*GRAV
+
+C  GET LOCAL/GLOBAL INDEX OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  ID WELLS FOR TYPICAL OUTPUT
+
+      MW=0
+      DO 1414 LW=1,NTYPOUT
+      IF (LOCWEL(1,1,LW).EQ.NBLK.AND.NWELPRC(LW).EQ.MYPRC) THEN
+         MW=MW+1
+         NWE(MW)=0
+         NW(MW)=LW
+         JW(MW)=LOCWEL(4,1,LW)-JOFF
+         KW(MW)=LOCWEL(5,1,LW)-KOFF
+      ENDIF
+ 1414 CONTINUE
+
+C  EVALUATE CONDITIONS AT THE SPECIFIED INITIAL DEPTH DINIT
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         SWA=SWINIT
+         SGA=SGINIT
+         PWA=PWINIT
+         CALL LOOKUP(NRBW,PWA,RBW,DUB1)
+         DWA=RBW*WSTDEN
+         CALL LOOKUP(NPCOW(KRINIT),SWA,PCOW,DUB1)
+         POA=PWA+PCOW
+         CALL LOOKUP(NRSO,POA,RSO,DRSO)
+         IF (SGA.LT.1.D-6) THEN
+            SGA=0.D0
+            FROA=FRSOI
+            ROA=FROA*RSO
+            CALL BOUNSAT(POA,ROA,RSO,DRSO,BO,DUB1,DUB2)
+            DOA=(OSTDEN+ROA*GSTDEN)/BO
+            PGA=POA
+            DGA=GSTDEN
+         ELSE
+            FROA=1.D0
+            ROA=RSO
+            CALL LOOKUP(NBSO,POA,BSO,DUB1)
+            DOA=(OSTDEN+ROA*GSTDEN)/BSO
+            CALL LOOKUP(NPCGO(KRINIT),1.D0-SGA,PCGO,DUB1)
+            PGA=POA+PCGO
+            CALL LOOKUP(NBG,PGA,BG,DUB1)
+            DGA=GSTDEN/BG
+         ENDIF
+
+C  II = 1 ==> INITIAL DEPTH
+C  II = 2 ==> I=IL1, J=JL1, K=KL1
+C  II = 3 ==> I=IL1, K=KL1
+C  II = 4 ==> I=IL1
+C  II = 5 ==> MOST RECIENT
+C  II = 6 TO 10 ==> GOC CONDITIONS FOR II = 1 TO 5.
+C                   KRI() = -1 ==> GOC CONDITION NOT YET CALCULATED
+C                   KRI() >  0 ==> ROCK TYPE FOR WHICH GOC CALCULATED
+C                   PWA AND DWA WILL NOT BE CALCULATED FOR II > 5
+
+         DO 1 II=1,5
+         DEPI(II)=DINIT
+         POI(II)=POA
+         PWI(II)=PWA
+         PGI(II)=PGA
+         DOI(II)=DOA
+         DWI(II)=DWA
+         DGI(II)=DGA
+         SWI(II)=SWA
+         SGI(II)=SGA
+         FROI(II)=FROA
+         KRI(II)=KRINIT
+    1    KRI(II+5)=-1
+
+      ENDIF
+
+C  LOOP OVER LOCAL GRID ELEMENTS AND PICK UP MESH SIZES
+
+      KFT=.TRUE.
+      DO 2 K=KL1,KL2
+      DZ=DZREC(K+KOFF,NBLK)
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      JFT=.TRUE.
+
+      DO 2 J=JL1,JL2
+      DY=DYREC(J+JOFF,NBLK)
+      IFT=.TRUE.
+      
+      DO 2 I=IL1,IL2
+      IF (KEYOUT(I,J,K).NE.1) GO TO 2
+      DX=DXREC(I+IOFF,NBLK)
+
+C  CONVERT POROSITY TO PORE VOLUME IN UNITS OF bbl
+
+      POR(I,J,K)=.178107585530824D0*DX*DY*DZ*POR(I,J,K)
+
+C  PICK OUT NEAREST DEPTH
+
+      ND=1
+      DEPA=DEPTH(I,J,K)
+      DO 3 II=2,5
+      IF (ABS(DEPA-DEPI(II)).LT.ABS(DEPA-DEPI(ND))) ND=II
+    3 CONTINUE
+
+C  CALCULATE WATER PRESSURE AND DENSITY
+
+      GD=GRAVH*(DEPA-DEPI(ND))
+
+      PWA=PWI(ND)+2.D0*GD*DWI(ND)
+      DO 4 II=1,8
+      CALL LOOKUP(NRBW,PWA,RBW,DUB1)
+      DWA=RBW*WSTDEN
+      F=PWA-PWI(ND)-GD*(DWA+DWI(ND))
+      IF (ABS(F).LT.TOLP*PWA) GO TO 5
+      DF=1.D0-GD*DUB1*WSTDEN
+      IF (ABS(DF).LT.1.D-15) GO TO 6
+      DF=-F/DF
+      IF (DF.LT.-.2D0*PWA) DF=-.2D0*PWA
+      IF (DF.GT..2D0*PWA) DF=.2D0*PWA
+    4 PWA=PWA+DF
+    6 NERRC=NERRC+1
+      IF (LEVELC) WRITE (NFOUT,7) I,J,K,NBLK,PWA,F,DF
+    7 FORMAT (/' ERROR # 3011; WATER PRESSURE ITERATION FAILED'/
+     &     ' I,J,K =',3I5,' IN BLOCK',I3,', Pw =',G15.6/
+     &     ' F =',G12.4,', DF =',G12.4)
+      WRITE (*,7) I,J,K,NBLK,PWA,F,DF
+      RETURN
+    5 CONTINUE
+
+C  DETERMINE NUMBER OF PHASES; CALCULATE GOC CONDITIONS IF NECESSARY
+
+      KRA=KROCK(I,J,K)
+      ND1=ND
+      NDP=ND+5
+      SGA=SGI(ND)
+
+      IF (KRA.NE.KRI(NDP)) THEN
+         KRI(NDP)=KRA
+         SGI(NDP)=0.D0
+         FROI(NDP)=1.D0
+         CALL GOC (SGI(ND),DEPI(ND),POI(ND),PGI(ND),DOI(ND),DGI(ND),
+     &   FROI(ND),KRA,DEPI(NDP),POI(NDP),PGI(NDP),DOI(NDP),DGI(NDP),
+     &   NERRC)
+         IF (NERRC.GT.0) RETURN
+      ENDIF
+
+      IF ((DEPI(NDP)-DEPA)*(DEPI(NDP)-DEPI(ND)).LE.0.D0) THEN
+         ND=NDP
+         IF (SGI(ND).EQ.0.D0) THEN
+            SGA=.5D0
+         ELSE
+            SGA=0.D0
+         ENDIF
+      ENDIF
+
+      GD=GRAVH*(DEPA-DEPI(ND))
+   26 IF (SGA.EQ.0.D0) THEN
+
+C  CALCULATE OIL PRESSURE AND DENSITY FOR SGA = 0
+
+         POA=POI(ND)+2.D0*GD*DOI(ND)
+         FROA=FROI(ND)+DFRSOI*(DEPA-DEPI(ND))
+         IF (FROA.LT.0.D0) FROA=0.D0
+         IF (FROA.GT.1.D0) FROA=1.D0
+         CALL LOOKUP(NRSO,POA,RSO,DRSO)
+         DO 8 II=1,8
+         ROA=FROA*RSO
+         CALL BOUNSAT(POA,ROA,RSO,DRSO,BOA,DUB1,DUB2)
+         DOA=(OSTDEN+ROA*GSTDEN)/BOA
+         F=POA-POI(ND)-GD*(DOA+DOI(ND))
+         IF (ABS(F).LT.TOLP*POA) GO TO 9
+         DF=1.D0-GD*(DRSO*GSTDEN-(OSTDEN+ROA*GSTDEN)*DUB1/BOA)/BOA
+         IF (ABS(DF).LT.1.D-15) GO TO 10
+         DF=-F/DF
+         IF (DF.LT.-.2D0*POA) DF=-.2D0*POA
+         IF (DF.GT..2D0*POA) DF=.2D0*POA
+    8    POA=POA+DF
+   10    NERRC=NERRC+1
+         IF (LEVELC) WRITE (NFOUT,11) I,J,K,NBLK,POA,F,DF
+   11    FORMAT (/' ERROR # 3013; OIL PRESSURE ITERATION FAILED'/
+     &        ' I,J,K =',3I5,' IN BLOCK',I3,', Po =',G15.6/
+     &        ' F =',G12.4,', DF =',G12.4)
+         WRITE (*,11) I,J,K,NBLK,POA,F,DF
+         RETURN
+    9    CONTINUE
+
+      ELSE
+
+C  CALCULATE OIL PRESSURE AND DENSITY FOR SGA > 0
+
+         POA=POI(ND)+2.D0*GD*DOI(ND)
+         FROA=1.D0
+         DO 14 II=1,8
+         CALL LOOKUP(NRSO,POA,ROA,DRSO)
+         CALL LOOKUP(NBSO,POA,BOA,DUB1)
+         DOA=(OSTDEN+ROA*GSTDEN)/BOA
+         F=POA-POI(ND)-GD*(DOA+DOI(ND))
+         IF (ABS(F).LT.TOLP*POA) GO TO 15
+         DF=1.D0-GD*(DRSO*GSTDEN-DOA*DUB1)/BOA
+         IF (ABS(DF).LT.1.D-15) GO TO 16
+         DF=-F/DF
+         IF (DF.LT.-.2D0*POA) DF=-.2D0*POA
+         IF (DF.GT..2D0*POA) DF=.2D0*POA
+   14    POA=POA+DF
+   16    NERRC=NERRC+1
+         IF (LEVELC) WRITE (NFOUT,17) I,J,K,NBLK,POA,F,DF
+   17    FORMAT (/' ERROR # 3014; OIL PRESSURE ITERATION FAILED'/
+     &        ' I,J,K =',3I5,' IN BLOCK',I3,', Po =',G15.6/
+     &        ' F =',G12.4,', DF =',G12.4)
+         WRITE (*,17) I,J,K,NBLK,POA,F,DF
+         RETURN
+   15    CONTINUE
+
+C  CALCULATE GAS PRESSURE AND DENSITY FOR SGA > 0
+
+         PGA=PGI(ND)+2.D0*GD*DGI(ND)
+         DO 40 II=1,8
+         CALL LOOKUP(NBG,PGA,BGA,DUB1)
+         DGA=GSTDEN/BGA
+         F=PGA-PGI(ND)-GD*(DGA+DGI(ND))
+         IF (ABS(F).LT.TOLP*PGA) GO TO 41
+         DF=1.D0+GD*DGA*DUB1/BGA
+         IF (ABS(DF).LT.1.D-15) GO TO 42
+         DF=-F/DF
+         IF (DF.LT.-.2D0*PGA) DF=-.2D0*PGA
+         IF (DF.GT..2D0*PGA) DF=.2D0*PGA
+   40    PGA=PGA+DF
+   42    NERRC=NERRC+1
+         IF (LEVELC) WRITE (NFOUT,43) I,J,K,NBLK,PGA,F,DF
+   43    FORMAT (/' ERROR # 3017; GAS PRESSURE ITERATION FAILED'/
+     &        ' I,J,K =',3I5,' IN BLOCK',I3,', Pg =',G15.6/
+     &        ' F =',G12.4,', DF =',G12.4)
+         WRITE (*,43) I,J,K,NBLK,PGA,F,DF
+         RETURN
+   41    CONTINUE
+
+      ENDIF
+
+C  CALCULATE SWA
+
+      DUB2=POA-PWA
+      SWA=SWI(ND1)
+      IF (SWA.LT..001D0) SWA=.001D0
+      IF (SWA.GT..999D0) SWA=.999D0
+      DUB3=SATWC(KRA)
+      DO 18 II=1,9
+      CALL LOOKUP(NPCOW(KRA),SWA,PCOW,DUB1)
+      F=PCOW-DUB2
+      IF (ABS(F).LT.TOLP*ABS(PCOW)+TOLP) GO TO 19
+      DF=-F/DUB1
+      IF (ABS(DF).LT.1.D-15) GO TO 20
+      IF (DF.GT..8D0*(1.D0-SWA)) DF=.8D0*(1.D0-SWA)
+      IF (DF.LT.-.8D0*(SWA-DUB3)) DF=-.8D0*(SWA-DUB3)
+   18 SWA=SWA+DF
+      IF (SWA.GT..99999D0) GO TO 19
+   20 NERRC=NERRC+1
+      IF (LEVELC) WRITE (NFOUT,21) I,J,K,NBLK,SWA,F,DF
+   21 FORMAT (/' ERROR # 3015; WATER SATURATION ITERATION FAILED'/
+     &     ' I,J,K =',3I5,' IN BLOCK',I3,', Sw =',G15.6/
+     &     ' F =',G12.4,', DF =',G12.4)
+      WRITE (*,21) I,J,K,NBLK,SWA,F,DF
+      RETURN
+   19 CONTINUE
+
+C  CALCULATE SGA IF SGA > 0
+
+      IF (SGA.GT.0.D0) THEN
+
+         DUB2=PGA-POA
+         SGA=SGI(ND)
+         IF (SGA.LT..001D0) SGA=.001D0
+         DO 22 II=1,8
+         CALL LOOKUP(NPCGO(KRA),1.D0-SGA,PCGO,DUB1)
+         F=PCGO-DUB2
+         IF (II.GT.5.AND.SGA.LT..00001D0) GO TO 23
+         IF (ABS(F).LT.TOLP*ABS(PCGO)+TOLP) GO TO 23
+         DF=F/DUB1
+         IF (ABS(DF).LT.1.D-15) GO TO 24
+         IF (DF.GT..8D0*(1.D0-SGA-SWA)) DF=.8D0*(1.D0-SGA-SWA)
+         IF (DF.LT.-.8D0*SGA) DF=-.8D0*SGA
+   22    SGA=SGA+DF
+   24    NERRC=NERRC+1
+         IF (LEVELC) WRITE (NFOUT,25) I,J,K,NBLK,SGA,F,DF
+   25    FORMAT (/' ERROR # 3016; GAS SATURATION ITERATION FAILED'/
+     &        ' I,J,K =',3I5,' IN BLOCK',I3,', Sg =',G15.6/
+     &        ' F =',G12.4,', DF =',G12.4)
+         WRITE (*,25) I,J,K,NBLK,SGA,F,DF
+         RETURN
+   23    IF (SGA.LT..00001D0) THEN
+            SGA=0.D0
+            GO TO 26
+         ENDIF
+
+      ENDIF
+
+C  STORE INITIAL ARRAY DATA
+
+      SGAS(I,J,K)= SGA
+      POIL(I,J,K)=POA
+      OIL(I,J,K)=(1.D0-SWA-SGA)/BOA
+      GAS(I,J,K)=ROA*OIL(I,J,K)
+      IF (SGA.GT.0.D0) GAS(I,J,K)=GAS(I,J,K)+SGA/BGA
+
+C  STORE REFERENCE DATA
+
+      IF (IFT) THEN
+         IFT=.FALSE.
+         II=4
+         IF (JFT) THEN
+            JFT=.FALSE.
+            II=3
+            IF (KFT) THEN
+               KFT=.FALSE.
+               II=2
+            ENDIF
+         ENDIF
+      ELSE
+        II=5
+      ENDIF
+
+      DEPI(II)=DEPA
+      POI(II)=POA
+      PWI(II)=PWA
+      PGI(II)=PGA
+      DOI(II)=DOA
+      DWI(II)=DWA
+      DGI(II)=DGA
+      SWI(II)=SWA
+      SGI(II)=SGA
+      FROI(II)=FROA
+      KRI(II)=KRA
+
+C  COLLECT TYPICAL GRID COLUMN DATA AT WELLS
+
+   78 DO 79 LW=1,MW
+      IF (J.EQ.JW(LW).AND.K.EQ.KW(LW)) THEN
+         NWE(LW)=NWE(LW)+1
+         IW(NWE(LW),LW)=I+IOFF
+         PWBW(NWE(LW),LW)=PWA
+         SWBW(NWE(LW),LW)=SWA
+         SOBW(NWE(LW),LW)=1.D0-SWA-SGA
+         SGBW(NWE(LW),LW)=SGA
+         DEPBW(NWE(LW),LW)=DEPTH(I,J,K)
+      ENDIF
+   79 CONTINUE
+
+    2 CONTINUE
+
+C  PRINT TYPICAL GRID COLUMN DATA
+
+      IF (LEVELC.AND.(NTYPOUT.GT.0).AND.ONLYONCE.AND.NBLK.EQ.1) THEN
+         ONLYONCE=.FALSE.
+         WRITE (NFOUT,*)
+         TITU='******'
+         CALL PRTTIT(TITU)
+         TITU='TYPICAL ROCK COLUMNS'
+         CALL PRTTIT(TITU)
+      ENDIF
+
+      DO 50 L=1,MW
+      AL(1)=' '
+      N=1
+      LS=1
+      IF (NWE(L).GT.0) THEN
+
+         LS=79
+         WRITE (AL(1),51)
+   51    FORMAT(' ')
+         WRITE (AL(2),52) JW(L)+JOFF,KW(L)+KOFF,NBLK,NW(L)
+   52    FORMAT(' J =',I5,4X,'K =',I5,4X,'FAULT BLOCK =',I4,4X,
+     &      '(WELL',I4,')')
+         WRITE (AL(3),51)
+         WRITE (AL(4),53)
+   53    FORMAT(T5,'I',T9,'Pw, psi',T26,'Sw',T40,'So',T54,'Sg',T62,
+     &   'DEPTH, ft')
+         WRITE (AL(5),51)
+         N=5
+         DO 54 M=1,NWE(L)
+         N=N+1
+   54    WRITE (AL(N),55) IW(M,L),PWBW(M,L),SWBW(M,L),SOBW(M,L),
+     &      SGBW(M,L),DEPBW(M,L)
+   55    FORMAT(I5,5G14.5)
+
+         IF (MYPRC.EQ.0) THEN
+            IF (LEVELC) THEN
+               DO 56 M=1,N
+               ALS=AL(M)
+               DO 57 JTO=80,1,-1
+               J1O=JTO
+               IF (ALS1(JTO).NE.' ') GO TO 56
+   57          CONTINUE
+   56          WRITE (NFOUT,58) (ALS1(JTO),JTO=1,J1O)
+   58          FORMAT(80A1)
+            ENDIF
+         ENDIF
+            
+      ENDIF
+
+$MANY      IF (MYPRC.GT.0) CALL TYPEOUT(A,N)
+
+   50 CONTINUE
+
+      IF (LEVELC.AND.ONETYP) THEN
+         ONETYP=.FALSE.
+         DO 48 LW=1,NTYPOUT
+$MANY      IF ((NWELPRC(LW).NE.0.AND.MODWEL(LW).EQ.MODACT)
+$MANY$TRCHEM     &        .OR.(MODACT.EQ.FLOWMODEL)
+$MANY     &        ) THEN
+$MANY         CALL TYPEOUT(A,$MXREAD/80)
+$MANY      ENDIF
+   48    CONTINUE
+      ENDIF
+        
+      END
+C*********************************************************************
+      SUBROUTINE GOC (SGI,DEPI,POI,PGI,DOI,DGI,FRSOII,KRB,DEPB,POB,PGB,
+     &                DOB,DGB,NERR)
+C*********************************************************************
+ 
+C  ROUTINE DETERMINES DEPTH OF GAS-OIL CONTACT (Sgb=0) GIVEN CONDITIONS AT
+C  A POINT I
+
+C  SGI  = GAS SATURATION AT POINT I (INPUT, REAL*8)
+
+C  DEPI = DEPTH AT POINT I (INPUT, REAL*8)
+
+C  POI  = OIL PRESSURE AT POINT I (INPUT, REAL*8)
+
+C  PGI  = GAS PRESSURE AT POINT I (INPUT, REAL*8)
+
+C  DOI  = OIL DENSITY AT POINT I (INPUT, REAL*8)
+
+C  DGI  = GAS DENSITY AT POINT I (INPUT, REAL*8)
+
+C  FRSOII= FRACTION OF RSO AT POINT I (INPUT, REAL*8)
+
+C  KRB  = ROCK TYPE AT POINT B (INPUT, INTEGER)
+
+C  DEPB = DEPTH AT POINT B (OUTPUT, REAL*8)
+
+C  POB  = OIL PRESSURE AT POINT B (OUTPUT, REAL*8)
+
+C  PGB  = GAS PRESSURE AT POINT B (OUTPUT, REAL*8)
+
+C  DOB  = OIL DENSITY AT POINT B (OUTPUT, REAL*8)
+
+C  DGB  = GAS DENSITY AT POINT B (OUTPUT, REAL*8)
+
+C  NERR = ERROR COUNTER STEPPED BY ONE ON ERROR (INPUT & OUTPUT, INTEGER)
+
+C  NOTES:
+
+C     1) IF SGI=0. THEN PGI AND DGI ARE IGNORED AND DFRSOI IN /ifluid.h/
+C        IS USED TO OBTAIN GOC
+
+C     2) IF SGI>0. THEN FRSOII IS IGNORED.
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'rock.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'ifluid.h'
+
+      REAL*8 SGI,DEPI,POI,PGI,DOI,DGI,DEPB,POB,PGB,DOB,DGB,PT,GH,DD,
+     &       TOL,BSO,DBSO,RSO,DRSO,DUB1,BG,F,DF,DDODP,DPODD,DDGDP,
+     &       DPGDD,D,DBGD,FRSOII
+      LOGICAL BELOW
+
+      TOL=1.D-7
+      GH=.08905379276541D0*GRAV
+      PT=PCGO0(KRB)
+
+      IF (SGI.EQ.0.D0) GO TO 4
+
+C  Sgi > 0
+
+      DD=.45D0*(PT-PGI+POI)/(GH*(DGI-DOI))
+      IF (PGI-POI.GT.PT) THEN
+         BELOW=.TRUE.
+         IF (DD.LT..01D0) DD=.01D0
+         IF (DD.GT.20.D0) DD=20.D0
+      ELSE
+         BELOW=.FALSE.
+         IF (DD.GT.-.01D0) DD=-.01D0
+         IF (DD.LT.-20.D0) DD=-20.D0
+      ENDIF
+      DEPB=DEPI+DD
+      DOB=DOI
+      DGB=DGI
+
+      DO 1 I=1,9
+      DD=GH*(DEPB-DEPI)
+
+      POB=POI+DD*(DOI+DOB)
+      CALL LOOKUP(NBSO,POB,BSO,DBSO)
+      CALL LOOKUP(NRSO,POB,RSO,DRSO)
+      DOB=(OSTDEN+RSO*GSTDEN)/BSO
+      POB=POI+DD*(DOI+DOB)
+      CALL LOOKUP(NBSO,POB,BSO,DBSO)
+      CALL LOOKUP(NRSO,POB,RSO,DRSO)
+      DUB1=OSTDEN+RSO*GSTDEN
+      DOB=DUB1/BSO
+
+      PGB=PGI+DD*(DGI+DGB)
+      CALL LOOKUP(NBG,PGB,BG,DBGD)
+      DGB=GSTDEN/BG
+      PGB=PGI+DD*(DGI+DGB)
+      CALL LOOKUP(NBG,PGB,BG,DBGD)
+      DGB=GSTDEN/BG
+
+      F=PGB-POB-PT
+      IF (ABS(F).LT.TOL*POB) GO TO 2
+
+      DDODP=(DRSO*GSTDEN-DUB1*DBSO)/BSO
+      DPODD=GH*(DOI+DOB)/(1.D0-DD*DDODP)
+      DDGDP=-DGB*DBGD
+      DPGDD=GH*(DGI+DGB)/(1.D0-DD*DDGDP)
+
+      DF=-F/(DPGDD-DPODD)
+      D=DEPB-DEPI
+      IF (BELOW) THEN
+         IF (DF.GT.D) DF=D
+         IF (DF.LT.-.5D0*D) DF=-.5D0*D
+      ELSE
+         IF (DF.LT.D) DF=D
+         IF (DF.GT.-.5D0*D) DF=-.5D0*D
+      ENDIF
+    1 DEPB=DEPB+DF
+      IF (SGI.LT..001D0.AND.ABS(DEPB-DEPI).LT..1D0) GO TO 2
+
+      NERR=NERR+1
+      IF (LEVELC) WRITE (NFOUT,3) DEPI,DEPB,DF,SGI
+      WRITE (*,3) DEPI,DEPB,DF,SGI
+    3 FORMAT (/' ERROR # 3008; GOC ITERATION FAILED: DEPI=',G13.6,
+     &   ' DEPB=',G13.6/' dDEPB=',G13.6,' SGI=',G13.6)
+
+    2 RETURN
+
+C  Sgi = 0
+
+    4 IF (DFRSOI.EQ.0.D0) THEN
+         IF (FRSOII.NE.1.D0) THEN
+            DEPB=-100000.D0
+            POB=1.D0
+            PGB=1.D0
+            DOB=1.D0
+            DGB=1.D0
+            RETURN
+         ENDIF
+         D=0.D0
+      ELSE
+         D=(1.D0-FRSOII)/DFRSOI
+      ENDIF
+      DEPB=DEPI+D
+
+      DD=GH*(DEPB-DEPI)
+      DO 5 I=1,3
+      POB=POI+DD*(DOI+DOB)
+      CALL LOOKUP(NBSO,POB,BSO,DBSO)
+      CALL LOOKUP(NRSO,POB,RSO,DRSO)
+    5 DOB=(OSTDEN+RSO*GSTDEN)/BSO
+
+      PGB=POB+PT
+      CALL LOOKUP(NBG,PGB,BG,DBGD)
+      DGB=GSTDEN/BG
+
+      END

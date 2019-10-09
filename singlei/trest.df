@@ -1,0 +1,107 @@
+C  TREST.F - IMPLICIT SINGLE PHASE FLOW MODEL RESTART ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE TRESTO (NERR)
+C  SUBROUTINE TRESTI (NERR)
+
+C  CODE HISTORY:
+
+C  Bahareh Momken  3/30/99  Hydrology-IMPES grest.df is used as template
+C  JOHN WHEELER    4/03/99  IMPLICIT SINGLE PHASE MODEL
+
+C*********************************************************************
+      SUBROUTINE TRESTO (NERR)
+C*********************************************************************
+
+C  Directs output of single phase flow model specific restart data
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER )
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'restc.h'
+
+      INCLUDE 'tarydat.h'
+      INCLUDE 'tbaldat.h'
+
+C  OUTPUT SCALAR DATA
+
+      IF (MYPRC.EQ.0) THEN
+         L=5
+         IF (FORMOUT) THEN
+            WRITE (NFROUT,1) L,MODACT,L,L,L,L
+    1       FORMAT(6I9)
+            DO 3 N=1,NUMWEL
+            IF (MODWEL(N).EQ.MODACT
+$TRCHEM     &      .OR.MODACT.EQ.FLOWMODEL
+     &         ) WRITE (NFROUT,2) WELI(N),WELP(N)
+    3       CONTINUE
+    2       FORMAT(5G23.16)
+         ELSE
+            WRITE (NFROUT) L,MODACT,L,L,L,L
+            DO 4 N=1,NUMWEL
+            IF (MODWEL(N).EQ.MODACT
+$TRCHEM     &      .OR.MODACT.EQ.FLOWMODEL
+     &         ) WRITE (NFROUT) WELI(N),WELP(N)
+    4       CONTINUE
+         ENDIF
+      ENDIF
+
+C  OUTPUT ARRAYS
+
+      CALL RGEAOUT(N_PRES,1,NERR)
+
+      END
+C*********************************************************************
+      SUBROUTINE TRESTI(IU,NERR)
+C*********************************************************************
+
+C  Directs intput of single phase flow model specific restart data
+
+C  A = INPUT STRING (INPUT, CHARACTER*120)
+
+C  IU = RESTART UTILITY INTEGERS (6) (INPUT, INTEGER)
+C       IU(1) IS RESERVED FOR RECORD SET ID
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER )
+
+C  Note:  All grid-element arrays including those output in HRESTO are
+C         automatically input by the framework.
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'output.h'
+      INCLUDE 'restc.h'
+
+      INCLUDE 'tarydat.h'
+      INCLUDE 'tbaldat.h'
+
+      INTEGER IU(6)
+
+C  INPUT SCALAR DATA
+
+      IF (MYPRC.EQ.0) THEN
+
+         IF (FORMIN) THEN
+            DO 3 N=1,NUMWEL
+            IF (MODWEL(N).EQ.MODACT
+$TRCHEM     &      .OR.MODACT.EQ.FLOWMODEL
+     &         ) READ (NFRIN,1) WELI(N),WELP(N)
+    3       CONTINUE
+    1       FORMAT(5G23.16)
+         ELSE
+            DO 2 N=1,NUMWEL
+            IF (MODWEL(N).EQ.MODACT
+$TRCHEM     &      .OR.MODACT.EQ.FLOWMODEL
+     &         ) READ (NFRIN) WELI(N),WELP(N)
+    2       CONTINUE
+         ENDIF
+
+      ENDIF
+
+      END

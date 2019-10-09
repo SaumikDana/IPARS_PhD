@@ -1,0 +1,955 @@
+TITLE(1)="MISC. CO2 INJECTION WITH REACTIONS - TEST 2 "
+TITLE(2)="Scenario 2"
+
+DESCRIPTION()=
+"GRID BLOCKS : 5x50x50 (down, lateral, lateral) = 12500 GRID ELEMENTS"
+
+BLOCKMODEL(1)="TRANSPORT_CHEMISTRY"
+
+$TIMEEND = 365250.1
+$TIMEEND = 18251.1
+TIMEEND = 3651.1
+$TIMEEND = 0.01
+
+$ I/O OPTIONS
+ DEBUGS  
+ DEBUGM
+ OUTLEVEL = 3
+ BUGKEY(5)
+ BUGKEY(6)
+ BUGKEY(10)
+
+FLOW_MODEL = "COMPOSITIONAL_MODEL"
+
+$ WELL OUTPUT
+
+WELLOUTKEY = 3  WELLFILE = "CO2_R1.WEL"  WELLFCUM = "CO2_R1.CUM"
+
+$ LINEAR SOLVER OPTIONS
+
+$SAMG
+$GMRES_PREC = 17
+GMRES_PREC = 15
+LSOL_TOL = 1.0E-05
+N_GS_STEP = 5
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ TRANSPORT-CHEMISTRY PART
+$NSPECIES = 0
+$N_COMPONENTS = 0
+N_PRODUCTS = 0
+
+NXSPECIES = 3
+N_XCOMPONENTS = 2
+N_XPRODUCTS = 1
+N_CONC_STEPS = 2
+ODE_ALG_TYPE = "RUNGE_KUTTA_4"
+N_RXNSTEPS = 1
+
+NO_ADVECTION
+NO_DISPERSION
+EQ_PARTITIONING_COEFF(,)  = 0.0
+
+$ FAULT BLOCK AND MESH DATA
+
+DOWN() = 1 0 0
+$NX(1) = 5   NY(1) = 100     NZ(1) = 100
+$NX(1) = 5   NY(1) = 80     NZ(1) = 80
+NX(1) = 5   NY(1) = 50     NZ(1) = 50
+$NX(1) = 5   NY(1) = 20     NZ(1) = 20
+$NX(1) = 5   NY(1) = 10     NZ(1) = 10
+
+$DX(1 TO 5,1) = 130. 26. 34. 11. 55. 
+DX(1 TO 5,1) = 55. 11. 34. 26. 130. 
+
+$ 5x100x100
+$DY(1 TO 100,1) = 5*16000.  5*8000.  5*4000.  5*2000.  5*1000.  5*500.  40*250.  5*500.  
+$         5*1000.  5*2000.  5*4000.  5*8000.  5*16000. 
+$DZ(1 TO 100,1) = 5*16000.  5*8000.  5*4000.  5*2000.  5*1000.  5*500.  40*250.  5*500.
+$         5*1000.  5*2000.  5*4000.  5*8000.  5*16000.
+
+$ 5x80x80
+$DY(1 TO 80,1) = 5*16000. 5*10000. 5*4000. 5*1500. 40*250. 5*1500. 5*4000. 5*10000. 5*16000.  
+$DZ(1 TO 80,1) = 5*16000. 5*10000. 5*4000. 5*1500. 40*250. 5*1500. 5*4000. 5*10000. 5*16000.
+
+$ 5x50x50
+DY(1 TO 50,1) = 63000. 50000. 31500. 12000. 1000. 40*250.
+                 1000. 12000. 31500. 50000. 63000. 
+DZ(1 TO 50,1) = 63000. 50000. 31500. 12000. 1000. 40*250.
+                 1000. 12000. 31500. 50000. 63000.
+
+$ 5x20x20
+$DY(1 TO 20,1) = 63000. 50000. 31500. 12000. 4750. 10*250. 
+$                4750. 12000. 31500. 50000. 63000.
+$DZ(1 TO 20,1) = 63000. 50000. 31500. 12000. 4750. 10*250.
+$                4750. 12000. 31500. 50000. 63000. 
+
+$ 5x10x10
+$DY(1 TO 10,1) = 80000. 60000. 19500. 4*1500. 
+$                19500. 60000. 80000.
+$DZ(1 TO 10,1) = 80000. 60000. 19500. 4*1500. 
+$                19500. 60000. 80000.
+
+$ WATER PROPERTIES
+WATERP = 0.0
+WATFVF = 1.0
+WATVIS = .7
+WATCMP = 3.3E-6
+STDENW = 62.4
+
+$ COMP NAMES
+NHCOMP = 2   NRHCOMP = 3
+COMP(1) = "CO2"  COMP(2) = "H2O"   COMP(3) = "H2CO3"
+
+$ CRITICAL TEMPERATURES
+TCRIT(1 TO 2) = 547.43004   1164.76992  $ 1000.00
+
+$ CRITICAL PRESSURES
+PCRIT(1 TO 2) = 1069.9972   3200.11027  $ 2800.00
+
+$ CRITICAL VOLUMES
+ZCRIT(1 TO 2) = 0.27492   0.23022  $ 0.20
+
+$ ACENTRIC FACTORS
+ACENT(1 TO 2) = 0.22394   0.34400  $ 0.35
+
+$ MOL WEIGHTS
+MOLWT(1 TO 2) = 44.0100   18.0150  $ 62.00
+
+$ PARACHOR
+PARACHOR(1 TO 2) = 78.00   52.00  $ 50.00
+
+$ VOLUMETRIC SHIFT
+VSHIFT(1 TO 2) = 0.114668   0.305780  $ 0.304
+
+$ BINARY INTERACTION COEFFICIENTS
+BINACT(1,2) = .005
+BINACT(2,1) = .005
+
+$BINACT(1,2 TO 3) = .005  .0005
+$BINACT(2,1) = .005  BINACT(2,3) = .0005
+$BINACT(3,1 TO 2) = 0.0005  0.0005
+
+MODREL(1)  2
+
+$ SURFACE CONDITIONS 
+TSURF = 60.0  PSURF = 14.7
+
+$ Set the top corner of the reservoir
+XYZ111(,1) = 5000. 0. 0.
+
+$ CHEMISTRY IN COMPOSITIONAL
+
+$ XCOMPONENT #1 (XSPECIES #1) :
+
+  XNAME_SPECIES(1) =            "CO2"
+  XMOLECULAR_WEIGHT(1) =        44.01
+  XEQ_PARTITIONING_COEFF(,1) =  1.0  1.0  1.0
+  XPHASE_TYPE(1) =              "FLOWING"
+  XCOMP_CHARGE(1) =             0.0
+
+$ XCOMPONENT #2 (XSPECIES #2) :
+
+  XNAME_SPECIES(2) =            "H2O"
+  XMOLECULAR_WEIGHT(2) =        18.015
+  XEQ_PARTITIONING_COEFF(,2) =  1.0 1.0 1.0
+  XPHASE_TYPE(2) =              "FLOWING"
+  XCOMP_CHARGE(2) =             0.0
+
+$ XPRODUCT #3 (XSPECIES #3) :
+
+  XNAME_SPECIES(3) =            "H2CO3"
+  XMOLECULAR_WEIGHT(3) =        62.00
+  XEQ_PARTITIONING_COEFF(,3) =  1.0 1.0 1.0
+  XPHASE_TYPE(3) =              "FLOWING"
+  XCHEMICAL_REACTION_TYPES(1) = "EQUILIBRIUM"
+  XPK_EQUILIBRIUM(1) =          1.7E-03 
+  XSTOICH(1,) =                 1.0 1.0 
+  $XPK_EQUILIBRIUM(1) =          0.0
+  $XSTOICH(1,) =                 0.0 0.0 
+  XRATE_LAW_POWERS(1,) =        0.0 0.0
+  $XPK_FORWARD(,1) =             3369.60
+  $XPK_BACKWARD(,1) =           -1987200.0
+  $XPK_FORWARD(,1) =             0.0
+  $XPK_BACKWARD(,1) =            0.0
+ $XHALF_SAT_CONST(,1) =         N/A
+
+$ INITIAL CONDITIONS
+
+PORPRES1() = 14.7
+SWINIT1() = 0.0
+PRES1() = 2500.0
+CONCX1(,,,1) = 0.0
+CONCX1(,,,2) = 1.0
+CONCX1(,,,3) = 0.0
+
+$ INITIAL TEMPERATURES
+TEMPR1() = 160.
+
+$ SEPARATORS
+PSEP(,1) = 14.7
+TSEP(,1) = 60.
+
+$ SEPARATOR ASSIGNMENT FOR IN-PLACE CALCULATIONS
+SEPSURF = 1
+
+$ POROSITY
+CR1() = 0.0
+POROSITY1() = .25
+
+$ PERMEABILITIES
+
+$ High perm at bottom
+$XPERM1(1,,) = 0.02  XPERM1(2,,) = 0.1  XPERM1(3,,) = 4.0  
+$XPERM1(4,,) = 40.0  XPERM1(5,,) = 2.5 
+$YPERM1(1,,) = 2.0  YPERM1(2,,) = 10.0  YPERM1(3,,) = 400.0  
+$YPERM1(4,,) = 4000.0  YPERM1(5,,) = 250.0 
+$ZPERM1(1,,) = 2.0  ZPERM1(2,,) = 10.0  ZPERM1(3,,) = 400.0  
+$ZPERM1(4,,) = 4000.0  ZPERM1(5,,) = 250.0 
+
+$ Low perm at bottom
+XPERM1(1,,) = 2.5  XPERM1(2,,) = 40.0  XPERM1(3,,) = 4.0 
+XPERM1(4,,) = 0.1  XPERM1(5,,) = 0.02 
+YPERM1(1,,) = 250.0  YPERM1(2,,) = 4000.0  YPERM1(3,,) = 400.0  
+YPERM1(4,,) = 10.0  YPERM1(5,,) = 2.0 
+ZPERM1(1,,) = 250.0  ZPERM1(2,,) = 4000.0  ZPERM1(3,,) = 400.0  
+ZPERM1(4,,) = 10.0  ZPERM1(5,,) = 2.0 
+
+$ REL. PERMEABILITY AND CAP. PRESSURE TABLES
+
+KOSW(1) Block      $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation Constant
+
+$ k_rw vs S_w in CMG data.
+$Data  .0000000   0.000000
+$  .0511875    .0008203
+$  .1023750    .0032813
+$  .1535625    .0073828
+$  .2047500    .0131250
+$  .2559375    .0205078
+$  .3071250    .0295313
+$  .3583125    .0401953
+$  .4095000    .0525000
+$  .4606875    .0664453
+$  .5118750    .0820313
+$  .5630625    .0992578
+$  .6142500    .1181250
+$  .6654375    .1386328
+$  .7166250    .1607813
+$  .7678125    .1845703
+$  .8190000    .2100000
+Data  .0000000   1.000000
+  .0511875    .8400835
+  .1023750    .6973033
+  .1535625    .5708514
+  .2047500    .4599021
+  .2559375    .3636104
+  .3071250    .2811098
+  .3583125    .2115100
+  .4095000    .1538931
+  .4606875    .1073101
+  .5118750    .0707757
+  .5630625    .0432609
+  .6142500    .0236831
+  .6654375    .0108919
+  .7166250    .0036447
+  .7678125    .0005609
+  .8190000    .0000000
+EndBlock
+
+KWSW(1) Block     $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+$ k_rw vs S_w in CMG data.
+Data  .0000000   0.000000
+  .0511875    .0008203
+  .1023750    .0032813
+  .1535625    .0073828
+  .2047500    .0131250
+  .2559375    .0205078
+  .3071250    .0295313
+  .3583125    .0401953
+  .4095000    .0525000
+  .4606875    .0664453
+  .5118750    .0820313
+  .5630625    .0992578
+  .6142500    .1181250
+  .6654375    .1386328
+  .7166250    .1607813
+  .7678125    .1845703
+  .8190000    .2100000
+EndBlock
+
+KOSG(1) Block     $ OIL RELATIVE PERMEABILITY VS Sg - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+$ k_ro vs (1-S_l) in CMG data
+Data  .0000000    1.0000000
+      .0511875     .7724762
+      .1023750     .5861816
+      .1535625     .4358063
+      .2047500     .3164063
+      .2559375     .2234039
+      .3071250     .1525879
+      .3583125     .1001129
+      .4095000     .0625000
+      .4606875     .0366364
+      .5118750     .0197754
+      .5630625     .0095367
+      .6142500     .0039063
+      .6654375     .0012360
+      .716625      .0002441
+      .7678125     .0000153
+      .8190000     .0000000
+EndBlock
+
+KGSG(1) Block      $ GAS RELATIVE PERMEABILITY VS Sg - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+$ k_rg vs S_g in CMG data
+Data  .000000    .0000000
+  .0511875    .0025391
+  .1023750    .0101563
+  .1535625    .0228516
+  .2047500    .0406250
+  .2559375    .0634766
+  .3071250    .0914063
+  .3583125    .1244141
+  .4095000    .1625000
+  .4606875    .2056641
+  .5118750    .2539063
+  .5630625    .3072266
+  .6142500    .3656250
+  .6654375    .4291016 
+  .7166250    .4976563
+  .7678125    .5712891
+  .8190000    .6500000
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data  0.0       0.0
+      1.0       0.0
+EndBlock
+
+PCGO(1) Block        $ GAS-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+$ Pcgo in CMG data. 
+Data  .181000    2.775000
+  .2321875   1.6970459
+  .2833750   1.5561980
+  .3345625   1.4793024
+  .3857500   1.4270485
+  .4369375   1.3877923
+  .4881250   1.3565208
+  .5393125   1.3306363
+  .5905000   1.3086093
+  .6416875   1.2894830
+  .6928750   1.2726111
+  .7440625   1.2575417
+  .7952500   1.2439376
+  .8464375   1.2315530 
+  .8976250   1.2201967
+  .9488125   1.2097204
+ 1.000000    1.2000000
+EndBlock
+
+$ WELLS
+
+NUMWELL=44
+
+WELLNAME(1) = "WELL 1 INJECTION"
+KINDWELL(1) = 4
+PLIMITC(1) = 3500.
+WELLTOP(1 TO 3,1,1) =     5000.0  159875.0  159875.0
+WELLBOTTOM(1 TO 3,1,1) =  5256.0  159875.0  159875.0
+WELLPQ(1) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data    0.    75000.
+EndBlock
+
+WELLNAME(2) = "WELL 2 INJECTION"
+KINDWELL(2) = 4
+PLIMITC(2) = 3500.
+WELLTOP(1 TO 3,1,2) =     5000.0  159875.0  164875.0 
+WELLBOTTOM(1 TO 3,1,2) =  5256.0  159875.0  164875.0
+WELLPQ(2) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data    0.    75000.
+EndBlock
+
+WELLNAME(3) = "WELL 3 INJECTION"
+KINDWELL(3) = 4
+PLIMITC(3) = 3500.
+WELLTOP(1 TO 3,1,3) =     5000.0  164875.0  159875.0   
+WELLBOTTOM(1 TO 3,1,3) =  5256.0  164875.0  159875.0  
+WELLPQ(3) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data    0.    75000.
+EndBlock
+
+WELLNAME(4) = "WELL 4 INJECTION"
+KINDWELL(4) = 4
+PLIMITC(4) = 3500.
+WELLTOP(1 TO 3,1,4) =     5000.0  164875.0  164875.0     
+WELLBOTTOM(1 TO 3,1,4) =  5256.0  164875.0  164875.0   
+WELLPQ(4) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data    0.    75000.
+EndBlock
+
+
+WELLNAME(5) = "WELL 5 PRODUCTION"
+KINDWELL(5) = 31
+$PLIMITC(5) = 2500.
+WELLTOP(1 TO 3,1,5) =    5000.0  8000.0  8000.0
+WELLBOTTOM(1 TO 3,1,5) = 5256.0  8000.0  8000.0
+WELLPQ(5) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(6) = "WELL 6 PRODUCTION"
+KINDWELL(6) = 31
+$PLIMITC(6) = 2500.
+WELLTOP(1 TO 3,1,6) =    5000.0  8000.0  40000.0 
+WELLBOTTOM(1 TO 3,1,6) = 5256.0  8000.0  40000.0
+WELLPQ(6) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(7) = "WELL 7 PRODUCTION"
+KINDWELL(7) = 31
+$PLIMITC(7) = 2500.
+WELLTOP(1 TO 3,1,7) =    5000.0  8000.0  72000.0 
+WELLBOTTOM(1 TO 3,1,7) = 5256.0  8000.0  72000.0
+WELLPQ(7) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(8) = "WELL 8 PRODUCTION"
+KINDWELL(8) = 31
+$PLIMITC(8) = 2500.
+WELLTOP(1 TO 3,1,8) =    5000.0  8000.0  116000.0 
+WELLBOTTOM(1 TO 3,1,8) = 5256.0  8000.0  116000.0
+WELLPQ(8) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(9) = "WELL 9 PRODUCTION"
+KINDWELL(9) = 31
+$PLIMITC(9) = 2500.
+WELLTOP(1 TO 3,1,9) =    5000.0  8000.0  143000.0 
+WELLBOTTOM(1 TO 3,1,9) = 5256.0  8000.0  143000.0
+WELLPQ(9) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(10) = "WELL 10 PRODUCTION"
+KINDWELL(10) = 31
+$PLIMITC(10) = 2500.
+WELLTOP(1 TO 3,1,10) =    5000.0  8000.0  165125.0 
+WELLBOTTOM(1 TO 3,1,10) = 5256.0  8000.0  165125.0
+WELLPQ(10) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(11) = "WELL 11 PRODUCTION"
+KINDWELL(11) = 31
+$PLIMITC(11) = 2500.
+WELLTOP(1 TO 3,1,11) =    5000.0  8000.0  182000.0 
+WELLBOTTOM(1 TO 3,1,11) = 5256.0  8000.0  182000.0
+WELLPQ(11) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(12) = "WELL 12 PRODUCTION"
+KINDWELL(12) = 31
+$PLIMITC(12) = 2500.
+WELLTOP(1 TO 3,1,12) =    5000.0  8000.0  209500.0
+WELLBOTTOM(1 TO 3,1,12) = 5256.0  8000.0  209500.0
+WELLPQ(12) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(13) = "WELL 13 PRODUCTION"
+KINDWELL(13) = 31
+$PLIMITC(13) = 2500.
+WELLTOP(1 TO 3,1,13) =    5000.0  8000.0  253000.0
+WELLBOTTOM(1 TO 3,1,13) = 5256.0  8000.0  253000.0
+WELLPQ(13) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(14) = "WELL 14 PRODUCTION"
+KINDWELL(14) = 31
+$PLIMITC(14) = 2500.
+WELLTOP(1 TO 3,1,14) =    5000.0  8000.0  285000.0
+WELLBOTTOM(1 TO 3,1,14) = 5256.0  8000.0  285000.0
+WELLPQ(14) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(15) = "WELL 15 PRODUCTION"
+KINDWELL(15) = 31
+$PLIMITC(15) = 2500.
+WELLTOP(1 TO 3,1,15) =    5000.0  8000.0  317000.0
+WELLBOTTOM(1 TO 3,1,15) = 5256.0  8000.0  317000.0
+WELLPQ(15) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(16) = "WELL 16 PRODUCTION"
+KINDWELL(16) = 31
+$PLIMITC(16) = 2500.
+WELLTOP(1 TO 3,1,16) =    5000.0  317000.0  8000.0 
+WELLBOTTOM(1 TO 3,1,16) = 5256.0  317000.0  8000.0 
+WELLPQ(16) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(17) = "WELL 17 PRODUCTION"
+KINDWELL(17) = 31
+$PLIMITC(17) = 2500.
+WELLTOP(1 TO 3,1,17) =    5000.0  317000.0  40000.0 
+WELLBOTTOM(1 TO 3,1,17) = 5256.0  317000.0  40000.0 
+WELLPQ(17) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(18) = "WELL 18 PRODUCTION"
+KINDWELL(18) = 31
+$PLIMITC(18) = 2500.
+WELLTOP(1 TO 3,1,18) =    5000.0  317000.0  72000.0 
+WELLBOTTOM(1 TO 3,1,18) = 5256.0  317000.0  72000.0 
+WELLPQ(18) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(19) = "WELL 19 PRODUCTION"
+KINDWELL(19) = 31
+$PLIMITC(19) = 2500.
+WELLTOP(1 TO 3,1,19) =    5000.0  317000.0  116000.0 
+WELLBOTTOM(1 TO 3,1,19) = 5256.0  317000.0  116000.0 
+WELLPQ(19) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(20) = "WELL 20 PRODUCTION"
+KINDWELL(20) = 31
+$PLIMITC(20) = 2500.
+WELLTOP(1 TO 3,1,20) =    5000.0  317000.0  143000.0 
+WELLBOTTOM(1 TO 3,1,20) = 5256.0  317000.0  143000.0 
+WELLPQ(20) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(21) = "WELL 21 PRODUCTION"
+KINDWELL(21) = 31
+$PLIMITC(21) = 2500.
+WELLTOP(1 TO 3,1,21) =    5000.0  317000.0  165125.0 
+WELLBOTTOM(1 TO 3,1,21) = 5256.0  317000.0  165125.0 
+WELLPQ(21) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(22) = "WELL 22 PRODUCTION"
+KINDWELL(22) = 31
+$PLIMITC(22) = 2500.
+WELLTOP(1 TO 3,1,22) =    5000.0  317000.0  182000.0 
+WELLBOTTOM(1 TO 3,1,22) = 5256.0  317000.0  182000.0 
+WELLPQ(22) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(23) = "WELL 23 PRODUCTION"
+KINDWELL(23) = 31
+$PLIMITC(23) = 2500.
+WELLTOP(1 TO 3,1,23) =    5000.0  317000.0  209500.0 
+WELLBOTTOM(1 TO 3,1,23) = 5256.0  317000.0  209500.0 
+WELLPQ(23) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(24) = "WELL 24 PRODUCTION"
+KINDWELL(24) = 31
+$PLIMITC(24) = 2500.
+WELLTOP(1 TO 3,1,24) =    5000.0  317000.0  253000.0 
+WELLBOTTOM(1 TO 3,1,24) = 5256.0  317000.0  253000.0 
+WELLPQ(24) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(25) = "WELL 25 PRODUCTION"
+KINDWELL(25) = 31
+$PLIMITC(25) = 2500.
+WELLTOP(1 TO 3,1,25) =    5000.0  317000.0  285000.0 
+WELLBOTTOM(1 TO 3,1,25) = 5256.0  317000.0  285000.0 
+WELLPQ(25) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(26) = "WELL 26 PRODUCTION"
+KINDWELL(26) = 31
+$PLIMITC(26) = 2500.
+WELLTOP(1 TO 3,1,26) =    5000.0  317000.0  317000.0 
+WELLBOTTOM(1 TO 3,1,26) = 5256.0  317000.0  317000.0 
+WELLPQ(26) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(27) = "WELL 27 PRODUCTION"
+KINDWELL(27) = 31
+$PLIMITC(27) = 2500.
+WELLTOP(1 TO 3,1,27) =    5000.0  40000.0  8000.0 
+WELLBOTTOM(1 TO 3,1,27) = 5256.0  40000.0  8000.0 
+WELLPQ(27) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(28) = "WELL 28 PRODUCTION"
+KINDWELL(28) = 31
+$PLIMITC(28) = 2500.
+WELLTOP(1 TO 3,1,28) =    5000.0  72000.0  8000.0 
+WELLBOTTOM(1 TO 3,1,28) = 5256.0  72000.0  8000.0 
+WELLPQ(28) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(29) = "WELL 29 PRODUCTION"
+KINDWELL(29) = 31
+$PLIMITC(29) = 2500.
+WELLTOP(1 TO 3,1,29) =    5000.0  116000.0  8000.0 
+WELLBOTTOM(1 TO 3,1,29) = 5256.0  116000.0  8000.0 
+WELLPQ(29) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(30) = "WELL 30 PRODUCTION"
+KINDWELL(30) = 31
+$PLIMITC(30) = 2500.
+WELLTOP(1 TO 3,1,30) =    5000.0  143000.0  8000.0 
+WELLBOTTOM(1 TO 3,1,30) = 5256.0  143000.0  8000.0 
+WELLPQ(30) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(31) = "WELL 31 PRODUCTION"
+KINDWELL(31) = 31
+$PLIMITC(31) = 2500.
+WELLTOP(1 TO 3,1,31) =    5000.0  165125.0  8000.0 
+WELLBOTTOM(1 TO 3,1,31) = 5256.0  165125.0  8000.0 
+WELLPQ(31) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(32) = "WELL 32 PRODUCTION"
+KINDWELL(32) = 31
+$PLIMITC(32) = 2500.
+WELLTOP(1 TO 3,1,32) =    5000.0  182000.0  8000.0 
+WELLBOTTOM(1 TO 3,1,32) = 5256.0  182000.0  8000.0 
+WELLPQ(32) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(33) = "WELL 33 PRODUCTION"
+KINDWELL(33) = 31
+$PLIMITC(33) = 2500.
+WELLTOP(1 TO 3,1,33) =    5000.0  209500.0  8000.0 
+WELLBOTTOM(1 TO 3,1,33) = 5256.0  209500.0  8000.0 
+WELLPQ(33) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(34) = "WELL 34 PRODUCTION"
+KINDWELL(34) = 31
+$PLIMITC(34) = 2500.
+WELLTOP(1 TO 3,1,34) =    5000.0  253000.0  8000.0 
+WELLBOTTOM(1 TO 3,1,34) = 5256.0  253000.0  8000.0 
+WELLPQ(34) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(35) = "WELL 35 PRODUCTION"
+KINDWELL(35) = 31
+$PLIMITC(35) = 2500.
+WELLTOP(1 TO 3,1,35) =    5000.0  285000.0  8000.0 
+WELLBOTTOM(1 TO 3,1,35) = 5256.0  285000.0  8000.0 
+WELLPQ(35) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(36) = "WELL 36 PRODUCTION"
+KINDWELL(36) = 31
+$PLIMITC(36) = 2500.
+WELLTOP(1 TO 3,1,36) =    5000.0  40000.0  317000.0 
+WELLBOTTOM(1 TO 3,1,36) = 5256.0  40000.0  317000.0 
+WELLPQ(36) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(37) = "WELL 37 PRODUCTION"
+KINDWELL(37) = 31
+$PLIMITC(37) = 2500.
+WELLTOP(1 TO 3,1,37) =    5000.0  72000.0  317000.0 
+WELLBOTTOM(1 TO 3,1,37) = 5256.0  72000.0  317000.0 
+WELLPQ(37) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(38) = "WELL 38 PRODUCTION"
+KINDWELL(38) = 31
+$PLIMITC(38) = 2500.
+WELLTOP(1 TO 3,1,38) =    5000.0  116000.0  317000.0 
+WELLBOTTOM(1 TO 3,1,38) = 5256.0  116000.0  317000.0 
+WELLPQ(38) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(39) = "WELL 39 PRODUCTION"
+KINDWELL(39) = 31
+$PLIMITC(39) = 2500.
+WELLTOP(1 TO 3,1,39) =    5000.0  143000.0  317000.0 
+WELLBOTTOM(1 TO 3,1,39) = 5256.0  143000.0  317000.0 
+WELLPQ(39) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(40) = "WELL 40 PRODUCTION"
+KINDWELL(40) = 31
+$PLIMITC(40) = 2500.
+WELLTOP(1 TO 3,1,40) =    5000.0  165125.0  317000.0 
+WELLBOTTOM(1 TO 3,1,40) = 5256.0  165125.0  317000.0 
+WELLPQ(40) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(41) = "WELL 41 PRODUCTION"
+KINDWELL(41) = 31
+$PLIMITC(41) = 2500.
+WELLTOP(1 TO 3,1,41) =    5000.0  182000.0  317000.0 
+WELLBOTTOM(1 TO 3,1,41) = 5256.0  182000.0  317000.0 
+WELLPQ(41) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(42) = "WELL 42 PRODUCTION"
+KINDWELL(42) = 31
+$PLIMITC(42) = 2500.
+WELLTOP(1 TO 3,1,42) =    5000.0  209500.0  317000.0 
+WELLBOTTOM(1 TO 3,1,42) = 5256.0  209500.0  317000.0 
+WELLPQ(42) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(43) = "WELL 43 PRODUCTION"
+KINDWELL(43) = 31
+$PLIMITC(43) = 2500.
+WELLTOP(1 TO 3,1,43) =    5000.0  253000.0  317000.0 
+WELLBOTTOM(1 TO 3,1,43) = 5256.0  253000.0  317000.0 
+WELLPQ(43) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+WELLNAME(44) = "WELL 44 PRODUCTION"
+KINDWELL(44) = 31
+$PLIMITC(44) = 2500.
+WELLTOP(1 TO 3,1,44) =    5000.0  285000.0  317000.0 
+WELLBOTTOM(1 TO 3,1,44) = 5256.0  285000.0  317000.0 
+WELLPQ(44) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data   0.  2500.
+EndBlock
+
+
+$ INJECTION COMPOSITION
+COMPINJ(,1) = 0.0 1.0 0.0
+$COMPINJ(,1) = 0.0 1.0 0.0 0.0
+INJCOMP(1 TO 4) = 1
+
+$ SEPARATOR ASSIGNMENT FOR WELLS
+IWSEP(3) = 1
+IWSEP(4) = 1
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.0
+$   DELTIM = 1.0  
+$   DTIMMUL = 2.0 
+   DELTIM = 0.001  
+   DTIMMUL = 1.05 
+   DTIMMIN = 1.0E-06
+   DTIMMAX = 1.0
+   DTIMOUT = 3650.0
+   DSMAX .1
+
+   $ VISUALIZATION
+   VISOUT = 0.1  DVISOUT = 365.0
+$   VIS_SCL = 11
+   VIS_SCL = 9
+   VIS_SCL_NAMES(1) = "PRES"
+   VIS_SCL_NAMES(2) = "PCWO"
+   VIS_SCL_NAMES(3) = "PCGO"
+   VIS_SCL_NAMES(4) = "SWAT"
+   VIS_SCL_NAMES(5) = "SOIL"
+   VIS_SCL_NAMES(6) = "SGAS"
+   VIS_SCL_NAMES(7) = "CO2"
+   VIS_SCL_NAMES(8) = "H2O"
+   VIS_SCL_NAMES(9) = "H2CO3"
+$   VIS_SCL_NAMES(10) = "KSI_CO2_OIL"
+$   VIS_SCL_NAMES(11) = "KSI_H2O_OIL"
+   VIS_FNAME = "CO2m1_"
+   VISFLAG = 3
+EndTime
+
+BeginTime 100.0
+DELTIM = 0.001
+N_CONC_STEPS = 4
+EndTime
+
+BeginTime 500.0
+DELTIM = 0.001
+EndTime
+
+BeginTime 900.0
+DELTIM = 0.001
+DTIMMAX = 2.0
+N_CONC_STEPS = 8
+EndTime
+
+BeginTime 1300.0
+DELTIM = 0.001
+EndTime
+
+BeginTime 1700.0
+DELTIM = 0.001
+EndTime
+
+BeginTime 2100.0
+DELTIM = 0.001
+EndTime
+
+BeginTime 2500.0
+DELTIM = 0.001
+EndTime
+
+BeginTime 2900.0
+DELTIM = 0.001
+EndTime
+
+BeginTime 3300.0
+DELTIM = 0.001
+EndTime
+
+BeginTime 18250.0
+KINDWELL(1) = 0
+KINDWELL(2) = 0
+KINDWELL(3) = 0
+KINDWELL(4) = 0
+EndTime
+
+BeginTime 23725.0
+DELTIM = 0.001
+DTIMMAX = 25.0
+DTIMOUT = 1095.0
+N_CONC_STEPS = 16
+EndTime
+
+BeginTime 146100.0
+DTIMMAX = 200.0
+DTIMOUT = 3650.0
+N_CONC_STEPS = 64
+EndTime
+
+

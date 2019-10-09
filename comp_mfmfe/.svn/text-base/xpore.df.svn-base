@@ -1,0 +1,102 @@
+C  XPORE.F - INITIALIZATION & CALCULATION OF BLOCK PORE VOLUMES
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE XPORE
+
+C  CODE HISTORY:
+
+C  RICK DEAN       06/26/01  INITIAL VERSION
+C  GURPREET SINGH  08/12/14  MODIFIED FOR MFMFE
+C  DEANDRA WHITE   12/25/15  SKIPPED XMAS TO MODIFY XPORE
+
+C*********************************************************************
+      SUBROUTINE XPORE (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &  KL1,KL2,KEYOUT,NBLK,PV,CR,DP,PHI,EVOL,POR,P,P_REF,CRPHI0,PHI0)
+C*********************************************************************
+
+C  COMPUTES CURRENT PORE VOLUME.
+C  THIS IS A WORK ROUTINE.
+
+C  POR(I,J,K)= PORE VOLUME ARRAY AT PRESSURE RK_REFP (INPUT, REAL*8)
+C  CR(I,J,K)= ROCK COMPRESSIBILITY X PV0 (INPUT, REAL*8)
+C  P(I,J,K)= PRESSURE P (INPUT, REAL*8)
+C  P_REF(I,J,K) = REFERENCE PRESSURE (INPUT, REAL*8)
+
+C  PV(I,J,K)= PORE VOLUME ARRAY AT PRESSURE P (OUTPUT, REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 CR(IDIM,JDIM,KDIM),PV(IDIM,JDIM,KDIM),
+     &       DP(IDIM,JDIM,KDIM),PHI(IDIM,JDIM,KDIM),
+     &       EVOL(IDIM,JDIM,KDIM)
+      REAL*8 POR(IDIM,JDIM,KDIM),P(IDIM,JDIM,KDIM),
+     &       P_REF(IDIM,JDIM,KDIM),CRPHI0(IDIM,JDIM,KDIM),
+     &       PHI0(IDIM,JDIM,KDIM)
+      INTEGER I,J,K,L
+
+      DO K=KL1,KL2
+         DO J=JL1V(K),JL2V(K)
+            DO I=IL1,IL2
+               IF ((KEYOUT(I,J,K).EQ.1).AND.(PHI(I,J,K).GT.0.D0)) THEN
+
+! bag8 - compute change in pressure since last call to XPORE
+                  DP(I,J,K)=P(I,J,K)-DP(I,J,K)
+
+! new XPORE logic - works with mechanics
+
+!                  IF ((I.EQ.ILAY+1).AND.(J.EQ.JLAY+1).AND.
+!     &                (K.EQ.KLAY+1)) THEN
+!                  WRITE(*,*)'In XPORE'
+!                  WRITE(*,*)'old PV=',PV(I,J,K)
+!                  WRITE(*,*)'DP=',DP(I,J,K)
+!                  ENDIF
+
+! bag8 - Update pore volume with true rock compressibility * volume
+                  PV(I,J,K)=PV(I,J,K)+CR(I,J,K)*DP(I,J,K)
+
+! bag8 - Calculate fluid fraction by dividing pore volume by volume
+                  PHI(I,J,K)=PV(I,J,K)/EVOL(I,J,K)
+
+! bag8 - store current pressure for next call to XPORE
+                  DP(I,J,K)=P(I,J,K)
+
+!                  IF ((I.EQ.ILAY+1).AND.(J.EQ.JLAY+1).AND.
+!     &                (K.EQ.KLAY+1)) THEN
+!                  WRITE(*,*)'CR=',CR(I,J,K)
+!                  WRITE(*,*)'PHI=',PHI(I,J,K)
+!                  WRITE(*,*)'EVOL=',EVOL(I,J,K)
+!                  WRITE(*,*)'new PV=',PV(I,J,K)
+!                  WRITE(*,*)'PHI=',PHI(I,J,K)
+!                  ENDIF
+
+! old XPORE logic - doesn't work with mechanics
+
+!                  DUM = (P(I,J,K)-P_REF(I,J,K))
+!                  PV(I,J,K)= POR(I,J,K)+CR(I,J,K)*DUM
+!                  PHI(I,J,K)= PHI0(I,J,K)+CRPHI0(I,J,K)*DUM
+
+!                  IF ((I.EQ.ILAY+1).AND.(J.EQ.JLAY+1).AND.
+!     &                (K.EQ.KLAY+1)) THEN
+!                  WRITE(*,*)'In XPORE'
+!                  WRITE(*,*)'P=',P(I,J,K)
+!                  WRITE(*,*)'P_REF=',P_REF(I,J,K)
+!                  WRITE(*,*)'POR=',POR(I,J,K)
+!                  WRITE(*,*)'CR=',CR(I,J,K)
+!                  WRITE(*,*)'PHI0=',PHI0(I,J,K)
+!                  WRITE(*,*)'CRPHI0=',CRPHI0(I,J,K)
+!                  WRITE(*,*)'PV=',PV(I,J,K)
+!                  WRITE(*,*)'PHI=',PHI(I,J,K)
+!                  ENDIF
+
+               ENDIF
+            END DO
+         END DO
+      END DO
+
+      RETURN
+      END
+

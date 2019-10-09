@@ -1,0 +1,4 @@
+! HYPRE_DUAL.DH - Header file for enhanced velocity specific HYPRE data
+
+$DUAL      INTEGER GELEI_EV($MXFELE,$MXNUMEQ,$MXNUMEQ)
+$DUAL      COMMON /HYPRE_EVFEM_COM/GELEI_EV

@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/repos/csm/!svn/ver/621/IPARSv3.1/solve/hypre
+END
+hypre.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/621/IPARSv3.1/solve/hypre/hypre.df
+END
+hypre.dh
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/607/IPARSv3.1/solve/hypre/hypre.dh
+END
+hypre_dual.df
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/repos/csm/!svn/ver/607/IPARSv3.1/solve/hypre/hypre_dual.df
+END
+hypre_dual.dh
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/repos/csm/!svn/ver/602/IPARSv3.1/solve/hypre/hypre_dual.dh
+END

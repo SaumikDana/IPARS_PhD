@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/repos/csm/!svn/ver/123/IPARSv3.1/comp/data/single_block/tests/2dCase/2phase/TestCO2_OrigCrit
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2phase/TestCO2_OrigCrit/IPARS.IN
+END
+P1_2relprm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2phase/TestCO2_OrigCrit/P1_2relprm.dat
+END
+co2_prob1_2aSI.dat
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/repos/csm/!svn/ver/123/IPARSv3.1/comp/data/single_block/tests/2dCase/2phase/TestCO2_OrigCrit/co2_prob1_2aSI.dat
+END

@@ -1,0 +1,1152 @@
+C  ESTEP.F - MAKE ONE NEWTONIAN ITERTION WITH THE ELASTIC MODEL
+C  ROUTINES IN THIS MODULE:
+C
+C CODE HISTORY:
+C    TAMEEM ALMANI   07/27/2016 INCLUDE NECESSARY CHANGES FOR
+C                               COUPLING WITH MECHANICS
+C*********************************************************************
+      SUBROUTINE ESTEP1 (NERR)
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'emodel.h'
+      INTEGER NERR
+
+      IF (NEWT.EQ.1) CALL ESAVE()
+    
+$SIMFMFE      MODACT = $TMMODEL
+$SIMFMFE      IF(PEFLOW.EQ.$TMMODEL.OR.MBPOROE) CALL TSTEP1(NERR)
+              ! SAUMIK,BGANIS
+$SIMFMFE      MODACT = $PEMODEL
+
+$CMFMFE      MODACT = $XMMODEL
+$CMFMFE      IF(PEFLOW.EQ.$XMMODEL.OR.MBPOROE) CALL XSTEP1(NERR)
+             ! SAUMIK,BGANIS
+$CMFMFE      MODACT = $PEMODEL
+
+ctm
+$HIMFMFE      MODACT = $HMMODEL
+$HIMFMFE      IF(PEFLOW.EQ.$HMMODEL.OR.MBPOROE) CALL HSTEP1(NERR)
+              ! SAUMIK,BGANIS
+$HIMFMFE      MODACT = $PEMODEL
+ctm
+      END
+C*********************************************************************
+      SUBROUTINE ESTEP2 (KONVG,NERR)
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'emodel.h'
+      INTEGER KONVG,NERR
+
+$SIMFMFE      MODACT = $TMMODEL
+$SIMFMFE      IF(PEFLOW.EQ.$TMMODEL.OR.MBPOROE) CALL TSTEP2(KONVG,NERR)
+              ! SAUMIK,BGANIS
+$SIMFMFE      MODACT = $PEMODEL
+
+$CMFMFE      MODACT = $XMMODEL
+$CMFMFE      IF(PEFLOW.EQ.$XMMODEL.OR.MBPOROE) CALL XSTEP2(KONVG,NERR)
+             ! SAUMIK,BGANIS
+$CMFMFE      MODACT = $PEMODEL
+
+ctm
+$HIMFMFE      MODACT = $HMMODEL
+$HIMFMFE      IF(PEFLOW.EQ.$HMMODEL.OR.MBPOROE) CALL HSTEP2(KONVG,NERR)
+              ! SAUMIK,BGANIS
+$HIMFMFE      MODACT = $PEMODEL
+ctm
+      END
+C*********************************************************************
+      SUBROUTINE ESTEP3 (KONVG,NERR)
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'emodel.h'
+      INTEGER KONVG,NERR
+
+$SIMFMFE      MODACT = $TMMODEL
+$SIMFMFE      IF(PEFLOW.EQ.$TMMODEL.OR.MBPOROE) CALL TSTEP3(KONVG,NERR)
+              ! SAUMIK,BGANIS
+$SIMFMFE      MODACT = $PEMODEL
+
+$CMFMFE      MODACT = $XMMODEL
+$CMFMFE      IF(PEFLOW.EQ.$XMMODEL.OR.MBPOROE) CALL XSTEP3(KONVG,NERR)
+             ! SAUMIK,BGANIS
+$CMFMFE      MODACT = $PEMODEL
+
+ctm
+$HIMFMFE      MODACT = $HMMODEL
+$HIMFMFE      IF(PEFLOW.EQ.$HMMODEL.OR.MBPOROE) CALL HSTEP3(KONVG,NERR)
+              ! SAUMIK,BGANIS
+$HIMFMFE      MODACT = $PEMODEL
+ctm
+      
+      END
+
+C*********************************************************************
+      SUBROUTINE EITER (PEKONVG,NERR)
+C*********************************************************************
+C  Poroelastic model driver routine to start an iteration
+C  1.  Update linear elastic residuals for Newtonian iterations.
+C  2.  Solve for displacement, stress, strain, and plastic strain
+C  3.  Calculate new porosity and scale concentrations and densities     
+C  4.  Calculate new effective compressibility
+C Saumik
+C  5.  Calculate updated permeability and transmissibility
+C  6.  Calculate permeability inverse for multi-point flux calculation
+C Saumik
+C
+C  PEKONVG = PORE VOLUME CONVERGENT FLAG (OUTPUT, INTEGER)
+C        = 1 ==> CONVERGED
+C        = 2 ==> CONTINUE ITERATION
+C
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'times.h' 
+      INCLUDE 'layout.h'  
+      INCLUDE 'earydat.h'
+      INCLUDE 'emodel.h'
+      INCLUDE 'ebdary.h'
+      INCLUDE 'mpfaary.h'
+      INCLUDE 'mpif.h'
+C --- SAUMIK,BGANIS
+$SIMFMFE      INCLUDE 'tarydat.h'
+$CMFMFE      INCLUDE 'xarydat.h'
+      EXTERNAL COMPDEN_3PH,ADD_ROCK_DEN,
+     &         GETPOROSITY,GETPOREVOLUME,GETUPDATEDVAR,
+     &         FLOWTOMECHANICS,MECHANICSTOFLOW,
+     &         FLOWTOMECHANICSNONMATCHING,MECHANICSTOFLOWNONMATCHING,
+     &         PEPV_ERR_MB
+      INTEGER COPYARG(7)
+      DATA COPYARG / 7*0 /
+C --- SAUMIK,BGANIS
+
+      INTEGER PEKONVG,NERR
+      
+      INTEGER I,KERR,ITER
+      LOGICAL FACTOR,ONCEONLY
+      REAL*8  ZERO,PEDUMMY
+      PARAMETER (ZERO=0.D0)
+      INTEGER JCPY(4),JMASS(6),JPRTPRES(2),JPRTDISP(3),
+     &        JPV(11),JCR(5),JBODY(8),JARG(5)
+
+
+      EXTERNAL SETARYR8,CPYARYR8,EPRTPRES,EPRTDISP,BULKDEN_1PH,
+     &         BULKDEN_2PH,PEPORE_VOL,PEPV_ERR,
+     &         EMASS_1NC, SCALE_1NC,EMASS_2NC,SCALE_2NC,
+     &         EFFEC_MEAN_STRESS,CPYPERMTOR8,TRANC1,TRANC2,
+     &         BULKDEN_3PH,EUPDATECR
+
+      INTEGER JSTRS(5),JTRANC(10)
+
+! Increment Fixed Stress Iteration Counter
+      GCITER=GCITER+1
+
+ctm   TAMEEM
+      IF(Q_MULTIRATE.GT.1) THEN
+         IF(MOD(MULTIRATE_FLAG,Q_MULTIRATE).NE.0) THEN
+             GO TO 66
+         ENDIF
+         WRITE(*,*), 'ESTEP: Entering Mechanics--------------------'
+         DELTIM = Q_MULTIRATE*DELTIM
+      ENDIF
+      MC_SKIPPED = 0
+ctm   TAMEEM
+
+C DEFINE WORK ROUTINE ARGUMENTS 
+
+      CALL TIMON(35)
+
+C MOVED BULK DENSITY INITIALIZATION HERE
+
+      CALL ESETARYR8N(N_BULK_DEN,ZERO,1)
+
+      IF (MBPOROE) THEN ! SAUMIK,BGANIS
+         COPYARG(1)=6
+         COPYARG(3)=N_XC
+         COPYARG(4)=N_YC
+         COPYARG(5)=N_ZC
+         COPYARG(7)=N_EVOL
+
+C GET UPDATED POROSITY AFTER FLOW SOLVE
+
+         JARG(1)=3
+         JARG(2)=N_PV
+         JARG(3)=N_PORTRUE
+         JARG(4)=N_EVOL
+$SIMFMFE      MODACT=$TMMODEL
+$CMFMFE      MODACT=$XMMODEL
+         CALL CALLWORK(GETPOROSITY,JARG)
+         CALL TIMON(38)
+         CALL UPDATE(N_PORTRUE,2)
+         CALL TIMOFF(38)
+
+C UPSCALE UPDATED POROSITY
+
+         COPYARG(2)=N_PORTRUE
+         COPYARG(6)=N_PORTRUE
+$SIMFMFE      MODACT=$TMMODEL
+$CMFMFE      MODACT=$XMMODEL
+         IF(NONMATCHING) THEN
+         CALL TRANSFERDATA(FLOWTOMECHANICSNONMATCHING,COPYARG)
+         ELSE
+         CALL TRANSFERDATA(FLOWTOMECHANICS,COPYARG)
+         ENDIF
+         MODACT=$PEMODEL
+         CALL TIMON(38)
+         CALL UPDATE(N_PORTRUE,2)
+         CALL TIMOFF(38)
+
+C GET UPDATED PORE VOLUME IN MECHANICS BLOCK
+
+         JARG(1)=3
+         JARG(2)=N_EPV_FLOW
+         JARG(3)=N_PORTRUE
+         JARG(4)=N_EVOL
+         CALL CALLWORK(GETPOREVOLUME,JARG)
+         CALL TIMON(38)
+         CALL UPDATE(N_EPV_FLOW,2)
+         CALL TIMOFF(38)
+
+C UPSCALE PORE PRESSURE
+
+         COPYARG(2)=N_PRESS
+         COPYARG(6)=N_PRES
+$SIMFMFE        MODACT=$TMMODEL
+$CMFMFE        MODACT=$XMMODEL
+         IF(NONMATCHING) THEN
+         CALL TRANSFERDATA(FLOWTOMECHANICSNONMATCHING,COPYARG)
+         ELSE
+         CALL TRANSFERDATA(FLOWTOMECHANICS,COPYARG)
+         ENDIF
+         MODACT=$PEMODEL
+         CALL TIMON(38)
+         CALL UPDATE(N_PRESS,2)
+         CALL TIMOFF(38)
+
+C UPSCALE FLUID DENSITY FROM SINGLE PHASE FLOW BLOCK
+
+$SIMFMFE      COPYARG(2)=N_EFLDEN
+$SIMFMFE      COPYARG(6)=N_FLDEN
+$SIMFMFE      MODACT=$TMMODEL
+$SIMFMFE      IF(NONMATCHING) THEN
+$SIMFMFE      CALL TRANSFERDATA(FLOWTOMECHANICSNONMATCHING,COPYARG)
+$SIMFMFE      ELSE
+$SIMFMFE      CALL TRANSFERDATA(FLOWTOMECHANICS,COPYARG)
+$SIMFMFE      ENDIF
+$SIMFMFE      MODACT=$PEMODEL
+$SIMFMFE      CALL TIMON(38)
+$SIMFMFE      CALL UPDATE(N_EFLDEN,2)
+$SIMFMFE      CALL TIMOFF(38)
+
+C COMPUTE FLUID DENSITY ARISING OUT OF COMPOSITIONAL FLOW
+
+$CMFMFE      MODACT=$XMMODEL
+$CMFMFE      CALL ESETARYR8N(N_COMP_DEN,ZERO,1)
+$CMFMFE      JBODY(1)=5
+$CMFMFE      JBODY(2)=N_COMP_DEN
+$CMFMFE      JBODY(3)=N_PV
+$CMFMFE      JBODY(4)=N_PMD
+$CMFMFE      JBODY(5)=N_SAT
+$CMFMFE      JBODY(6)=N_EVOL
+$CMFMFE      CALL CALLWORK(COMPDEN_3PH,JBODY)
+$CMFMFE      CALL TIMON(38)
+$CMFMFE      CALL UPDATE(N_COMP_DEN,2)
+$CMFMFE      CALL TIMOFF(38)
+
+C UPSCALE FLUID DENSITY FROM COMPOSITIONAL FLOW BLOCK 
+
+$CMFMFE      COPYARG(2)=N_BULK_DEN
+$CMFMFE      COPYARG(6)=N_COMP_DEN
+$CMFMFE      IF(NONMATCHING) THEN
+$CMFMFE      CALL TRANSFERDATA(FLOWTOMECHANICSNONMATCHING,COPYARG)
+$CMFMFE      ELSE
+$CMFMFE      CALL TRANSFERDATA(FLOWTOMECHANICS,COPYARG)
+$CMFMFE      ENDIF
+$CMFMFE      MODACT=$PEMODEL
+$CMFMFE      CALL TIMON(38)
+$CMFMFE      CALL UPDATE(N_BULK_DEN,2)
+$CMFMFE      CALL TIMOFF(38)
+
+C ADD ROCK DENSITY TO UPSCALED FLUID DENSITY
+
+$CMFMFE      JBODY(1)=2
+$CMFMFE      JBODY(2)=N_BULK_DEN
+$CMFMFE      JBODY(3)=N_ROCKD
+$CMFMFE      CALL CALLWORK(ADD_ROCK_DEN,JBODY)
+$CMFMFE      CALL TIMON(38)
+$CMFMFE      CALL UPDATE(N_BULK_DEN,2)
+$CMFMFE      CALL TIMOFF(38)
+      ENDIF ! IF MBPOROE
+
+
+c      JPRTDISP(1) = 2
+c      JPRTDISP(2) = N_KEYOUT_CR
+c      JPRTDISP(3) = N_EDISP
+
+      JCR(1) = 4
+      JCR(2) = N_DISP_COMP
+      JCR(3) = N_EPV_FLOW
+      JCR(4) = N_ECR
+      JCR(5) = N_EVOL
+
+C ADD BODY FORCE
+
+         IF(PEFLOW.EQ.$TMMODEL) THEN
+$SIMFMFE            JBODY(1) = 5
+$SIMFMFE            JBODY(2) = N_ROCKD
+$SIMFMFE            JBODY(3) = N_EPV_FLOW
+$SIMFMFE            JBODY(4) = N_EFLDEN
+$SIMFMFE            JBODY(5) = N_BULK_DEN
+$SIMFMFE            JBODY(6) = N_EVOL
+$SIMFMFE            CALL CALLWORK(BULKDEN_1PH,JBODY)
+         ELSEIF(PEFLOW.EQ.$HMMODEL) THEN
+$HIMFMFE            JBODY(1) = 6
+$HIMFMFE            JBODY(2) = N_ROCKD
+$HIMFMFE            JBODY(3) = N_EPV_FLOW
+$HIMFMFE            JBODY(4) = N_BULK_DEN
+$HIMFMFE            JBODY(5) = N_EVOL
+$HIMFMFE            JBODY(6) = N_ECON(1)
+$HIMFMFE            JBODY(7) = N_ECON(2)
+$HIMFMFE            CALL CALLWORK(BULKDEN_2PH,JBODY)
+ctm
+         ELSEIF(PEFLOW.EQ.$XMMODEL.AND.(.NOT.MBPOROE)) THEN
+         ! SAUMIK,BGANIS
+$CMFMFE            JBODY(1) = 6
+$CMFMFE            JBODY(2) = N_BULK_DEN
+$CMFMFE            JBODY(3) = N_EVOL
+$CMFMFE            JBODY(4) = N_ROCKD
+$CMFMFE            JBODY(5) = N_EPV_FLOW
+$CMFMFE            JBODY(6) = N_EPMD
+$CMFMFE            JBODY(7) = N_ESAT(1)
+$CMFMFE            CALL CALLWORK(BULKDEN_3PH,JBODY)
+         ELSE
+            IF(.NOT.MBPOROE) STOP 'Unknown PEFLOW in EITER'
+            ! SAUMIK,BGANIS
+         ENDIF
+$MANY         CALL TIMON(38)
+$MANY         CALL UPDATE(N_BULK_DEN,2)
+$MANY         CALL TIMOFF(38)
+            
+! c call Ruijies mechanics solver
+!      CALL MECHANICS_WRAPPER(NERR)
+
+C SETUP COORDINATES, CONNECTIVITITY (ALREADY INVOLVES FRACTURE INFO)
+C IN POROHEX CODE
+
+      CALL ESETUP_POROHEX(1,KERR)
+      IF(KERR.EQ.100) THEN
+         NERR=100
+         RETURN
+      ENDIF
+$MANY      CALL TIMON(38)
+$MANY      CALL ENODE_UPDATE(N_EDISP,'R8')
+!$MANY      CALL UPDATE(N_EDISP,4)
+$MANY      CALL TIMOFF(38)
+
+C POST PROCESSING
+
+!      CALL TIMON(45)
+      CALL POROHEX_POST_PRCSS(1,KERR)
+!      CALL TIMOFF(45)
+
+$MANY      CALL TIMON(38)
+$MANY      CALL UPDATE(N_NODE_WIDTH,4)
+$MANY      CALL TIMOFF(38)
+
+C CALCULATE PORE VOLUME USING VOLUMETRIC STRAINS
+
+      JPV(1) = 9
+      JPV(2) = N_BIOTM
+      JPV(3) = N_BIOTA
+      JPV(4) = N_VSTRAIN
+      JPV(5) = N_VSTRAIN_INIT
+      JPV(6) = N_POR
+      JPV(7) = N_EPV
+      JPV(8) = N_PREF
+      JPV(9) = N_PRESS
+      JPV(10) = N_EVOL
+      CALL CALLWORK(PEPORE_VOL,JPV)
+
+$MANY      CALL TIMON(38)
+$MANY      CALL UPDATE(N_EPV,2)
+$MANY      CALL TIMOFF(38)
+
+C CHECK UP PORE VOLUME CONVERGENCE
+
+      IF(MBPOROE) THEN ! SAUMIK,BGANIS
+         JARG(1) = 4
+         JARG(2) = N_EPV
+         JARG(3) = N_EPV_FLOW
+         JARG(4) = N_RC
+         JARG(5) = N_R8U 
+         CALL CALLWORK(PEPV_ERR_MB,JARG)
+         CALL TIMON(38)
+         CALL UPDATE(N_RC,2)
+         CALL TIMOFF(38)
+      ELSE
+         JARG(1) = 3
+         JARG(2) = N_EPV
+         JARG(3) = N_EPV_FLOW
+         JARG(4) = N_R8U
+         CALL CALLWORK(PEPV_ERR,JARG)
+      ENDIF
+
+$MANY      CALL TIMON(38)
+$MANY      CALL MAXIT(1,R8UTIL)
+$MANY      CALL SPREAD8(1,R8UTIL)
+$MANY      CALL TIMOFF(38)
+      IF(R8UTIL.LT.PEPVTOL) THEN
+         PEKONVG=1
+      ELSE
+         PEKONVG=2
+      ENDIF
+
+      IF (MYPRC.EQ.0) THEN
+         WRITE(*,'(1X,1P,A,I3,A,E11.4,A,I1)')
+     &     'Fixed Stress: GCITER=',GCITER,' PEPV_ERR=',R8UTIL,
+     &     ' PEKONVG=',PEKONVG
+      ENDIF
+
+      IF(MBPOROE) THEN ! SAUMIK,BGANIS
+
+C DOWNSCALE RELATIVE PORE VOLUME CHANGE 
+
+         COPYARG(2)=N_RC
+         COPYARG(6)=N_RC
+$SIMFMFE      MODACT=$TMMODEL
+$CMFMFE      MODACT=$XMMODEL
+         IF(NONMATCHING) THEN
+         CALL TRANSFERDATA(MECHANICSTOFLOWNONMATCHING,COPYARG)
+         ELSE
+         CALL TRANSFERDATA(MECHANICSTOFLOW,COPYARG)
+         ENDIF
+         CALL TIMON(38)
+         CALL UPDATE(N_RC,2)
+         CALL TIMOFF(38)
+
+C GET UPDATED PORE VOLUME IN FLOW BLOCK
+
+         JARG(1)=2
+         JARG(2)=N_PV
+         JARG(3)=N_RC
+         CALL CALLWORK(GETUPDATEDVAR,JARG)
+         CALL TIMON(38)
+         CALL UPDATE(N_PV,2)
+         CALL TIMOFF(38)
+         MODACT=$PEMODEL
+      ENDIF ! IF MBPOROE
+
+C COPY PORE VOLUME FROM POROELASTIC MODEL TO FLOW MODEL
+
+      JARG(1) = 2
+      JARG(2) = N_EPV
+      JARG(3) = N_EPV_FLOW
+      CALL CALLWORK(CPYARYR8,JARG)
+
+      IF(MBPOROE) THEN ! SAUMIK,BGANIS
+
+C DOWNSCALE VOLUMETRIC STRAIN TO EVALUATE UPDATED CR
+
+         COPYARG(2)=N_VSTRAIN
+         COPYARG(6)=N_VSTRAIN
+$SIMFMFE      MODACT=$TMMODEL
+$CMFMFE      MODACT=$XMMODEL
+         IF(NONMATCHING) THEN
+         CALL TRANSFERDATA(MECHANICSTOFLOWNONMATCHING,COPYARG)
+         ELSE
+         CALL TRANSFERDATA(MECHANICSTOFLOW,COPYARG)
+         ENDIF
+         CALL TIMON(38)
+         CALL UPDATE(N_VSTRAIN,2)
+         CALL TIMOFF(38)
+         CALL CALLWORK(EUPDATECR,[7,N_MODULFLOW,N_POISSFLOW,N_BIOTAFLOW,
+     &     N_PV,N_CR,N_EVOL,N_VSTRAIN])
+         CALL TIMON(38)
+         CALL UPDATE(N_CR,2)
+         CALL TIMOFF(38)
+         MODACT=$PEMODEL
+      ELSE
+! bag8, djw
+         CALL CALLWORK(EUPDATECR,[7,N_MODUL,N_POISS,N_BIOTA,
+     &     N_EPV,N_ECR,N_EVOL,N_VSTRAIN])
+      ENDIF
+
+      IF (PEKONVG.EQ.1) THEN
+!         CALL CALLWORK(EPRTDISP,JPRTDISP)
+          IF (MECH_BC_NCASE.EQ.100) CALL ESTDOUTA()
+      ENDIF
+
+C SAUMIK
+C TRANSIENT PERMEABILITY UMBRELLA
+
+      IF (SDPM) THEN
+
+C        CALCULATE MEAN EFFECTIVE STRESS
+
+         JSTRS(1)=4
+         JSTRS(2)=N_MODUL
+         JSTRS(3)=N_POISS
+         JSTRS(4)=N_VSTRAIN
+         JSTRS(5)=N_EMSTRESS
+         CALL CALLWORK(EFFEC_MEAN_STRESS,JSTRS) 
+
+$MANY         CALL TIMON(38)
+$MANY         CALL UPDATE(N_EMSTRESS,2)
+$MANY         CALL TIMOFF(38)
+
+C        CALCULATE UPDATED PERMEABILITY BASED 
+C        ON NEW VOLUMETRIC STRAIN
+
+         CALL PE_PERM()
+
+C        CALCULATE TRANSMISSIBILITY 
+
+         CALL TIMON(21)
+
+         IF (KNDGRD.EQ.1) THEN
+C        FOR ORTHOGONAL GRID OPTION 
+
+            JTRANC(1)=6
+            JTRANC(2)=N_TCOFX
+            JTRANC(3)=N_TCOFY
+            JTRANC(4)=N_TCOFZ
+            JTRANC(5)=N_XPERM
+            JTRANC(6)=N_YPERM
+            JTRANC(7)=N_ZPERM
+            CALL CALLWORK(TRANC1,JTRANC)
+
+$MANY       CALL TIMON(38)
+$MANY       CALL UPDATE(N_TCOFX,2)
+$MANY       CALL UPDATE(N_TCOFY,2)
+$MANY       CALL UPDATE(N_TCOFZ,2)
+$MANY       CALL TIMOFF(38)
+
+         ELSEIF (KNDGRD.EQ.3) THEN
+C        FOR CORNER POINT OPTION 
+C        WITH MPFA
+
+            JTRANC(1)=9
+            JTRANC(2)=N_TCOFX
+            JTRANC(3)=N_TCOFY
+            JTRANC(4)=N_TCOFZ
+            JTRANC(5)=N_XPERM
+            JTRANC(6)=N_YPERM
+            JTRANC(7)=N_ZPERM
+            JTRANC(8)=N_XC
+            JTRANC(9)=N_YC
+            JTRANC(10)=N_ZC
+$MPFA       CALL CALLWORK(TRANC2,JTRANC)
+
+$MANY       CALL TIMON(38)
+$MANY       CALL UPDATE(N_TCOFX,2)
+$MANY       CALL UPDATE(N_TCOFY,2)
+$MANY       CALL UPDATE(N_TCOFZ,2)
+$MANY       CALL TIMOFF(38)
+
+C           CALCULATE PERMEABILITY INVERSE 
+C           THIS PERM INVERSE IS USED IN THE 
+C           MULTI-POINT FLUX CALCULATIONS
+
+$MPFA       CALL MPFA_PERMINV(KERR)
+C$MPFA       CALL FRAC_PERMINV(KERR)
+$MPFA       CALL MPFA_SET_AINV_TRAN(KERR)
+
+         ENDIF
+
+         CALL TIMOFF(21)
+
+C        FOR VISUALIZATION CONVERT 
+C        REAL*4 PERM TO REAL*8
+
+         JCPY(1) = 3
+         JCPY(2) = N_XPERM
+         JCPY(3) = N_XPERM_REF
+         JCPY(4) = N_XPERM_R8
+         CALL CALLWORK(CPYPERMTOR8,JCPY)
+
+         JCPY(1) = 3
+         JCPY(2) = N_YPERM
+         JCPY(3) = N_YPERM_REF
+         JCPY(4) = N_YPERM_R8
+         CALL CALLWORK(CPYPERMTOR8,JCPY)
+
+         JCPY(1) = 3
+         JCPY(2) = N_ZPERM
+         JCPY(3) = N_ZPERM_REF
+         JCPY(4) = N_ZPERM_R8
+         CALL CALLWORK(CPYPERMTOR8,JCPY)
+
+      ENDIF ! IF(SDPM)
+
+C SAUMIK
+
+      CALL TIMOFF(35)
+
+ctm   TAMEEM
+      IF(Q_MULTIRATE.GT.1) THEN
+      DELTIM = (1.0/Q_MULTIRATE)*DELTIM
+      WRITE(*,*), 'ESTEP: EXITING MECHANICS---------------'
+      ENDIF
+      GO TO 67
+
+  66  MC_SKIPPED = 1
+      PEKONVG = 2
+
+  67  CONTINUE
+ctm   TAMEEM
+
+      END
+
+C*********************************************************************
+      SUBROUTINE ESAVE()
+C*********************************************************************
+C Routine save old time step values. 
+C Call work routine to perform linear extrapolation for displacements. 
+C Call work routine to perform linear extrapolation for pore volumes
+C
+C INPUT:
+C   FACTOR = LINEAR EXTRAPOLATION FACTOR
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'earydat.h'
+                                                                               
+      INTEGER JSAVE(4)
+      EXTERNAL CPYARYR8N
+      
+      JSAVE(1) = 3
+      JSAVE(2) = N_EDISP
+      JSAVE(3) = N_EDISPN
+      JSAVE(4) = N_I4U
+      I4UTIL = 3
+      CALL CALLWORK(CPYARYR8N,JSAVE)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE ECUTTIME(NERR)
+C*********************************************************************
+C Routine save old time step values.
+C
+C INPUT:
+C   FACTOR = LINEAR EXTRAPOLATION FACTOR
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'earydat.h'
+
+      LOGICAL ONCEONLY
+      INTEGER JSAVE(4)
+      EXTERNAL CPYARYR8N
+
+      JSAVE(1) = 3
+      JSAVE(2) = N_EDISPN
+      JSAVE(3) = N_EDISP
+      JSAVE(4) = N_I4U
+
+      I4UTIL = 3
+      CALL CALLWORK(CPYARYR8N,JSAVE)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE ESETUP_POROHEX(NNTIM,KERR)
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'earydat.h'
+      INCLUDE 'emodel.h'
+      INCLUDE 'ebdary.h'
+      INCLUDE 'blkary.h'
+      
+      INTEGER IMECH(74), KERR,NNTIM
+      EXTERNAL ESETUP_POROHEXW
+      LOGICAL ONCEONLY
+      DATA ONCEONLY/.TRUE./,IMECH/74*0/
+
+      IF (ONCEONLY) THEN
+
+        IMECH(1)  = 73
+        IMECH(2)  = N_XC
+        IMECH(3)  = N_YC
+        IMECH(4)  = N_ZC
+        IMECH(5)  = N_KEYOUT_CR
+        IMECH(6)  = N_POROHEX_GELEI
+        IMECH(7)  = N_MODUL
+        IMECH(8)  = N_POISS
+        IMECH(9)  = N_BIOTA
+        IMECH(10) = N_BIOTM
+        IMECH(11) = N_EDISP
+        IMECH(12) = N_TDISP
+        IMECH(13) = N_BULK_DEN
+        IMECH(14) = N_STRESS_INIT(1)
+        IMECH(15) = N_STRESS_INIT(2)
+        IMECH(16) = N_STRESS_INIT(3)
+        IMECH(17) = N_STRESS_INIT(4)
+        IMECH(18) = N_STRESS_INIT(5)
+        IMECH(19) = N_STRESS_INIT(6)
+        IMECH(20) = N_PRESS
+        IMECH(21) = N_PREF
+        IMECH(22) = N_VSTRAIN
+        IMECH(23) = N_TYPEBD(1)
+        IMECH(24) = N_TYPEBD(2)
+        IMECH(25) = N_TYPEBD(3)
+        IMECH(26) = N_TYPEBD(4)
+        IMECH(27) = N_TYPEBD(5)
+        IMECH(28) = N_TYPEBD(6)
+        IMECH(29) = N_DISPBD(1)
+        IMECH(30) = N_DISPBD(2)
+        IMECH(31) = N_DISPBD(3)
+        IMECH(32) = N_DISPBD(4)
+        IMECH(33) = N_DISPBD(5)
+        IMECH(34) = N_DISPBD(6)
+        IMECH(35) = N_TRACBD(1)
+        IMECH(36) = N_TRACBD(2)
+        IMECH(37) = N_TRACBD(3)
+        IMECH(38) = N_TRACBD(4)
+        IMECH(39) = N_TRACBD(5)
+        IMECH(40) = N_TRACBD(6)
+        IMECH(41) = N_TRACFACE(1)
+        IMECH(42) = N_TRACFACE(2)
+        IMECH(43) = N_TRACFACE(3)
+        IMECH(44) = N_TRACFACE(4)
+        IMECH(45) = N_TRACFACE(5)
+        IMECH(46) = N_TRACFACE(6)
+        IMECH(47) = N_PRESFACE(1)
+        IMECH(48) = N_PRESFACE(2)
+        IMECH(49) = N_PRESFACE(3)
+        IMECH(50) = N_PRESFACE(4)
+        IMECH(51) = N_PRESFACE(5)
+        IMECH(52) = N_PRESFACE(6)
+        IMECH(53) = N_STR_RESID
+        IMECH(54) = N_CRAC_IBC
+        IMECH(55) = N_PORO_NEIGHBOR
+        IMECH(56) = N_ELEM_LID
+        IMECH(57) = N_NODE_LID
+        IMECH(58) = N_OFNODE_LID
+        IMECH(59) = N_OFNODE_GID
+        IMECH(60) = N_OFNODE_L2GID
+        IMECH(61) = N_OFNODE_AFFINE
+        IMECH(62) = N_OFNODE_KEYOUT
+        IMECH(63) = N_FNODE_TYPE
+        IMECH(64) = N_OFNODE_DISP
+        IMECH(65) = N_OFNODE_GNUM
+        IMECH(66) = N_I4U
+        IMECH(67) = N_PASSO
+        IMECH(68) = N_YIELD_SIG0
+        IMECH(69) = N_YIELD_ALPHA
+        IMECH(70) = N_FLOW_ALPHA
+        IMECH(71) = N_HARDEN_MODEL
+        IMECH(72) = N_HARDEN_C1
+        IMECH(73) = N_HARDEN_C2
+        IMECH(74) = N_PRESSVAL
+     
+        ONCEONLY = .FALSE.
+      ENDIF
+      I4UTIL = NNTIM
+
+      CALL CALLWORK(ESETUP_POROHEXW,IMECH)
+      KERR=0
+      IF(EP_CUTBACK_FLAG>0) KERR=100
+      END
+
+C*********************************************************************
+      SUBROUTINE ESETUP_POROHEXW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,
+     &   JL1V,JL2V,KL1,KL2,KEYOUT,NBLK,XC,YC,ZC,KEYOUT_CR,GELEI,
+     &   MODUL,POISS,
+     &   BIOTA,BIOTM,EDISP,TDISP,BULKDEN,
+     &   STRXX_INIT,STRYY_INIT,STRZZ_INIT,STRXY_INIT,STRYZ_INIT,
+     &   STRXZ_INIT,PRESS,PREF,VSTRAIN,
+     &   BDTYP1,BDTYP2,BDTYP3,BDTYP4,BDTYP5,BDTYP6,
+     &   BDDISP1,BDDISP2,BDDISP3,BDDISP4,BDDISP5,BDDISP6,
+     &   BDTRAC1,BDTRAC2,BDTRAC3,BDTRAC4,BDTRAC5,BDTRAC6,
+     &   BDFTRAC1,BDFTRAC2,BDFTRAC3,BDFTRAC4,BDFTRAC5,BDFTRAC6,
+     &   PRESFACE1,PRESFACE2,PRESFACE3,PRESFACE4,PRESFACE5,
+     &   PRESFACE6,STR_RESID,CRAC_IBC,PORO_NEIGHBOR,
+     &   ELEM_LID,NODE_LID,OFNODE_LID,
+     &   OFNODE_GID,OFNODE_L2GID,OFNODE_AFFINE,
+     &   OFNODE_KEYOUT,FNODE_TYPE,OFNODE_DISP,OFNODE_GNUM,NNTIM,
+     &   PASSO,YIELD_SIG0,YIELD_ALPHA,FLOW_ALPHA,
+     &   HARDEN_MODEL,HARDEN_C1,HARDEN_C2,
+     &   PRESSVAL)
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'emodel.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'fracture.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'hypre.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  XC(IDIM+1,JDIM+1,KDIM+1),YC(IDIM+1,JDIM+1,KDIM+1),
+     &        ZC(IDIM+1,JDIM+1,KDIM+1)
+      INTEGER KEYOUT_CR(IDIM,JDIM,KDIM),GELEI(IDIM,JDIM,KDIM)
+      INTEGER PORO_NEIGHBOR(6,IDIM*JDIM*KDIM)
+      REAL*8  MODUL(IDIM,JDIM,KDIM),POISS(IDIM,JDIM,KDIM),
+     &        BIOTA(IDIM,JDIM,KDIM),BIOTM(IDIM,JDIM,KDIM),
+     &        PASSO(IDIM,JDIM,KDIM),YIELD_SIG0(IDIM,JDIM,KDIM),
+     &        YIELD_ALPHA(IDIM,JDIM,KDIM),FLOW_ALPHA(IDIM,JDIM,KDIM),
+     &        HARDEN_MODEL(IDIM,JDIM,KDIM),HARDEN_C1(IDIM,JDIM,KDIM),
+     &        HARDEN_C2(IDIM,JDIM,KDIM),
+     &        EDISP(IDIM,JDIM,KDIM,3), TDISP(IDIM,JDIM,KDIM,3),
+     &        BULKDEN(IDIM,JDIM,KDIM),STRXX_INIT(IDIM,JDIM,KDIM),
+     &        STRYY_INIT(IDIM,JDIM,KDIM),STRZZ_INIT(IDIM,JDIM,KDIM),
+     &        STRXY_INIT(IDIM,JDIM,KDIM),STRYZ_INIT(IDIM,JDIM,KDIM),
+     &        STRXZ_INIT(IDIM,JDIM,KDIM),PRESS(IDIM,JDIM,KDIM),
+     &        PREF(IDIM,JDIM,KDIM),VSTRAIN(IDIM,JDIM,KDIM)
+      INTEGER BDTYP1(JDIM,KDIM,3),BDTYP2(JDIM,KDIM,3),
+     &        BDTYP3(IDIM,KDIM,3),BDTYP4(IDIM,KDIM,3),
+     &        BDTYP5(IDIM,JDIM,3),BDTYP6(IDIM,JDIM,3)
+      REAL*8  BDDISP1(JDIM,KDIM,3),BDDISP2(JDIM,KDIM,3),
+     &        BDDISP3(IDIM,KDIM,3),BDDISP4(IDIM,KDIM,3),
+     &        BDDISP5(IDIM,JDIM,3),BDDISP6(IDIM,JDIM,3)
+      REAL*8  BDTRAC1(JDIM,KDIM,3),BDTRAC2(JDIM,KDIM,3),
+     &        BDTRAC3(IDIM,KDIM,3),BDTRAC4(IDIM,KDIM,3),
+     &        BDTRAC5(IDIM,JDIM,3),BDTRAC6(IDIM,JDIM,3)
+      REAL*8  BDFTRAC1(JDIM,KDIM,3),BDFTRAC2(JDIM,KDIM,3),
+     &        BDFTRAC3(IDIM,KDIM,3),BDFTRAC4(IDIM,KDIM,3),
+     &        BDFTRAC5(IDIM,JDIM,3),BDFTRAC6(IDIM,JDIM,3)
+      REAL*8  PRESFACE1(JDIM,KDIM),PRESFACE2(JDIM,KDIM),
+     &        PRESFACE3(IDIM,KDIM),PRESFACE4(IDIM,KDIM),
+     &        PRESFACE5(IDIM,JDIM),PRESFACE6(IDIM,JDIM)
+      INTEGER ELEM_LID(IDIM,JDIM,KDIM)
+      INTEGER NODE_LID(IDIM,JDIM,KDIM),OFNODE_LID(IDIM,JDIM,KDIM)
+      INTEGER OFNODE_GID(IDIM,JDIM,KDIM),
+     &        OFNODE_L2GID(POROHEX_LFALLSIZE)
+      INTEGER OFNODE_AFFINE(9,POROHEX_LFALLSIZE),
+     &        OFNODE_KEYOUT(POROHEX_LFALLSIZE)
+      INTEGER OFNODE_GNUM(POROHEX_GFSIZE)
+      REAL*8  OFNODE_DISP(3,POROHEX_GFSIZE)
+      INTEGER FNODE_TYPE(IDIM,JDIM,KDIM)
+
+      INTEGER IG,JG,KG,FRAC,FACE,IOFF,JOFF,KOFF,IERR,C
+      REAL*8  CRAC_IBC(3,TOTAL_CRACKED_FACE)
+      REAL*8  STR_RESID(3*IDIM*JDIM*KDIM)
+      REAL*8  GVEC(3),TIME
+      DATA    GVEC/3*0.0D0/
+
+      INTEGER I,J,K,II,JJ,KK,CTR,NODE,ELEM,DIR
+      INTEGER OFFSET(3,8),FOFFSET(2,4),SOLVE_FLAG
+      DATA    OFFSET /0,0,0, 1,0,0, 0,1,0, 1,1,0,
+     &                0,0,1, 1,0,1, 0,1,1, 1,1,1/
+      DATA    FOFFSET /-1,-1, 0,-1, -1,0, 0,0/
+      INTEGER NNTIM
+      REAL*8  PRESSVAL(IDIM,JDIM,KDIM)
+
+C SKIP CALCULATIONS PERFORMED ONLY ONCE
+
+C GRAVITY IN PSI SQ-FT / LB
+
+      GVEC(:)=GRAV*DOWN(:,NBLK)
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+
+C FILL NEIGHBORING ELEMENT ARRAY
+      IF (NUMFRAC.GT.0) THEN
+         PORO_NEIGHBOR(:,:) = 0
+         DO K =KL1,KL2
+            DO J = JL1V(K),JL2V(K)
+               DO I = IL1,IL2
+                  IF (KEYOUT(I,J,K).EQ.1) THEN
+                      CTR = ELEM_LID(I,J,K)
+                    IF (KEYOUT(I-1,J,K).EQ.1)
+     &                  PORO_NEIGHBOR(1,CTR) = ELEM_LID(I-1,J,K)
+                     IF (KEYOUT(I+1,J,K).EQ.1)
+     &                  PORO_NEIGHBOR(2,CTR) = ELEM_LID(I+1,J,K)
+                     IF (KEYOUT(I,J-1,K).EQ.1)
+     &                  PORO_NEIGHBOR(3,CTR) = ELEM_LID(I,J-1,K)
+                     IF (KEYOUT(I,J+1,K).EQ.1)
+     &                  PORO_NEIGHBOR(4,CTR) = ELEM_LID(I,J+1,K)
+                     IF (KEYOUT(I,J,K-1).EQ.1)
+     &                  PORO_NEIGHBOR(5,CTR) = ELEM_LID(I,J,K-1)
+                     IF (KEYOUT(I,J,K+1).EQ.1)
+     &                  PORO_NEIGHBOR(6,CTR) = ELEM_LID(I,J,K+1)
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDDO
+         DO FRAC = 1, NUMFRAC
+            DO FACE = 1, NUMFRACFACE(FRAC)
+              I = FRACFACE(1,FACE,FRAC) - IOFF
+              J = FRACFACE(2,FACE,FRAC) - JOFF
+              K = FRACFACE(3,FACE,FRAC) - KOFF
+              IF(I.LT.2 .OR. I.GT.(IDIM-1)) CYCLE
+              IF(J.LT.2 .OR. J.GT.(JDIM-1)) CYCLE
+              IF(K.LT.2 .OR. K.GT.(KDIM-1)) CYCLE
+              IF(ELEM_LID(I,J,K).LE.0) CYCLE   
+              DIR = FRACFACE(4,FACE,FRAC)
+              CTR = ELEM_LID(I,J,K)
+              PORO_NEIGHBOR(DIR,CTR) = 0
+              IF (DIR.EQ.1) THEN
+                CTR = ELEM_LID(I-1,J,K)
+                PORO_NEIGHBOR(2,CTR) = 0
+              ELSEIF (DIR.EQ.2) THEN
+                CTR = ELEM_LID(I+1,J,K)
+                PORO_NEIGHBOR(1,CTR) = 0
+              ELSEIF (DIR.EQ.3) THEN
+                CTR = ELEM_LID(I,J-1,K)
+                PORO_NEIGHBOR(4,CTR) = 0
+              ELSEIF (DIR.EQ.4) THEN
+                CTR = ELEM_LID(I,J+1,K)
+                PORO_NEIGHBOR(3,CTR) = 0
+              ELSEIF (DIR.EQ.5) THEN
+                CTR = ELEM_LID(I,J,K-1)
+                PORO_NEIGHBOR(6,CTR) = 0
+              ELSEIF (DIR.EQ.6) THEN
+                CTR = ELEM_LID(I,J,K+1)
+                PORO_NEIGHBOR(5,CTR) = 0
+              ENDIF
+            ENDDO
+         ENDDO
+      ENDIF
+
+      TOTAL_CRACKED_FACE=0
+      DO FRAC = 1, NUMFRAC
+         DO FACE = 1, NUMFRACFACE(FRAC)
+            I = FRACFACE(1,FACE,FRAC) - IOFF
+            J = FRACFACE(2,FACE,FRAC) - JOFF
+            K = FRACFACE(3,FACE,FRAC) - KOFF
+!bw             IF(I.LT.1 .OR. I.GT.IDIM) CYCLE
+!bw             IF(J.LT.1 .OR. J.GT.JDIM) CYCLE
+!bw             IF(K.LT.1 .OR. K.GT.KDIM) CYCLE
+!bw             IF(ELEM_LID(I,J,K).LE.0) CYCLE
+            IF (FRACFACEPROC(FACE,FRAC).EQ.0) CYCLE
+            TOTAL_CRACKED_FACE=TOTAL_CRACKED_FACE+1
+            IF(ELEM_LID(I,J,K).LE.0) CYCLE
+            CRAC_IBC(1,TOTAL_CRACKED_FACE) = ELEM_LID(I,J,K) 
+            CRAC_IBC(2,TOTAL_CRACKED_FACE) = FRACFACE(4,FACE,FRAC)
+            CRAC_IBC(3,TOTAL_CRACKED_FACE) = PFN(FACE,FRAC) !bw
+         ENDDO
+      ENDDO
+
+C CALL RUIJIES SOLVER FOR MECHANICS
+
+      IF (NNTIM.eq.0) THEN
+        TIME = 0.d0       !bw Initialization
+      ELSE
+        TIME = TIM + DELTIM  !bw Time Step Calculation
+      ENDIF
+
+      SOLVE_FLAG=0
+
+!      WRITE(*,*)'In esetup_porohexw'
+!      WRITE(*,*)'POROHEX_LFSIZE=',POROHEX_LFSIZE
+
+      CALL MODULE_ELASTICITY2(
+     &     TIME,GCITER,
+     &     IDIM,JDIM,KDIM,LDIM,IL1,IL2,
+     &     JL1V,JL2V,KL1,KL2,KEYOUT,NBLK,
+     &     POROHEX_LSIZE,POROHEX_ILOWER,POROHEX_IUPPER,
+     &     POROHEX_LFSIZE,POROHEX_IFLOWER,POROHEX_IFUPPER,
+     &     POROHEX_LALLSIZE,POROHEX_LFALLSIZE,POROHEX_LALLELEM,
+     &     POROHEX_GSIZE,POROHEX_GFSIZE,
+     &     MYPRC,NUMPRC,NNTIM,
+     &     NUMFRAC,NUMFRACFACE,
+     &     MXFRAC,MXFRACFACE,FRACFACE,PFN,
+     &     XC,YC,ZC,KEYOUT_CR,GELEI,
+     &     ELEM_LID,NODE_LID,OFNODE_LID,
+     &     OFNODE_GID,OFNODE_L2GID,OFNODE_AFFINE,
+     &     OFNODE_KEYOUT,
+     &     MODUL,POISS,BIOTA,BIOTM,BULKDEN,
+     &     PASSO,YIELD_SIG0,YIELD_ALPHA,FLOW_ALPHA,
+     &     HARDEN_MODEL,HARDEN_C1,HARDEN_C2,
+     &     STRXX_INIT,STRYY_INIT,STRZZ_INIT,STRXY_INIT,STRYZ_INIT,
+     &     STRXZ_INIT,PRESS,PREF,
+     &     BDTYP1,BDTYP2,BDTYP3,BDTYP4,BDTYP5,BDTYP6,
+     &     BDDISP1,BDDISP2,BDDISP3,BDDISP4,BDDISP5,BDDISP6,
+     &     BDTRAC1,BDTRAC2,BDTRAC3,BDTRAC4,BDTRAC5,BDTRAC6,
+     &     BDFTRAC1,BDFTRAC2,BDFTRAC3,BDFTRAC4,BDFTRAC5,BDFTRAC6,
+     &     PRESFACE1,PRESFACE2,PRESFACE3,PRESFACE4,PRESFACE5,PRESFACE6,
+     &     CRAC_IBC,FNODE_TYPE,OFNODE_DISP,OFNODE_GNUM,
+     &     PORO_NEIGHBOR,
+     &     TDISP,EDISP,
+     &     VSTRAIN,
+     &     STR_RESID,
+     &     GVEC,
+     &     SOLVE_FLAG,
+     &     FRACFACEPROC,
+     &     PRESSVAL)
+
+!bw solve_flag=0: successfully solved
+      IF (SOLVE_FLAG.NE.0) THEN
+        WRITE(0,*)'module_elasticity2 returned SOLVE_FLAG=',SOLVE_FLAG
+        STOP 1
+      ENDIF  
+
+      END
+
+
+C*********************************************************************
+      SUBROUTINE POROHEX_POST_PRCSS(NNTIM,KERR)
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'earydat.h'
+      INCLUDE 'emodel.h'
+      INCLUDE 'ebdary.h'
+      INCLUDE 'blkary.h'
+      
+      INTEGER IMECH(25),KERR,NNTIM
+      LOGICAL ONCEONLY
+      DATA ONCEONLY/.TRUE./,IMECH/25*0/
+      EXTERNAL POROHEX_POST_PRCSSW
+
+      IF (ONCEONLY) THEN
+        IMECH(1) = 24
+        IMECH(2) = N_KEYOUT_CR
+        IMECH(3) = N_POROHEX_GELEI
+        IMECH(4) = N_TDISP
+        IMECH(5) = N_EDISP
+        IMECH(6) = N_STRAIN
+        IMECH(7) = N_STRESS
+        IMECH(8) = N_VSTRAIN
+        IMECH(9) = N_STR_RESID
+        IMECH(10) = N_CRAC_IBC
+        IMECH(11) = N_PORO_NEIGHBOR
+        IMECH(12) = N_ELEM_LID
+        IMECH(13) = N_NODE_LID
+        IMECH(14) = N_OFNODE_LID
+        IMECH(15) = N_OFNODE_GID
+        IMECH(16) = N_OFNODE_L2GID
+        IMECH(17) = N_OFNODE_AFFINE
+        IMECH(18) = N_OFNODE_KEYOUT
+        IMECH(19) = N_FNODE_TYPE
+        IMECH(20) = N_OFNODE_DISP
+        IMECH(21) = N_OFNODE_GNUM
+        IMECH(22) = N_NODE_WIDTH
+        IMECH(23) = N_PSTRAIN
+        IMECH(24) = N_PSTATE
+        IMECH(25) = N_I4U
+        ONCEONLY = .FALSE.
+      ENDIF
+
+      I4UTIL = NNTIM
+
+      CALL CALLWORK(POROHEX_POST_PRCSSW,IMECH)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE POROHEX_POST_PRCSSW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,
+     &   JL1V,JL2V,KL1,KL2,KEYOUT,NBLK,KEYOUT_CR,GELEI,
+     &   TDISP,EDISP,STRAIN,STRESS,VSTRAIN,
+     &   STR_RESID,CRAC_IBC,PORO_NEIGHBOR,
+     &   ELEM_LID,NODE_LID,OFNODE_LID,
+     &   OFNODE_GID,OFNODE_L2GID,OFNODE_AFFINE,
+     &   OFNODE_KEYOUT,FNODE_TYPE,OFNODE_DISP,OFNODE_GNUM,
+     &   NODE_WIDTH,
+     &   PSTRAIN,
+     &   PSTATE,
+     &   NNTIM)
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'emodel.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'fracture.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'hypre.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  XC(IDIM+1,JDIM+1,KDIM+1),YC(IDIM+1,JDIM+1,KDIM+1),
+     &        ZC(IDIM+1,JDIM+1,KDIM+1)
+      INTEGER KEYOUT_CR(IDIM,JDIM,KDIM),GELEI(IDIM,JDIM,KDIM)
+      INTEGER PORO_NEIGHBOR(6,IDIM*JDIM*KDIM)
+      REAL*8  NODE_WIDTH(IDIM,JDIM,KDIM),TDISP(IDIM,JDIM,KDIM,3),
+     &        EDISP(IDIM,JDIM,KDIM,3),STRAIN(IDIM,JDIM,KDIM,6),
+     &        STRESS(IDIM,JDIM,KDIM,6),
+     &        VSTRAIN(IDIM,JDIM,KDIM),PSTRAIN(IDIM,JDIM,KDIM,6),
+     &        PSTATE(IDIM,JDIM,KDIM,3)
+      INTEGER ELEM_LID(IDIM,JDIM,KDIM)
+      INTEGER NODE_LID(IDIM,JDIM,KDIM),OFNODE_LID(IDIM,JDIM,KDIM)
+      INTEGER OFNODE_GID(IDIM,JDIM,KDIM),
+     &        OFNODE_L2GID(POROHEX_LFALLSIZE)
+      INTEGER OFNODE_AFFINE(9,POROHEX_LFALLSIZE),
+     &        OFNODE_KEYOUT(POROHEX_LFALLSIZE)
+      INTEGER OFNODE_GNUM(POROHEX_GFSIZE)
+      REAL*8  OFNODE_DISP(3,POROHEX_GFSIZE)
+      INTEGER FNODE_TYPE(IDIM,JDIM,KDIM)
+
+      INTEGER IG,JG,KG,FRAC,FACE,IOFF,JOFF,KOFF,IERR,C
+      REAL*8  CRAC_IBC(3,TOTAL_CRACKED_FACE)
+      REAL*8  STR_RESID(3*IDIM*JDIM*KDIM)
+      REAL*8  GVEC(3),TIME
+      DATA    GVEC/3*0.0D0/
+
+      INTEGER I,J,K,II,JJ,KK,CTR,NODE,ELEM,DIR
+      INTEGER OFFSET(3,8),FOFFSET(2,4),SOLVE_FLAG
+      DATA    OFFSET /0,0,0, 1,0,0, 0,1,0, 1,1,0,
+     &                0,0,1, 1,0,1, 0,1,1, 1,1,1/
+      DATA    FOFFSET /-1,-1, 0,-1, -1,0, 0,0/
+      INTEGER NNTIM
+
+C SKIP CALCULATIONS PERFORMED ONLY ONCE
+
+C GRAVITY IN PSI SQ-FT / LB
+
+      GVEC(:)=GRAV*DOWN(:,NBLK)
+
+      IF (NNTIM.eq.0) THEN
+        TIME = 0.d0       !bw Initialization
+      ELSE
+        TIME = TIM + DELTIM  !bw Time Step Calculation
+      ENDIF
+
+      SOLVE_FLAG=0
+
+      CALL MODULE_POST_PRCSS(
+     &     TIME,
+     &     COUPLE_FLAG,
+     &     GRAVITY_FLAG,
+     &     INITIAL_FLAG,
+     &     IDIM,JDIM,KDIM,LDIM,IL1,IL2,
+     &     JL1V,JL2V,KL1,KL2,KEYOUT,NBLK,
+     &     POROHEX_LSIZE,POROHEX_ILOWER,POROHEX_IUPPER,
+     &     POROHEX_LFSIZE,POROHEX_IFLOWER,POROHEX_IFUPPER,
+     &     POROHEX_LALLSIZE,POROHEX_LFALLSIZE,POROHEX_LALLELEM,
+     &     POROHEX_GSIZE,POROHEX_GFSIZE,
+     &     MYPRC,NUMPRC,NNTIM,
+     &     NUMFRAC,NUMFRACFACE,TOTAL_CRACKED_FACE,
+     &     MXFRAC,MXFRACFACE,FRACFACE,PFN,
+     &     KEYOUT_CR,GELEI,
+     &     ELEM_LID,NODE_LID,OFNODE_LID,
+     &     OFNODE_GID,OFNODE_L2GID,OFNODE_AFFINE,
+     &     OFNODE_KEYOUT,
+     &     CRAC_IBC,FNODE_TYPE,OFNODE_DISP,OFNODE_GNUM,
+     &     PORO_NEIGHBOR,
+     &     EDISP,
+     &     STRESS,
+     &     STRAIN,
+     &     VSTRAIN,
+     &     PSTRAIN,
+     &     PSTATE,
+     &     FRACWIDTH,
+     &     FRACWIDTH_TMP,
+     &     NODE_WIDTH,
+     &     STR_RESID,
+     &     GVEC,
+     &     SOLVE_FLAG,
+     &     FRACFACEPROC,
+     &     MODEL_EP)
+!bw solve_flag=0: successfully solved
+
+      IF (SOLVE_FLAG.NE.0) THEN
+        WRITE(0,*)'module_post_prcss returned SOLVE_FLAG=',SOLVE_FLAG
+        STOP 1
+      ENDIF  
+
+      END
+

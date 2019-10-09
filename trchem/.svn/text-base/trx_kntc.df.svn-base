@@ -1,0 +1,1235 @@
+C ----------------------------------------------------------------------    
+C ODEDRIVER.F
+C
+C ADVANCE THE SOLUTION TO THE EQUILIBRIUM/KINETIC SYSTEM FROM TIME 
+C T = T0 TO T = T0 + DTTRANS.
+C 
+C ----------------------------------------------------------------------    
+C
+C REVISED 8 JAN 97 BY STEVEN BRYANT
+C
+C PURPOSE OF REVISION: INCORPORATE MONOD STYLE KINETICS
+C	MONOD KINETIC EXPRESSIONS ARE OF THE FORM
+C
+C		D[X]/DT = K [X] [S]/(K + [S]) 
+C	WHERE
+C	X IS TYPICALLY A MICROBE, S IS A SUBSTRATE (E.G. A HYDROCARBON)
+C	K IS A RATE CONSTANT AND K IS THE SO-CALLED HALF SATURATION CONSTANT
+C
+C REVISIONS MADE
+C     ARRAY OF HALF SATURATION CONSTANTS PASSED INTO ROUTINE, DECLARED
+C     AND PASSED TO ROUTINE GETRXNRATES
+C
+C-----------------------------------------------------------------------
+C INPUTS:    
+C
+C DTTRANS                        THE TRANSPORT TIME-STEP
+C T0                             BEGINNING OF STEP
+C MOLES(NSPECIES)                VECTOR OF MOLES TO BE REACTED
+C EPSCONC                        LOWER BOUND FOR MOLE-NUMBERS
+C PIMULTI                        NUMBER OF MULTI-SPECIES PHASES
+C PIPURE                         NUMBER OF SINGLE-SPECIES PHASES
+C NPHASE(PIMULTI+PIPURE)         NUMBER OF SPECIES WITHIN EACH PHASE
+C PHASEIDENTITY(NSPECIES)        THE PHASE IDENTITY OF EACH SPECIES
+C REACTIONTYPE(NR)               REACTION CLASSIFICATION
+C FORMULAMATRIX(NCOMP,NSPECIES)  FORMULA-MATRIX
+C V(NSPECIES,NR)                 STOICHIOMETRIC MATRIX
+C MU(NSPECIES)                   CHEMICAL REFERENCE POTENTIALS
+C RATECONST(NR,2)                FORWARD AND BACKWARD RATE-CONSTANTS
+C RATEPOW(NCOMP,NR)              EXPONENTS ON COMPONETS FOR RATE-LAWS
+C SLB 8 JAN 97
+C HALFSATCONST(NCOMP,NR)         CONSTANTS IN MONOD RATE-LAW DENOMINATORS
+C SLB END
+C IDEBUG                         CONTROL LEVEL OF OUTPUT FROM ODEDRIVER
+C                                (0 = OFF, 1 = 0N)
+C IDEBUGEQ                       CONTROL LEVEL OF OUTPUT FROM EQSTEP
+C                                (0 = OFF, 1 = ON, 2 = REALLY ON)
+C
+C OUTPUT:
+C 
+C NEWMOLES(NSPECIES)            VECTOR OF REACTED MOLENUMBERS
+C                               AT THE ADVANCED TIME-LEVEL (T0+DTCUM)
+C
+C NTTAKEN                       NUMBER OF TIME-STEPS TAKEN.
+C
+C PEAKITER                      MAX NUMBER OF ITERATIONS TAKEN
+C                               IN ANY EQUILIBRATION.
+C
+C CUMITER                       TOTAL NUMBER OF ITERATIONS FOR 
+C                               ALL EQUILIBRATIONS OVER THE 
+C                               ENTIRE INTEGRATION.
+C WORK SPACE:
+C
+C RATES(NR,4)                   RATE COMPUTATIONS
+C REFRATE(NR)                   USED IF SWITCHING IS ENABLED
+C AVGRATE(NR)                   USED TO HOLD THE WEIGHTED RATE 
+C
+C-----------------------------------------------------------------------
+C GENERAL
+C
+C THE MIXTURE IS REACTED FROM T = TC TO T = TC + DTTRANS.
+C THE INTEGRATION-STRATEGY IS DETERMINED BY THE USER-SUPPLIED
+C PARAMETER 'ODEALGTYPE'. THE FOLLOWING CHOICES ARE IMPLEMENTED:
+C
+C     ODEALGTYPE  = 0        FORWARD EULER
+C     ODEALGTYPE  = 1        EXPLICIT SECOND-ORDER RUNGE-KUTTA
+C     ODEALGTYPE  = 2        EXPLICIT FOURTH-ORDER RUNGE-KUTTA
+C-----------------------------------------------------------------------
+C
+C FIRST, A REACTION TIME-STEP IS DEFINED BASED ON USER-SPECIFIED
+C PARAMETER NTREACT
+C
+C DTREF = DTTRANS/NTREACT
+C
+C THIS IS THE TARGET TIME-STEP TO BE USED.
+C HOWEVER, IT MAY HAVE TO BE REDUCED FURTHER DUE TO POSITIVITY-VIOLATIONS.
+C
+C LET M DENOTE AN ITERATION COUNTER WITHIN THE TIME-STEPPING.
+C DESIGNATE EQUILIBRATION BY THE SYMBOL 'E'. FURTHERMORE, LET 
+C N^[M], N^[M,*] DENOTE UNEQUILIBRATED AND EQUILIBRATED MIXTURES
+C AT THE SAME ITERATION-LEVEL (I.E. N^[M,*]  <---- E(N^[M]))
+C
+C ALGORITHM:
+C
+C RECEIVE UNREACTED COMPOSITION N(T^N) 
+C SET N^[0] =  N(T^N)
+C
+C  (0) TIME-LOOP (FOR M = 0,1,...)
+C
+C       (A) EQUILIBRATE:
+C           N^[M,*] <--- E(N^[M])
+C
+C  (1.A) COMPUTE RATES R_0( N^[M,*])
+C
+C  (1.B) COMPUTE LARGEST ACCEPTABLE TIME-STEP BASED ON R_0
+C
+C  (2) LOOP TO COMPUTE TANGENTS: L = 2,NLEVELS (RK2 AND RK4 ONLY)
+C
+C    (2.A) PREDICT
+C          N_(L)^[M]  <--- N^[M,*] + DT*V*R_(L-1)
+C
+C    (2.B) EQUILIBRATE PREDICTED MIXTURE
+C          N_(L)^[M,*] <--- E(N_(L)^[M])
+C
+C    (2.C) COMPUTE NEW RATE
+C          R_L  = R(N_(L)^[M,*])
+C
+C    (2.D) CHECK FOR POSITIVITY-VIOLATIONS WITH CURRENT TIME-STEP.
+C          IF A VIOLATION OCCURS, COMPUTE NEW DT AND GOTO 2
+C
+C   END LOOP
+C
+C
+C  (3) COMPUTE FINAL UPDATE
+C
+C  (3.A) COMPUTE THE AVERAGE RATES BASED ON RESULT OF (2)
+C        NOTE: AVERAGE RATE DOES NOT GENERATE A POSITIVITY-
+C        VIOLATION, BECAUASE OF THE CONDITIONS IMPOSED ON ALL
+C        THE RATES FROM WHICH THE AVERAGE IS FORMED.
+C
+C  (3.B) UPDATE USING PRESCRIPTION FOR FE,RK2 OR RK4:
+C
+C         N_C^[M]  <--- N^[M,*] + F(R_1,...,R_4)
+C
+C  (3.C) EQUILIBRATION OF THE CORRECTED MIXTURE:
+C  
+C        N_C^[M,*]  <--- E(N_C^[M])
+C 
+C
+C  (4) UPDATE
+C
+C       N^[M+1] <--- N_C^[M,*]
+C       M       <--- M + 1
+C       DTCUM = DTCUM + DT
+C
+C       CHECK IF DONE
+C
+C  (5) SPECIES-SWITCHING STEP (ONLY IF 'SWITCHENABLED' IS SET)
+C
+C      CHECK IF REACTIONS CAN BE SWITCHED FROM KINETIC TO EQUILIBRIUM
+C      DESCRIPTION, BASED ON HEURISTIC RULES.
+C
+C  (6) GOTO 0.A OR 1.A DEPENDING ON STEP 5
+C
+C ----------------------------------------------------------------------    
+C  
+
+C SLB 8 JAN 97  INSERTED HALFSATCONST ARRAY INTO CALL
+C SLB 14/10/97  RECEIVE INITIAL GUESS FOR EQUILBRATION
+
+      SUBROUTINE ODEDRIVER(MOLES,
+     &     INITGUESS,NEWMOLES,ODEALGTYPE,RATES,AVGRATE,
+     &     REFRATE,EPSCONC,T0,DTTRANS,NTREACT,SWITCHENABLED,PIMULTI,
+     &     PIPURE,NRQ,NRK,NPRODUCTS,NPHASE,NS,NC,PHASEIDENTITY,
+     &     REACTIONTYPE,REACTIONTYPESAVE,NIPSIPARM,FORMULAMATRIX,V,
+     &     MU,RATECONST,RATEPOW,HALFSATCONST,COMPCHARGE,NIPSRPARM,
+     &     RWK,DIMRWK,IWK,DIMIWK,IDEBUGEQ,IDEBUG,DEBUGUNIT,
+     &     NTTAKEN,PEAKITER,CUMITER,IERROR,NIPSCPARM)
+
+      IMPLICIT NONE
+
+      INTEGER NPRODUCTS, NC, NS
+      INTEGER NSPECIES,NCOMP,NR
+      COMMON /CHEMSIZES/NSPECIES,NCOMP,NR
+
+C     INTEGER I,L,NTANGENTS,ODEALGTYPE,PIMULTI,PIPURE,PI,NRQ,NRK,
+C    &     NPHASE(PIMULTI+PIPURE),PHASEIDENTITY(NSPECIES),
+C    &     REACTIONTYPE(NR),REACTIONTYPESAVE(NR),IDEBUG,IDEBUGEQ,
+C    &     DEBUGUNIT,IERROR,NTTAKEN,NTREACT,ITER,CUMITER,PEAKITER,
+C    &     NIPSIPARM(*),DIMIWK,DIMRWK,IWK(DIMIWK),NRKSAVE,NRQSAVE
+C
+C     REAL*8 MOLES(NSPECIES),NEWMOLES(NSPECIES),EPSCONC,V(NSPECIES,NR),
+C    &     T0,DTTRANS,DTREF,DTCUM,DTCALC,DTTOL,DT,MAXTIMESTEP,
+C    &     FORMULAMATRIX(NCOMP,NSPECIES),MU(NSPECIES),RATES(NR,4),
+C    &     AVGRATE(NR),REFRATE(NR),RATECONST(2*NR),RATEPOW(NCOMP*NR),
+C    &     COMPCHARGE(NCOMP),NIPSRPARM(*),WCOEF(1:4),RWK(DIMRWK)
+C
+C SLB 8 JAN 97
+C     REAL*8 HALFSATCONST(NCOMP*NR)
+C SLB END
+C
+C SLB 14/10/97 DECLARE INITIAL GUESS
+C     REAL*8 INITGUESS(NSPECIES)
+
+
+CCC SLB 3 FEB 98  DECLARE ARRAYS ONLY WITH PARAMETERS PASSED IN THE
+CCC               CALL TO THE ROUTINE.  THIS ELIMINATES PROBLEMS
+CCC               WITH ZERO-DIMENSION ARRAYS ON THE FIRST CALL TO THE
+CCC               ROUTINE, AT WHICH POINT THE VARIABLES NR, NCOMP AND
+CCC               NSPECIES ARE ZERO.
+
+      INTEGER I,L,NTANGENTS,ODEALGTYPE,PIMULTI,PIPURE,PI,NRQ,NRK,
+     &     NPHASE(PIMULTI+PIPURE),PHASEIDENTITY(NS),
+     &     REACTIONTYPE(NPRODUCTS),REACTIONTYPESAVE(NPRODUCTS),
+     &     IDEBUG,IDEBUGEQ,
+     &     DEBUGUNIT,IERROR,NTTAKEN,NTREACT,ITER,CUMITER,PEAKITER,
+     &     NIPSIPARM(*),DIMIWK,DIMRWK,IWK(DIMIWK),NRKSAVE,NRQSAVE
+
+      REAL*8 MOLES(NS),NEWMOLES(NS),EPSCONC,V(NS,NPRODUCTS),
+     &     T0,DTTRANS,DTREF,DTCUM,DTCALC,DTTOL,DT,MAXTIMESTEP,
+     &     FORMULAMATRIX(NC,NS),MU(NS),RATES(NPRODUCTS,4),
+     &     AVGRATE(NPRODUCTS),REFRATE(NPRODUCTS),
+     &     RATECONST(2*NPRODUCTS),RATEPOW(NC*NPRODUCTS),
+     &     COMPCHARGE(NC),NIPSRPARM(*),WCOEF(1:4),RWK(DIMRWK)
+      REAL*8 HALFSATCONST(NC*NPRODUCTS)
+      REAL*8 INITGUESS(NS)
+
+      LOGICAL SWITCHENABLED,SWITCHOCCURRED,ALL_KINETIC
+
+      CHARACTER*15 NIPSCPARM(*)
+
+      PARAMETER(DTTOL = 1.0D-4)
+
+C-----------------------------------------------------------------------
+C SET-UP
+C-----------------------------------------------------------------------
+
+      NSPECIES = NS
+      NCOMP = NC
+      NR = NPRODUCTS
+      DTREF    = DTTRANS/DBLE(NTREACT)
+      DTCUM    = 0.0D0
+      NTTAKEN  = 0
+      CUMITER  = 0
+      PEAKITER = 0
+      PI = PIMULTI + PIPURE
+
+      IF (SWITCHENABLED) THEN
+         NRKSAVE = NRK
+         NRQSAVE = NRQ
+         DO I = 1,NR
+            REACTIONTYPESAVE(I) = REACTIONTYPE(I)
+         ENDDO
+      ENDIF
+
+      IF (ODEALGTYPE.EQ.0) THEN
+         NTANGENTS = 1
+         WCOEF(1) = 0.0D0
+      ELSEIF (ODEALGTYPE.EQ.1) THEN 
+         NTANGENTS = 2
+         WCOEF(1) = 0.0D0
+         WCOEF(2) = 1.0D0
+      ELSEIF (ODEALGTYPE.EQ.2) THEN 
+         NTANGENTS = 4
+         WCOEF(1) = 0.0D0
+         WCOEF(2) = 0.5D0
+         WCOEF(3) = 0.5D0
+         WCOEF(4) = 1.0D0
+      ENDIF
+
+C-----------------------------------------------------------------------
+C     EQUILIBRATE THE INCOMING COMPOSITION 
+C-----------------------------------------------------------------------
+
+ 1    ALL_KINETIC = (NRK.GT.0).AND.(NRQ.EQ.0)
+
+      IF (.NOT. ALL_KINETIC) THEN
+
+C	SHUYU 
+C         WRITE(*,*) "BEFORE 1ST EQSTEP "
+
+         CALL EQSTEP(MOLES,INITGUESS,EPSCONC,PIMULTI,PIPURE,
+     &        NRQ,NPRODUCTS,NPHASE,NSPECIES,NCOMP,
+     &        PHASEIDENTITY,REACTIONTYPE,NIPSIPARM,FORMULAMATRIX,V,MU,
+     &        COMPCHARGE,NIPSRPARM,RWK(1),DIMRWK,
+     &        IWK(1),DIMIWK,IDEBUGEQ,DEBUGUNIT,ITER,IERROR,NIPSCPARM)
+
+C	SHUYU 
+C        WRITE(*,*) " AFTER 1ST EQSTEP "
+
+         IF (IERROR.NE.0) GOTO 999
+         IF (IDEBUG.NE.0) THEN
+            WRITE(DEBUGUNIT,100)ITER
+            CALL DEBUGOUTPUT('INITIAL EQ MOLES:',MOLES,
+     &           NIPSCPARM(PI+1),NSPECIES,DEBUGUNIT,1)
+         ENDIF
+         CUMITER = CUMITER + ITER
+         PEAKITER = MAX(ITER,PEAKITER)
+      ENDIF
+
+C-----------------------------------------------------------------------
+C     COMPUTE INITIAL REACTION-RATES FOR THE PURPOSE 
+C     OF POSSIBLE SPECIES-SWITCHING LATER.
+C-----------------------------------------------------------------------
+
+      IF (SWITCHENABLED) THEN
+C
+C SLB 8 JAN 97   INSERT HALF SATN CONSTANTS IN THE CALL
+C
+      CALL GETRXNRATES(REFRATE,MOLES,V,REACTIONTYPE,PHASEIDENTITY,
+     &        NPHASE,RATECONST,RATEPOW,HALFSATCONST,EPSCONC)
+      ENDIF
+
+C-----------------------------------------------------------------------
+C     TOP OF TIME-STEPPING
+C-----------------------------------------------------------------------
+
+ 10   IF (IDEBUG.NE.0) THEN
+         WRITE(DEBUGUNIT,200) DTCUM
+         DO I = 1,NR
+            WRITE(DEBUGUNIT,210)I,REACTIONTYPE(I)
+         ENDDO
+      ENDIF
+
+C-----------------------------------------------------------------------
+C     COMPUTE RATES AT:  N^[M,*]
+C     AND ESTABLISH A LARGEST TIME-STEP BASED ON THIS RATE
+C-----------------------------------------------------------------------
+
+C
+C SLB 8 JAN 97   INSERT HALF SATN CONSTANTS IN THE CALL
+C
+      CALL GETRXNRATES(RATES(1,1),MOLES,V,REACTIONTYPE,
+     &     PHASEIDENTITY,NPHASE,RATECONST,RATEPOW,HALFSATCONST,
+     &     EPSCONC)
+
+      IF (IDEBUG.NE.0) CALL DEBUGOUTPUT('RATES',RATES(1,1),
+     &     NIPSCPARM(PI+NCOMP+1), NR,DEBUGUNIT,2)
+
+      DTCALC = MAXTIMESTEP(RATES(1,1),MOLES,V,REACTIONTYPE,EPSCONC)
+
+      DT = DMIN1(DTCALC, DMIN1(DTREF,DTTRANS-DTCUM))
+
+ 15   IF (IDEBUG.NE.0) WRITE(DEBUGUNIT,250) DT
+
+C-----------------------------------------------------------------------
+C     LOOP TO COMPUTE REMAINING TANGENTS (RK2 AND RK4 ONLY)
+C-----------------------------------------------------------------------
+
+      DO L = 2,NTANGENTS
+         
+C-----------------------------------------------------------------------
+C     PREDICT NEW POINT:  N_L^[M]  <--- N^[M,*] + WCOEF(L)*DT*V*R_L
+C-----------------------------------------------------------------------
+
+         CALL APPLYRATES(MOLES,NEWMOLES,RATES(1,L-1),V,
+     &        REACTIONTYPE,WCOEF(L)*DT)
+
+         IF (IDEBUG.NE.0) CALL DEBUGOUTPUT('PREDICT',NEWMOLES,
+     &        NIPSCPARM(PI+1),NSPECIES,DEBUGUNIT,1)
+
+C-----------------------------------------------------------------------
+C     EQUILIBRATE PREDICTED POINT:   N_L^[M,*] <--- E(N_L^[M])
+C-----------------------------------------------------------------------
+
+         IF (.NOT.ALL_KINETIC) THEN
+
+C       SHUYU
+C         WRITE(*,*) "BEFORE 2ND EQSTEP "
+
+         CALL EQSTEP(NEWMOLES,INITGUESS,EPSCONC,PIMULTI,PIPURE,
+     &        NRQ,NPRODUCTS,NPHASE,NSPECIES,NCOMP,
+     &        PHASEIDENTITY,REACTIONTYPE,NIPSIPARM,FORMULAMATRIX,V,MU,
+     &        COMPCHARGE,NIPSRPARM,RWK(1),DIMRWK,
+     &        IWK(1),DIMIWK,IDEBUGEQ,DEBUGUNIT,ITER,IERROR,NIPSCPARM)
+
+C       SHUYU
+C         WRITE(*,*) "AFTER  2ND EQSTEP "
+
+            IF (IERROR.NE.0) GOTO 999
+            IF (IDEBUG.NE.0) THEN
+               WRITE(DEBUGUNIT,100)ITER
+               CALL DEBUGOUTPUT('EQUILIBRATED PREDICTED MOLES:',
+     &              NEWMOLES,NIPSCPARM(PI+1),NSPECIES,DEBUGUNIT,1)
+            ENDIF
+            CUMITER = CUMITER + ITER
+            PEAKITER = MAX(ITER,PEAKITER)
+         ENDIF
+
+C-----------------------------------------------------------------------
+C     COMPUTE NEW RATES :   R(N_L^[M,*])
+C-----------------------------------------------------------------------
+C
+C SLB 8 JAN 97   INSERT HALF SATN CONSTANTS IN THE CALL
+C
+         CALL GETRXNRATES(RATES(1,L),NEWMOLES,V,REACTIONTYPE,
+     &        PHASEIDENTITY,NPHASE,RATECONST,RATEPOW,HALFSATCONST,
+     &        EPSCONC)
+
+         IF (IDEBUG.NE.0) CALL DEBUGOUTPUT('RATES',RATES(1,L),
+     &        NIPSCPARM(PI+NCOMP+1),NR,DEBUGUNIT,2)
+
+
+C-----------------------------------------------------------------------
+C     CHECK IF NEW RATES WILL PRODUCE A POSITIVITY VIOLATION
+C-----------------------------------------------------------------------
+
+         DTCALC = MAXTIMESTEP(RATES(1,L),MOLES,V,REACTIONTYPE,EPSCONC)
+
+         IF (IDEBUG.NE.0) WRITE(DEBUGUNIT,255) L,DT
+
+         IF (DTCALC.LT.DT) THEN
+            DT = DTCALC
+            IF (IDEBUG.NE.0) WRITE(DEBUGUNIT,300)
+            GOTO 15
+         ENDIF
+
+      ENDDO
+
+C-----------------------------------------------------------------------
+C     COMPUTE AVERAGE RATE FOR THIS TIME-STEP 
+C-----------------------------------------------------------------------
+      
+      CALL AVGRATES(RATES,AVGRATE,ODEALGTYPE)
+
+      IF (IDEBUG.NE.0) CALL DEBUGOUTPUT('AVERAGE RATE:',AVGRATE,
+     &     NIPSCPARM(PI+NCOMP+1),NR,DEBUGUNIT,2)
+
+C-----------------------------------------------------------------------
+C     UPDATE USING AVERAGE RATE: 
+C-----------------------------------------------------------------------
+
+      CALL APPLYRATES(MOLES,NEWMOLES,AVGRATE,V,REACTIONTYPE,DT)
+
+      IF (IDEBUG.NE.0) CALL DEBUGOUTPUT('CORRECTED MOLES:',
+     &     NEWMOLES,NIPSCPARM(PI+1),NSPECIES,DEBUGUNIT,1)
+
+C-----------------------------------------------------------------------
+C     FINAL EQUILIBRATION: 
+C-----------------------------------------------------------------------
+
+      IF (.NOT.ALL_KINETIC) THEN
+
+C       SHUYU
+C        WRITE(*,*) "BEFORE 3RD EQSTEP "
+
+         CALL EQSTEP(NEWMOLES,INITGUESS,EPSCONC,PIMULTI,PIPURE,
+     &        NRQ,NPRODUCTS,NPHASE,NSPECIES,NCOMP,
+     &        PHASEIDENTITY,REACTIONTYPE,NIPSIPARM,FORMULAMATRIX,V,MU,
+     &        COMPCHARGE,NIPSRPARM,RWK(1),DIMRWK,
+     &        IWK(1),DIMIWK,IDEBUGEQ,DEBUGUNIT,ITER,IERROR,NIPSCPARM)
+
+C       SHUYU
+C         WRITE(*,*) "AFTER 3RD EQSTEP "
+
+         IF (IERROR.NE.0) GOTO 999
+         IF (IDEBUG.NE.0) THEN
+            WRITE(DEBUGUNIT,*)'FINAL EQUILIBRATION:'
+            WRITE(DEBUGUNIT,100)ITER
+         ENDIF
+         CUMITER = CUMITER + ITER
+         PEAKITER = MAX(ITER,PEAKITER)
+      ENDIF
+
+      IF (IDEBUG.NE.0) THEN
+         WRITE(DEBUGUNIT,150)T0+DTCUM+DT
+         CALL DEBUGOUTPUT('MOLES',NEWMOLES,
+     &        NIPSCPARM(PI+1),NSPECIES,DEBUGUNIT,1)
+      ENDIF
+
+C-----------------------------------------------------------------------
+C     END OF TIME-STEP LOOP
+C-----------------------------------------------------------------------
+
+      NTTAKEN = NTTAKEN + 1
+      DTCUM = DTCUM + DT
+
+C       SHUYU
+C       WRITE(*,*) " NTTAKEN=",NTTAKEN," DTCUM=",DTCUM," DT=",DT
+
+      IF (DTCUM.GE.DTTRANS*(1.0-DTTOL)) GOTO 999
+
+C-----------------------------------------------------------------------
+C     DECIDE ON STRATEGY FOR NEXT TIME-STEP
+C-----------------------------------------------------------------------
+
+      IF (SWITCHENABLED) CALL SWITCHMODULE(NEWMOLES,AVGRATE,REFRATE,
+     &     REACTIONTYPE,NRQ,NRK,SWITCHOCCURRED,IDEBUG,DEBUGUNIT)
+
+C-----------------------------------------------------------------------
+C     UPDATE SOLUTION FOR THIS ITERATION LEVEL
+C-----------------------------------------------------------------------
+
+      CALL DCOPY(NSPECIES,NEWMOLES,1,MOLES,1)
+
+      IF (SWITCHENABLED) THEN
+         IF (NRK.EQ.0) GOTO 999
+         IF (SWITCHOCCURRED) GOTO 1
+      ENDIF
+
+      GOTO 10 
+
+C-----------------------------------------------------------------------
+C     EXIT TO CALLING ROUTINE AFTER RE-SETTING ARRAYS
+C-----------------------------------------------------------------------
+
+ 999  IF (SWITCHENABLED) THEN
+         NRK = NRKSAVE
+         NRQ = NRQSAVE
+         DO I = 1,NR
+            REACTIONTYPE(I) = REACTIONTYPESAVE(I)
+         ENDDO
+      ENDIF
+      RETURN
+
+
+C-----------------------------------------------------------------------
+C     FORMAT STATEMENTS
+C
+
+ 100  FORMAT(/,'NONLINEAR ITERATIONS TAKEN=',1X,I3)
+ 150  FORMAT(1X,'TIME=', F8.2,/)
+ 200  FORMAT('TOP OF TIME-STEPPING LOOP',/,'DTCUM =',E10.4,/,
+     &     'LIST OF REACTIONS FOR THIS TIME-STEP:',/,
+     &     'REACTION NUMBER',10X,'ACTIVE?')
+ 210  FORMAT(I2,25X,I1)
+ 250  FORMAT('TIME-STEP CHOSEN AT BEGINING OF STEP',1X,'DT=',1X,E10.4)
+ 255  FORMAT('TIME-STEP CHOSEN FOR LEVEL:',1X,I1,1X,'DT=',1X,E10.4)
+ 260  FORMAT('OVERALL TIME-STEP',1X,'DT=',1X,E10.4)
+ 300  FORMAT('A POSITIVITY VIOLATION OCCURRED')
+
+      END
+
+C-----------------------------------------------------------------------
+C APPLYRATES.F
+C
+C PREDICT NEW MOLE-NUMBERS BASED ON RATE VECTOR AND
+C STOICHIOMETRIC MATRIX
+C ----------------------------------------------------------------------    
+C
+C REVISED 8 JAN 97 BY STEVEN BRYANT
+C
+C PURPOSE OF REVISION: INCORPORATE MONOD STYLE KINETICS
+C ---------------------------------------------------------------------- 
+C
+C INPUTS: 
+C           
+C NVEC(NSPECIES)     
+C RATE(NR)                    VECTOR OF REACTION RATES
+C V(NSPECIES,NR)              STOICHIOMETRIC MATRIX 
+C
+C REACTIONTYPE(NR)            CURRENT CLASSIFICATION OF REACTIONS 
+C                             (0=EQUILIBRIUM, 1=KINETIC, 2=MONOD KINETICS)
+C
+C SIGMA                       SCALAR MULTIPLYING THE RATE
+C     
+C OUTPUT:
+C
+C NEWNVEC(NSPECIES)           PREDICTED NEW MOLENUMBERS
+C
+C ALGORITHM:
+C
+C NEWVEC   < --- NVEC  + SIGMA*V*RATE
+C
+C
+C-----------------------------------------------------------------------
+C     
+      SUBROUTINE APPLYRATES(NVEC,NEWNVEC,RATE,V,REACTIONTYPE,SIGMA)
+
+      IMPLICIT NONE
+
+      INTEGER NSPECIES,NCOMP,NR
+      COMMON /CHEMSIZES/NSPECIES,NCOMP,NR
+
+      INTEGER I,J,REACTIONTYPE(NR),PRODIND
+      REAL*8 RATE(NR),NVEC(NSPECIES),NEWNVEC(NSPECIES),
+     &     V(NSPECIES,NR),SIGMA
+
+      CALL DCOPY(NSPECIES, NVEC, 1, NEWNVEC, 1)
+
+C&&&
+C&&&      DO J = 1,NR
+C&&&         IF (REACTIONTYPE(J).EQ.1) THEN
+C&&&            DO I = 1,NSPECIES
+C&&&               NEWNVEC(I) = NEWNVEC(I) + SIGMA*V(I,J)*RATE(J)
+C&&&            ENDDO
+C&&&         ENDIF
+C&&&      ENDDO
+
+
+
+      DO J = 1,NR
+CCCC         IF (REACTIONTYPE(J).EQ.1) THEN
+C SLB 8 JAN 97
+          IF (REACTIONTYPE(J).EQ.1.OR.REACTIONTYPE(J).EQ.2) THEN
+C SLB END
+C
+C-----------------------------------------------------------------------
+C     UPDATE THE KINETIC PRODUCT SPECIES 
+C-----------------------------------------------------------------------
+
+            PRODIND = NCOMP + J
+            NEWNVEC(PRODIND) = NEWNVEC(PRODIND) +  SIGMA*RATE(J)
+
+C-----------------------------------------------------------------------
+C     UPDATE ALL THE COMPONENTS
+C-----------------------------------------------------------------------
+
+            DO I = 1,NCOMP
+               NEWNVEC(I) = NEWNVEC(I) + SIGMA*V(I,J)*RATE(J)
+            ENDDO
+
+         ENDIF
+      ENDDO
+
+
+
+
+      RETURN
+      END
+
+C-----------------------------------------------------------------------
+C DEBUGOUTPUT.F
+C
+C WRITE VECTOR OF DIFFERENT TYPE TO DEBUG FILE.
+C
+C-----------------------------------------------------------------------
+
+      SUBROUTINE DEBUGOUTPUT(MSG,VEC,NAME,N,UNIT,FLAG)
+      IMPLICIT NONE
+      INTEGER I,N,UNIT,FLAG
+      REAL*8 VEC(N)
+      CHARACTER*15 NAME(N)
+      CHARACTER*(*) MSG
+
+      WRITE(UNIT,1)MSG,('-',I=1,LEN(MSG))
+
+      DO I = 1,N
+         IF (FLAG.EQ.0) THEN
+            WRITE(UNIT,5) I,VEC(I)
+         ELSEIF (FLAG.EQ.1) THEN
+            WRITE(UNIT,10) NAME(I),VEC(I)
+         ELSE
+            WRITE(UNIT,10) 'R_'//NAME(I),VEC(I)
+         ENDIF
+      ENDDO
+      WRITE(UNIT,15)
+
+C-----------------------------------------------------------------------
+C     FORMAT STATEMENTS
+C
+
+ 1    FORMAT(A,/,70A)
+ 5    FORMAT(I3, 2X, E12.6)
+ 10   FORMAT(A, E12.6)
+ 15   FORMAT(/)
+
+      RETURN
+      END
+C-----------------------------------------------------------------------
+C AVGRATES.F
+C
+C COMPUTE AVERAGED RATES FOR THE TIME-STEPPING SCHEME 
+C SPECIFIED BY ODEALGTYPE
+C
+C INPUTS: 
+C           
+C R(NR,4)              MATRIX OF RATES
+C
+C OUTPUT:
+C
+C AVGR(NR)              AVERAGED RATE
+C
+C ALGORITHM:
+C 
+C CURRENTLY, EULER-FORWARD AND RUNGE-KUTTA 2 AND 4 ARE IMPLEMENTED.
+C 
+C IF ODEALGTYPE = 0 (EULER-FORWARD):
+C
+C AVGR   < --- R1
+C
+C IF ODEALGTYPE = 1 (RUNGE-KUTTA 2):
+C
+C AVGR   < --- 0.5*(R1+R2)
+C
+C IF ODEALGTYPE = 2 (RUNGE-KUTTA 4):
+C
+C AVGR   < --- (1/6)*(R1+2*(R2+R3) + R4)
+C
+C-----------------------------------------------------------------------
+C     
+      SUBROUTINE AVGRATES(R,AVGR,ODEALGTYPE)
+
+      IMPLICIT NONE
+
+      INTEGER NSPECIES,NCOMP,NR
+      INTEGER I,ODEALGTYPE
+      REAL*8 R(NR,4),AVGR(NR),HALF,TWO,SIXTH
+
+      COMMON /CHEMSIZES/NSPECIES,NCOMP,NR
+
+      PARAMETER (HALF = 0.5D0,TWO = 2.0D0, SIXTH = 1.0D0/6.0D0)
+
+      IF (ODEALGTYPE.EQ.0) THEN
+         DO I = 1,NR
+            AVGR(I) = R(I,1)
+         ENDDO
+      ELSEIF (ODEALGTYPE.EQ.1) THEN
+         DO I = 1,NR
+            AVGR(I) = HALF*(R(I,1) + R(I,2))
+         ENDDO
+      ELSEIF (ODEALGTYPE.EQ.2) THEN
+         DO I = 1,NR
+            AVGR(I) =  SIXTH*(R(I,1) + TWO*(R(I,2)+R(I,3)) + R(I,4))
+         ENDDO
+      ENDIF
+
+
+      RETURN
+      END
+
+C-----------------------------------------------------------------------
+C GETRXNRATES.F
+C
+C EVALUATE THE REACTION-RATES CORRESPONDING TO KINETIC SPECIES.
+C MASS-ACTION TYPE AND MONOD TYPE EXPRESSIONS ARE CURRENTLY IMPLEMENTED.
+C
+C-----------------------------------------------------------------------
+CC
+C REVISED 8 JAN 97 BY STEVEN BRYANT
+C
+C PURPOSE OF REVISION: INCORPORATE MONOD STYLE KINETICS
+C	MONOD KINETIC EXPRESSIONS ARE OF THE FORM
+C
+C		D[X]/DT = K [X] [S]/(K + [S]) 
+C	WHERE
+C	X IS TYPICALLY A MICROBE, S IS A SUBSTRATE (E.G. A HYDROCARBON)
+C	K IS A RATE CONSTANT AND K IS THE SO-CALLED HALF SATURATION CONSTANT
+C
+C REVISIONS MADE
+C     ARRAY OF HALF SATURATION CONSTANTS PASSED INTO ROUTINE AND DECLARED
+C     LOCAL VARIABLES CONC_TO_USE AND MONOD_TERM DECLARED
+C     LOOP TO COMPUTE MONOD-STYLE TERMS IN RATE EXPRESSION INSTALLED
+C
+C-----------------------------------------------------------------------
+C INPUTS:  
+C 
+C NVEC(NSPECIES)        CONCENTRATION VECTOR AT WHICH RATES ARE EVALUATED
+C V(NSPECIES,NR)        STOICHIOMETRIC MATRIX
+C
+C REACTIONTYPE(NR)      CURRENT CLASSIFICATION OF REACTIONS 
+C                        (0=EQUILIBRIUM, 1=KINETIC, 2= MONOD TYPE EXPRESSIONS)
+C     
+C K(NR,2)               ARRAY OF RATE-CONSTANTS:
+C                        K(I,1) = FORWARD-RATE OF ITH REACTION
+C                        K(I,2) = BACKWARD-RATE OF ITH REACTION **NOT USED**
+C
+C BETA(NCOMP,NR)        EXPONENTS TO THE COMPONENTS USED IN RATE-LAWS
+C
+C SLB 8 JAN 97
+C HALFSATCONST(NCOMP,NR)  HALF SATURATION CONSTANTS FOR THE COMPONENTS WHICH
+C                         APPEAR IN THE MONOD DENOMINATORS.  NB THAT A ZERO
+C                         ENTRY IS TAKEN TO MEAN THAT THAT COMPONENT DOES NOT
+C                         PARTICIPATE IN THE RATE EXPRESSION.
+C SLB END
+C
+C EPSCONC               LOWER-BOUND FOR MOLE-NUMBERS
+C     
+C OUTPUT:
+C
+C RATE(NR)              RESULTING RATE VECTOR
+C                       (EQUILIBRIUM RATES ARE PADDED WITH ZEROS)
+C
+C
+C ALGORITHM:
+C
+C WE USE AS THE MAIN COMPOSITION VARIABLE THE MOLAR 
+C CONCENTRATION OF SPECIES,
+C
+C C_I = N_I/VOLWATER
+C
+C WHERE VOLWATER DENOTES THE VOLUME OF WATER. 
+C
+C (RECALL THAT WE HAVE NORMALIZED THE SYSTEM TO UNIT 
+C  AQUEOUS PHASE VOLUME!)
+C
+C A TYPICAL RATE-EXPRESSION IS THE MASS-ACTION LAW (REACTIONTYPE = 1): 
+C
+C R_I = KFWD_I*[C_1^(BETA(1,I)*....*C_NCOMP^(BETA(NCOMP,I))]  - KBWD*C_(NCOMP+I)
+C FOR MINERAL PRODUCTS, IT IS INSTEAD
+C
+C R_I = KFWD_I*[C_1^(BETA(1,I)*....*C_NCOMP^(BETA(NCOMP,I))]  - KBWD,
+C
+C I.E., THE MINERAL ITSELF DOES NOT DIRECTLY AFFECT THE RATE.
+C
+C
+C SLB 8 JAN 97
+C
+C A GENERALISED MONOD-STYLE RATE EXPRESSION (REACTIONTYPE=2) IS ALSO ALLOWED: 
+C
+C R_I = KFWD_I*       C_1    *       C_2    *...*         C_NCOMP
+C              -------------------------------------------------------- 
+C              [K(1,I) + C_1]*[K(2,I) + C_2]*...*[K(NCOMP,I) + C_NCOMP]
+C
+C             * [C_1^(BETA(1,I)*....*C_NCOMP^(BETA(NCOMP,I))]
+C             
+C SLB END
+C
+C NOTE THAT WE HAVE MADE THESE RATES CONTINOUS (CF. KEMOD!).
+C
+C-----------------------------------------------------------------------
+C     
+      SUBROUTINE GETRXNRATES(RATE,NVEC,V,REACTIONTYPE,PHASEIDENTITY,
+     &     NPHASE,K,BETA,K_HALFSAT,EPSCONC)
+
+      IMPLICIT NONE
+      INTRINSIC LOG, EXP
+
+      INTEGER NSPECIES,NCOMP,NR
+      COMMON /CHEMSIZES/NSPECIES,NCOMP,NR
+
+      REAL*8 RATE(NR),NVEC(NSPECIES),V(NSPECIES,NR),BETA(NCOMP,NR),
+     &     K(NR,2),EPSCONC,ZERO,PSUM
+
+C
+C SLB 8 JAN 97
+      REAL*8 K_HALFSAT(NCOMP,NR)
+      REAL*8 CONC_TO_USE , MONOD_TERM
+C SLB END
+C
+      INTEGER REACTIONTYPE(NR),PHASEIDENTITY(NSPECIES),NPHASE(*),
+     &     PRODIND,I,J
+ 
+      PARAMETER(ZERO = 0.0D0)
+
+      DO I = 1,NR
+
+         IF (REACTIONTYPE(I).EQ.0) THEN
+
+C -------------------------------------------------------------------     
+C     EQUILIBRIUM REACTION - SET TO ZERO FOR CONSISTENCY
+C -------------------------------------------------------------------     
+
+            RATE(I) = ZERO
+
+         ELSE
+
+C -------------------------------------------------------------------
+C     KINETIC REACTION (SAFEGUARD AGAINST NUMERICAL ZERO)
+C -------------------------------------------------------------------
+
+            PSUM = ZERO
+            DO J = 1,NCOMP
+               PSUM = PSUM + BETA(J,I)*LOG( DMAX1(NVEC(J),EPSCONC) )
+            ENDDO
+C
+C SLB 8 JAN 97
+C               THE PRECEDING LOOP APPLIES BOTH TO MASS-ACTION (TYPE=1)
+C               AND TO MONOD-STYLE (TYPE=2) KINETICS.
+C               LOOP AGAIN OVER COMPONENTS IF MONOD-STYLE KINETICS
+C            
+            IF (REACTIONTYPE(I) .EQ. 2) THEN
+              DO J = 1, NCOMP
+                IF (K_HALFSAT(J,I) .GT. ZERO ) THEN
+                   CONC_TO_USE = DMAX1(NVEC(J),EPSCONC) 
+                   MONOD_TERM = CONC_TO_USE / 
+     &                         (K_HALFSAT(J,I) + CONC_TO_USE)
+                   PSUM = PSUM + LOG(MONOD_TERM)
+                ENDIF
+              ENDDO
+            ENDIF
+C SLB END
+C
+
+            PRODIND = NCOMP + I
+
+            IF (NPHASE(PHASEIDENTITY(PRODIND)).GT.1) THEN
+
+C     REGULAR MASS-ACTION OR MONOD-STYLE TYPE
+
+               RATE(I) = K(I,1)*EXP(PSUM) - 
+     &              K(I,2)*DMAX1(NVEC(PRODIND),EPSCONC)
+
+            ELSE
+
+C     MINERAL TYPE 
+
+               RATE(I) =  K(I,1)*EXP(PSUM) - 
+     &              K(I,2)
+
+            ENDIF
+
+         ENDIF
+
+      ENDDO
+
+
+      RETURN
+      END
+
+C -------------------------------------------------------------------     
+C RATELIM.F
+C 
+C LIMIT THE REACTION-RATES.
+C -------------------------------------------------------------------     
+C
+C REVISED 8 JAN 97 BY STEVEN BRYANT
+C
+C PURPOSE OF REVISION: INCORPORATE MONOD STYLE KINETICS 
+C
+C REVISIONS MADE
+C     ALLOW FOR NEW REACTION CLASSIFICATION, REACTIONTYPE=2
+C --------------------------------------------------------------------
+C
+C INPUTS:
+C 
+C NVEC(NSPECIES)
+C
+C V(NSPECIES,NR)        STOICHIOMETRIC MATRIX
+C
+C REACTIONTYPE(NR)      CURRENT CLASSIFICATION OF REACTIONS 
+C                        (0=EQUILIBRIUM, 1=KINETIC, 2=MONOD KINETICS)
+C EPSCONC               LOWER BOUND ON MOLE-NUMBERS
+C
+C OUTPUT:
+C 
+C RATE(NR)             LIMITED RATES
+C
+C ------------------------------------------------------------------- 
+C    
+C     THE RATE-LIMITING STEP
+C
+C     ON PHYSICAL GROUNDS WE "LIMIT" THE RATE COMPUTED ABOVE TO ENSURE 
+C     THAT IT WILL NOT PROCEED IN SUCH A DIRECTION AS WOULD LEAD 
+C     TO THE COMPLETE DEPLETION OF EITHER REACTANTS OR PRODUCTS.
+C     BY "COMPLETE DEPLETION", WE MEAN MOLENUMBERS THAT FALL BELOW
+C     THE USER-ESTABLISHED VALUE FOR "APPROXIMATE ZERO".
+C
+C     - A REACTION CAN NOT PROCEED IN THE RIGHT (FORWARD) DIRECTION
+C     IF ANY OF ITS REACTANTS HAVE FALLEN BELOW THE THRESHOLD VALUE, 
+C     'LOWER'. NOTE THAT ONLY THOSE REACTANTS THAT HAVE A NEGATIVE
+C     STOICHIOMETRIC COEFFICIENT ARE DEPLETED IN THIS DIRECTION.
+C
+C     - A REACTION CAN NOT PROCEED IN THE LEFT (REVERSE) DIRECTION
+C     IF (1) THE PRODUCT SPECIES HAS BEEN CONSUMED, I.E., IF THE 
+C     MOLENUMBER OF THE PRODUCT HAS FALLEN BELOW THE SMALLEST
+C     ALLOWED VALUE, OR (2) IF COMPONENTS WITH POSITIVE 
+C     STOICHIOMETRIC COEFFICIENT HAVE FALLEN BELOW THE THRESHOLD
+C     VALUE.
+C
+C -------------------------------------------------------------------     
+
+      SUBROUTINE RATELIM(RATE,NVEC,V,REACTIONTYPE,EPSCONC)
+      IMPLICIT NONE
+
+      INTEGER NSPECIES,NCOMP,NR
+      COMMON /CHEMSIZES/NSPECIES,NCOMP,NR
+
+      INTEGER I,J,PRODIND,REACTIONTYPE(NR)
+
+      REAL*8  RATE(NR),COMPJ,COEFFJ,NVEC(NSPECIES),V(NSPECIES,NR),
+     &     EPSCONC,LOWER,ZERO
+
+      LOGICAL PROCEEDLEFT,PROCEEDRIGHT
+
+      PARAMETER(ZERO = 0.0D0)
+
+      LOWER = 2.0*EPSCONC
+
+      DO I = 1, NR
+CCCC         IF (REACTIONTYPE(I).EQ.1) THEN 
+C SLB 8 JAN 97
+            IF (REACTIONTYPE(I).EQ.1.OR.REACTIONTYPE(I).EQ.2) THEN
+C SLB END
+            PRODIND = NCOMP + I
+            PROCEEDRIGHT = .TRUE.
+            PROCEEDLEFT  = .TRUE.
+
+C -------------------------------------------------------------------     
+C     COMPONENTS
+C -------------------------------------------------------------------     
+
+            DO J = 1,NCOMP
+               COMPJ = NVEC(J)
+               COEFFJ = V(J,I)
+               IF (COMPJ.LE.LOWER) THEN 
+                  IF (COEFFJ.LT.ZERO) PROCEEDRIGHT = .FALSE.
+                  IF (COEFFJ.GT.ZERO) PROCEEDLEFT = .FALSE.
+               ENDIF
+            ENDDO
+
+C -------------------------------------------------------------------     
+C     PRODUCT SPECIES
+C -------------------------------------------------------------------     
+
+            PROCEEDLEFT = PROCEEDLEFT.AND.(NVEC(PRODIND).GT.LOWER)
+
+C -------------------------------------------------------------------     
+C     LIMIT THE RATE
+C -------------------------------------------------------------------     
+
+            IF (.NOT.PROCEEDRIGHT) RATE(I) = DMIN1( ZERO, RATE(I) )
+            IF (.NOT.PROCEEDLEFT)  RATE(I) = DMAX1( ZERO, RATE(I) )
+
+         ENDIF
+      ENDDO
+
+
+
+      RETURN
+      END
+C-----------------------------------------------------------------------
+C SWITCHMODULE
+C
+C EFFECT A SWITCH OF SPECIES FROM KINETIC TO EQUILIBRIUM DESCRIPTION
+C BASED ON A SET OF HEURISTICS
+C-----------------------------------------------------------------------
+C
+C REVISED 8 JAN 97 BY STEVEN BRYANT
+C
+C PURPOSE OF REVISION: INCORPORATE MONOD STYLE KINETICS 
+C
+C REVISIONS MADE
+C     ALLOW FOR NEW REACTION CLASSIFICATION, REACTIONTYPE=2
+C --------------------------------------------------------------------
+C
+C INPUTS: 
+C           
+C N(NSPECIES)        CURRENT MOLE-VECTOR
+C R(NR)              AVERAGE RATES USED FOR LAST TIME-STEP
+C R0(NR)             REFERENCE RATES 
+C IDEBUG
+C DEBUGUNIT
+C     
+C INPUT/OUTPUT:
+C
+C REACTIONTYPE      ON CALL: SPECIES CLASSIFICATION USED FOR THIS STEP
+C                   ON EXIT: UNCHANGED IF SWITCH=.FALSE.
+C                            NEW CLASSIFICATION IF SWITCH = .TRUE.
+C
+C NRQ               ON CALL: NUMBER OF EQUILIBRIUM REACTIONS FOR THIS STEP
+C                   ON EXIT: INCREASED NUMBER (IF SWITCH = .TRUE.)
+C                            OR UNCHANGED (SWITCH=.FALSE.)
+C
+C NRK               ON CALL: NUMBER OF KINETIC REACTIONS FOR THIS STEP
+C                   ON EXIT: DECREASED NUMBER (IF SWITCH = .TRUE.)
+C                            OR UNCHANGED (SWITCH=.FALSE.
+C 
+C
+C OUTPUT:
+C
+C SWITCH            .TRUE.  IF SWITCHING OCCURRED
+C                   .FALSE. IF NO SWITCHING OCCURRED
+C
+C ALGORITHM:
+C
+C CURRENTLY, WE SWITCH A REACTION IF 
+C
+C |R| < FRAC*|R0|
+C
+C-----------------------------------------------------------------------
+C     
+      SUBROUTINE SWITCHMODULE(NVEC,R,R0,REACTIONTYPE,
+     &     NRQ,NRK,SWITCH,IDEBUG,DEBUGUNIT)
+
+      IMPLICIT NONE
+
+      INTEGER NSPECIES,NCOMP,NR
+      COMMON /CHEMSIZES/NSPECIES,NCOMP,NR
+
+      INTEGER REACTIONTYPE(NR),NRQ,NRK,IDEBUG,DEBUGUNIT,I
+      REAL*8 NVEC(NSPECIES),R(NR),R0(NR),ZERO,FRACTION,
+     &     NEWRATE,REFRATE,NPROD
+
+      LOGICAL SWITCH
+
+      PARAMETER(ZERO = 0.0D0,FRACTION = 1.0D-7)
+
+      SWITCH = .FALSE.
+
+      IF (IDEBUG.NE.0) THEN 
+         WRITE(DEBUGUNIT,150)
+         DO I = 1,NR
+            WRITE(DEBUGUNIT,160)R0(I),R(I)
+         ENDDO
+      ENDIF
+
+      WRITE(DEBUGUNIT,*)
+
+      DO I = 1,NR
+CCCC         IF (REACTIONTYPE(I).EQ.1) THEN
+C SLB 8 JAN 97
+         IF (REACTIONTYPE(I).EQ.1.OR.REACTIONTYPE(I).EQ.2) THEN
+C SLB END
+            NEWRATE = DABS(R(I))
+            REFRATE = DABS(R0(I))
+            NPROD = NVEC(NCOMP+I)
+
+            IF (NEWRATE.LT.FRACTION*REFRATE) THEN
+
+               SWITCH = .TRUE.
+               REACTIONTYPE(I) = 0
+               NRK = NRK - 1
+               NRQ = NRQ + 1
+
+               IF (IDEBUG.NE.0) WRITE(DEBUGUNIT,175)I,REFRATE,NEWRATE
+
+            ENDIF
+         ENDIF
+      ENDDO
+
+C-----------------------------------------------------------------------
+C     FORMAT STATEMENTS
+
+ 150  FORMAT('RATES IN SWITCHMOD:',/
+     &     'REFERENCE RATES',10X,'NEW RATES',/
+     &     '-----------------------------------------')
+ 160  FORMAT(2X,E10.4,10X,E10.4)
+ 175  FORMAT('AFFINITY VIOLATION',/,
+     &     1X,'--->',1X,'SWITCHING REACTION',1X,I2,1X,
+     &     'TO EQUILIBRIUM DESCRIPTION',/,
+     &     'INITIAL AFFINITY =',1X,E10.4,/,
+     &     'FINAL AFFINITY =',1X,E10.4,/)
+
+      RETURN
+      END
+
+C-----------------------------------------------------------------------
+C MAXTIMESTEP.F
+C
+C FIND THE LARGEST TIME-STEP THAT PRESERVES LOWER BOUND ON MOLES.
+C --------------------------------------------------------------------
+C
+C REVISED 8 JAN 97 BY STEVEN BRYANT
+C
+C PURPOSE OF REVISION: INCORPORATE MONOD STYLE KINETICS 
+C
+C REVISIONS MADE
+C     ALLOW FOR NEW REACTION CLASSIFICATION, REACTIONTYPE=2
+C --------------------------------------------------------------------
+C
+C INPUTS: 
+C
+C RATE(NR)                    VECTOR OF REACTION RATES
+C NVEC(NSPECIES)              VECTOR OF MOLENUMBERS
+C V(NSPECIES,NR)              STOICHIOMETRIC MATRIX 
+C REACTIONTYPE(NR)            CURRENT CLASSIFICATION OF REACTIONS 
+C                             (0=EQUILIBRIUM, 1=KINETIC, 2=MONOD KINETICS)
+C EPSCONC                     LOWEST BOUND FOR ANY CONCENTRATION
+C     
+C OUTPUT:
+C
+C MAXTIMESTEP
+C
+C ALGORITHM:
+C
+C MAXTIMESTEP IS THE LARGEST GAMMA > 0 FOR WHICH
+C
+C NVEC + GAMMA*V*RATE > EPSCONC,
+C
+C IF ONLY THE KINETIC RATES ARE TAKEN INTO ACCOUNT.
+C
+C-----------------------------------------------------------------------
+C     
+      FUNCTION MAXTIMESTEP(RATE,NVEC,V,REACTIONTYPE,EPSCONC)
+
+      IMPLICIT NONE
+
+      INTEGER NSPECIES,NCOMP,NR
+      COMMON /CHEMSIZES/NSPECIES,NCOMP,NR
+
+      INTEGER I,J,REACTIONTYPE(NR),PRODIND
+      REAL*8 MAXTIMESTEP,RATE(NR),NVEC(NSPECIES),V(NSPECIES,NR),
+     &     EPSCONC,DISTTOBDRY,BIG,ZERO,ONE,EPS,DNI,GAMMA
+
+
+      PARAMETER(ZERO = 0.0D0,ONE = 1.0D0,
+     &     EPS = 1.0D-4,BIG = 1.0D20)
+      
+      GAMMA = BIG
+
+C-----------------------------------------------------------------------
+C     PERFORM A RATE-LIMITING STEP BEFORE COMPUTING MAXTIMESTEP.
+C     THE PURPOSE IS TO ENSURE THAT WE WILL BE ABLE TO FIND 
+C     SOME (STRICTLY) POSITIVE TIME-STEP IN THE SECTIONS BELOW.
+C-----------------------------------------------------------------------
+
+      CALL RATELIM(RATE,NVEC,V,REACTIONTYPE,EPSCONC)
+
+C-----------------------------------------------------------------------
+C     COMPONENTS: CHECK ALL REACTIONS AND SAFEGUARD
+C-----------------------------------------------------------------------
+
+      DO I = 1,NCOMP
+         DNI = ZERO
+         DO J = 1,NR
+CCCC            IF (REACTIONTYPE(J).EQ.1) DNI = DNI + V(I,J)*RATE(J)
+C SLB 8 JAN 97           
+            IF (REACTIONTYPE(J).EQ.1.OR.REACTIONTYPE(J).EQ.2) 
+     &                                    DNI = DNI + V(I,J)*RATE(J)
+C SLB END
+C
+         ENDDO
+
+         IF (DNI.LT.ZERO)  THEN
+            DISTTOBDRY = NVEC(I) - EPSCONC
+C
+C...ALWAYS HAVE DISTTOBDRY > 0 IF DNI < 0 DUE TO RATELIM.
+C
+            GAMMA = DMIN1(GAMMA,-DISTTOBDRY/DNI)
+         ENDIF
+      ENDDO
+
+C-----------------------------------------------------------------------
+C     PRODUCT SPECIES: EACH IS AFFECTED BY ONE REACTION ONLY
+C-----------------------------------------------------------------------
+
+      DO I = 1, NR
+CCCC         IF (REACTIONTYPE(I).EQ.1) THEN
+C SLB 8 JAN 97
+          IF (REACTIONTYPE(I).EQ.1.OR.REACTIONTYPE(I).EQ.2) THEN
+C SLB END
+C
+            PRODIND = NCOMP + I
+            DNI = RATE(I)
+            IF (DNI.LT.ZERO)  THEN
+               DISTTOBDRY = NVEC(PRODIND) - EPSCONC
+C
+C...ALWAYS HAVE DISTTOBDRY > 0 IF DNI < 0 DUE TO RATELIM.
+C
+               GAMMA = DMIN1(GAMMA,-DISTTOBDRY/DNI)
+            ENDIF
+         ENDIF
+      ENDDO
+
+
+C-----------------------------------------------------------------------
+C     CONSERVATIVE TIME-STEP (SLIGHTLY SMALLER)
+C-----------------------------------------------------------------------
+
+      MAXTIMESTEP = (ONE-EPS)*GAMMA
+
+
+      RETURN
+      END
+

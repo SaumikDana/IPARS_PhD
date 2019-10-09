@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/csm/!svn/ver/55/IPARSv3.1/comp/data/multi_block/test4_5blk
+END
+co2_misc1.dat.bak
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/multi_block/test4_5blk/co2_misc1.dat.bak
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/multi_block/test4_5blk/IPARS.IN
+END
+rock-co2msc-5blk.dat
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/multi_block/test4_5blk/rock-co2msc-5blk.dat
+END
+wells44-co2msc-5blk.dat
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/multi_block/test4_5blk/wells44-co2msc-5blk.dat
+END
+co2_misc1.dat
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/multi_block/test4_5blk/co2_misc1.dat
+END
+prop-co2msc-5blk.dat
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/multi_block/test4_5blk/prop-co2msc-5blk.dat
+END
+init-co2msc-5blk.dat
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/multi_block/test4_5blk/init-co2msc-5blk.dat
+END

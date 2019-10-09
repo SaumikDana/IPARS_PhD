@@ -1,0 +1,246 @@
+                               Appendix ?
+                       Surface Boundary Conditions
+
+                       John Wheeler         9/7/99
+
+  I.  General.
+
+      A.  Justification.
+
+          1.  Surface boundary conditions are often omitted in commercial
+              reservoir simulators since such conditions (specifically
+              Dirichlet conditions) increase storage requirements and/or
+              linear solver complexity.  Surface boundary conditions are
+              useful in reservoir simulation only occasionally for
+              specifying conditions at the edge of a truncated aquifer.
+
+          2.  Surface boundary conditions are needed in IPARS for two
+              reasons:
+
+              a.  Ipars will include an air-water model for use in
+                  hydrology calculations which absolutely require a
+                  surface boundary condition.  I have seen wells used to
+                  represent surface conditions in a 3D hydrology
+                  calculation: it is not a pretty sight.
+
+              b.  The mortar space method for coupling fault blocks with
+                  nonmatching grids requires a Dirichlet condition.  This
+                  appendix will not specifically address the mortar space
+                  method.
+
+          3.  Fortunately the cost of adding surface boundary conditions
+              to IPARS is minimal.  We have the capability for adding and
+              utilizing the extra storage only when it is needed (via the
+              SIZE preprocessor) since this same storage is needed for
+              efficient multiprocessor calculations.  Likewise, IPARS
+              transport calculations (including the linear solvers) are
+              organized to automatically account for surface fluxes; we
+              must only set the appropriate Jacobian coefficient to a
+              nonzero value and set the potential in an adjacent
+              "communication" or keyed-out element.  On the negative
+              side, at least four indexes and a REAL*4 geometric factor
+              must be stored for each boundary element; this could add up
+              to more than a megabyte for a large problem.
+
+          4.  We will incorporate both Dirichlet conditions and flux flux
+              conditions but not mixed boundary conditions since the
+              latter would require either major modification of the
+              linear solvers or a leap frog approach which would greatly
+              slow down the Newtonian iteration.
+
+      B.  Surface boundary conditions will be associated with individual
+          physical models rather than the IPARS framework.  All physical
+          models may not support surface conditions.  The framework will
+          provide service routines that support surface conditions.
+
+ II.  Input
+
+      A.  Surface conditions may be specified in either the initial or
+          transient input sections (or both).
+
+      B.  Surface geometry definition.
+
+          1.  Since we need to specify the geometry of an irregular
+              surface in a user friendly manner, surface identification
+              is perhaps the most difficult aspect of adding boundary
+              conditions to IPARS.
+
+          2.  Define a surface region to be a set of rectangular surfaces
+              (called subregions) over which a single boundary condition
+              is to be applied.
+
+          3.  Surface regions will be numbered from 1 to $MXSUFREG (set
+              by the SIZE preprocessor) and the maximum number of
+              subregions in a surface region will be $MXSUBREG.
+
+          4.  A region will be defined by subscripted block text input
+              (named SURFACE) containing the key words:
+
+              a.  Block ==> Fault block number.
+
+              b.  X1, Y1, Z1 ==> Coordinates of corner 1 of a subregion.
+
+              c.  X2, Y2, Z2 ==> Coordinates of the corner diagonally
+                                 opposite to corner 1.
+
+              d.  AllX, AllY, AllZ ==> A coordinate at all points in a
+                                       subregion (for one fault block)
+
+          5.  Each keyword must be followed by a numerical value.
+
+          6.  A $ symbol in a record will cause the symbol and any
+              comment in the record and after the symbol to be discarded.
+
+          7.  Blank spaces, blank records, equal signs (=), and commas
+              may be included in the block text to improve readability
+              and will be discarded.
+
+          8.  A subregion must be completely specified on a single
+              record. The maximum record length will be 120 characters.
+
+          9.  Keywords with their values may appear in any order within a
+              record.
+
+         10.  The fault block number will initially default to 1 and then
+              will default to the block number most recently defined.  A
+              subregion will extend over only one fault block.
+
+         11.  There are two mutually exclusive methods of defining a
+              subregion:
+
+              a.  Define any two opposing corners of the subregion using
+                  all six of the keywords X1, Y1, Z1, X2, Y2, and Z2.
+                  Note that one of the three coordinates must be the same
+                  in the two points.
+
+              b.  Define any one and only one coordinate common to the
+                  subregion.  Use the AllX, AllY, or AllZ keywords.
+
+         12.  Sample region definition.
+
+              SURFACE(1) Block
+              Block = 3  AllX = 0
+              X1 = 0 , Y1 = 100 , Z1 = 0 , X2 = 2 , Y2 = 100 , Z2 = 70
+              AllX = 2
+              EndBlock
+
+      C.  Boundary condition type.
+
+          1.  The type of a surface boundary is set by the subscripted
+              keyword BOUNDTYPE for which there are three values:
+
+              a.  0   ==>   Boundary condition is inactive (ie. a zero
+                            flux condition is imposed).  Data on the
+                            surface region definition and any associated
+                            tables is retained. This is the default
+                            value.
+
+              b.  n > 0 ==> Dirichlet condition is imposed.  Only primary
+                            variable values associated with a specific
+                            physical model may be specified.
+
+              c.  n < 0 ==> Flux condition is imposed.  The flux must
+                            correspond to one of the mass balance
+                            equations associated with a specific physical
+                            model.
+
+          2.  The subscript on BOUNDTYPE must match a subscript on
+              SURFACE otherwise an error condition will be produced.
+
+      D.  Boundary condition tables.
+
+          1.  Both Dirichlet and flux values will be input as a function
+              of time to a subscripted table BOUNDVAL.  The subscript
+              will correspond to that used on SURFACE and BOUNDTYPE.
+
+          2.  Interpretation of a table will be determined by the
+              corresponding value of BOUNDTYPE.
+
+          3.  A table may be input more than once.  However, this will
+              waste memory space and each version of a table will count
+              against the maximum of all tables.
+
+          4.  A positive value of flux will indicate injection; a
+              negative value, production.
+
+      E.  Obviously, the input defined above is insufficient for defining
+          many boundary conditions.  Additional data may be required for
+          specific conditions in specific physical models.  For example,
+
+          1.  The composition of an injected hydrocarbon phase must be
+              specified in a compositional model and some black oil
+              models.
+
+          2.  The concentration of contaminants or tracers may be
+              required in a hydrologic model.
+
+      F.  The following data imposes a pressure condition at the boundary
+          of a truncated aquifer.
+
+          BOUNDTYPE(1) = 1
+
+          SURFACE(1) Block
+             AllY 0
+          EndBlock
+
+          BOUNDVAL(1) Block
+            Interpolation Linear
+            Extrapolation Constant
+            Data  0.  1500.  730.5   1300.
+          EndBlock
+
+III.  Programming notes.
+
+      A.  Code provided by the framework will be a permanent part of the
+          framework; it can not be omitted by setting a SIZE variable.
+
+      B.  The following variables will be defined for the SIZE
+          preprocessor in frame?.siz:
+
+          1.  MXSUFREG ==> Maximum number of surface boundary condition.
+                           regions.
+
+          2.  MXSUBREG ==> Maximum number of subregions in a region.
+
+          3.  MXSBELE  ==> Maximum total number of surface boundary
+                           elements (elements having a surface boundary)
+                           assigned to a processor.  (Note: Good practice
+                           would be to assign space related to this
+                           variable at execution time but I don't think
+                           the effort is worth it.)
+
+          4.  Note:  All three of the above should be set to 1 for
+                     realizations of IPARS that do not require surface
+                     boundary conditions.
+
+      C.  The framework will provide a labeled COMMON named BOUNDARY
+          which will contain the following:
+
+          1.  NSUFREG = Number of surface regions (active processor).
+
+          2.  NSUBREG(n) = Number of subregions in surface region n
+                           (active processor).
+
+          3.  NSUFBLK(n) = Fault block number of surface region n.
+
+          4.  KSUFBND(n) = Boundary condition type of surface region n.
+
+          5.  NSUFTAB(n) = Table number associated with surface region n.
+
+          6.  LOFFSUF(n) = Packing offset of the surface boundary
+                           elements associated surface region n.  (active
+                           processor).
+
+          7.  LNUMSUF(n) = Number of surface boundary elements associated
+                           surface region n.  (active processor).
+
+          8.  LOCSUF(3,i) = IJK location of surface boundary element i.
+
+          9.  KDIRSUF(i) = Direction key of surface boundary element i.
+
+         10.  GSUFELE(i) = Geometric factor including permeability for
+                           surface boundary element i.
+
+      D.  New support routines provided by the framework.
+
+          1.  SURFSET(NERR) will set variables 6 through 10 listed above.

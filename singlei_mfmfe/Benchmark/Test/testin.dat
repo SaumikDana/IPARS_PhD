@@ -1,0 +1,88 @@
+TITLE(2)="2-Phase Flow Fracture Meshed-in"
+
+DESCRIPTION()=
+"LENGTH (FT) : 5"
+"WIDTH (FT) : 5"
+"THICKNESS (FT) : 5"
+"GRID BLOCKS : 1X3X1   50 GRID ELEMENTS"
+"DATE : 12/09/11"
+
+
+BLOCKMODEL(1) = "SINGLE_PHASE_MFMFE"
+
+TIMEEND = 100.0
+
+$ I/O OPTIONS
+$WELLOUTKEY = 3   WELLFILE = "testout.WEL"
+
+OUTLEVEL = 2
+
+$$$ NEWTON TOLERANCE
+CVTOL = 1.E-8
+
+$$$ FAULT BLOCK AND MESH DATA
+
+BLOCKNAME(1) = "BLOCK1"
+DOWN(1 TO 3,1) =0. 0. 0.
+
+$corner point geometry
+Include mesh.dat
+
+PINIT = 100.
+
+FLVIS = 1.
+
+STFLDEN = 56.
+
+FLCOMP = 1.E-6
+
+POROSITY1() = .2
+CR1() = 0.0
+
+$ PERMEABILITIES
+
+XPERM1() = 10.  YPERM1() = 10.  ZPERM1()= 10.
+$XYPERM1() = 2.  YZPERM1() = 3. XZPERM1()= 4.
+
+
+$Rate spec injection and const. pressure production well
+
+NUMWELL=1
+
+WELLNAME(1) = "WELL 1, BLOCK 1"
+KINDWELL(1) = 1
+    WELLTOP(1 TO 3,1,1) =      0.0000000000      5.      5.
+ WELLBOTTOM(1 TO 3,1,1) =     100.0000000000      5.      5.
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant 
+  Data    0. 1000.
+EndBlock
+
+$WELLNAME(2) = "WELL 2 BLOCK 1"
+$KINDWELL(2) = 31
+$    WELLTOP(1 TO 3,1,2) =      0.0000000000     95.000000000      95.
+$ WELLBOTTOM(1 TO 3,1,2) =     10.0000000000     95.000000000      95.
+$WELLPQ(2) Block
+$  Interpolation Linear
+$  Extrapolation Constant 
+$  Data  0.  100.0
+$EndBlock
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+BeginTime    0.
+$ NO converge 
+DELTIM = 1.0  DTIMMUL = 1.1  DTIMMAX = 3.0 TIMOUT = 1 DTIMOUT = 1
+
+$ visualization paramaters
+VISOUT = 1.   DVISOUT = 1.
+VIS_SCL = 2
+VISFLAG = 8
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "FLDEN"
+VIS_FNAME = "SINGLE_MFMFE_"
+$TIMRES = 50.
+EndTime
+

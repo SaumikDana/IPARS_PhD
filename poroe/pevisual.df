@@ -1,0 +1,95 @@
+C PEVISUAL.F - PRINT POROELASTIC MODEL VISUALIZATION DAT
+C
+C ROUTINES IN THIS MODULE:
+C
+C SUBROUTINE PEVIS_TRANSL(SCALAR,NUM,NAME)
+C SUBROUTINE PEVIS_OUTPUT()
+C
+C CODE HISTORY:
+C   XIULI GAI  08/10/2003/  MODIFIED FROM IVISUAL.DF
+C
+C*********************************************************************
+      SUBROUTINE PEVIS_TRANSL(SCALAR,NUM,NAME)
+C**********************************************************************
+C 1. Routine lookup the <name> in the glossary for the model which is read
+C    from ivisual.h
+C 2. Set VIS_VARNAMES, VIS_OFFSETS and VIS_IPARS_VARS
+C**********************************************************************
+      INCLUDE 'visual.h'
+      INCLUDE 'pevisual.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'control.h'
+$COMP      INCLUDE 'xmodel.h'
+
+      CHARACTER*$MXANAM NAME
+      INTEGER NUM
+      LOGICAL SCALAR,SUCCESS
+
+      INTEGER I,K,NNUM
+
+      SUCCESS=.FALSE. 
+      IF(SCALAR) THEN
+         VIS_VARNAMES(NUM) = NAME
+         VIS_OFFSETS(NUM) = 1
+         VIS_IPARS_NAMES (NUM) = NAME 
+         DO I=1,IPARS_NSCL
+            IF(IPARS_SCL_NAMES(1,I).EQ.NAME) THEN
+               VIS_VARNAMES(NUM) = IPARS_SCL_NAMES(2,I)
+               VIS_IPARS_NAMES(NUM) = IPARS_SCL_NAMES(3,I) 
+               VIS_OFFSETS(NUM) = IPARS_SCL_OFFSETS(I)
+               VIS_VAL_NODAL(NUM) = 1 
+               SUCCESS=.TRUE. 
+               GO TO 1                                  
+            ENDIF
+         ENDDO
+      ENDIF
+
+      IF (.NOT.SUCCESS) THEN
+$COMP      MODACT = $XMODEL
+$COMP      IF(PEFLOW.EQ.$XMODEL) CALL XVIS_TRANSL(SCALAR,NUM,NAME)
+$COMP      MODACT = $PEMODEL
+      ENDIF
+
+      RETURN
+ 1    CALL VIS_ARYNUM(NUM)
+
+      END
+C**********************************************************************
+      SUBROUTINE PEVIS_OUTPUT ()
+C**********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'visual.h'
+      INCLUDE 'pemodel.h'
+
+      IF((VISFLAG.LT.1).OR.(VISFLAG.GT.MAXVISFLAG)) THEN
+         GOTO 1  
+      ENDIF
+$COMP      MODACT = $XMODEL
+$COMP      IF(PEFLOW.EQ.$XMODEL) CALL XVIS_OUTPUT()
+$COMP      MODACT = $PEMODEL
+     
+cbw      IF(SEISMIC)  CALL IGASSMAN() 
+      CALL VIS_OUTPUT()
+                                                                                
+ 1    CONTINUE
+      RETURN
+
+      END
+
+
+
+C**********************************************************************
+      SUBROUTINE PEVIS_INIT ()
+C**********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+
+$COMP      MODACT = $XMODEL
+$COMP      IF(PEFLOW.EQ.$XMODEL) CALL XVIS_INIT()
+$COMP      MODACT = $PEMODEL
+
+      END
+
+

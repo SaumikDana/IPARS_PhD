@@ -1,0 +1,157 @@
+#! /bin/csh
+#
+# MTECPC
+# 
+# C - shell utility to combine IPARS zone output for Tecplot in one
+# file for ALL prcoessors, and for ALL faultblocks 
+# invokes TECPC, see the script for details
+#
+# filename is in the PC format
+# 
+# assumptions : rootname is MP, visflag is fixed
+#
+# MP, 5/28/98
+#
+set rootname = 'MP'
+set infoname = 'MPinfo'
+set blkname  = 'MP_blks'
+set zonelist = ()
+set number = 0
+set visflag = 3
+#
+set nsteps = 0
+set flist=()
+#
+foreach arg ($*)
+	@ number ++
+	switch ($number) 
+	case 1:	
+	 set nprocessor = $arg
+	 breaksw
+	endsw
+end			
+#		
+# echo 'number of arguments is ' $number
+#
+if ( $number < 1 ) then
+	echo 'Too few parameters to MTECPC.'
+	echo "Usage: MTECPC  numprocs "
+	exit 1
+endif
+
+#
+##### process the files
+#
+set procnum = 0		
+set nsets = 0
+while ( $procnum < $nprocessor )	
+  #
+  ##### get the list of blocks on the current processor
+  #
+  set blkfile = "$blkname.$procnum"
+  rm -f zonedum
+  awk ' { \
+	printf("%s ", $NF);  \
+  }' $blkfile > zonedum
+  set blklist = `cat zonedum`
+
+  echo "list of blocks for processor $procnum is $blklist"
+
+  ######################## process all the blocks for the given processor
+  foreach fblock ($blklist)
+	#
+	##### get the list of zones from the INFO file
+	#
+	set infofile = "$infoname"_"$fblock.$procnum"
+	####################### get all the time steps
+	rm -f zonedum
+	awk -F. ' NR > 2{ \
+	printf("%s ", $NF);  \
+	}' $infofile > zonedum
+	set zonelist = `cat zonedum`
+	set csteps = 0
+	foreach zone ($zonelist)
+		@ csteps ++	
+	end	
+#	echo "for proc $procnum counted $csteps $nsteps"
+	if ( $procnum == 0 ) then
+		set nsteps = $csteps
+	else
+		if ( $nsteps != $csteps )  then
+		 echo "Warning: different number of time steps for $procnum"
+		 goto endshell
+		endif
+		set nsteps = $csteps
+	endif
+#
+# call TECPC (and Preplot)
+#
+	echo "Calling TECPC $rootname $fblock $procnum $zonelist."
+	tecpc $rootname $fblock $procnum $zonelist
+#
+# create the list of input files to be used by sed 
+#
+# bag8 - changed mydir to macrofilepath
+	set flist = ($flist \
+	"|macrofilepath|/${rootname}_${fblock}_${procnum}.plt")
+#	echo "current flist= $flist"
+
+	@ nsets++
+  end # foreach loop for nfblocks
+  echo "-----------------------------"	
+  @ procnum++	
+end # loop for nprocessor
+
+#
+#### reset the TECload, TECanim, TECfirst macros 
+#### 
+echo "Resetting MCR (Tecplot macro) files:" 
+echo "Files dum,fdum,tmp will be destroyed. Proceed ? (y/n)"
+#set reply = $<
+set reply = "y"
+if ( $reply != "y" ) then
+	goto endshell
+endif
+#
+## create the sed script dum that applies to all src files 
+#
+rm -f dum
+echo "4 s/=/=  $nsets/" > dum
+echo "5 s/=/=  $nsteps/"  >> dum
+#
+## loop over the macro files: insert the current values of nprocessor, nsteps
+#
+foreach mfile(TECload TECfirst TECanim)
+	echo "$mfile.mcr.."
+	rm -f $mfile.mcr 	
+	sed -f dum $mfile.src > $mfile.mcr
+	echo "..has been created OK."
+end
+#
+### special treatment of TECload.mcr: append filenames
+## create the sed script fdum
+#
+rm -f fdum		
+echo '8 a\' > fdum
+echo "'"`pwd`"'" >> fdum
+echo '9 a\' >> fdum
+rm -f tmp
+mv TECload.mcr tmp
+echo '"'"$flist"'"' >> fdum
+sed -f fdum tmp > TECload.mcr
+#### 
+# rm -f dum fdum tmp
+##############
+echo "MTECPC ended OK."
+exit 0
+### we are here if error occured or user interrupted the macro
+endshell:
+echo "MTECPC interrupted."
+exit 1
+
+
+
+
+
+
+

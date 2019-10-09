@@ -1,0 +1,175 @@
+TITLE(2)="Mandel's Problem"
+
+DESCRIPTION()=
+"XSIZE (FT) : 328.084"
+"YSIZE (FT) : 32.8084"
+"ZSIZE (FT) : 3280.84"
+"GRID BLOCKS : 10x10x4"
+"DATE : OCT '16"
+
+BLOCKMODEL(1)= "POROELASTIC"
+FLOW_MODEL = "SINGLE_PHASE_MFMFE"
+
+TMODEL=1  $ Special linearization for Mandel problem
+
+$ -- SIMULATION TIME
+$TIMEEND = 0.00011574074
+$TIMEEND = 0.001
+TIMEEND = 0.5787037
+
+$ -- NEWTON TOLERANCE(SINGLE PHASE FLOW)
+CVTOL = 1.E-8
+MAXNEWT = 1000
+
+$ -- I/O OPTIONS
+OUTLEVEL = 2  
+
+$ -- PORE VOLUME TOLERANCE (FIXED-STRESS)
+PEPVTOL = 1.E-6
+
+$ -- HYPRE TOLERANCE
+LSOL_TOL = 1.E-10
+
+$ -- FAULT BLOCK AND MESH DATA
+BLOCKNAME(1) = "BLOCK1"
+DOWN(1 TO 3,1) = 0 0 0
+
+$ -- GEOMETRY
+MFMFE_BRICKS
+NX(1) = 40      NY(1) = 40      NZ(1) = 1
+XYZ111() = 0. 0. 0.
+DX(,1) = 8.202099738E0
+DY(,1) = 0.8202099738E0
+DZ(,1) = 3.280839895013E0
+
+$ -- SINGLEI_MFMFE
+PINIT = 0.
+FLVIS = 1.
+STFLDEN = 62.4
+FLCOMP = 2.0893182E-06
+$FLCOMP = 0.0
+
+$ -- POROSITY
+POROSITY1() = 0.2
+
+$ -- PERMEABILITY
+XPERM1() = 100.0 YPERM1() = 100.0 ZPERM1() = 100.0
+
+$ -- POROHEX
+MODULUS1() = 8.615250734E+05
+POISSON1() = 0.2
+BIOTA1() = 1.0
+ROCKD1() = 0.0
+GRAVITY_FLAG = 0
+
+$NO_ELASTIC_NEWTON
+
+CR_TYPE = 2
+
+$ -- POROHEX BC
+$ 1 --> traction bc
+$ 2 --> displacment bc
+$
+
+$ Flag to set BC's using Mandel subroutines
+MECH_BC_NCASE = 100
+
+EBCXX1() = 2  $--displacement bc on x- face
+XXDI1() = 0.0 
+
+EBCXXN1() = 1 $--traction bc on x+ face
+XXSTN1() = 0.0 
+
+EBCYY1() = 2  $--displacement bc on y- face
+YYDI1() = 0.0 
+
+EBCYYN1() = 2 $--displacement bc on y+ face
+YYDIN1() = 0.0 
+
+EBCZZ1() = 2  $--displacement bc on z- face
+ZZDI1() = 0.0 
+
+EBCZZN1() = 2 $--displacement bc on z+ face
+ZZDIN1() = 0.0 
+
+$ -- NO WELLS
+NUMWELL = 0
+
+$ -- FLOW BC
+NBND_REG = 6
+NBND_SUBREG = 6
+BDAREA_EPS = 1.0E-02
+$
+$             nreg nblk  x1 y1 z1     x2 y2 z2
+ BND_VOL(,1) = 1     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+ BND_VOL(,2) = 2     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+ BND_VOL(,3) = 3     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+ BND_VOL(,4) = 4     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+ BND_VOL(,5) = 5     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+ BND_VOL(,6) = 6     1,   0. 0. 0.     0. 0. 0.    $ Dummy!
+
+$ 0 --> flux BC
+$ 1 --> pressure bc
+
+BOUND_TYPE(1) = 0
+TBOUND(1) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+BOUND_TYPE(2) = 1
+TBOUND(2) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+BOUND_TYPE(3) = 0
+TBOUND(3) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+BOUND_TYPE(4) = 0
+TBOUND(4) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+BOUND_TYPE(5) = 0
+TBOUND(5) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+BOUND_TYPE(6) = 0
+TBOUND(6) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data 0. 0.0
+EndBlock
+
+EndInitial
+
+$$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.0
+DELTIM = 0.00011574074  DTIMMUL = 1.0 DTIMMAX = 0.00011574074  DTIMMIN=0.00011574074
+$TIMOUT = 0.00011574074  DTIMOUT = 0.5787037
+$VISOUT = 0.00011574074  DVISOUT = 0.5787037
+VISALL
+VIS_SCL = 5
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "DISPX"
+VIS_SCL_NAMES(3) = "DISPY"
+VIS_SCL_NAMES(4) = "DISPZ"
+VIS_SCL_NAMES(5) = "PV"
+VIS_FNAME = "mandel"
+VIS_DIR = "visual"
+VISFLAG = 10
+EndTime
+

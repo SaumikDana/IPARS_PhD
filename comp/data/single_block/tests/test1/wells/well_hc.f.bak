@@ -1,0 +1,132 @@
+      program well
+      implicit none
+      character* 40 filename,tecname1,tecname2,tecname3,tecname4,
+     &              tecname5,tecname6
+      integer i,jwi,jgi,jop,jwp,jgp,joi,k,nw,kd,nkd,N
+      parameter (filename = 'SPE5_v2.CUM',
+     &           tecname1 = 'watInj.dat',
+     &           tecname2 = 'gasInj.dat',
+     &           tecname3 = 'oilProd.dat',
+     &           tecname4 = 'watProd.dat',
+     &           tecname5 = 'gasProd.dat',
+     &           tecname6 = 'oilInj.dat',N=5000)
+      real*8 twi(N),tgi(N),top(N),twp(N),tgp(N),toi(N),watinj(N),
+     $       oilprod(N),watprod(N),gasinj(N),gasprod(N),oilinj(N)
+
+      jwi=0
+      jgi=0
+      jop=0
+      jwp=0
+      jgp=0
+      joi=0
+
+      open(50,file=filename,status='old')
+
+      do i = 1,5000
+         read(50,*,end=100,err=100)
+         read(50,*,end=100,err=100) nw,kd,nKd
+         if(kd.eq.1) then
+            read(50,*,end=100,err=100)(twi(k),k=jwi+1,jwi+nkd)
+            read(50,*,end=100,err=100)(watinj(k),k=jwi+1,jwi+nkd)
+            jwi=jwi+nkd
+         elseif(kd.eq.2) then
+            read(50,*,end=100,err=100)(top(k),k=jop+1,jop+nkd)
+            read(50,*,end=100,err=100)(oilprod(k),k=jop+1,jop+nkd)
+            jop=jop+nkd
+         elseif(kd.eq.3) then
+            read(50,*,end=100,err=100)(twp(k),k=jwp+1,jwp+nkd)
+            read(50,*,end=100,err=100)(watprod(k),k=jwp+1,jwp+nkd)
+            jwp=jwp+nkd
+         elseif(kd.eq.4) then
+            read(50,*,end=100,err=100)(tgp(k),k=jgp+1,jgp+nkd)
+            read(50,*,end=100,err=100)(gasprod(k),k=jgp+1,jgp+nkd)
+            jgp=jgp+nkd
+         elseif(kd.eq.8) then
+            read(50,*,end=100,err=100)(tgi(k),k=jgi+1,jgi+nkd)
+            read(50,*,end=100,err=100)(gasinj(k),k=jgi+1,jgi+nkd)
+            jgi=jgi+nkd
+         elseif(kd.eq.9) then
+            read(50,*,end=100,err=100)(toi(k),k=joi+1,joi+nkd)
+            read(50,*,end=100,err=100)(oilinj(k),k=joi+1,joi+nkd)
+            joi=joi+nkd
+         else
+            stop 'Unknown well data type!!!'
+         endif
+      enddo
+ 100  continue
+
+      if(jwi.gt.0) then
+         open(70,file=tecname1,status='new')
+         write(70,*)'TITLE = "CUMULATIVE WATER INJECTION"'
+         write(70,*)
+     $        'VARIABLES = "Time [days]","Water Injection [stb]",' 
+         write(70,*)'ZONE F=BLOCK, T="", I =',jwi
+         write(70,*)(twi(i),i=1,jwi)
+         write(70,*)
+         write(70,*)(watinj(i),i=1,jwi)
+      endif
+
+      if(jgi.gt.0) then
+         open(71,file=tecname2,status='new')
+         write(71,*)'TITLE = "CUMULATIVE GAS INJECTION"'
+         write(71,*)
+     $        'VARIABLES = "Time [days]","Gas Injection [mscf]",'
+         write(71,*)'ZONE F=BLOCK, T="", I =',jgi
+         write(71,*)(tgi(i),i=1,jgi)
+         write(71,*)
+         write(71,*)(gasinj(i),i=1,jgi)
+      endif
+
+      if(jop.gt.0) then
+         open(72,file=tecname3,status='new')
+         write(72,*)'TITLE = "CUMULATIVE OIL PRODUCTION"'
+         write(72,*)
+     $        'VARIABLES = "Time [days]","Oil Production [stb]",'
+         write(72,*)'ZONE F=BLOCK, T="", I =',jop
+         write(72,*)(top(i),i=1,jop)
+         write(72,*)
+         write(72,*)(oilprod(i),i=1,jop)
+      endif
+
+      if(jwp.gt.0) then
+         open(73,file=tecname4,status='new')
+         write(73,*)'TITLE = "CUMULATIVE WATER PRODUCTION"'
+         write(73,*)
+     $        'VARIABLES = "Time [days]","Water Production [stb]",'
+         write(73,*)'ZONE F=BLOCK, T="", I =',jop
+         write(73,*)(twp(i),i=1,jwp)
+         write(73,*)
+         write(73,*)(watprod(i),i=1,jwp)
+      endif
+
+      if(jgp.gt.0) then
+         open(74,file=tecname5,status='new')
+         write(74,*)'TITLE = "CUMULATIVE GAS PRODUCTION"'
+         write(74,*)
+     $        'VARIABLES = "Time [days]","Gas Production [mscf]",'
+         write(74,*)'ZONE F=BLOCK, T="", I =',jgp
+         write(74,*)(tgp(i),i=1,jgp)
+         write(74,*)
+         write(74,*)(gasprod(i),i=1,jgp)
+      endif
+
+      if(joi.gt.0) then
+         open(75,file=tecname6,status='new')
+         write(75,*)'TITLE = "CUMULATIVE OIL INJECTION"'
+         write(75,*)
+     $        'VARIABLES = "Time [days]","Oil Injection [stb]",'
+         write(75,*)'ZONE F=BLOCK, T="", I =',joi
+         write(75,*)(toi(i),i=1,joi)
+         write(75,*)
+         write(75,*)(oilinj(i),i=1,joi)
+      endif
+
+      close(50)
+      close(70)
+      close(71)
+      close(72)
+      close(73)
+      close(74)
+      close(75)
+c 11   format(6 F15.6)
+      end

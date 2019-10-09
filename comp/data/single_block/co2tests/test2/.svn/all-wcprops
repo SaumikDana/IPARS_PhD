@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/repos/csm/!svn/ver/123/IPARSv3.1/comp/data/single_block/co2tests/test2
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/co2tests/test2/IPARS.IN
+END
+co2_sgas_50y.eps
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/co2tests/test2/co2_sgas_50y.eps
+END
+co2_sgas_50y.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/co2tests/test2/co2_sgas_50y.pdf
+END
+co2_sgas.eps
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/co2tests/test2/co2_sgas.eps
+END
+co2_sgas.pdf
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/co2tests/test2/co2_sgas.pdf
+END
+co2_test1.dat
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/repos/csm/!svn/ver/123/IPARSv3.1/comp/data/single_block/co2tests/test2/co2_test1.dat
+END

@@ -1,0 +1,13 @@
+$ ############ PCG Solver Include File ############
+
+Replace_Symbols
+
+MSOLP   C                $ Model solver as PCG
+PCG  ""                  $ Include PCG linear solver
+
+Source_Directory
+../solve/
+Source_Files
+
+
+

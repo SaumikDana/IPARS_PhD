@@ -1,0 +1,173 @@
+$     Framework 40x200x200, 36 Processor, 40 Wells, 10 Fault Blocks
+
+Replace_Symbols
+
+MXMOD    19          $ Max id number assigned to any physical model
+LAYERX   2           $ Thickness of the local x boundary layer
+LAYERY   2           $ Thickness of the local y boundary layer
+LAYERZ   2           $ Thickness of the local z boundary layer
+INTREF   1           $ Initial number of grid-refinement elements
+MXREAD   680000000
+$MXREAD   200000      $ Max characters in a key-word block (multiple of 8)
+                     $ also max bytes in an UPDATE call (multiple processors)
+                     $ (sends & 1 receive)
+                     $ max(y,z)*x*(2+1)*8 for strip partitioning
+                     $ max(y,z)*x*(3?+1)*8 for block partitioning
+                     $ 200 * 40 * (2 + 1) * 8 = 192,000 for 2 processors
+MXRECORD 202         $ Max record length in keyword input
+MAXUL    60          $ Max characters in a units string
+CMPPRG   6           $ Max number of user programs
+CMPDAT   4000        $ Max number of words in compiler data memory
+CMPCHR   1000        $ Max number of characters in compiler string memory
+CMPSTG   50          $ Max number of strings in compiler string memory
+CMPKOD   4000        $ Max number of instructions in compiler code memory
+CMPVAR   400         $ Max number of variables in compiler name memory
+MAXEXT   50          $ Max number of simulator variables passed to compiler
+MXUSRF   6           $ Max number of user files passed to compiler
+MXRTAB = 18          $ Max number of rock property tables
+MXMTAB = 8           $ Max number of miscellenous tables (excluding wells)
+MXTBVL   2000        $ Max number of 1D table values (2 per data pair)
+MXSBBK   50          $ Max subscript on a block text variable or table
+                     $ (including well rate tables)
+MXTBUF   4000        $ Max characters in a block text variable or table
+MXTIMS   50          $ Max number of execution timers
+MXPROC   36          $ Max total number of processors
+MXMPP    10          $ Max number of processors adjacent to a processor
+                     $ (including processor to itself)
+MXTMP    4           $ Max number of message templates
+MXMGI    10000        $ Max grid columns in messages (per processor)
+                     $ (all templates, both send and receive)
+                     $ (200 * 2 * 2 * 2 = 1600 for strip partitioning)
+MXBLKS = 10          $ Max number of fault blocks
+MXBNAM   60          $ Max grid-block name length
+MXCOLS   41000       $ Max number of grid columns in all fault blocks
+MXREG    3           $ Max number of print regions in a fault block
+MXANAM   20          $ Max memory array name length
+MXARYS   350         $ Max number of arrays
+MXARGS   200         $ Max total number of work routine arguments
+MXDISCP  22          $ Max number of reservoir discription lines
+MXRECX = 104         $ Max x intervals (rectangular option)
+MXRECY = 304         $ Max y intervals (rectangular option)
+MXRECZ = 304         $ Max z intervals (rectangular option)
+MXWELL = 10          $ Max number of wells
+MXWELN   40          $ Max length of a well name
+MXWELE  100          $ Max open grid elements per well
+MXWELI    2          $ Max open intervals per well
+MXHISQ  100000          $ Max number of well output values/time step/processor
+                      $ this is modified by Tameem
+
+MXHIST   18          $ Max number of time steps between well outputs
+MXHISD = 34          $ Max number of well output id keys
+MXPBUF  480          $ Max number of entries in a print block (multiple of 12)
+MXCOMP   12          $ Max number of nonaqueous components (Modify MXNUMEQ also)
+MXNUMEQ   3          $ Max number of equations per element
+MXPHASE    3          $ Max number of flowing phases present
+NUMTRCOF = 1         $ Number of stencil points in linear system (for trchem)
+
+PMODEL    1          $ Model number for black-oil impes model
+IMODEL    2          $ Model number for black-oil implicit model
+XMODEL    3          $ Model number for compositional model
+CMODEL    4          $ Model number for chemical flood model
+HMODEL    5          $ Model number for hydrology implicit model
+GMODEL    6          $ Model number for hydrology explicit model
+MMMODEL   7          $ Model number for multimodel model
+SMODEL    9          $ Model number for single-phase explicit model
+TMODEL   13          $ Model number for single-phase implicit model
+TRMODEL  14          $ Model number for transport-chemistry model
+PEMODEL  15          $ Model number for poroelastic model
+XMMODEL  16          $ Model number for compositional mfmfe model
+TMMODEL  17          $ Model number for single phase mfmfe model
+HMMODEL  18          $ Model number for hydrology implicit mfmfe model
+HAMODEL  19          $ Model number for hydrology implicit bricks model (approx)
+
+MXRECXP = MXRECX + 1
+MXRECYP = MXRECY + 1
+MXRECZP = MXRECZ + 1
+MXFACE = MXBLKS + 1
+MXPRJ  = MXRECY * MXRECZ     $ Max size of face-face projection matrix
+MXTAB =  MXWELL + MXRTAB + MXMTAB
+
+$ boundary surface parameters
+
+MXBREG   = 6 * MXBLKS           $ max number of surface regions
+MXSUBREG = 6 * MXBLKS           $ max number of surface subregions
+
+$ max number of boundary elements
+
+MXBXY = 2 * MXRECX * MXRECY
+MXBXZ = 2 * MXRECX * MXRECZ
+MXBYZ = 2 * MXRECY * MXRECZ
+MXBEL = MXBXY + MXBYZ + MXBXZ
+MXBELE = MXBEL * MXBLKS         $ max number of boundary elements
+
+Source_Directory
+../drive/
+Source_Files
+ipars.df       .f
+msjunk.h
+control.dh     .h
+
+Source_Directory
+../input/
+Source_Files
+read1.df       .f
+read2.df       .f
+units.f
+scrat1.dh      .h
+scrat2.dh      .h
+readdat.dh     .h
+idata.df       .f
+tdata.df       .f
+rock.dh        .h
+blkary.dh      .h
+unitsex.h
+
+Source_Directory
+../util/
+Source_Files
+table.df       .f
+utldat.dh      .h
+comp.df        .f
+compc.h
+extvar.dc      .c
+timer.df       .f
+times.dh       .h
+initial.df     .f
+prop.df        .f
+cputime.dc     .c
+
+Source_Directory
+../output/print/
+Source_Files
+output.dh      .h
+prtout.df      .f
+stdout.df      .f
+
+Source_Directory
+../output/restart/
+Source_Files
+restart.df     .f
+
+Source_Directory
+../memman/
+Source_Files
+memman1.dc     .c
+memman2.dc     .c
+parall.dc      .c
+divide.df      .f
+memory.dh      .h
+layout.dh      .h
+
+Source_Directory
+../wells/
+Source_Files
+wells.dh       .h
+iwell.df       .f
+owell.df       .f
+linwel.df      .f
+
+Source_Directory
+../parall/
+Source_Files
+many.df        .f
+putil.df       .f

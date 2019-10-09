@@ -1,0 +1,100 @@
+C  ISTDOUT.F - PRINT BLACK OIL MODEL STANDARD OUTPUT
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE ISTDOUT ()
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     4/29/97    SKELETON ROUTINE
+C  Joe Eaton        9/12/97    Conversion to black oil model
+C  JOHN WHEELER     9/15/99    MULTIMODEL CAPABILITY
+
+C*********************************************************************
+      SUBROUTINE ISTDOUTS ()
+C*********************************************************************
+
+C  Prints black oil model standard output - scalars
+
+C*********************************************************************
+      INCLUDE 'control.h'
+
+      END
+C*********************************************************************
+      SUBROUTINE ISTDOUTA ()
+C*********************************************************************
+
+C  Prints black oil model standard output - arrays
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'iarydat.h'
+
+      INTEGER MAKSO(6)
+      EXTERNAL IMAKSAT
+
+C  PRINT OIL PRESSURES
+
+      TITU='OIL PRESSURES FOR FAULT BLOCK'
+      CALL GEAOUT(N_POIL,1,1)
+
+C  PRINT GAS SATURATIONS
+
+      TITU='GAS SATURATION FOR FAULT BLOCK'
+      CALL GEAOUT(N_SGAS,1,1)
+
+C  PRINT OIL SATURATIONS
+
+      MAKSO(1)=5
+      MAKSO(2)=N_POIL
+      MAKSO(3)=N_OIL
+      MAKSO(4)=N_DUNK
+      MAKSO(5)=N_DGRO
+      MAKSO(6)=N_OILN
+      CALL CALLWORK(IMAKSAT,MAKSO)
+
+      TITU='OIL SATURATION FOR FAULT BLOCK'
+      CALL GEAOUT(N_OILN,1,1)
+ 
+      END
+C*********************************************************************
+      SUBROUTINE IMAKSAT (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                 KEYOUT,NBLK,POIL,OIL,DUNK,DGRO,OILN)
+C*********************************************************************
+ 
+C  ROUTINE GENERATES So FOR OUTPUT.  THIS IS A WORK ROUTINE.
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  OIL(I,J,K) = OIL CONCENTRATION, STBO/BBL (INPUT, REAL*8)
+
+C  DUNK(I,J,K) = OIL DENSITY, LB/BBL (INPUT, REAL*8)
+
+C  DGRO(I,J,K) = GAS-OIL RATIO, SCF/STBO (INPUT, REAL*8)
+
+C  OILN(I,J,K) = OIL SATURATION (OUTPUT, REAL*8)
+
+C*********************************************************************
+      INCLUDE 'ifluid.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 POIL(IDIM,JDIM,KDIM),      DUNK(IDIM,JDIM,KDIM,3),
+     &       DGRO(IDIM,JDIM,KDIM),      OIL(IDIM,JDIM,KDIM),
+     &       OILN(IDIM,JDIM,KDIM)
+
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         OILN(I,J,K)=OIL(I,J,K)
+     &      *(OSTDEN+GSTDEN*DGRO(I,J,K))/DUNK(I,J,K,1)
+      ELSE
+         OILN(I,J,K)=0.D0
+      ENDIF
+    1 CONTINUE
+      END

@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/repos/csm/!svn/ver/137/IPARSv3.1/comp/data/single_block/frio/21x26x26/iso
+END
+frio-21x26x26-rock.dat
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/54/IPARSv3.1/comp/data/single_block/frio/21x26x26/iso/frio-21x26x26-rock.dat
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/repos/csm/!svn/ver/54/IPARSv3.1/comp/data/single_block/frio/21x26x26/iso/IPARS.IN
+END
+frio-21x26x26-prop.dat
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/54/IPARSv3.1/comp/data/single_block/frio/21x26x26/iso/frio-21x26x26-prop.dat
+END
+frio-21x26x26-init.dat
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/54/IPARSv3.1/comp/data/single_block/frio/21x26x26/iso/frio-21x26x26-init.dat
+END
+frio-21x26x26-well.dat
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/54/IPARSv3.1/comp/data/single_block/frio/21x26x26/iso/frio-21x26x26-well.dat
+END
+frio-21x26x26-grid.dat
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/csm/!svn/ver/54/IPARSv3.1/comp/data/single_block/frio/21x26x26/iso/frio-21x26x26-grid.dat
+END
+co2frio_21x26x26.dat
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/repos/csm/!svn/ver/137/IPARSv3.1/comp/data/single_block/frio/21x26x26/iso/co2frio_21x26x26.dat
+END

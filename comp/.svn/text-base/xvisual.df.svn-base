@@ -1,0 +1,205 @@
+C  XVISUAL.F - SETUP AND OUTPUT TRANSPORT-CHEMISTRY 
+
+C  ROUTINES IN THIS MODULE:
+
+C SUBROUTINE XVIS_TRANSL(SCALAR,NUM,NAME)
+C SUBROUTINE XVIS_OUTPUT() - INTERFACE TO THE FRAMEWORK VIS_OUTPUT
+C                            ROUTINES
+C===============================================================
+C  CODE HISTORY:
+C S. G. THOMAS,      9/09, INITIAL VERSION
+C ---------------------------------------------
+      SUBROUTINE XVIS_TRANSL(SCALAR,NUM,NAME)
+C ---------------------------------------------
+C LOOKUP THE <NAME> IN THE GLOSSARY FOR THE MODEL
+C WHICH IS READ FROM TVISUAL.H
+C ---- FOR DIFFERENT MODELS: COPY THE ROUTINE, CHANGE THE INCLUDE FILE
+C 
+C SET VIS_VARNAMES, VIS_OFFSETS AND VIS_IPARS_VARS:
+C
+C VIS_VARNAMES: THE NAMES THAT WILL BE PUT IN THE TECPLOT FILE
+C VIS_IPARS_NAMES: THE NAMES THAT ARE "OFFICIAL" TO IPARS
+C VIS_OFFSETS: THE OFFSEST AS DECIDED IN IPARS
+C --------------
+C IF NOT IN GLOSSARY, COPY NAMES VERBATIM, SET OFFSET TO 1 (DEFAULT)
+C ---------------------------------------------
+      IMPLICIT NONE
+C PARAMETERS      
+      CHARACTER*$MXANAM NAME
+      INTEGER NUM
+      LOGICAL SCALAR,ONCEONLY
+
+C INCLUDES
+      INCLUDE 'control.h'
+      INCLUDE 'visual.h'
+      INCLUDE 'xvisual.h'
+      INCLUDE 'xmodel.h'
+
+C LOCAL VARIABLES
+      INTEGER I,J,K,NNUM
+C -----------------------------------------------------------
+
+      DATA ONCEONLY/.TRUE./
+
+      IF(ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+         IF(NPH < 3) THEN
+            DO J=1,NPH
+               DO I=1,3
+                  IPARS_VEC_OFFSETS(I,J)=J+NPH*(I-1)
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDIF
+
+      IF (SCALAR) THEN
+C -----------------------------
+
+         VIS_VARNAMES(NUM) = NAME
+         VIS_OFFSETS(NUM) = 1
+         VIS_IPARS_NAMES (NUM ) = NAME
+
+         DO I=1,IPARS_NSCL
+            IF (IPARS_SCL_NAMES(1,I).EQ.NAME) THEN
+
+               VIS_VARNAMES(NUM) = IPARS_SCL_NAMES(2,I)
+               VIS_IPARS_NAMES (NUM) = IPARS_SCL_NAMES(3,I)
+               VIS_OFFSETS (NUM) = IPARS_SCL_OFFSETS(I)
+            ENDIF
+         ENDDO
+        
+         CALL VIS_ARYNUM(NUM)
+ 
+      ELSE 
+C ---------------------------------
+C  VECTOR CASE : 
+
+         DO K=1,3             
+            NNUM = VIS_SCL + (NUM-1)*3 +K
+
+C     OTHERWISE, LOOK FOR IT IN COMPOSITIONAL MODEL
+
+            VIS_VARNAMES( NNUM ) = NAME
+            VIS_OFFSETS( NNUM  ) = 1            
+            VIS_IPARS_NAMES (NNUM) = NAME
+         ENDDO
+
+         DO I=1,IPARS_NVEC
+            IF (IPARS_VEC_NAMES(1,I).EQ.NAME) THEN
+               DO K=1,3
+                  NNUM = VIS_SCL + (NUM-1)*3 +K
+                  VIS_VARNAMES(NNUM) = IPARS_VEC_NAMES(1+K,I)
+                  VIS_IPARS_NAMES(NNUM) = IPARS_VEC_NAMES(4+K,I)
+                  VIS_OFFSETS (NNUM) = IPARS_VEC_OFFSETS(K,I)
+               ENDDO
+            ENDIF
+         ENDDO
+         DO K=1,3             
+            NNUM = VIS_SCL + (NUM-1)*3 +K
+            CALL VIS_ARYNUM(NNUM)
+         ENDDO
+         
+      ENDIF
+
+      END
+
+C ====================================================================
+      SUBROUTINE XVIS_INIT ()
+C --------------------------------------------------------------------
+      END
+
+
+C===========================================================
+      SUBROUTINE XVIS_OUTPUT ()
+C-----------------------------------------------------------
+      IMPLICIT NONE
+
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'xarydat.h'
+      INCLUDE 'xmodel.h'
+      INCLUDE 'visual.h'
+
+      INTEGER XARG(15),N_ARRAY,I
+
+C-----------------------
+C EXTERNAL FRAMEWORK VIS ROUTINE
+C
+      EXTERNAL XVELCOMP,XPHDENS
+C -----------------------
+
+C THIS ARRAY WILL CHECK FOR THAT WE DO NOT DO TOO MANY UPDATES
+
+      LOGICAL IUPDATE($MXARYS)
+
+C -------------------------------------------------------------      
+C THE VALUE OF VISFLAG CAN BE SET ANYWHERE, FOR EXAMPLE IN RESTART
+C FILES
+C      
+      IF((VISFLAG.LT.1).OR.(VISFLAG.GT.MAXVISFLAG)) THEN
+         GO TO 1
+      ENDIF
+
+C UPDATE ALL VARIABLES USING TEMPLATE 2 
+C
+      DO I=1,$MXARYS
+         IUPDATE(I) = .FALSE.
+      ENDDO
+
+      DO I=1, VIS_SCL
+         N_ARRAY = N_VIS_VARS(I,CURRENT_MODEL)
+
+C         WRITE(*,*) ' XVIS_OUTPUT VISVAR ',I,' IS ',
+C     &        N_VIS_VARS(I,CURRENT_MODEL)
+
+$MANY         CALL UPDATE(N_ARRAY,2)
+         IUPDATE(N_ARRAY) = .TRUE.
+      ENDDO
+
+      IF (VIS_VEC.GT.0) THEN
+
+$MANY         IF(.NOT.IUPDATE(N_PRES)) CALL UPDATE(N_PRES,2)
+$MANY         IF(.NOT.IUPDATE(N_PC)) CALL UPDATE(N_PC,2)
+$MANY         IF(.NOT.IUPDATE(N_TCOFX)) CALL UPDATE(N_TCOFX,2)
+$MANY         IF(.NOT.IUPDATE(N_TCOFY)) CALL UPDATE(N_TCOFY,2)
+$MANY         IF(.NOT.IUPDATE(N_TCOFZ)) CALL UPDATE(N_TCOFZ,2)
+$MANY         IF(.NOT.IUPDATE(N_PMD)) CALL UPDATE(N_PMD,2)
+$MANY         IF(.NOT.IUPDATE(N_MOB)) CALL UPDATE(N_MOB,2)
+
+         XARG(1)=2
+         XARG(2)=N_PMD
+         XARG(3)=N_PMDEN
+         CALL CALLWORK(XPHDENS,XARG)
+
+$MANY         IF(.NOT.IUPDATE(N_PMDEN)) CALL UPDATE(N_PMDEN,2)
+
+         XARG(1)=9
+         XARG(2)=N_TCOFX
+         XARG(3)=N_TCOFY
+         XARG(4)=N_TCOFZ
+         XARG(5)=N_DEPTH
+         XARG(6)=N_PRES
+         XARG(7)=N_PC
+         XARG(8)=N_PMDEN
+         XARG(9)=N_MOB
+         XARG(10)=N_XVEL
+
+         CALL CALLWORK(XVELCOMP, XARG)
+
+$MANY      CALL UPDATE(N_XVEL,2)
+
+        ENDIF
+
+C ------------------ VISUALIZATION OUTPUT 
+C PASS THE ARGUMENTS TO THE FRAMEWORK  VIS ROUTINE
+
+      CALL VIS_OUTPUT()
+                
+ 1    CONTINUE
+      RETURN
+      END
+
+C --------------------------------------------------------------------
+
+

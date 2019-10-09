@@ -1,0 +1,71 @@
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge
+END
+brugge-wells-old.dat
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/brugge-wells-old.dat
+END
+brugge.dat
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/brugge.dat
+END
+xperm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/xperm.dat
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/IPARS.IN
+END
+mesh.dat
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/mesh.dat
+END
+yperm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/yperm.dat
+END
+zperm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/zperm.dat
+END
+poro.dat
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/poro.dat
+END
+relperm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/relperm.dat
+END
+wells.dat
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/wells.dat
+END
+brugge-rock.dat
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/repos/csm/!svn/ver/400/IPARSv3.1/comp_mfmfe/Benchmark/COMP_GEO_Brugge/brugge-rock.dat
+END

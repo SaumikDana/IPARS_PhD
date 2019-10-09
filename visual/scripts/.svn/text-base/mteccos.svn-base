@@ -1,0 +1,93 @@
+#! /bin/csh
+#
+# MTECCOS
+# 
+###############################################################
+#
+# process Vis.inf to extract groups of Rootnames etc.
+#
+set visinf = "Vis.inf"
+if ( ! (-e $visinf ) ) then
+        echo "File $visinf does not exist."
+        goto endshell
+endif
+
+# standard number of lines output from ipars
+set nstd = 6
+rm -f ndum
+wc -l $visinf > ndum
+set nlines = `awk ' { print $1 } ' ndum `
+echo "MTECCOS found $nlines lines in the file $visinf."
+rm -f ndum
+
+@ ndiv = $nlines / $nstd
+@ ntry = $ndiv * $nstd
+@ nlogic = $ntry == $nlines
+echo "MTECCOS found $ndiv groups, of even (1)/uneven (0) length: $nlogic "
+
+rm -f curr_file
+rm -f sdum
+rm -f sfdum
+cp $visinf sdum
+
+if ( $nlogic == 0 ) then 
+    @ ala = $nlines - $ntry
+    @ ndiv ++
+else
+    @ ala = $nstd
+endif
+
+set nn = 0
+while ( $nn < $ndiv ) 
+
+    echo "==============================================================="
+    echo "< MTECCOS group $nn : processing first $ala lines.. "
+
+    rm -f curr_file
+    head -$ala sdum > curr_file
+
+    # check if the file has Rootname in the first line, if not, quit    
+    set roottag   = `awk ' NR == 1 { print $1; } ' curr_file `
+    set stdroottag = "Rootname"
+    @ check = $roottag == $stdroottag
+#    echo "< MTECCOS .. correctness check: $check <$roottag>=?<$stdroottag>"
+    echo "< MTECCOS .. correctness check: $check "
+    if ( $check != 1 ) then
+	echo "Rootname line is incorrect. See curr_file."
+	goto endshell
+    else
+	set rootname   = `awk ' NR == 1 { print $3; } ' curr_file `
+	set visflag   = `awk ' NR == 4 { print $3; } ' curr_file `
+	if ( $visflag == 4) then
+           echo "< MTECCOS Found root fname=$rootname. Calling MTECSLI ..."
+ 	   ./mtecsli curr_file
+        else
+	   echo "< MTECCOS Found root fname=$rootname. Calling MTECCOA ..."
+ 	   ./mteccoa curr_file
+	endif
+	set mtecco_stat = $status
+	if ( $mtecco_stat != 0) then
+	    goto endshell
+	endif
+    endif
+    @ ala ++
+
+#gp    tail +$ala sdum > sfdum
+    tail -n +$ala sdum > sfdum
+    @ nn ++
+
+    rm -f sdum
+    cp sfdum sdum
+    rm -f sfdum
+
+    @ ala = $nstd
+end
+
+echo "============================================================"
+echo "MTECCOS ended OK."
+exit 0
+### we are here if error occured or user interrupted the macro
+endshell:
+echo "MTECCOS interrupted."
+set status = 12
+

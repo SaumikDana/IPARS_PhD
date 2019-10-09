@@ -1,0 +1,692 @@
+C PEIVDAT.F -- POROELASTIC MODEL INITIALIZATION REOUTINE
+C ROUTINES IN THIS FILE:
+C     SUBROUTINE PEIVDAT(NERR)
+C     SUBROUTINE PEINIT(IDIM,JDIM,KDIM,LDIM,IL2,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,PV0,DEPTH,MODUL,POISS,BIOTA,BIOTM,
+C                      ROCKD,STRXX_INIT,STRYY_INIT,STRZZ_INIT,DIR_COS,
+C                      ROCK_WEIGHT)
+C CODE HISTORY:
+C     XIULI GAI  05/19/01
+C     BIN WANG   04/09/13
+C*********************************************************************    
+      SUBROUTINE PEIVDAT(NERR)
+C*********************************************************************
+C Poroelastic model initialization routine
+C  1. Initialize some parameters
+C  2. Setup global stiffness matrix              
+C  3. Compute residuals and solve for initial displacements
+C  4. Compute initial volumetric strain
+C
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+C********************************************************************* 
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'times.h'
+
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pebdary.h'
+
+      INTEGER  NERR
+      
+      INTEGER  I,J,NEQ,KERR,ITER,JINIT(13),JZERO(4)
+      LOGICAL  FACTOR 
+      REAL*8   ZERO
+      EXTERNAL SETUP_CONNETIONS_3D,SETUP_ELASTIC_MAP3D,ELASTIC_SETUP_3D,
+     &         PEINIT,ADD_PRESS_3D,BODY3D_3PH,ADD_BODY3D,PESETUP_KEYOUT,
+     &         INITIAL_STRESS_3D,SUBTRACT_FINIT3D,DISPLACEMENT_3D,
+     &         STRAIN_INIT,PEUPSOL,EFFECTIVE_STRESS,CPYARYR8,
+     &         CPYARYR8N,DISPLACEMENT_ZERO,SETARYR8,ELASTIC3D_SUBTRACT,
+     &         PRTSYSTEM,PRTDISP,PRTPRES,ELASTIC_RESETUP,PRTKEYOUT,
+     &         RIGIDBODY_3D,RIGIDBODY_ZERO,FINDELE,CPYINITPORE,
+     &         STRESS_3D,AVERAGE_STRAIN,AVERAGE_STRESS
+      INTEGER  JPRTSYS(6),JPRTDISP(3),JPRTPRES(2),JSUB_STRES(7),
+     &         JDISP_BC(4),JPRTKEY(1),JRIGID(6),JSTRS(13)
+      PARAMETER (ZERO=0.D0)
+      EXTERNAL EPROCOUTPUT
+
+C FLOW MODEL INITIALIZATION
+
+$COMP      MODACT = $XMODEL
+$COMP      IF(PEFLOW.EQ.$XMODEL) CALL XIVDAT(NERR)
+$COMP      MODACT=$PEMODEL
+
+C SETUP UNITS CONVERSION FACTOR AND TIMERS
+
+      CONV_INCHES = 1.0D0/12.0D0
+      CONV_RESVOL = 1.0D0
+ 
+      TIMNAM(27)='POROE TOTAL TIME'
+      TIMKLS(27)=1
+      TIMNAM(28)='POROE INITIALIZATION TIME'
+      TIMKLS(28)=4
+      TIMNAM(29)='POROE TOTAL LINEAR SOLVER TIME'
+      TIMKLS(29)=1
+      TIMNAM(30)='POROE COMMUNICATION'
+      TIMKLS(30)=2
+      TIMNAM(31)='POROE COPY MATRIX TO HYPRE TIME'
+      TIMKLS(31)=4
+      TIMNAM(32)='POROE SETUP AMG SOLVER/PRECOND TIME'
+      TIMKLS(32)=4
+      TIMNAM(33)='POROE COPY/OBTAIN HYPRE RHS TIME'
+      TIMKLS(33)=4
+      TIMNAM(34)='POROE HYPRE SOLVE TIME'
+      TIMKLS(34)=1
+
+      CALL TIMON(27)
+      CALL TIMON(28)
+
+C SETUP REFERENCE PRESSURE
+$MANY       CALL TIMON(30)
+$MANY       CALL UPDATE(N_PRESS,2)
+$MANY       CALL UPDATE(N_PRESSN,2)
+$MANY       CALL TIMOFF(30)
+
+      JINIT(1) = 2
+      JINIT(2) = N_PRESS
+      JINIT(3) = N_PREF
+      CALL CALLWORK(CPYARYR8,JINIT)
+
+C 1.SETUP STRESS_INIT IF GRADIENT VALUES HAVE BEEN ENTERED
+C 2.CONVERT ROCK DENSITY TO TOTAL BODY FORCE FOR EACH GRID BLOCK
+C 3.SET UP EFFECTIVE COMPRESSIBILITY DUE TO VOLUMETRIC STRAIN
+C 4.SETUP DIRECTION COSINES FOR EACH GRID BLOCK
+
+cbw  copy N_EPV_FLOW as the N_PVREF in the poroelastic model
+cbw      JINIT(1) = 2
+cbw      JINIT(2) = N_EPV_FLOW
+cbw      JINIT(3) = N_PVREF
+cbw      CALL CALLWORK(CPYARYR8,JINIT)
+      JINIT(1) = 2
+      JINIT(2) = N_POR
+      JINIT(3) = N_PVREF
+      CALL CALLWORK(CPYINITPORE,JINIT)
+
+      JINIT(1) = 12
+      JINIT(2) = N_POR
+      JINIT(3) = N_DEPTH
+      JINIT(4) = N_MODUL
+      JINIT(5) = N_POISS
+      JINIT(6) = N_BIOTA
+      JINIT(7) = N_BIOTM
+      JINIT(8) = N_ROCKD
+      JINIT(9) = N_STRXX_INIT
+      JINIT(10) = N_STRYY_INIT
+      JINIT(11) = N_STRZZ_INIT
+      JINIT(12) = N_DIR_COS
+      JINIT(13) = N_ROCK_WEIGHT
+
+      NERRC = 0
+      CALL CALLWORK(PEINIT,JINIT)
+      
+      IF(NERRC.GT.0) THEN
+         NERR = NERR + 1
+         CALL TIMOFF(27)
+         CALL TIMOFF(28)
+         RETURN
+      ENDIF
+$MANY      CALL TIMON(30)
+$MANY      CALL UPDATE(N_MODUL,2)
+$MANY      CALL UPDATE(N_POISS,2)
+$MANY      CALL UPDATE(N_BIOTA,2)
+$MANY      CALL UPDATE(N_BIOTM,2)
+$MANY      CALL UPDATE(N_ROCK_WEIGHT,2)
+$MANY      CALL UPDATE(N_DIR_COS,2)         
+$MANY      CALL UPDATE(N_STRXX_INIT,2)
+$MANY      CALL UPDATE(N_STRYY_INIT,2)
+$MANY      CALL UPDATE(N_STRZZ_INIT,2)
+$MANY      CALL TIMOFF(30)
+
+C SETUP ELASTIC CONNECTIONS, MAPS AND COEFFICIENTS     
+
+      JINIT(2) = N_KEYOUT_CR
+      JINIT(3) = N_MODUL
+      JINIT(4) = N_POISS
+      JINIT(5) = N_BIOTA
+      JINIT(6) = N_EDIAG
+      JINIT(7) = N_EBEFORE
+      JINIT(8) = N_EPCONN
+      JINIT(9) = N_ZERO_NODE
+      JINIT(10) = N_I4U
+      MXBAND=0
+      IF(NDIM_ELASTIC.EQ.3) THEN
+         JINIT(1) = 1
+         CALL CALLWORK(PESETUP_KEYOUT,JINIT)
+         JINIT(1) = 0 
+         CALL CALLWORK(SETUP_CONNETIONS_3D,JINIT)
+         CALL CALLWORK(SETUP_ELASTIC_MAP3D,JINIT)
+         JINIT(1) = 9
+         I4UTIL = INTEGRATION_NODES
+         CALL CALLWORK(ELASTIC_SETUP_3D,JINIT)  
+      ELSE
+         IF(LEVELC) WRITE(NFOUT,51)
+         NERR = NERR + 1
+         CALL TIMOFF(27)
+         CALL TIMOFF(28)
+         RETURN
+      ENDIF 
+
+      JINIT(1) = 2
+      JINIT(2) = N_PROCN
+      JINIT(3) = N_KEYOUT_CR
+      CALL CALLWORK(EPROCOUTPUT,JINIT)
+$MANY      CALL TIMON(30)
+$MANY      CALL UPDATE(N_PROCN,4)
+$MANY      CALL TIMOFF(30)
+
+C use new update function to update nodal-based element array
+cbw $MANY      CALL BUILDKEYCP(NERR)
+$MANY      CALL TIMON(30)
+cbw $MANY      CALL NODE_UPDATE(N_ZERO_NODE,'FG')
+$MANY      CALL UPDATE(N_ZERO_NODE,4)
+$MANY      CALL TIMOFF(30)
+
+C INITIALIZE ELASTIC STRESS
+
+      IF(NDIM_ELASTIC.EQ.3) THEN
+
+         CALL PESETARYR8N(N_ERESID,ZERO,3)
+
+C SETUP TRACTION BOUNDARY CONDITION
+                                                                                
+         IF(ISTTOP) CALL TRACTION_TOP(KERR)
+         IF(ISTSIDE) CALL TRACTION_SIDE(KERR)                                             
+         KERR = 0
+$MANY      CALL TIMON(30)
+$MANY         CALL PEBDARY_UPDATE(KERR)
+$MANY      CALL TIMOFF(30)
+         CALL TRACTION_3D(KERR) 
+           
+C SETUP LOADING DUE TO FLUID PRESSURE
+!bw ALSO SETUP THERMAL STRESS IF XTHERMAL = TRUE
+
+         JINIT(1) = 10
+         JINIT(2) = N_EPCONN
+         JINIT(3) = N_ERESID
+         JINIT(4) = N_PREF
+         JINIT(5) = N_PRESS
+         JINIT(6) = N_EROCKTHEXP
+         JINIT(7) = N_MODUL
+         JINIT(8) = N_POISS
+         JINIT(9) = N_ETEMPR
+         JINIT(10) = N_ETEMPREF
+         JINIT(11) = N_BIOTA
+         CALL CALLWORK(ADD_PRESS_3D,JINIT)
+                   
+C ADD TOTAL BODY FORCE TO STIFFNESS CALCULATION
+
+         CALL PESETARYR8N(N_BODY_FORCE,ZERO,1) 
+         JPRTPRES(1) = 1
+         JPRTPRES(2) = N_PRESS
+cbw         CALL CALLWORK(PRTPRES,JPRTPRES)
+
+         JINIT(2) = N_BODY_FORCE
+         JINIT(3) = N_ROCK_WEIGHT
+         JINIT(4) = N_EPV_FLOW
+         JINIT(5) = N_EPMD
+         IF(PEFLOW.EQ.$XMODEL) THEN
+            JINIT(6) = N_ESAT
+cbw            JINIT(7) = N_ESAT(2)
+            JINIT(1) = 5
+            CALL CALLWORK(BODY3D_3PH,JINIT)
+         ELSE
+            IF(LEVELC) WRITE(NFOUT,52)
+            NERR = NERR + 1
+            CALL TIMOFF(27)
+            CALL TIMOFF(28)
+            RETURN
+         ENDIF
+$MANY      CALL TIMON(30)
+$MANY      CALL UPDATE(N_BODY_FORCE,2)
+$MANY      CALL TIMOFF(30)
+
+         JINIT(1) = 3
+         JINIT(2) = N_BODY_FORCE
+         JINIT(3) = N_DIR_COS
+         JINIT(4) = N_ERESID
+         CALL CALLWORK(ADD_BODY3D,JINIT)
+
+C SETUP AND SUBTRACT INITIAL STRESS
+
+         IF(INIT_STRESS.GT.0) THEN
+            JINIT(1) = 5
+            JINIT(2) = N_MODUL        
+            JINIT(3) = N_STRXX_INIT
+            JINIT(4) = N_STRYY_INIT
+            JINIT(5) = N_STRZZ_INIT
+            JINIT(6) = N_FORCE_INIT
+            CALL CALLWORK(INITIAL_STRESS_3D,JINIT)
+
+            JINIT(1) = 3
+            JINIT(2) = N_KEYOUT_CR
+            JINIT(3) = N_ERESID
+            JINIT(4) = N_FORCE_INIT
+            CALL CALLWORK(SUBTRACT_FINIT3D,JINIT)
+         ENDIF
+     
+C SETUP ZERO DISPLACEMENT BOUNDARY CONDITIONS
+
+C SET DISPLACEMENT TO ZERO, THEN STORE USER-SPECIFIED DISPLACEMENT
+C BOUNDARY CONDITION IN N_EDISP 
+
+         CALL PESETARYR8N(N_EDISP,ZERO,3)
+cbw   RIGID BODY MOTION ELIMINATION
+         JRIGID(1) = 0
+         CALL CALLWORK(FINDELE,JRIGID)
+         JRIGID(1) = 5
+         JRIGID(2) = N_KEYOUT_CR
+         JRIGID(3) = N_EDIAG
+         JRIGID(4) = N_EBEFORE
+         JRIGID(5) = N_EDISP
+         JRIGID(6) = N_ERESID
+         CALL CALLWORK(RIGIDBODY_3D,JRIGID)      
+
+cbw         JINIT(1) = 5
+         JINIT(1) = 12
+         JINIT(2) = N_KEYOUT_CR
+         JINIT(3) = N_EDIAG
+         JINIT(4) = N_EBEFORE
+         JINIT(5) = N_ERESID
+         JINIT(6) = N_ZERO_NODE
+
+cbw APPLY USER-SPECIFIED DISPLACEMENT BOUNDARY CONDITIONS
+         JINIT(7) = N_EDISP
+         JINIT(8) = N_DISPBD(1)
+         JINIT(9) = N_DISPBD(2)
+         JINIT(10) = N_DISPBD(3)
+         JINIT(11) = N_DISPBD(4)
+         JINIT(12) = N_DISPBD(5)
+         JINIT(13) = N_DISPBD(6)
+cbw
+         CALL CALLWORK(DISPLACEMENT_3D,JINIT)
+
+$MANY      CALL TIMON(30)
+cbw $MANY            CALL NODE_UPDATE(N_EDISP,'R8')
+$MANY            CALL UPDATE(N_EDISP,4)
+$MANY      CALL TIMOFF(30)
+
+C setup index mapping for HYPRE
+$HYPRE      CALL TIMON(29)
+$HYPRE      CALL GET_GELEI_LSIZE(NERR)
+$HYPRE      CALL TIMOFF(29)
+
+CBW RECONSTRUCT STIFFENESS MATRIX TO COUNT FOR CONTRIBUTION FROM 
+CBW NONZERO USER-SPECIFIED DISPLACEMENT BOUNDARY CONDITIONS
+
+         JINIT(1) = 7
+         JINIT(2) = N_KEYOUT_CR
+         JINIT(3) = N_MODUL
+         JINIT(4) = N_POISS
+         JINIT(5) = N_BIOTA
+         JINIT(6) = N_EDIAG2
+         JINIT(7) = N_EAFTER
+         JINIT(8) = N_I4U
+         I4UTIL = INTEGRATION_NODES
+         CALL CALLWORK(ELASTIC_RESETUP,JINIT)  
+
+cbw print KEYOUT ARRAY
+         JPRTKEY(1) = 0
+cbw         CALL CALLWORK(PRTKEYOUT,JPRTKEY)
+cbw
+
+cbw  SUBSTRACT INITIAL STRESS FROM RESIDUE DUE TO NON-ZERO 
+cbW  USER-SPECIFIED DISPLACEMENT BOUNDARY CONDITIONS
+
+         JSUB_STRES(1) = 6
+         JSUB_STRES(2) = N_KEYOUT_CR
+         JSUB_STRES(3) = N_ZERO_NODE 
+         JSUB_STRES(4) = N_EDIAG2
+         JSUB_STRES(5) = N_ERESID
+         JSUB_STRES(6) = N_EAFTER
+         JSUB_STRES(7) = N_EDISP
+         CALL CALLWORK(ELASTIC3D_SUBTRACT,JSUB_STRES)
+
+cbw MODIFY RESIDUE FOR FIXED-DISPLACEMENT NODES
+         JDISP_BC(1) = 3
+         JDISP_BC(2) = N_KEYOUT_CR
+         JDISP_BC(3) = N_ERESID
+         JDISP_BC(4) = N_ZERO_NODE
+         CALL CALLWORK(DISPLACEMENT_ZERO,JDISP_BC)
+         JRIGID(1) = 2
+         JRIGID(2) = N_KEYOUT_CR
+         JRIGID(3) = N_ERESID
+         CALL CALLWORK(RIGIDBODY_ZERO,JRIGID)
+
+cbw
+         JPRTSYS(1) = 5
+         JPRTSYS(2) = N_KEYOUT_CR
+         JPRTSYS(3) = N_EDIAG
+         JPRTSYS(4) = N_EBEFORE
+         JPRTSYS(5) = N_ERESID
+         JPRTSYS(6) = N_ZERO_NODE
+cbw         call callwork(prtsystem,jprtsys)
+
+cbw         CALL PRTBDDISP(KERR)
+cbw         CALL BDDISP(KERR)
+cbw
+C SOLVE FOR INITIAL DISPLACEMENTS
+        
+         CALL PESETARYR8N(N_VARD,ZERO,3) 
+
+cbw SOLVE THE SYSTEM USING HYPRE AMG
+$HYPRE         CALL TIMON(29)
+$HYPRE         KERR = 0
+$HYPRE         CALL HYPRE_SOLVE(0,KERR) 
+$HYPRE         CALL TIMOFF(29)
+$HYPRE         GOTO 1000
+
+!BW          KERR=0
+!BW          FACTOR=.TRUE.
+!BW          CALL TIMON(29)
+!BW          NEQ = NDIM_ELASTIC
+!BW          CALL PESOLVE_INIT(NERR) 
+!BW          CALL PESOLVE(FACTOR,ITER,KERR)
+!BW          CALL TIMOFF(29)
+!BW          IF(KERR.GT.0) THEN
+!BW             IF(LEVELC) WRITE(NFOUT,54)
+!BW             NERR = NERR + 1
+!BW             CALL TIMOFF(27)
+!BW             CALL TIMOFF(28)
+!BW             RETURN
+!BW          ENDIF
+
+ 1000    CONTINUE
+         JINIT(1) = 3
+         JINIT(2) = N_KEYOUT_CR
+         JINIT(3) = N_EDISP
+         JINIT(4) = N_VARD
+         CALL CALLWORK(PEUPSOL,JINIT)
+
+cbw
+         JPRTDISP(1) = 2
+         JPRTDISP(2) = N_KEYOUT_CR
+         JPRTDISP(3) = N_EDISP
+cbw         CALL CALLWORK(PRTDISP,JPRTDISP)
+cbw
+
+$MANY      CALL TIMON(30)
+cbw $MANY      CALL NODE_UPDATE(N_EDISP,'R8')
+$MANY      CALL UPDATE(N_EDISP,4)
+$MANY      CALL TIMOFF(30)
+
+      ELSE 
+         IF(LEVELC) WRITE(NFOUT,51) 
+         NERR = NERR + 1
+         CALL TIMOFF(27)
+         CALL TIMOFF(28)
+         RETURN
+      ENDIF      
+
+C SETUP INITIAL VOLUMETRIC STRAIN CONTRIBUTION TO PORE VOLUME
+      
+      JINIT(1) = 4
+      JINIT(2) = N_EPCONN
+      JINIT(3) = N_EDISP
+      JINIT(4) = N_STRAIN_INIT
+      JINIT(5) = N_BIOTA
+      NERRC = 0
+      CALL CALLWORK(STRAIN_INIT,JINIT)
+      IF(NERRC.GT.0) THEN
+         IF(LEVELC) WRITE(NFOUT,51)
+         NERR = NERR + 1
+         CALL TIMOFF(27)
+         CALL TIMOFF(28)
+         RETURN      
+      ENDIF
+
+C STORE INITIAL DISPLACEMENT
+
+      IF(DISPOUT.GT.0) THEN
+         JINIT(1) = 3
+         JINIT(2) = N_EDISP
+         JINIT(3) = N_DISP_INIT
+         JINIT(4) = N_I4U
+         I4UTIL = 3
+         CALL CALLWORK(CPYARYR8N,JINIT)
+      ENDIF
+  
+C INITIALIZE PORE VOLUME AND DISPLACEMENT CHANGING RATE TO ZERO
+ 
+      JINIT(1) = 2
+      JINIT(2) = N_EPV_RATE
+      JINIT(3) = N_R8U
+      R8UTIL = ZERO
+      CALL CALLWORK(SETARYR8,JINIT) 
+
+      CALL PESETARYR8N(N_EDISP_RATE,ZERO,3)
+      
+C INITIAL VALUE OUTPUT
+
+CBW CALCULATE PERMEABILITY AT THE START OF SIMULATION DEPENDING ON 
+C   INITIAL DISPLACEMENTS
+      IF (SDPM) THEN
+         CALL COPYPERM()
+!BW         CALL INIT_EMSTRESS()      
+         CALL PE_PERM_INIT()
+      ENDIF
+
+!bw      CALL PESTDOUTA()
+
+!bw         JSTRS(1) = 12
+!bw         JSTRS(2) = N_KEYOUT_CR
+!bw         JSTRS(3) = N_MODUL
+!bw         JSTRS(4) = N_POISS
+!bw         JSTRS(5) = N_BIOTA
+!bw         JSTRS(6) = N_STRXX_INIT
+!bw         JSTRS(7) = N_STRYY_INIT
+!bw         JSTRS(8) = N_STRZZ_INIT
+!bw         JSTRS(9) = N_EDISP
+!bw         JSTRS(10 )= N_PREF
+!bw         JSTRS(11) = N_PRESS
+!bw         JSTRS(12) = N_STRESS
+!bw         JSTRS(13) = N_I4U
+!bw         I4UTIL = INTEGRATION_NODES
+!bw         CALL CALLWORK(STRESS_3D,JSTRS)
+      JSTRS(1) = 2
+      JSTRS(2) = N_EDISP
+      JSTRS(3) = N_STRESS
+      CALL CALLWORK(AVERAGE_STRAIN,JSTRS)     
+
+      JSTRS(1) = 9
+      JSTRS(2) = N_MODUL
+      JSTRS(3) = N_POISS
+      JSTRS(4) = N_BIOTA
+      JSTRS(5) = N_STRXX_INIT
+      JSTRS(6) = N_STRYY_INIT
+      JSTRS(7) = N_STRZZ_INIT
+      JSTRS(8) = N_STRESS
+      JSTRS(9) = N_PREF
+      JSTRS(10) = N_PRESS
+      CALL CALLWORK(AVERAGE_STRESS,JSTRS)     
+
+      CALL TIMOFF(27)
+      CALL TIMOFF(28)
+
+C SETUP REFERENCE PRESSURE FOR POROE ASSOCIATING TO REFERENCE PORE VOLUME
+cbw $MANY       CALL TIMON(30)
+cbw $MANY       CALL UPDATE(N_PRESS,2)
+cbw $MANY       CALL TIMOFF(30)
+
+cbw      JINIT(1) = 2
+cbw      JINIT(2) = N_PRESS
+cbw      JINIT(3) = N_PREF
+cbw      CALL CALLWORK(CPYARYR8,JINIT)
+
+  51  FORMAT(/'ERROR: POROELASTIC OPTION NOT SETUP FOR 1D OR 2D CASE')
+  52  FORMAT(/'ERROR: POROELASTIC OPTION ONLY SETUP FOR COMP MODEL')
+  54  FORMAT(/'ERROR: ELASTIC LINEAR SOLVER')
+
+      END
+C*********************************************************************
+      SUBROUTINE PEINIT(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                KEYOUT,NBLK,PV0,DEPTH,MODUL,POISS,BIOTA,BIOTM,
+     &                ROCKD,STRXX_INIT,STRYY_INIT,STRZZ_INIT,DIR_COS,
+     &                ROCK_WEIGHT)
+C*********************************************************************
+C 1. Setup stress_init if gradient values have been entered
+C 2. Set traction boundary contition at top of reservoir
+C 3. Convert rock density to total body force for each grid block
+C 4. Set up effective compressibility due to volumetric strain
+C 5. Setup direction cosines for each grid block
+C
+C INPUT:
+C   PV0(I,J,K) = INITIAL PORE VOLUME (BBL)                 
+C   DEPTH(I,J,K) = DEPTH AT EACH ELEMENT CENTER (FT)      
+C   MODUL(I,J,K) = LAME'S CONSTANT LAMBDA (PSI)
+C   POISS(I,J,K) = LAME'S CONSTANT MU (PSI)
+C   BIOTA(I,J,K) = BIOT'S CONSTANT ALPHA
+C   BIOTM(I,J,K) = BIOT'S CONSTANT 1/M
+C   ROCKD(I,J,K) = ROCK DENSITY (LB/Cubic-Ft)
+C
+C OUTPUT:
+C   STRXX_INIT(I,J,K) = INITIAL PRINCIPLE STRESS IN X DIRECTION (PSI)
+C   STRYY_INIT(I,J,K) = INITIAL PRINCIPLE STRESS IN Y DIRECTION (PSI)
+C   STRZZ_INIT(I,J,K) = INITIAL PRINCIPLE STRESS IN Z DIRECTION (PSI)
+C   DIR_COS(I,J,K) = DIRECTION COSINE
+C   ROCK_WEIGHT(I,J,K) = ROCK WEIGHT (LB)
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pebdary.h'
+ 
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),     KEYOUT(IDIM,JDIM,KDIM)
+      REAL*4  PV0(IDIM,JDIM,KDIM),       ROCKD(IDIM,JDIM,KDIM)
+      REAL*8  DEPTH(IDIM,JDIM,KDIM),     MODUL(IDIM,JDIM,KDIM)
+      REAL*8  POISS(IDIM,JDIM,KDIM),     BIOTA(IDIM,JDIM,KDIM)
+      REAL*8  BIOTM(IDIM,JDIM,KDIM),     ROCK_WEIGHT(IDIM,JDIM,KDIM)
+      REAL*8  DIR_COS(IDIM,JDIM,KDIM,3), STRXX_INIT(IDIM,JDIM,KDIM)   
+      REAL*8  STRYY_INIT(IDIM,JDIM,KDIM),STRZZ_INIT(IDIM,JDIM,KDIM)
+      INTEGER I,J,K,JL1,JL2,IOFF,JOFF,KOFF,KERR,NX,NY,NZ,KK
+      REAL*8  DX,DY,DY1,DY2,DZ,DZ1,DZ2,VB,VP0,DH
+      REAL*8  U1,U2,U3,U4,V1,V2,ZERO
+      PARAMETER(ZERO=0.0D0)
+     
+      KERR = 0
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+      CALL BLKDIM(NBLK,NX,NY,NZ,KERR)
+
+C SET STRESS_INIT
+
+      IF(INIT_STRESS.EQ.2) THEN
+         IF(NDIM_ELASTIC.EQ.3) THEN
+            DO K = KL1,KL2
+               JL1 = JL1V(K)
+               JL2 = JL2V(K)
+               DO J = JL1,JL2
+                  DO I = IL1,IL2
+                     IF(KEYOUT(I,J,K).GT.0) THEN
+                        DH = DEPTH(I,J,K) - STDEPTH
+                        STRXX_INIT(I,J,K) = STINIT(1) + DH * STGRAD(1)
+                        STRYY_INIT(I,J,K) = STINIT(2) + DH * STGRAD(2)
+                        STRZZ_INIT(I,J,K) = STINIT(3) + DH * STGRAD(3)
+                     ENDIF
+                  ENDDO
+               ENDDO
+            ENDDO
+         ELSE
+            IF(LEVELC) WRITE(NFOUT,61)
+            NERRC = NERRC + 1
+            RETURN
+         ENDIF
+      ENDIF
+
+C CONVERT ROCK DENSITY TO TOTAL BODY FORCE FOR EACH GRID BLOCK
+C    SET UP EFFECTIVE COMPRESSIBILITY DUE TO VOLUMETRIC STRAIN
+
+      KK = 0
+      IF(ITYPE_BOUNDARY(3,2,NBLK).GE.2) KK = 1
+      IF(ITYPE_BOUNDARY(4,2,NBLK).GE.2) KK = 1
+      IF(ITYPE_BOUNDARY(5,3,NBLK).GE.2) KK = 1
+      IF(ITYPE_BOUNDARY(6,3,NBLK).GE.2) KK = 1
+      U1 = CONV_RESVOL
+      U2 = 1.0D0 / U1
+      DO K = KL1,KL2
+         JL1 = JL1V(K)
+         JL2 = JL2V(K)
+         DO J = JL1,JL2
+            DO I = IL1,IL2
+               IF(KEYOUT(I,J,K).GT.0) THEN  
+                  DZ = DZREC(K+KOFF,NBLK)
+                  DY = DYREC(J+JOFF,NBLK)
+                  DX = DXREC(I+IOFF,NBLK)
+                  VP0 = PV0(I,J,K)
+                  VB = DX * DY * DZ
+                  V1 = BIOTM(I,J,K)
+                  V2 = ROCKD(I,J,K)
+                  BIOTM(I,J,K) = VB * V1 * U2
+!BW                   IF(VP0.GT.ZERO) THEN
+                  IF(VP0.GE.ZERO) THEN                   
+                     ROCK_WEIGHT(I,J,K) = V2 * (VB - U1 * VP0)
+                  ELSE 
+!bw                      ROCK_WEIGHT(I,J,K) = ZERO
+                      ROCK_WEIGHT(I,J,K) = V2*VB
+                  ENDIF
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+
+C SETUP DIRECTION COSINES FOR EACH GRID BLOCK         
+
+      DO K = KL1,KL2
+         DZ = DZREC(K+KOFF,NBLK)
+         IF(K.GT.KL1) DZ1 = DZREC(K+KOFF-1,NBLK)
+         IF(K.LT.KL2) DZ2 = DZREC(K+KOFF+1,NBLK)
+         JL1 = JL1V(K)
+         JL2 = JL2V(K)
+         DO J = JL1,JL2
+            DY = DYREC(J+JOFF,NBLK)
+            IF(J.GT.JL1) DY1 = DYREC(J+JOFF-1,NBLK)
+            IF(J.LT.JL2) DY2 = DYREC(J+JOFF+1,NBLK)
+            DO I = IL1,IL2
+               IF(KEYOUT(I,J,K).GT.0) THEN    
+                  U2 = ZERO
+                  IF(NY.GT.1) THEN
+                     IF(J.GT.JL1) U2 = (DEPTH(I,J,K)-DEPTH(I,J-1,K))
+     &                               / (DY+DY1)
+                     IF(J.LT.JL2) U2 = U2+(DEPTH(I,J+1,K)-DEPTH(I,J,K))
+     &                               / (DY+DY2)
+                     IF(J.EQ.JL1.OR.J.EQ.JL2) U2 = 2.0D0 * U2   
+                  ENDIF
+
+                  U3 = ZERO
+                  IF(NZ.GT.1) THEN
+                     IF(K.GT.KL1) U3 = (DEPTH(I,J,K)-DEPTH(I,J,K-1))
+     &                               / (DZ+DZ1)
+                     IF(K.LT.KL2) U3 = U3+(DEPTH(I,J,K+1)-DEPTH(I,J,K))
+     &                               / (DZ+DZ2)
+                     IF(K.EQ.KL1.OR.K.EQ.KL2) U3 = 2.0D0*U3
+                  ENDIF
+                  U1 = U2 * U2 + U3 * U3
+                  IF(U1.GT.1.0D0) THEN
+                     U2 = U2 / SQRT(U1)  
+                     U3 = U3 / SQRT(U1) 
+                     U1 = ZERO
+                  ELSE
+                     U1 = SQRT(1.0D0 - U1)
+                  ENDIF
+                  U4 = 1.0D0 / SQRT(U1 * U1 + U2 * U2 + U3 * U3)
+                  DIR_COS(I,J,K,1) = U1 * U4
+                  IF(NDIM_ELASTIC.EQ.3) THEN
+                     DIR_COS(I,J,K,2) = U2 * U4
+                     DIR_COS(I,J,K,3) = U3 * U4
+                  ELSE IF(NDIM_ELASTIC.EQ.2) THEN
+                     DIR_COS(I,J,K,2) = U2 * U4
+                  ENDIF
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+
+  61  FORMAT('/ERROR: POROELASTIC IS NOT SETUP FOR 1-D OR 2-D CASES')
+         
+      END         
+
+C********************************************************************* 
+C                        END OF PEIVDAT.DF
+C*********************************************************************

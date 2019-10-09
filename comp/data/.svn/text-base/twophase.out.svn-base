@@ -1,0 +1,1368 @@
+ *********************  TWO PHASE GAS/WATER SIMULATION  **********************
+ ****************************  UNTITLED DATA SET  ****************************
+ *********************************  ******  **********************************
+                                                                                
+ 
+ BLOCK   1 SIMULATION MODEL                         COMPOSITIONAL_MODEL       
+ 
+ DEFAULT EXTERNAL UNITS:
+    MASS                (EXTMASS )                     [lbM]               
+    DISTANCE            (EXTDIST )                     [ft]                
+    VOLUME              (EXTVOLL )                     [bbl]               
+    TIME                (EXTTIME )                     [day]               
+    TEMPERATURE         (EXTTEMP )                     [F]                 
+    PRESSURE            (EXTPRES )                     [psi]               
+    PERMEABILITY        (EXTPERM )                     [md]                
+    LIQUID MASS RATE    (EXTWELL )                     [stb/day]           
+    GAS MASS RATE       (EXTWELG )                     [mscf/day]          
+    VISCOSITY           (EXTVISC )                     [cp]                
+    DENSITY             (EXTDENS )                     [lb/cu-ft]          
+    MOLAR CONCENTRATION (EXTCONC )                     [lbM/cu-ft]         
+    COMPRESSIBILITY     (EXTCOMP )                     [/psi]              
+
+ STOCK TANK OIL DENSITY (STDENO)                     56.000 [lb/cu-ft]          
+ STOCK TANK WATER DENSITY (STDENW)                   62.400 [lb/cu-ft]          
+ STOCK TANK GAS DENSITY (STDENG)                    0.04228 [lb/cu-ft]          
+
+ SIMULATION STOP TIME (TIMEEND)                    3650.00 [day]               
+ RESTART SIMULATION (RESTART)                          NO
+ NUMBER OF PROCESSORS                                  1
+ MAX NEWTONIAN ITERATIONS (MAXNEWT)                   14
+ USER OUTPUT LEVEL (OUTLEVEL)                          STANDARD
+ SINGLE PROCESSOR DEBUG OUTPUT (DEBUGS)                NO
+ DETAILED SPLINE OUTPUT (SPLINEOUT)                    NO
+ DETAILED GEOMETRY OUTPUT (GEOMOUT)                    NO
+ DETAILED TIMER OUTPUT (ALLTIMES)                      NO
+ 
+ ************************  COMPOSITIONAL SCALAR DATA  ************************
+ 
+ WATER FVF AT RESV. TEMPERATURE (WATFVF)             1.0000 [ResVol/SurfVol]    
+ WATER COMPRESSIBILITY (WATCMP)                    0.330E-05 [/psi]              
+ WATER REFERENCE PRESSURE (WATERP)                     0.00 [psi]               
+ WATER VISCOSITY (WATVIS)                            0.7000 [cp]                
+ PHASES:    1  WATER           
+            2  GAS             
+        
+ COMPONENTS:    1  WATER           
+                2  C1              
+                3  N2              
+            
+                          ========================
+                          | Component Properties |
+                          ========================
+
+
+  NAME       TC       PC         ZC          AC      MW    Parachor  Vshift
+            [R]     [psi]               [lbM/cu-ft]         
+ C1        343.04   667.80     0.2884     0.0115    16.04    71.00  -0.1595
+ N2        227.27   493.00     0.2916     0.0450    28.01    35.00  -0.1927
+
+                               Binary Interaction Parameters
+
+      0.0000 0.0000
+      0.0000 0.0000
+
+ CONVERGENCE TOLERANCE FOR FUGACITIES              0.100E-07
+ CONVERGENCE TOLERANCE FOR RACHFORD-RICE           0.100E-09
+ CONVERGENCE TOLERANCE FOR TRIVIAL SOLUTION        0.100E-03
+ CONVERGENCE TOLERANCE FOR CUBIC EQUATION          0.100E-09
+ CONVERGENCE TOLERANCE FOR SATURATIONS             0.100E-01
+ CONVERGENCE TOLERANCE FOR WELL PRESSURES          0.100E-01
+ CONVERGENCE TOLERANCE FOR WELL RATES              0.100E-05
+ ALLOWABLE OVERSHOOT FOR FLUXES                    0.100E-07
+ MAXIMUM NUMBER OF FLASH ITERATIONS                       30
+ DO PARTIAL JACOBIAN UPDATES FOR FLASH
+ BORROW K-VALUES FROM NEIGHBORING CELLS
+ TEST SELECTED SINGLE PHASE CELLS FOR STABILITY
+ USE NEGATIVE FLASH FOR PHASE SPLIT
+ MASS DENSITY FOR 1-PH IDENTIFICATION                 30.00 [lbM/cu-ft]         
+ SURFACE TEMPERATURE (TSURF)                          60.00 [F]                 
+ SURFACE PRESSURE (PSURF)                             14.70 [psi]               
+ 
+ EXTERNAL UNITS:
+    VAPOR IN PLACE      (EXTPLCG )                     [mscf]              
+ 
+ *********************************  ******  **********************************
+ ******************************  GEOMETRY DATA  ******************************
+
+ FAULT BLOCK   1                                             
+     NX =     3     NY =     7     NZ =     7
+     NORMALIZED GRAVITY VECTOR (DOWN)      1.000000 0.000000 0.000000
+     PRINT REGION  1:
+     FIRST, LAST, AND STEP I FOR OUTPUT (IFIRST,ILAST,ISTEP)    1    3    1
+     FIRST, LAST, AND STEP J FOR OUTPUT (JFIRST,JLAST,JSTEP)    1    7    1
+     FIRST, LAST, AND STEP K FOR OUTPUT (KFIRST,KLAST,KSTEP)    1    7    1
+
+ COORDINATES OF GRID 1,1,1 CORNER:
+ BLOCK        X              Y              Z
+    1    8325.00           0.000000       0.000000
+
+ MAJOR DIMENSIONS:
+ BLOCK        X              Y              Z
+    1    100.000        3500.00        3500.00    
+ 
+ ******************  X INTERVAL LENGTHS FOR FAULT BLOCK 1  *******************
+
+         1              2              3
+   20.00000       30.00000       50.00000    
+ 
+ ******************  Y INTERVAL LENGTHS FOR FAULT BLOCK 1  *******************
+
+         1              2              3              4              5
+   500.0000       500.0000       500.0000       500.0000       500.0000    
+
+         6              7
+   500.0000       500.0000    
+ 
+ ******************  Z INTERVAL LENGTHS FOR FAULT BLOCK 1  *******************
+
+         1              2              3              4              5
+   500.0000       500.0000       500.0000       500.0000       500.0000    
+
+         6              7
+   500.0000       500.0000    
+ 
+ *********************  KEYOUT ARRAY FOR FAULT BLOCK 1  **********************
+
+ K =   1
+   I / J =    1    2    3    4    5    6    7
+    1         1    1    1    1    1    1    1
+    2         1    1    1    1    1    1    1
+    3         1    1    1    1    1    1    1
+
+ K =   2 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   3 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   4 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   5 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   6 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   7 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+ 
+ *********************************  ******  **********************************
+ ********************************  ROCK DATA  ********************************
+ 
+ ******************  ELEMENT ROCK TYPES FOR FAULT BLOCK 1  *******************
+
+ K =   1
+   I / J =    1    2    3    4    5    6    7
+    1         1    1    1    1    1    1    1
+    2         1    1    1    1    1    1    1
+    3         1    1    1    1    1    1    1
+
+ K =   2 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   3 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   4 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   5 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   6 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   7 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+ 
+ ******************  ELEMENT POROSITIES FOR FAULT BLOCK 1  *******************
+
+ K =   1
+   I / J =     1           2           3           4           5           6
+    1    0.3000      0.3000      0.3000      0.3000      0.3000      0.3000    
+    2    0.3000      0.3000      0.3000      0.3000      0.3000      0.3000    
+    3    0.3000      0.3000      0.3000      0.3000      0.3000      0.3000    
+
+ K =   1
+   I / J =     7
+    1    0.3000    
+    2    0.3000    
+    3    0.3000    
+
+ K =   2 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   3 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   4 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   5 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   6 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   7 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+ 
+ *******************  X PERMEABILITIES FOR FAULT BLOCK 1  ********************
+
+ K =   1
+   I / J =     1           2           3           4           5           6
+    1     50.00       50.00       50.00       50.00       50.00       50.00    
+    2     50.00       50.00       50.00       50.00       50.00       50.00    
+    3     50.00       50.00       25.00       25.00       25.00       25.00    
+
+ K =   1
+   I / J =     7
+    1     25.00    
+    2     25.00    
+    3     25.00    
+
+ K =   2 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   3 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   4 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   5 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   6 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   7 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+ 
+ *******************  Y PERMEABILITIES FOR FAULT BLOCK 1  ********************
+
+ K =   1
+   I / J =     1           2           3           4           5           6
+    1     500.0       500.0       500.0       500.0       500.0       500.0    
+    2     500.0       50.00       50.00       50.00       50.00       50.00    
+    3     50.00       50.00       200.0       200.0       200.0       200.0    
+
+ K =   1
+   I / J =     7
+    1     200.0    
+    2     200.0    
+    3     200.0    
+
+ K =   2 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   3 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   4 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   5 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   6 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   7 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+ 
+ *******************  Z PERMEABILITIES FOR FAULT BLOCK 1  ********************
+
+ K =   1
+   I / J =     1           2           3           4           5           6
+    1     500.0       500.0       500.0       500.0       500.0       500.0    
+    2     500.0       50.00       50.00       50.00       50.00       50.00    
+    3     50.00       50.00       200.0       200.0       200.0       200.0    
+
+ K =   1
+   I / J =     7
+    1     200.0    
+    2     200.0    
+    3     200.0    
+
+ K =   2 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   3 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   4 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   5 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   6 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   7 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+ 
+ ************************  Ko VS Sw FOR ROCK TYPE 1  *************************
+  
+ Sw       0.2000000     0.2889000     0.3500000     0.3778000     0.4667000    
+ Ko        1.000000     0.5600000     0.3900000     0.3500000     0.2000000    
+  
+ Sw       0.5556000     0.6444000     0.7333000     0.8222000     0.9111000    
+ Ko       0.1000000     0.5000000E-01 0.3000000E-01 0.1000000E-01 0.1000000E-02
+  
+ Sw       0.9500000      1.000000    
+ Ko           0.0000000     0.0000000
+  
+ Sw       IS DIMENSIONLESS
+ Ko       IS DIMENSIONLESS
+
+ INTERPOLATION = LINEAR                    EXTRAPOLATION = LAST VALUE DEFINED
+ 
+ ************************  Kw VS Sw FOR ROCK TYPE 1  *************************
+  
+ SW       0.2000000     0.2899000     0.3778000     0.4667000     0.5556000    
+ Kw           0.0000000 0.2200000E-02 0.1800000E-01 0.6070000E-01 0.1438000    
+  
+ SW       0.6444000     0.7000000     0.7333000     0.8222000     0.9111000    
+ Kw       0.2809000     0.4089000     0.4855000     0.7709000      1.000000    
+  
+ SW        1.000000    
+ Kw        1.000000    
+  
+ SW       IS DIMENSIONLESS
+ Kw       IS DIMENSIONLESS
+
+ INTERPOLATION = LINEAR                    EXTRAPOLATION = LAST VALUE DEFINED
+ 
+ ***********************  Pcow VS Sw FOR ROCK TYPE 1  ************************
+  
+ Sw       0.2000000     0.2899000     0.3778000     0.4667000     0.5556000    
+ Pc        45.00000      19.03000      10.07000      4.900000      1.800000    
+  
+ Sw       0.6444000     0.7000000     0.7333000     0.8222000     0.9111000    
+ Pc       0.5000000     0.5000000E-01 0.1000000E-01     0.0000000     0.0000000
+  
+ Sw        1.000000    
+ Pc           0.0000000
+  
+ Sw       HAS UNITS OF []                                                
+ Pc       HAS UNITS OF [psi]                                             
+
+ INTERPOLATION = LINEAR                    EXTRAPOLATION = LAST VALUE DEFINED
+ 
+ *********************************  ******  **********************************
+ ********************************  WELL DATA  ********************************
+
+ WELL HISTORY OUTPUT KEY (WELLOUTKEY)                    1
+
+ WELL HISTORY FILE NAME (WELLFILE)              WELLS.OUT                     
+
+ PRODUCTION WELL                         
+ WELL TYPE 34 - PRODUCTION, GAS MASS RATE SPECIFIED
+ LOWER LIMIT ON BHP (PLIMIT)                       0.56-314 PSI
+ INTERVAL  1, DIAMETER = 0.5000    ft, SKIN =     0.0000
+              WELL TOP X,Y,Z    =     8325.0         250.00         250.00    
+              WELL BOTTOM X,Y,Z =     8345.0         250.00         250.00    
+ BLOCK INTERVAL   I   J   K
+   1       1      1   1   1
+
+ WELL 2                                  
+ WELL TYPE 0 - SHUT IN
+ MINIMUM INJEC. RELATIVE PERM. = SUM OF OTHER PERMS.
+ INTERVAL  1, DIAMETER = 0.5000    ft, SKIN =     0.0000
+              WELL TOP X,Y,Z    =    -99.000        -99.000        -99.000    
+              WELL BOTTOM X,Y,Z =    -99.000        -99.000        -99.000    
+ BLOCK INTERVAL   I   J   K
+ 
+ *****************************  PRODUCTION WELL  *****************************
+
+ RATE    =  10000.000     (CONSTANT)
+ 
+ *********************  INITIAL COMPOSITIONAL WELL DATA  *********************
+ 
+SEPARATOR    1 USED FOR IN-PLACE CALCULATIONS 
+
+SEPARATOR     1 HAS     1 STAGES
+     TEMPERATURE AND PRESSURE USED TO CALCULATE SURFACE VOLUMES
+     TEMP IS   60.00[F]                 
+     PRES IS   14.70[psi]               
+ 
+ ********************  TRANSIENT COMPOSITIONAL WELL DATA  ********************
+ 
+ ALL WELLS ARE EXPLICIT
+ 
+ **************************  ACTIVE GRID ELEMENTS  ***************************
+
+ MODEL    ELEMENTS
+   3         147
+ 
+ *********************************  ******  **********************************
+ ****************************  MULTIGRID SOLVER  *****************************
+ 
+ MIN MULTIGRID ITERATIONS (MINMGIT) =                  2
+ MAX MULTIGRID ITERATIONS (MAXMGIT) =                 20
+ MULTIGRID CONVERGENCE TOLERANCE (LINTOL) =       0.5000E-02
+ NUMBER OF MULTIGRID LEVELS =                          2
+ LSOR FQACTOR, 1ST MULTIGRID ITERATION    =        1.000    
+    (FACLSOR)  OTHER MULTIGRID ITERATIONS =        1.263    
+ LSOR FACTOR OPTIMISED (SOROPT) =                   TRUE
+ PSOR FACTORS,     DOWN, LEVEL  1  =               1.116       1.116    
+    (FACPSOR)      UP,   LEVEL  1  =               1.116       1.116    
+ PSOR FACTORS,     DOWN, LEVEL  2  =               1.012       1.012    
+    (FACPSOR)      UP,   LEVEL  2  =               1.012       1.012    
+ LSOR ITERATIONS, 1ST MULTIGRID ITERATION =            1
+    (LSORIT)    OTHER MULTIGRID ITERATIONS =           1
+ NUMBER OF PSOR ITERATIONS, DOWN, LEVEL  1 =           4
+      (PSORIT)              UP,   LEVEL  1 =           7
+                            DOWN, LEVEL  2 =           4
+                            UP,   LEVEL  2 =           7
+ 
+ *********************************  ******  **********************************
+ **************************  BLOCK INTERFACE DATA  ***************************
+ NO FAULT BLOCK INTERFACES
+ 
+ **************************  TRANSIENT INPUT DATA  ***************************
+
+ TIME =                                            0.000 [day]               
+ TIME STEPS COMPLETED =                                0
+ TARGET TIME STEP SIZE (DELTIM) =                  1.000 [day]               
+ TIME STEP MULTIPLIER (DTIMMUL) =                  2.000
+ MAXIMUM TIME STEP (DTIMMAX) =                    10.000 [day]               
+ MINIMUM TIME STEP (DTIMMIN) =                    10.000 [day]               
+ NEXT SCHEDULED OUTPUT (TIMOUT) =               3650.000 [day]               
+ 
+ ********************  TRANSIENT COMPOSITIONAL WELL DATA  ********************
+ 
+ ALL WELLS ARE EXPLICIT
+ TARGET TOTAL SATURATION CHANGE                      0.1000
+ STABILITY LIMIT CHECKED FOR SELECTED CELLS
+ CFL STABILITY LIMIT                                 1.8000
+
+ TOTAL COMPONENTS IN PLACE
+
+                    WATER              263021391.9    [lbM]               
+                    C1                 102900387.4    [lbM]               
+                    N2                 68600258.24    [lbM]               
+
+ SURFACE PHASE VOLUMES IN PLACE
+
+                    WATER              13528314.31    [stb]               
+                    GAS                65063119.47    [mscf]              
+                    GAS    RECOVERY           0.000000%
+                    PAVG                   3993.95    [psi]               
+ 
+ ***********************  PRESSURE FOR FAULT BLOCK 1  ************************
+
+ K =   1
+   I / J =     1           2           3           4           5           6
+    1     3984.       3984.       3984.       3984.       3984.       3984.    
+    2     3984.       3990.       3990.       3990.       3990.       3990.    
+    3     3990.       3990.       4000.       4000.       4000.       4000.    
+
+ K =   1
+   I / J =     7
+    1     4000.    
+    2     4000.    
+    3     4000.    
+
+ K =   2 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   3 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   4 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   5 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   6 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   7 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+ 
+ ******************  WATER    SATURATION FOR FAULT BLOCK 1  ******************
+
+ K =   1
+   I / J =     1           2           3           4           5           6
+    1    0.2000      0.2000      0.2000      0.2000      0.2000      0.2000    
+    2    0.2000      0.2000      0.2000      0.2000      0.2000      0.2000    
+    3    0.2000      0.2000      0.2000      0.2000      0.2000      0.2000    
+
+ K =   1
+   I / J =     7
+    1    0.2000    
+    2    0.2000    
+    3    0.2000    
+
+ K =   2 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   3 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   4 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   5 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   6 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   7 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+ 
+ ******************  GAS      SATURATION FOR FAULT BLOCK 1  ******************
+
+ K =   1
+   I / J =     1           2           3           4           5           6
+    1    0.8000      0.8000      0.8000      0.8000      0.8000      0.8000    
+    2    0.8000      0.8000      0.8000      0.8000      0.8000      0.8000    
+    3    0.8000      0.8000      0.8000      0.8000      0.8000      0.8000    
+
+ K =   1
+   I / J =     7
+    1    0.8000    
+    2    0.8000    
+    3    0.8000    
+
+ K =   2 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   3 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   4 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   5 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   6 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+
+ K =   7 PLANE IS IDENTICAL TO K =   1 PLANE (FOR VALUES PRINTED)
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    1.0000      3.0000      7.0000      15.000      25.000      35.000    
+ VALUE  0.19130E-15     0.00000 0.43698E-04 0.83978E-04 0.15147E-03 0.23379E-03
+ TIME    45.000      55.000      65.000      75.000      85.000      95.000    
+ VALUE  0.31546E-03 0.39663E-03 0.47729E-03 0.55748E-03 0.63717E-03 0.71638E-03
+ TIME    105.00      115.00      125.00      135.00      145.00      155.00    
+ VALUE  0.79512E-03 0.87338E-03 0.95116E-03 0.10285E-02 0.11053E-02 0.11817E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    1.0000      3.0000      7.0000      15.000      25.000      35.000    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    45.000      55.000      65.000      75.000      85.000      95.000    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    105.00      115.00      125.00      135.00      145.00      155.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    1.0000      3.0000      7.0000      15.000      25.000      35.000    
+ VALUE   3967.9      3963.8      3960.3      3954.2      3946.8      3939.5    
+ TIME    45.000      55.000      65.000      75.000      85.000      95.000    
+ VALUE   3932.1      3924.7      3917.4      3910.0      3902.7      3895.4    
+ TIME    105.00      115.00      125.00      135.00      145.00      155.00    
+ VALUE   3888.0      3880.7      3873.4      3866.1      3858.8      3851.5    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    165.00      175.00      185.00      195.00      205.00      215.00    
+ VALUE  0.12576E-02 0.13331E-02 0.14081E-02 0.14827E-02 0.15568E-02 0.16305E-02
+ TIME    225.00      235.00      245.00      255.00      265.00      275.00    
+ VALUE  0.17037E-02 0.17765E-02 0.18489E-02 0.19208E-02 0.19923E-02 0.20633E-02
+ TIME    285.00      295.00      305.00      315.00      325.00      335.00    
+ VALUE  0.21340E-02 0.22042E-02 0.22740E-02 0.23434E-02 0.24123E-02 0.24809E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    165.00      175.00      185.00      195.00      205.00      215.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    225.00      235.00      245.00      255.00      265.00      275.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    285.00      295.00      305.00      315.00      325.00      335.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    165.00      175.00      185.00      195.00      205.00      215.00    
+ VALUE   3844.3      3837.0      3829.7      3822.5      3815.2      3807.9    
+ TIME    225.00      235.00      245.00      255.00      265.00      275.00    
+ VALUE   3800.7      3793.5      3786.2      3779.0      3771.8      3764.6    
+ TIME    285.00      295.00      305.00      315.00      325.00      335.00    
+ VALUE   3757.4      3750.2      3743.0      3735.8      3728.7      3721.5    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    345.00      355.00      365.00      375.00      385.00      395.00    
+ VALUE  0.25491E-02 0.26168E-02 0.26842E-02 0.27511E-02 0.28177E-02 0.28838E-02
+ TIME    405.00      415.00      425.00      435.00      445.00      455.00    
+ VALUE  0.29496E-02 0.30150E-02 0.30800E-02 0.31446E-02 0.32088E-02 0.32727E-02
+ TIME    465.00      475.00      485.00      495.00      505.00      515.00    
+ VALUE  0.33362E-02 0.33993E-02 0.34621E-02 0.35245E-02 0.35865E-02 0.36482E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    345.00      355.00      365.00      375.00      385.00      395.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    405.00      415.00      425.00      435.00      445.00      455.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    465.00      475.00      485.00      495.00      505.00      515.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    345.00      355.00      365.00      375.00      385.00      395.00    
+ VALUE   3714.3      3707.2      3700.0      3692.9      3685.8      3678.6    
+ TIME    405.00      415.00      425.00      435.00      445.00      455.00    
+ VALUE   3671.5      3664.4      3657.3      3650.2      3643.1      3636.0    
+ TIME    465.00      475.00      485.00      495.00      505.00      515.00    
+ VALUE   3628.9      3621.8      3614.8      3607.7      3600.6      3593.6    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    525.00      535.00      545.00      555.00      565.00      575.00    
+ VALUE  0.37095E-02 0.37705E-02 0.38311E-02 0.38913E-02 0.39512E-02 0.40108E-02
+ TIME    585.00      595.00      605.00      615.00      625.00      635.00    
+ VALUE  0.40700E-02 0.41289E-02 0.41875E-02 0.42457E-02 0.43036E-02 0.43612E-02
+ TIME    645.00      655.00      665.00      675.00      685.00      695.00    
+ VALUE  0.44184E-02 0.44753E-02 0.45319E-02 0.45882E-02 0.46442E-02 0.46998E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    525.00      535.00      545.00      555.00      565.00      575.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    585.00      595.00      605.00      615.00      625.00      635.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    645.00      655.00      665.00      675.00      685.00      695.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    525.00      535.00      545.00      555.00      565.00      575.00    
+ VALUE   3586.5      3579.5      3572.5      3565.4      3558.4      3551.4    
+ TIME    585.00      595.00      605.00      615.00      625.00      635.00    
+ VALUE   3544.4      3537.4      3530.4      3523.4      3516.4      3509.4    
+ TIME    645.00      655.00      665.00      675.00      685.00      695.00    
+ VALUE   3502.5      3495.5      3488.6      3481.6      3474.6      3467.7    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    705.00      715.00      725.00      735.00      745.00      755.00    
+ VALUE  0.47552E-02 0.48102E-02 0.48649E-02 0.49193E-02 0.49735E-02 0.50273E-02
+ TIME    765.00      775.00      785.00      795.00      805.00      815.00    
+ VALUE  0.50808E-02 0.51340E-02 0.51870E-02 0.52396E-02 0.52920E-02 0.53441E-02
+ TIME    825.00      835.00      845.00      855.00      865.00      875.00    
+ VALUE  0.53959E-02 0.54474E-02 0.54987E-02 0.55497E-02 0.56004E-02 0.56508E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    705.00      715.00      725.00      735.00      745.00      755.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    765.00      775.00      785.00      795.00      805.00      815.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    825.00      835.00      845.00      855.00      865.00      875.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    705.00      715.00      725.00      735.00      745.00      755.00    
+ VALUE   3460.8      3453.8      3446.9      3440.0      3433.1      3426.2    
+ TIME    765.00      775.00      785.00      795.00      805.00      815.00    
+ VALUE   3419.3      3412.4      3405.5      3398.6      3391.7      3384.9    
+ TIME    825.00      835.00      845.00      855.00      865.00      875.00    
+ VALUE   3378.0      3371.1      3364.3      3357.4      3350.6      3343.8    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    885.00      895.00      905.00      915.00      925.00      935.00    
+ VALUE  0.57010E-02 0.57509E-02 0.58005E-02 0.58499E-02 0.58990E-02 0.59479E-02
+ TIME    945.00      955.00      965.00      975.00      985.00      995.00    
+ VALUE  0.59965E-02 0.60448E-02 0.60930E-02 0.61408E-02 0.61884E-02 0.62358E-02
+ TIME    1005.0      1015.0      1025.0      1035.0      1045.0      1055.0    
+ VALUE  0.62830E-02 0.63299E-02 0.63765E-02 0.64229E-02 0.64691E-02 0.65151E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    885.00      895.00      905.00      915.00      925.00      935.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    945.00      955.00      965.00      975.00      985.00      995.00    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1005.0      1015.0      1025.0      1035.0      1045.0      1055.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    885.00      895.00      905.00      915.00      925.00      935.00    
+ VALUE   3336.9      3330.1      3323.3      3316.5      3309.7      3302.8    
+ TIME    945.00      955.00      965.00      975.00      985.00      995.00    
+ VALUE   3296.0      3289.3      3282.5      3275.7      3268.9      3262.1    
+ TIME    1005.0      1015.0      1025.0      1035.0      1045.0      1055.0    
+ VALUE   3255.4      3248.6      3241.9      3235.1      3228.4      3221.6    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    1065.0      1075.0      1085.0      1095.0      1105.0      1115.0    
+ VALUE  0.65608E-02 0.66064E-02 0.66516E-02 0.66967E-02 0.67416E-02 0.67862E-02
+ TIME    1125.0      1135.0      1145.0      1155.0      1165.0      1175.0    
+ VALUE  0.68306E-02 0.68748E-02 0.69188E-02 0.69626E-02 0.70062E-02 0.70496E-02
+ TIME    1185.0      1195.0      1205.0      1215.0      1225.0      1235.0    
+ VALUE  0.70927E-02 0.71357E-02 0.71785E-02 0.72211E-02 0.72635E-02 0.73056E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    1065.0      1075.0      1085.0      1095.0      1105.0      1115.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1125.0      1135.0      1145.0      1155.0      1165.0      1175.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1185.0      1195.0      1205.0      1215.0      1225.0      1235.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    1065.0      1075.0      1085.0      1095.0      1105.0      1115.0    
+ VALUE   3214.9      3208.2      3201.5      3194.7      3188.0      3181.3    
+ TIME    1125.0      1135.0      1145.0      1155.0      1165.0      1175.0    
+ VALUE   3174.6      3167.9      3161.2      3154.5      3147.9      3141.2    
+ TIME    1185.0      1195.0      1205.0      1215.0      1225.0      1235.0    
+ VALUE   3134.5      3127.9      3121.2      3114.5      3107.9      3101.3    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    1245.0      1255.0      1265.0      1275.0      1285.0      1295.0    
+ VALUE  0.73477E-02 0.73895E-02 0.74311E-02 0.74725E-02 0.75138E-02 0.75549E-02
+ TIME    1305.0      1315.0      1325.0      1335.0      1345.0      1355.0    
+ VALUE  0.75958E-02 0.76365E-02 0.76771E-02 0.77174E-02 0.77576E-02 0.77977E-02
+ TIME    1365.0      1375.0      1385.0      1395.0      1405.0      1415.0    
+ VALUE  0.78375E-02 0.78772E-02 0.79168E-02 0.79562E-02 0.79954E-02 0.80345E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    1245.0      1255.0      1265.0      1275.0      1285.0      1295.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1305.0      1315.0      1325.0      1335.0      1345.0      1355.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1365.0      1375.0      1385.0      1395.0      1405.0      1415.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    1245.0      1255.0      1265.0      1275.0      1285.0      1295.0    
+ VALUE   3094.6      3088.0      3081.4      3074.7      3068.1      3061.5    
+ TIME    1305.0      1315.0      1325.0      1335.0      1345.0      1355.0    
+ VALUE   3054.9      3048.3      3041.7      3035.1      3028.5      3021.9    
+ TIME    1365.0      1375.0      1385.0      1395.0      1405.0      1415.0    
+ VALUE   3015.3      3008.8      3002.2      2995.6      2989.1      2982.5    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    1425.0      1435.0      1445.0      1455.0      1465.0      1475.0    
+ VALUE  0.80734E-02 0.81121E-02 0.81507E-02 0.81892E-02 0.82275E-02 0.82656E-02
+ TIME    1485.0      1495.0      1505.0      1515.0      1525.0      1535.0    
+ VALUE  0.83036E-02 0.83415E-02 0.83792E-02 0.84168E-02 0.84542E-02 0.84916E-02
+ TIME    1545.0      1555.0      1565.0      1575.0      1585.0      1595.0    
+ VALUE  0.85287E-02 0.85658E-02 0.86027E-02 0.86395E-02 0.86761E-02 0.87127E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    1425.0      1435.0      1445.0      1455.0      1465.0      1475.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1485.0      1495.0      1505.0      1515.0      1525.0      1535.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1545.0      1555.0      1565.0      1575.0      1585.0      1595.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    1425.0      1435.0      1445.0      1455.0      1465.0      1475.0    
+ VALUE   2976.0      2969.4      2962.9      2956.3      2949.8      2943.3    
+ TIME    1485.0      1495.0      1505.0      1515.0      1525.0      1535.0    
+ VALUE   2936.8      2930.2      2923.7      2917.2      2910.7      2904.2    
+ TIME    1545.0      1555.0      1565.0      1575.0      1585.0      1595.0    
+ VALUE   2897.7      2891.2      2884.8      2878.3      2871.8      2865.3    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    1605.0      1615.0      1625.0      1635.0      1645.0      1655.0    
+ VALUE  0.87491E-02 0.87854E-02 0.88215E-02 0.88576E-02 0.88935E-02 0.89293E-02
+ TIME    1665.0      1675.0      1685.0      1695.0      1705.0      1715.0    
+ VALUE  0.89650E-02 0.90006E-02 0.90361E-02 0.90715E-02 0.91068E-02 0.91419E-02
+ TIME    1725.0      1735.0      1745.0      1755.0      1765.0      1775.0    
+ VALUE  0.91770E-02 0.92119E-02 0.92468E-02 0.92816E-02 0.93162E-02 0.93508E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    1605.0      1615.0      1625.0      1635.0      1645.0      1655.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1665.0      1675.0      1685.0      1695.0      1705.0      1715.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1725.0      1735.0      1745.0      1755.0      1765.0      1775.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    1605.0      1615.0      1625.0      1635.0      1645.0      1655.0    
+ VALUE   2858.9      2852.4      2845.9      2839.5      2833.0      2826.6    
+ TIME    1665.0      1675.0      1685.0      1695.0      1705.0      1715.0    
+ VALUE   2820.2      2813.7      2807.3      2800.9      2794.4      2788.0    
+ TIME    1725.0      1735.0      1745.0      1755.0      1765.0      1775.0    
+ VALUE   2781.6      2775.2      2768.8      2762.4      2756.0      2749.6    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    1785.0      1795.0      1805.0      1815.0      1825.0      1835.0    
+ VALUE  0.93853E-02 0.94196E-02 0.94539E-02 0.94881E-02 0.95223E-02 0.95563E-02
+ TIME    1845.0      1855.0      1865.0      1875.0      1885.0      1895.0    
+ VALUE  0.95903E-02 0.96241E-02 0.96579E-02 0.96917E-02 0.97253E-02 0.97589E-02
+ TIME    1905.0      1915.0      1925.0      1935.0      1945.0      1955.0    
+ VALUE  0.97923E-02 0.98258E-02 0.98591E-02 0.98924E-02 0.99256E-02 0.99588E-02
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    1785.0      1795.0      1805.0      1815.0      1825.0      1835.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1845.0      1855.0      1865.0      1875.0      1885.0      1895.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    1905.0      1915.0      1925.0      1935.0      1945.0      1955.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    1785.0      1795.0      1805.0      1815.0      1825.0      1835.0    
+ VALUE   2743.2      2736.8      2730.5      2724.1      2717.7      2711.3    
+ TIME    1845.0      1855.0      1865.0      1875.0      1885.0      1895.0    
+ VALUE   2705.0      2698.6      2692.3      2685.9      2679.6      2673.2    
+ TIME    1905.0      1915.0      1925.0      1935.0      1945.0      1955.0    
+ VALUE   2666.9      2660.5      2654.2      2647.9      2641.6      2635.2    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    1965.0      1975.0      1985.0      1995.0      2005.0      2015.0    
+ VALUE  0.99919E-02 0.10025E-01 0.10058E-01 0.10091E-01 0.10124E-01 0.10156E-01
+ TIME    2025.0      2035.0      2045.0      2055.0      2065.0      2075.0    
+ VALUE  0.10189E-01 0.10222E-01 0.10254E-01 0.10287E-01 0.10320E-01 0.10352E-01
+ TIME    2085.0      2095.0      2105.0      2115.0      2125.0      2135.0    
+ VALUE  0.10385E-01 0.10417E-01 0.10449E-01 0.10482E-01 0.10514E-01 0.10546E-01
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    1965.0      1975.0      1985.0      1995.0      2005.0      2015.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2025.0      2035.0      2045.0      2055.0      2065.0      2075.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2085.0      2095.0      2105.0      2115.0      2125.0      2135.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    1965.0      1975.0      1985.0      1995.0      2005.0      2015.0    
+ VALUE   2628.9      2622.6      2616.3      2610.0      2603.7      2597.4    
+ TIME    2025.0      2035.0      2045.0      2055.0      2065.0      2075.0    
+ VALUE   2591.1      2584.8      2578.5      2572.2      2566.0      2559.7    
+ TIME    2085.0      2095.0      2105.0      2115.0      2125.0      2135.0    
+ VALUE   2553.4      2547.2      2540.9      2534.6      2528.4      2522.1    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    2145.0      2155.0      2165.0      2175.0      2185.0      2195.0    
+ VALUE  0.10578E-01 0.10611E-01 0.10643E-01 0.10675E-01 0.10707E-01 0.10739E-01
+ TIME    2205.0      2215.0      2225.0      2235.0      2245.0      2255.0    
+ VALUE  0.10771E-01 0.10803E-01 0.10835E-01 0.10867E-01 0.10899E-01 0.10931E-01
+ TIME    2265.0      2275.0      2285.0      2295.0      2305.0      2315.0    
+ VALUE  0.10963E-01 0.10995E-01 0.11027E-01 0.11059E-01 0.11091E-01 0.11123E-01
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    2145.0      2155.0      2165.0      2175.0      2185.0      2195.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2205.0      2215.0      2225.0      2235.0      2245.0      2255.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2265.0      2275.0      2285.0      2295.0      2305.0      2315.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    2145.0      2155.0      2165.0      2175.0      2185.0      2195.0    
+ VALUE   2515.9      2509.6      2503.4      2497.2      2490.9      2484.7    
+ TIME    2205.0      2215.0      2225.0      2235.0      2245.0      2255.0    
+ VALUE   2478.5      2472.2      2466.0      2459.8      2453.6      2447.4    
+ TIME    2265.0      2275.0      2285.0      2295.0      2305.0      2315.0    
+ VALUE   2441.2      2435.0      2428.8      2422.6      2416.4      2410.2    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    2325.0      2335.0      2345.0      2355.0      2365.0      2375.0    
+ VALUE  0.11154E-01 0.11186E-01 0.11218E-01 0.11250E-01 0.11282E-01 0.11314E-01
+ TIME    2385.0      2395.0      2405.0      2415.0      2425.0      2435.0    
+ VALUE  0.11346E-01 0.11378E-01 0.11409E-01 0.11441E-01 0.11473E-01 0.11505E-01
+ TIME    2445.0      2455.0      2465.0      2475.0      2485.0      2495.0    
+ VALUE  0.11537E-01 0.11569E-01 0.11601E-01 0.11633E-01 0.11665E-01 0.11697E-01
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    2325.0      2335.0      2345.0      2355.0      2365.0      2375.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2385.0      2395.0      2405.0      2415.0      2425.0      2435.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2445.0      2455.0      2465.0      2475.0      2485.0      2495.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    2325.0      2335.0      2345.0      2355.0      2365.0      2375.0    
+ VALUE   2404.0      2397.8      2391.6      2385.5      2379.3      2373.1    
+ TIME    2385.0      2395.0      2405.0      2415.0      2425.0      2435.0    
+ VALUE   2367.0      2360.8      2354.6      2348.5      2342.3      2336.2    
+ TIME    2445.0      2455.0      2465.0      2475.0      2485.0      2495.0    
+ VALUE   2330.0      2323.9      2317.7      2311.6      2305.5      2299.3    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    2505.0      2515.0      2525.0      2535.0      2545.0      2555.0    
+ VALUE  0.11729E-01 0.11761E-01 0.11793E-01 0.11825E-01 0.11858E-01 0.11890E-01
+ TIME    2565.0      2575.0      2585.0      2595.0      2605.0      2615.0    
+ VALUE  0.11922E-01 0.11954E-01 0.11987E-01 0.12019E-01 0.12051E-01 0.12084E-01
+ TIME    2625.0      2635.0      2645.0      2655.0      2665.0      2675.0    
+ VALUE  0.12116E-01 0.12149E-01 0.12181E-01 0.12214E-01 0.12247E-01 0.12279E-01
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    2505.0      2515.0      2525.0      2535.0      2545.0      2555.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2565.0      2575.0      2585.0      2595.0      2605.0      2615.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2625.0      2635.0      2645.0      2655.0      2665.0      2675.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    2505.0      2515.0      2525.0      2535.0      2545.0      2555.0    
+ VALUE   2293.2      2287.1      2281.0      2274.8      2268.7      2262.6    
+ TIME    2565.0      2575.0      2585.0      2595.0      2605.0      2615.0    
+ VALUE   2256.5      2250.4      2244.3      2238.2      2232.1      2226.0    
+ TIME    2625.0      2635.0      2645.0      2655.0      2665.0      2675.0    
+ VALUE   2219.9      2213.8      2207.7      2201.6      2195.5      2189.4    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    2685.0      2695.0      2705.0      2715.0      2725.0      2735.0    
+ VALUE  0.12312E-01 0.12345E-01 0.12378E-01 0.12411E-01 0.12444E-01 0.12477E-01
+ TIME    2745.0      2755.0      2765.0      2775.0      2785.0      2795.0    
+ VALUE  0.12510E-01 0.12544E-01 0.12577E-01 0.12610E-01 0.12644E-01 0.12677E-01
+ TIME    2805.0      2815.0      2825.0      2835.0      2845.0      2855.0    
+ VALUE  0.12711E-01 0.12744E-01 0.12778E-01 0.12812E-01 0.12846E-01 0.12880E-01
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    2685.0      2695.0      2705.0      2715.0      2725.0      2735.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2745.0      2755.0      2765.0      2775.0      2785.0      2795.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2805.0      2815.0      2825.0      2835.0      2845.0      2855.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    2685.0      2695.0      2705.0      2715.0      2725.0      2735.0    
+ VALUE   2183.4      2177.3      2171.2      2165.1      2159.1      2153.0    
+ TIME    2745.0      2755.0      2765.0      2775.0      2785.0      2795.0    
+ VALUE   2146.9      2140.9      2134.8      2128.8      2122.7      2116.7    
+ TIME    2805.0      2815.0      2825.0      2835.0      2845.0      2855.0    
+ VALUE   2110.6      2104.6      2098.5      2092.5      2086.4      2080.4    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    2865.0      2875.0      2885.0      2895.0      2905.0      2915.0    
+ VALUE  0.12914E-01 0.12948E-01 0.12983E-01 0.13017E-01 0.13051E-01 0.13086E-01
+ TIME    2925.0      2935.0      2945.0      2955.0      2965.0      2975.0    
+ VALUE  0.13121E-01 0.13155E-01 0.13190E-01 0.13225E-01 0.13260E-01 0.13296E-01
+ TIME    2985.0      2995.0      3005.0      3015.0      3025.0      3035.0    
+ VALUE  0.13331E-01 0.13366E-01 0.13402E-01 0.13438E-01 0.13474E-01 0.13509E-01
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    2865.0      2875.0      2885.0      2895.0      2905.0      2915.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2925.0      2935.0      2945.0      2955.0      2965.0      2975.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    2985.0      2995.0      3005.0      3015.0      3025.0      3035.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    2865.0      2875.0      2885.0      2895.0      2905.0      2915.0    
+ VALUE   2074.4      2068.3      2062.3      2056.3      2050.3      2044.2    
+ TIME    2925.0      2935.0      2945.0      2955.0      2965.0      2975.0    
+ VALUE   2038.2      2032.2      2026.2      2020.2      2014.2      2008.2    
+ TIME    2985.0      2995.0      3005.0      3015.0      3025.0      3035.0    
+ VALUE   2002.2      1996.1      1990.1      1984.1      1978.1      1972.1    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    3045.0      3055.0      3065.0      3075.0      3085.0      3095.0    
+ VALUE  0.13546E-01 0.13582E-01 0.13618E-01 0.13655E-01 0.13691E-01 0.13728E-01
+ TIME    3105.0      3115.0      3125.0      3135.0      3145.0      3155.0    
+ VALUE  0.13765E-01 0.13802E-01 0.13839E-01 0.13876E-01 0.13914E-01 0.13951E-01
+ TIME    3165.0      3175.0      3185.0      3195.0      3205.0      3215.0    
+ VALUE  0.13989E-01 0.14027E-01 0.14065E-01 0.14103E-01 0.14142E-01 0.14180E-01
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    3045.0      3055.0      3065.0      3075.0      3085.0      3095.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    3105.0      3115.0      3125.0      3135.0      3145.0      3155.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    3165.0      3175.0      3185.0      3195.0      3205.0      3215.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    3045.0      3055.0      3065.0      3075.0      3085.0      3095.0    
+ VALUE   1966.2      1960.2      1954.2      1948.2      1942.2      1936.2    
+ TIME    3105.0      3115.0      3125.0      3135.0      3145.0      3155.0    
+ VALUE   1930.2      1924.2      1918.3      1912.3      1906.3      1900.3    
+ TIME    3165.0      3175.0      3185.0      3195.0      3205.0      3215.0    
+ VALUE   1894.4      1888.4      1882.4      1876.5      1870.5      1864.5    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    3225.0      3235.0      3245.0      3255.0      3265.0      3275.0    
+ VALUE  0.14219E-01 0.14258E-01 0.14297E-01 0.14336E-01 0.14376E-01 0.14416E-01
+ TIME    3285.0      3295.0      3305.0      3315.0      3325.0      3335.0    
+ VALUE  0.14455E-01 0.14495E-01 0.14536E-01 0.14576E-01 0.14617E-01 0.14657E-01
+ TIME    3345.0      3355.0      3365.0      3375.0      3385.0      3395.0    
+ VALUE  0.14698E-01 0.14740E-01 0.14781E-01 0.14823E-01 0.14865E-01 0.14907E-01
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    3225.0      3235.0      3245.0      3255.0      3265.0      3275.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    3285.0      3295.0      3305.0      3315.0      3325.0      3335.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    3345.0      3355.0      3365.0      3375.0      3385.0      3395.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    3225.0      3235.0      3245.0      3255.0      3265.0      3275.0    
+ VALUE   1858.6      1852.6      1846.7      1840.7      1834.7      1828.8    
+ TIME    3285.0      3295.0      3305.0      3315.0      3325.0      3335.0    
+ VALUE   1822.8      1816.9      1810.9      1805.0      1799.0      1793.1    
+ TIME    3345.0      3355.0      3365.0      3375.0      3385.0      3395.0    
+ VALUE   1787.2      1781.2      1775.3      1769.3      1763.4      1757.5    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    3405.0      3415.0      3425.0      3435.0      3445.0      3455.0    
+ VALUE  0.14949E-01 0.14991E-01 0.15034E-01 0.15077E-01 0.15120E-01 0.15164E-01
+ TIME    3465.0      3475.0      3485.0      3495.0      3505.0      3515.0    
+ VALUE  0.15208E-01 0.15251E-01 0.15296E-01 0.15340E-01 0.15385E-01 0.15430E-01
+ TIME    3525.0      3535.0      3545.0      3555.0      3565.0      3575.0    
+ VALUE  0.15475E-01 0.15520E-01 0.15566E-01 0.15612E-01 0.15659E-01 0.15705E-01
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    3405.0      3415.0      3425.0      3435.0      3445.0      3455.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    3465.0      3475.0      3485.0      3495.0      3505.0      3515.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    3525.0      3535.0      3545.0      3555.0      3565.0      3575.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    3405.0      3415.0      3425.0      3435.0      3445.0      3455.0    
+ VALUE   1751.5      1745.6      1739.7      1733.7      1727.8      1721.9    
+ TIME    3465.0      3475.0      3485.0      3495.0      3505.0      3515.0    
+ VALUE   1715.9      1710.0      1704.1      1698.2      1692.2      1686.3    
+ TIME    3525.0      3535.0      3545.0      3555.0      3565.0      3575.0    
+ VALUE   1680.4      1674.5      1668.5      1662.6      1656.7      1650.8    
+ 
+ **********************************  *****  **********************************
+ *****************************  STANDARD OUTPUT  *****************************
+
+ TIME =                                         3650.000 [day]               
+ TIME STEP NUMBER =                                  368
+ LINE SOR FACTOR (2ND CYCLE+) =                   1.2928
+ MODEL  3 BALANCES                            1.00000000
+
+ TOTAL COMPONENTS IN PLACE
+
+                    WATER              263020749.6    [lbM]               
+                    C1                 45173918.52    [lbM]               
+                    N2                 30115945.68    [lbM]               
+
+ SURFACE PHASE VOLUMES IN PLACE
+
+                    WATER              13528281.28    [stb]               
+                    GAS                28563119.47    [mscf]              
+                    GAS    RECOVERY        56.0994    %
+                    PAVG                   1651.09    [psi]               
+ 
+ ***********************  PRESSURE FOR FAULT BLOCK 1  ************************
+
+ K =   1
+   I / J =     1           2           3           4           5           6
+    1     1635.       1642.       1646.       1648.       1650.       1651.    
+    2     1651.       1636.       1643.       1647.       1649.       1651.    
+    3     1652.       1652.       1638.       1644.       1648.       1650.    
+
+ K =   1
+   I / J =     7
+    1     1652.    
+    2     1653.    
+    3     1653.    
+
+ K =   2
+   I / J =     1           2           3           4           5           6
+    1     1642.       1644.       1647.       1649.       1650.       1651.    
+    2     1651.       1643.       1645.       1648.       1650.       1651.    
+    3     1652.       1652.       1644.       1647.       1649.       1651.    
+
+ K =   2
+   I / J =     7
+    1     1652.    
+    2     1653.    
+    3     1654.    
+
+ K =   3
+   I / J =     1           2           3           4           5           6
+    1     1646.       1647.       1648.       1650.       1651.       1651.    
+    2     1652.       1647.       1648.       1649.       1650.       1651.    
+    3     1652.       1652.       1648.       1649.       1651.       1652.    
+
+ K =   3
+   I / J =     7
+    1     1653.    
+    2     1654.    
+    3     1654.    
+
+ K =   4
+   I / J =     1           2           3           4           5           6
+    1     1648.       1649.       1650.       1650.       1651.       1652.    
+    2     1652.       1649.       1650.       1650.       1651.       1652.    
+    3     1653.       1653.       1650.       1651.       1652.       1653.    
+
+ K =   4
+   I / J =     7
+    1     1654.    
+    2     1654.    
+    3     1654.    
+
+ K =   5
+   I / J =     1           2           3           4           5           6
+    1     1650.       1650.       1651.       1651.       1652.       1652.    
+    2     1652.       1651.       1651.       1651.       1652.       1653.    
+    3     1653.       1653.       1652.       1652.       1653.       1654.    
+
+ K =   5
+   I / J =     7
+    1     1654.    
+    2     1654.    
+    3     1655.    
+
+ K =   6
+   I / J =     1           2           3           4           5           6
+    1     1651.       1651.       1651.       1652.       1652.       1652.    
+    2     1652.       1652.       1652.       1652.       1653.       1653.    
+    3     1653.       1653.       1653.       1653.       1654.       1654.    
+
+ K =   6
+   I / J =     7
+    1     1654.    
+    2     1655.    
+    3     1655.    
+
+ K =   7
+   I / J =     1           2           3           4           5           6
+    1     1651.       1651.       1652.       1652.       1652.       1652.    
+    2     1653.       1652.       1652.       1652.       1653.       1653.    
+    3     1653.       1654.       1653.       1654.       1654.       1654.    
+
+ K =   7
+   I / J =     7
+    1     1655.    
+    2     1655.    
+    3     1655.    
+ 
+ ******************  WATER    SATURATION FOR FAULT BLOCK 1  ******************
+
+ K =   1
+   I / J =     1           2           3           4           5           6
+    1    0.2014      0.2014      0.2014      0.2014      0.2014      0.2014    
+    2    0.2014      0.2035      0.2035      0.2035      0.2035      0.2035    
+    3    0.2035      0.2035      0.2052      0.2051      0.2051      0.2051    
+
+ K =   1
+   I / J =     7
+    1    0.2051    
+    2    0.2051    
+    3    0.2051    
+
+ K =   2
+   I / J =     1           2           3           4           5           6
+    1    0.2014      0.2014      0.2014      0.2014      0.2014      0.2014    
+    2    0.2014      0.2035      0.2035      0.2035      0.2035      0.2035    
+    3    0.2035      0.2035      0.2051      0.2051      0.2051      0.2051    
+
+ K =   2
+   I / J =     7
+    1    0.2051    
+    2    0.2051    
+    3    0.2051    
+
+ K =   3
+   I / J =     1           2           3           4           5           6
+    1    0.2014      0.2014      0.2014      0.2014      0.2014      0.2014    
+    2    0.2014      0.2035      0.2035      0.2035      0.2035      0.2035    
+    3    0.2035      0.2035      0.2051      0.2051      0.2051      0.2051    
+
+ K =   3
+   I / J =     7
+    1    0.2051    
+    2    0.2051    
+    3    0.2051    
+
+ K =   4
+   I / J =     1           2           3           4           5           6
+    1    0.2014      0.2014      0.2014      0.2014      0.2014      0.2014    
+    2    0.2014      0.2035      0.2035      0.2035      0.2035      0.2035    
+    3    0.2035      0.2035      0.2051      0.2051      0.2051      0.2051    
+
+ K =   4
+   I / J =     7
+    1    0.2051    
+    2    0.2051    
+    3    0.2051    
+
+ K =   5
+   I / J =     1           2           3           4           5           6
+    1    0.2014      0.2014      0.2014      0.2014      0.2014      0.2014    
+    2    0.2014      0.2035      0.2035      0.2035      0.2035      0.2035    
+    3    0.2035      0.2035      0.2051      0.2051      0.2051      0.2051    
+
+ K =   5
+   I / J =     7
+    1    0.2051    
+    2    0.2051    
+    3    0.2051    
+
+ K =   6
+   I / J =     1           2           3           4           5           6
+    1    0.2014      0.2014      0.2014      0.2014      0.2014      0.2014    
+    2    0.2014      0.2035      0.2035      0.2035      0.2035      0.2035    
+    3    0.2035      0.2035      0.2051      0.2051      0.2051      0.2051    
+
+ K =   6
+   I / J =     7
+    1    0.2051    
+    2    0.2051    
+    3    0.2051    
+
+ K =   7
+   I / J =     1           2           3           4           5           6
+    1    0.2014      0.2014      0.2014      0.2014      0.2014      0.2014    
+    2    0.2014      0.2035      0.2035      0.2035      0.2035      0.2035    
+    3    0.2035      0.2035      0.2051      0.2051      0.2051      0.2051    
+
+ K =   7
+   I / J =     7
+    1    0.2051    
+    2    0.2051    
+    3    0.2051    
+ 
+ ******************  GAS      SATURATION FOR FAULT BLOCK 1  ******************
+
+ K =   1
+   I / J =     1           2           3           4           5           6
+    1    0.7986      0.7986      0.7986      0.7986      0.7986      0.7986    
+    2    0.7986      0.7964      0.7965      0.7965      0.7965      0.7965    
+    3    0.7965      0.7965      0.7948      0.7949      0.7949      0.7949    
+
+ K =   1
+   I / J =     7
+    1    0.7949    
+    2    0.7949    
+    3    0.7949    
+
+ K =   2
+   I / J =     1           2           3           4           5           6
+    1    0.7986      0.7986      0.7986      0.7986      0.7986      0.7986    
+    2    0.7986      0.7965      0.7965      0.7965      0.7965      0.7965    
+    3    0.7965      0.7965      0.7949      0.7949      0.7949      0.7949    
+
+ K =   2
+   I / J =     7
+    1    0.7949    
+    2    0.7949    
+    3    0.7949    
+
+ K =   3
+   I / J =     1           2           3           4           5           6
+    1    0.7986      0.7986      0.7986      0.7986      0.7986      0.7986    
+    2    0.7986      0.7965      0.7965      0.7965      0.7965      0.7965    
+    3    0.7965      0.7965      0.7949      0.7949      0.7949      0.7949    
+
+ K =   3
+   I / J =     7
+    1    0.7949    
+    2    0.7949    
+    3    0.7949    
+
+ K =   4
+   I / J =     1           2           3           4           5           6
+    1    0.7986      0.7986      0.7986      0.7986      0.7986      0.7986    
+    2    0.7986      0.7965      0.7965      0.7965      0.7965      0.7965    
+    3    0.7965      0.7965      0.7949      0.7949      0.7949      0.7949    
+
+ K =   4
+   I / J =     7
+    1    0.7949    
+    2    0.7949    
+    3    0.7949    
+
+ K =   5
+   I / J =     1           2           3           4           5           6
+    1    0.7986      0.7986      0.7986      0.7986      0.7986      0.7986    
+    2    0.7986      0.7965      0.7965      0.7965      0.7965      0.7965    
+    3    0.7965      0.7965      0.7949      0.7949      0.7949      0.7949    
+
+ K =   5
+   I / J =     7
+    1    0.7949    
+    2    0.7949    
+    3    0.7949    
+
+ K =   6
+   I / J =     1           2           3           4           5           6
+    1    0.7986      0.7986      0.7986      0.7986      0.7986      0.7986    
+    2    0.7986      0.7965      0.7965      0.7965      0.7965      0.7965    
+    3    0.7965      0.7965      0.7949      0.7949      0.7949      0.7949    
+
+ K =   6
+   I / J =     7
+    1    0.7949    
+    2    0.7949    
+    3    0.7949    
+
+ K =   7
+   I / J =     1           2           3           4           5           6
+    1    0.7986      0.7986      0.7986      0.7986      0.7986      0.7986    
+    2    0.7986      0.7965      0.7965      0.7965      0.7965      0.7965    
+    3    0.7965      0.7965      0.7949      0.7949      0.7949      0.7949    
+
+ K =   7
+   I / J =     7
+    1    0.7949    
+    2    0.7949    
+    3    0.7949    
+ 
+ *********************************  ******  **********************************
+ *******************************  WELL RATES  ********************************
+
+ PRODUCTION WELL: WATER PRODUCTION RATE [stb/day]
+ TIME    3585.0      3595.0      3605.0      3615.0      3625.0      3635.0    
+ VALUE  0.15752E-01 0.15799E-01 0.15847E-01 0.15894E-01 0.15942E-01 0.15991E-01
+ TIME    3642.6      3650.0    
+ VALUE  0.16039E-01 0.16077E-01
+
+ PRODUCTION WELL: GAS PRODUCTION RATE [mscf/day]
+ TIME    3585.0      3595.0      3605.0      3615.0      3625.0      3635.0    
+ VALUE   10000.      10000.      10000.      10000.      10000.      10000.    
+ TIME    3642.6      3650.0    
+ VALUE   10000.      10000.    
+
+ PRODUCTION WELL: BOTTOM HOLE PRESSURE [psi]
+ TIME    3585.0      3595.0      3605.0      3615.0      3625.0      3635.0    
+ VALUE   1644.9      1639.0      1633.0      1627.1      1621.2      1615.3    
+ TIME    3642.6      3650.0    
+ VALUE   1610.7      1606.4    
+ 
+ **********************************  *****  **********************************
+ ************************  TIMER RESULTS IN SECONDS  *************************
+
+ TOTAL TIME                                     2.734
+
+ ALL REDUNDANT CALCULATIONS                     0.080
+
+ TOTAL INITIALIZATION TIME                      0.040
+
+ TOTAL COEFFICIENT TIME                         0.260
+
+ TOTAL LINEAR SOLVER TIME                       0.922
+
+ TOTAL WELL MANAGEMENT TIME                     0.020
+
+ TOTAL FLASH TIME FOR GRID BLOCKS               0.291
+
+ FLASH ITERATIONS FOR GRID BLOCKS               0.010
+
+ RELATIVE PERMEABILITY TIME                     0.030
+
+ COEFFICIENT GENERATION TIME                    0.020
+
+ VARIABLE UPDATE TIME                           0.110
+
+ TOTAL LINEAR ITERATIONS THIS RUN =       3473
+ TOTAL NEWTONIAN ITERATIONS THIS RUN =     368
+ TOTAL TIME STEP THIS RUN =                368
+ LINEAR / NEWTONIAN =                     9.44    
+ NEWTONIAN / TIME STEP =                  1.00    

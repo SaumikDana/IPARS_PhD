@@ -1,0 +1,83 @@
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase
+END
+oil_watT_1dc0.dat
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/oil_watT_1dc0.dat
+END
+temp_2ph.lay
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/temp_2ph.lay
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/IPARS.IN
+END
+CapPres.dat
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/CapPres.dat
+END
+CapPres0.dat
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/CapPres0.dat
+END
+tmpr_soln.dat
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/tmpr_soln.dat
+END
+P1_1relprm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/P1_1relprm.dat
+END
+tmpr_soln.dat.bak.v05_28_08
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/tmpr_soln.dat.bak.v05_28_08
+END
+P1_2relprm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/P1_2relprm.dat
+END
+INPUT_2ph1d.txt
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/INPUT_2ph1d.txt
+END
+P1_2MDrelprm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/P1_2MDrelprm.dat
+END
+temp_2ph.sty
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/temp_2ph.sty
+END
+co2_1dtest0.dat
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/1dCase/2phase/co2_1dtest0.dat
+END

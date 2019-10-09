@@ -1,0 +1,235 @@
+C*********************************************************************
+      SUBROUTINE SOLGI (NERR,KINP)
+C*********************************************************************
+C  ROUTINE INITIALIZES Linear Solver parameters 
+c 		for GMRES solver
+C  NERR = Error number stepped by 1 on error (input & output, INTEGER)
+C  KINP = Input type
+C       = 1 ==> initial data
+C       = 2 ==> transient data
+
+C***********************************************************************
+      implicit none
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'sol.h'
+
+      integer nerr,kinp
+
+      integer i,itm,nx,ny,nz,ndum
+
+c set the default value of max number of iterations to 
+c the number of unknowns <= sum (nx*ny*nz) over blocks 
+c set the default tolerance (relative)  5e - 6
+c set the default tolerance (absolute)  1e - 8
+c 
+      IF (KINP.EQ.1) THEN
+         itm = 0
+         do I=1,NUMBLK
+            CALL BLKDIM(I,NX,NY,NZ,NERR)
+            itm = itm + nx*ny*nz
+         enddo 
+         lsol_itmax = itm
+         lsol_tol = 0.5e-5
+         lsol_atol= 1.e-8
+	 lsol_absflag = 0
+         n_gs_step = 1
+C  Set Block Jacobi preconditioner by default
+         PREC=2
+      ENDIF
+
+c get the values of the parameters from input file, if present
+
+      CALL GETVAL('LSOL_TOL ',lsol_tol,'R4',0,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1)))
+     &   WRITE (NFOUT,3) LSOL_TOL
+    3 FORMAT(' LSOL relative tolerance =',T45,G12.4)
+
+      CALL GETVAL('LSOL_ATOL ',lsol_atol,'R4',0,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1)))
+     &   WRITE (NFOUT,4) LSOL_ATOL
+    4 FORMAT(' LSOL absolute tolerance =',T45,G12.4)
+
+      CALL GETVAL('LSOL_ITMAX ',lsol_itmax,'I4',0,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1)))
+     &   WRITE (NFOUT,5) LSOL_ITMAX
+    5 FORMAT(' LSOL max # iterations =',T45,I5)
+
+      CALL GETVAL('LSOL_ABSFLAG ',lsol_absflag,'I4',0,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1))) then
+         WRITE (NFOUT,6) LSOL_ABSFLAG
+         if(lsol_absflag.eq.0) write(nfout,70)
+         if(lsol_absflag.eq.1) write(nfout,71)
+         if(lsol_absflag.eq.2) write(nfout,72)
+         if(lsol_absflag.eq.3) write(nfout,73)
+         if(lsol_absflag.lt.0.or.lsol_absflag.gt.3) write(nfout,74)
+ 6       FORMAT(' LSOL absflag =',T45,I5)
+ 70      FORMAT(' LSOL absflag: ONLY RELATIVE TOLERANCE IS CHECKED')
+ 71      FORMAT(' LSOL absflag: ONLY ABSOLUTE TOLERANCE IS CHECKED')
+ 72      FORMAT(' LSOL absflag: ABSOLUTE OR RELATIVE TOL. IS CHECKED')
+ 73      FORMAT(' LSOL absflag: ABSOLUTE AND RELATIVE TOL. IS CHECKED')
+ 74      FORMAT(' LSOL absflag out of range (defaults to 0): ',/
+     &        'ONLY RELATIVE TOLERANCE IS CHECKED')
+      ENDIF
+
+cmpesz: add here the call to tmpINsoltol
+
+$TRCHEM      if(kinp.eq.1)call tmpINLSOLTOL(nerr)
+      
+$GMRES      CALL GETVAL('N_GS_STEP ',N_GS_STEP,'I4',0,0,0,0,NDUM,NERR)
+$GMRES      IF (LEVELC.AND.((NDUM.GT.0).OR.(KINP.EQ.1)))
+$GMRES     &   WRITE (NFOUT,7) N_GS_STEP
+$GMRES 7    FORMAT(' N_GS_STEP =',T45,I5)
+
+
+      END
+
+
+      SUBROUTINE SET_GS_STEP (NSTEP)
+      INCLUDE 'sol.h'
+      INTEGER NSTEP
+      
+      NSTEP = N_GS_STEP
+      
+      RETURN
+      END
+      
+
+
+c =========================================================================
+
+      SUBROUTINE TMP_LSOLTOL(NERR,FLAG)
+c =========================================================================
+c resets value of LSOL_* parameters to temporary values which are read
+c as TMP_*.
+c This is useful in models where pressure and saturation equations are
+c solved separately and when they obviously need to be governed by
+c different tolerances as pressure eq. (elliptic) typically is harder 
+c and where saturation equation is parabolic-hyperbolic. 
+c =========================================================================
+      IMPLICIT NONE
+      INTEGER NERR,FLAG
+
+      INCLUDE 'control.h'
+      INCLUDE 'sol.h'
+
+      INTEGER NDUM
+      INTEGER SLSOL_ITMAX, SLSOL_ABSFLAG
+      REAL*4 SLSOL_TOL,SLSOL_ATOL
+      INTEGER NLSOL_ITMAX, NLSOL_ABSFLAG
+      REAL*4 NLSOL_TOL,NLSOL_ATOL
+      COMMON /TMPSAVE/ SLSOL_ITMAX, SLSOL_ABSFLAG,
+     &     SLSOL_TOL,SLSOL_ATOL
+      COMMON /TMPNEW/ NLSOL_ITMAX, NLSOL_ABSFLAG,
+     &     NLSOL_TOL,NLSOL_ATOL
+
+$TRCHEM      integer nfrom_diff
+$TRCHEM      common /tmpstatus/ nfrom_diff
+C ----------------------------------------------------------------
+      IF(FLAG.EQ.0) THEN   ! save and get new values
+
+         SLSOL_ITMAX = LSOL_ITMAX 
+         SLSOL_ABSFLAG = LSOL_ABSFLAG
+         SLSOL_TOL = LSOL_TOL
+         SLSOL_ATOL = LSOL_ATOL
+     
+         LSOL_ITMAX = NLSOL_ITMAX 
+         LSOL_ABSFLAG = NLSOL_ABSFLAG
+         LSOL_TOL = NLSOL_TOL
+         LSOL_ATOL = NLSOL_ATOL
+
+$TRCHEM         NFROM_DIFF = 1
+
+      ELSE                 ! restore old values
+         Lsol_ITMAX = SLSOL_ITMAX 
+         LSOL_ABSFLAG = SLSOL_ABSFLAG
+         LSOL_TOL = SLSOL_TOL
+         LSOL_ATOL = SLSOL_ATOL
+          
+$TRCHEM         NFROM_DIFF = 0
+
+      ENDIF
+      END
+
+
+c =========================================================================
+      SUBROUTINE TMPINLSOLTOL(NERR)
+c =========================================================================
+c reads in temporary values of LSOL_* parameters to be used
+c by models where TICAMA is called more than twice and where
+c it is called for equations of different type.
+c =========================================================================
+      IMPLICIT NONE
+      INTEGER NERR,FLAG
+
+      INCLUDE 'control.h'
+      INCLUDE 'sol.h'
+
+      INTEGER NDUM
+
+      INTEGER SLSOL_ITMAX, SLSOL_ABSFLAG
+      REAL*4 SLSOL_TOL,SLSOL_ATOL
+      INTEGER NLSOL_ITMAX, NLSOL_ABSFLAG
+      REAL*4 NLSOL_TOL,NLSOL_ATOL
+      COMMON /TMPSAVE/ SLSOL_ITMAX, SLSOL_ABSFLAG,
+     &     SLSOL_TOL,SLSOL_ATOL
+      COMMON /TMPNEW/ NLSOL_ITMAX, NLSOL_ABSFLAG,
+     &     NLSOL_TOL,NLSOL_ATOL
+
+c-----------------------------------------
+      NLSOL_ITMAX = LSOL_ITMAX 
+      NLSOL_ABSFLAG = LSOL_ABSFLAG
+      NLSOL_TOL = LSOL_TOL
+      NLSOL_ATOL = LSOL_ATOL
+
+      CALL GETVAL('TMP_LSOL_TOL ',nlsol_tol,'R4',0,0,0,0,
+     &        NDUM,NERR)
+
+      IF (LEVELC.AND.((NDUM.GT.0)))
+     &   WRITE (NFOUT,3) nLSOL_TOL
+    3 FORMAT(' tmp_LSOL relative tolerance =',T45,G12.4)
+
+      CALL GETVAL('TMP_LSOL_ATOL ',NLSOL_ATOL,'R4',0,0,0,0,
+     &     NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0)))
+     &   WRITE (NFOUT,4) nLSOL_ATOL
+    4 FORMAT(' tmp_LSOL absolute tolerance =',T45,G12.4)
+
+      CALL GETVAL('TMP_LSOL_ITMAX ',NLSOL_ITMAX,'I4',0,0,0,0,
+     &     NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0)))
+     &   WRITE (NFOUT,5) nLSOL_ITMAX
+    5 FORMAT(' tmp_LSOL max # iterations =',T45,I5)
+
+      CALL GETVAL('TMP_LSOL_ABSFLAG ',NLSOL_ABSFLAG,'I4',0,0,0,0,
+     &     NDUM,NERR)
+      IF (LEVELC.AND.((NDUM.GT.0))) then
+         WRITE (NFOUT,*) 'absflag ',nLSOL_ABSFLAG
+      ENDIF
+
+
+      END
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

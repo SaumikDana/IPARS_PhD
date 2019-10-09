@@ -1,0 +1,18 @@
+$ ############ Line SOR Linear Solver Include File ############
+
+Replace_Symbols
+
+TICAMA   ""            $ Include GMRES linear solver
+
+Source_Directory
+../solve/
+Source_Files
+
+sol.df        .f
+slgmres.df    .f
+slupdate.df   .f
+slmsg.df      .f
+ticama.df     .f
+gr8sum.df     .f
+gr8min.df     .f
+gr8max.df     .f

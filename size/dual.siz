@@ -1,0 +1,28 @@
+$ ############ Dual Approximation Interface Include File ############
+$ ######################### Small Problems ##########################
+
+Replace_Symbols
+
+DUAL   ""        $ Enable dual approximation interface
+MXGEI  4000      $ Max total number of interface grid elements per processor
+MXFELE 9000      $ Max total number of interface couplings per processor
+MXIBUF   34      $ Max number of buffers for dual approximation interface
+                 $ (Implicit single phase model 3) (Implicit hydrology model 10)
+                 $ (Implicit black-oil model 32)
+                 $ (Impec compositional, 3+2*NPH+NCINPH)
+
+Source_Directory
+../blocks/dual/
+Source_Files
+
+sblkc.dh      .h
+blksin.df     .f
+inface.dc     .c
+infcomm.df    .f
+
+Source_Directory
+../parall/
+Source_Files
+
+pdual.df      .f
+pdualm.dc     .c

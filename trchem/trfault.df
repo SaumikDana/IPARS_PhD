@@ -1,0 +1,1612 @@
+C  TRFAULT.F - MULTI-BLOCK CODE FOR REACTIVE TRANSPORT FLOW
+C  ROUTINES IN THIS MODULE:
+
+C SUBROUTINE TRBCINI_EX ()
+C SUBROUTINE TRBCINI (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,PRES,BC_TYPEX,BC_TYPEY,BC_TYPEZ,
+C                     BC_CONCX,BC_CONCY,BC_CONCZ)
+C THE ROUTINES BELOW ARE WORK ROUTINES AND THEIR EXECUTIVE _EX ROUTINES
+C SUBROUTINE TRMORTAR_ADV ()
+C SUBROUTINE TRMORTAR_ADV_W(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                           KL1,KL2,KEYOUT,NBLK,VELX,VELY,VELZ,
+C                           CONC,CONCOLD,PHISOLD)
+C SUBROUTINE TRMORTAR_DIFF(NALPHA,NERR)
+C SUBROUTINE TRMORTAR_DIFF_W(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                            KL1,KL2,KEYOUT,NBLK,BC_TYPEX,BC_TYPEY,
+C                            BC_TYPEZ,DISP,CONC,TRCOF,TRRESID)
+
+C --------------------------------------------------
+C  CODE HISTORY:
+C SUNIL G. THOMAS: 01/15/07 USED SINGLE PHASE IMPLICIT CODE AS TEMPLATE
+C -----------------------------------------------------
+
+C SPECIFIC VARIABLES USED BELOW 
+C  BC_TYPEX = BOUNDARY-ELEMENT ARRAY FOR BOUNDARY TYPE, (INPUT,INTEGER)
+C  BC_TYPEY   0: NO-FLOW BOUNDARY CONDITION, 1: CONCENTRATION SPECIFIED  
+C  BC_TYPEZ   BOUNDARY CONDITION.
+C             THREE VALUES FOR X, Y, Z DIRECTION RESPECTIVELY.
+C  BC_CONCX = BOUNDARY-ELEMENT ARRAY FOR SPECIES CONCENTRATION, LB/CU-IN 
+C  BC_CONCY   (INPUT,REAL*8) THREE VALUES FOR X, Y, Z DIRECTION 
+C  BC_CONCZ   RESPECTIVELY.
+
+C*********************************************************************
+      SUBROUTINE TRBCINI_EX (NALPHA,NERR)
+C********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'mbvars.h'
+      INCLUDE 'trarydat.h'
+
+      INTEGER NALPHA,NERR,IBCINI(5)
+      DATA IBCINI /5*0/      
+      EXTERNAL TRBCINI
+
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IBCINI(1)=4
+         IBCINI(3)=N_BC_TYPE(1)
+         IBCINI(4)=N_BC_TYPE(2)
+         IBCINI(5)=N_BC_TYPE(3)
+      ENDIF
+
+      IBCINI(2)=N_CONCARR(NALPHA)
+      CALL CALLWORK(TRBCINI,IBCINI) 
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE TRBCINI (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,CONC,BC_TYPEX,BC_TYPEY,BC_TYPEZ)
+C*********************************************************************
+C  SET THE VALUES ON GENERAL BOUNDARY FOR MULTI-BLOCK. 
+C  THIS IS A WORK ROUTINE.
+C***********************************************************************
+      INCLUDE 'layout.h'
+      INCLUDE 'tr_mbvars.h'
+
+      INTEGER  JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+
+      INTEGER BC_TYPEX(JDIM-2*JLAY,KDIM-2*KLAY,2)
+      INTEGER BC_TYPEY(IDIM-2*ILAY,KDIM-2*KLAY,2)
+      INTEGER BC_TYPEZ(IDIM-2*ILAY,JDIM-2*JLAY,2) 
+
+      REAL*8 CONC(IDIM,JDIM,KDIM)
+
+C ------------------------------------------------------------------
+
+      DO I=ILAY,IDIM-ILAY+1,IDIM-2*ILAY+1
+         IF ((I.EQ.ILAY.AND.BC_MORTAR(1,NBLK).EQ.1).OR.(I.EQ.IDIM-ILAY+1
+     &         .AND.BC_MORTAR(2,NBLK).EQ.1)) THEN
+            DO K=KLAY+1,KDIM-KLAY
+               DO J=JLAY+1,JDIM-JLAY
+                  IF (I.EQ.ILAY.AND.KEYOUT(I+1,J,K).EQ.1
+     &                 .AND.BC_TYPEX(J-JLAY,K-KLAY,1).EQ.1) THEN 
+                     CONC(I,J,K)=CLAYX(J-JLAY,K-KLAY,1,NBLK)
+                  ELSE IF(I.EQ.IDIM-ILAY+1.AND.KEYOUT(I-1,J,K).EQ.1
+     &                     .AND.BC_TYPEX(J-JLAY,K-KLAY,2).EQ.1) THEN
+                     CONC(I,J,K)=CLAYX(J-JLAY,K-KLAY,2,NBLK)
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDDO
+
+      DO J=JLAY,JDIM-JLAY+1,JDIM-2*JLAY+1
+         IF ((J.EQ.JLAY.AND.BC_MORTAR(3,NBLK).EQ.1).OR.(J.EQ.JDIM-JLAY+1
+     &         .AND.BC_MORTAR(4,NBLK).EQ.1)) THEN
+            DO K=KLAY+1,KDIM-KLAY
+               DO I=ILAY+1,IDIM-ILAY
+                  IF (J.EQ.JLAY.AND.KEYOUT(I,J+1,K).EQ.1
+     &                 .AND.BC_TYPEY(I-ILAY,K-KLAY,1).EQ.1) THEN     
+                     CONC(I,J,K)=CLAYY(I-ILAY,K-KLAY,1,NBLK)
+                  ELSE IF(J.EQ.JDIM-JLAY+1.AND.KEYOUT(I,J-1,K).EQ.1
+     &                     .AND.BC_TYPEY(I-ILAY,K-KLAY,2).EQ.1) THEN 
+                     CONC(I,J,K)=CLAYY(I-ILAY,K-KLAY,2,NBLK)
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDDO
+
+      DO K=KLAY,KDIM-KLAY+1,KDIM-2*KLAY+1
+         IF ((K.EQ.KLAY.AND.BC_MORTAR(5,NBLK).EQ.1).OR.(K.EQ.KDIM-KLAY+1
+     &         .AND.BC_MORTAR(6,NBLK).EQ.1)) THEN
+            DO J=JLAY+1,JDIM-JLAY
+               DO I=ILAY+1,IDIM-ILAY
+                  IF(K.EQ.KLAY.AND.KEYOUT(I,J,K+1).EQ.1
+     &                .AND.BC_TYPEZ(I-ILAY,J-JLAY,1).EQ.1) THEN
+                     CONC(I,J,K)=CLAYZ(I-ILAY,J-JLAY,1,NBLK)
+                  ELSE IF(K.EQ.KDIM-KLAY+1.AND.KEYOUT(I,J,K-1).EQ.1
+     &                     .AND.BC_TYPEZ(I-ILAY,J-JLAY,2).EQ.1) THEN
+                     CONC(I,J,K)=CLAYZ(I-ILAY,J-JLAY,2,NBLK)
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDDO
+
+      RETURN
+      END 
+
+C*********************************************************************
+      SUBROUTINE TRMORTAR_ADV(NALPHA,NERR)
+C*********************************************************************
+C  PERFORM ADVECTION AT THE MORTAR INTERFACE
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'trarydat.h'
+      INCLUDE 'trmodel.h'
+$MORTAR      INCLUDE 'mbvars.h'
+
+      INTEGER NALPHA,NERR
+      INTEGER IADV(10)
+      EXTERNAL TRMORTAR_ADV_W
+      DATA IADV /10*0/
+C -----------------------------------------------------
+      IADV(1) = 9
+      IADV(2) = N_BC_TYPE(1)
+      IADV(3) = N_BC_TYPE(2)
+      IADV(4) = N_BC_TYPE(3)
+      IADV(5) = N_TRVX
+      IADV(6) = N_TRVY
+      IADV(7) = N_TRVZ
+      IADV(8) = N_CONCARR(NALPHA)
+      IADV(9) = N_CONCOLD
+      IADV(10)= N_PHISN
+
+      CALPHA = NALPHA
+
+      CALL CALLWORK (TRMORTAR_ADV_W,IADV)
+
+C     TEMP DEBUG MESSAGE
+C     WRITE(*,*) "AFTER ADV_MORTAR AT NSTEP ", NSTEP, " ICSTEP", ICSTEP,
+
+      RETURN
+      END
+
+C **********************************************************************
+      SUBROUTINE TRMORTAR_ADV_W(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                   KL1,KL2,KEYOUT,NBLK,BC_TYPEX,BC_TYPEY,BC_TYPEZ,
+     &                   VELX,VELY,VELZ,CONC,CONCOLD,PHISOLD)
+C **********************************************************************
+C VELX,VELY,VELZY - VELOCITY IN X,Y,Z DIRECTION
+C CONC - CONCENTRATION OF SPECIES
+C **********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'tr_mbvars.h'
+
+      INTEGER I,J,K
+      INTEGER IL1,IL2,JL1,JL2,KL1,KL2,IDIM,JDIM,KDIM,LDIM,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER BC_TYPEX(JDIM-2*JLAY,KDIM-2*KLAY,2)
+      INTEGER BC_TYPEY(IDIM-2*ILAY,KDIM-2*KLAY,2)
+      INTEGER BC_TYPEZ(IDIM-2*ILAY,JDIM-2*JLAY,2) 
+      REAL*8  VEL_IN,CSTAR,VELX(IDIM,JDIM,KDIM),VELY(IDIM,JDIM,KDIM),
+     &        VELZ(IDIM,JDIM,KDIM),
+     &        CONC(IDIM,JDIM,KDIM),
+     &        CONCOLD(IDIM,JDIM,KDIM),PHISOLD(IDIM,JDIM,KDIM)
+
+C ------------------------------------------------------------------
+      DO I=ILAY,IDIM-ILAY+1,IDIM-2*ILAY+1
+         IF ((I.EQ.ILAY.AND.BC_MORTAR(1,NBLK).EQ.1).OR.(I.EQ.IDIM-ILAY+1
+     &        .AND.BC_MORTAR(2,NBLK).EQ.1)) THEN
+            DO K=KLAY+1,KDIM-KLAY
+               DO J=JLAY+1,JDIM-JLAY
+
+                  CSTAR=0.D0
+                  IF (I.EQ.ILAY.AND.KEYOUT(I+1,J,K).EQ.1
+     &                .AND.BC_TYPEX(J-JLAY,K-KLAY,1).EQ.1) THEN
+                     VEL_IN=VELX(ILAY+1,J,K) 
+                     IF(VEL_IN.GT.0.D0) THEN              ! INFLOW
+                        CSTAR = CLAYX(J-JLAY,K-KLAY,1,NBLK)
+                     ELSEIF(VEL_IN.LE.0D0) THEN
+                        CSTAR = CONCOLD(I+1,J,K)          ! OUTFLOW
+                     ENDIF
+C    CHECK CFL CONDITION TO PREVENT INSTABILITIES
+                     IF(CDELTIM.GT.DABS(PHISOLD(I+1,J,K)/VEL_IN)) THEN
+C    TEMP DEBUG INFO
+                        WRITE(*,*) I,J,K,' CFL BOUNDARY ',CDELTIM,
+     &                             PHISOLD(I+1,J,K)/VEL_IN
+                        CFLERR = .TRUE.
+                        CFLTSTEP = DABS(PHISOLD(I+1,J,K)/VEL_IN)
+                        RETURN
+                     ENDIF
+C PERFORM ADVECTION
+                     CSTAR = CSTAR*CDELTIM*VEL_IN
+                     CONC(I+1,J,K) = CONC(I+1,J,K) + CSTAR
+C MASS BALANCE OF SPECIES
+                     CIN(CALPHA) = CIN(CALPHA) + CSTAR
+                  ELSE IF(I.EQ.IDIM-ILAY+1.AND.KEYOUT(I-1,J,K).EQ.1
+     &                    .AND.BC_TYPEX(J-JLAY,K-KLAY,2).EQ.1) THEN
+                     VEL_IN=-VELX(IDIM-ILAY+1,J,K) 
+                     IF(VEL_IN.GT.0.D0) THEN              ! INFLOW
+                        CSTAR = CLAYX(J-JLAY,K-KLAY,2,NBLK)
+                     ELSEIF(VEL_IN.LE.0D0) THEN
+                        CSTAR = CONCOLD(I-1,J,K)          ! OUTFLOW
+                     ENDIF
+C    CHECK CFL CONDITION TO PREVENT INSTABILITIES
+                     IF(CDELTIM.GT.DABS(PHISOLD(I-1,J,K)/VEL_IN)) THEN
+C    TEMP DEBUG INFO
+                        WRITE(*,*) I,J,K,' CFL BOUNDARY ',CDELTIM,
+     &                             PHISOLD(I-1,J,K)/VEL_IN
+                        CFLERR = .TRUE.
+                        CFLTSTEP = DABS(PHISOLD(I-1,J,K)/VEL_IN)
+                        RETURN
+                     ENDIF
+C PERFORM ADVECTION
+                     CSTAR = CSTAR*CDELTIM*VEL_IN
+                     CONC(I-1,J,K) = CONC(I-1,J,K) + CSTAR
+C MASS BALANCE OF SPECIES
+                     CIN(CALPHA) = CIN(CALPHA) + CSTAR
+                  ENDIF 
+
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDDO
+
+      DO J=JLAY,JDIM-JLAY+1,JDIM-2*JLAY+1
+         IF ((J.EQ.JLAY.AND.BC_MORTAR(3,NBLK).EQ.1).OR.(J.EQ.JDIM-JLAY+1
+     &        .AND.BC_MORTAR(4,NBLK).EQ.1)) THEN
+            DO K=KLAY+1,KDIM-KLAY
+               DO I=ILAY+1,IDIM-ILAY
+
+                  CSTAR=0.D0
+                  IF(J.EQ.JLAY.AND.KEYOUT(I,J+1,K).EQ.1
+     &               .AND.BC_TYPEY(I-ILAY,K-KLAY,1).EQ.1) THEN     
+                     VEL_IN=VELY(I,JLAY+1,K)
+
+                     IF(VEL_IN.GT.0.D0) THEN              ! INFLOW
+                        CSTAR = CLAYY(I-ILAY,K-KLAY,1,NBLK)
+
+                     ELSEIF(VEL_IN.LE.0D0) THEN
+                        CSTAR = CONCOLD(I,J+1,K)      ! OUTFLOW
+                     ENDIF
+C    CHECK CFL CONDITION TO PREVENT INSTABILITIES
+                     IF(CDELTIM.GT.DABS(PHISOLD(I,J+1,K)/VEL_IN)) 
+     &               THEN
+C    TEMP DEBUG INFO
+                        WRITE(*,*) I,J,K,' CFL BOUNDARY ',CDELTIM,
+     &                             PHISOLD(I,J+1,K)/VEL_IN
+                        CFLERR = .TRUE.
+                        CFLTSTEP = DABS(PHISOLD(I,J+1,K)/VEL_IN)
+                        RETURN
+                     ENDIF
+C PERFORM ADVECTION
+                     CSTAR = CSTAR*CDELTIM*VEL_IN
+                     CONC(I,J+1,K) = CONC(I,J+1,K) + CSTAR
+C MASS BALANCE OF SPECIES
+                     CIN(CALPHA) = CIN(CALPHA) + CSTAR
+                  ELSE IF(J.EQ.JDIM-JLAY+1.AND.KEYOUT(I,J-1,K).EQ.1
+     &               .AND.BC_TYPEY(I-ILAY,K-KLAY,2).EQ.1) THEN
+                     VEL_IN=-VELY(I,JDIM-JLAY+1,K) 
+
+                     IF(VEL_IN.GT.0.D0) THEN              ! INFLOW
+                        CSTAR = CLAYY(I-ILAY,K-KLAY,2,NBLK)
+                     ELSEIF(VEL_IN.LE.0D0) THEN
+                        CSTAR = CONCOLD(I,J-1,K)      ! OUTFLOW
+                     ENDIF
+C    CHECK CFL CONDITION TO PREVENT INSTABILITIES
+                     IF(CDELTIM.GT.DABS(PHISOLD(I,J-1,K)/VEL_IN)) 
+     &               THEN
+C    TEMP DEBUG INFO
+                        WRITE(*,*) I,J,K,' CFL BOUNDARY ',CDELTIM,
+     &                             PHISOLD(I,J-1,K)/VEL_IN
+                        CFLERR = .TRUE.
+                        CFLTSTEP = DABS(PHISOLD(I,J-1,K)/VEL_IN)
+                        RETURN
+                     ENDIF
+C PERFORM ADVECTION
+                     CSTAR = CSTAR*CDELTIM*VEL_IN
+                     CONC(I,J-1,K) = CONC(I,J-1,K) + CSTAR
+C MASS BALANCE OF SPECIES
+                     CIN(CALPHA) = CIN(CALPHA) + CSTAR
+                  ENDIF
+      
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDDO
+
+      DO K=KLAY,KDIM-KLAY+1,KDIM-2*KLAY+1
+         IF ((K.EQ.KLAY.AND.BC_MORTAR(5,NBLK).EQ.1).OR.(K.EQ.KDIM-KLAY+1
+     &        .AND.BC_MORTAR(6,NBLK).EQ.1)) THEN
+            DO J=JLAY+1,JDIM-JLAY
+               DO I=ILAY+1,IDIM-ILAY
+
+                  CSTAR=0.D0
+                  IF(K.EQ.KLAY.AND.KEYOUT(I,J,K+1).EQ.1
+     &               .AND.BC_TYPEZ(I-ILAY,J-JLAY,1).EQ.1) THEN     
+                     VEL_IN=VELZ(I,J,KLAY+1) 
+                     IF(VEL_IN.GT.0.D0) THEN              ! INFLOW
+                        CSTAR = CLAYZ(I-ILAY,J-JLAY,1,NBLK)
+                     ELSEIF(VEL_IN.LE.0D0) THEN
+                        CSTAR = CONCOLD(I,J,K+1)          ! OUTFLOW
+                     ENDIF
+C    CHECK CFL CONDITION TO PREVENT INSTABILITIES
+                     IF(CDELTIM.GT.DABS(PHISOLD(I,J,K+1)/VEL_IN)) THEN
+C    TEMP DEBUG INFO
+                        WRITE(*,*) I,J,K,' CFL BOUNDARY ',CDELTIM,
+     &                             PHISOLD(I,J,K+1)/VEL_IN
+                        CFLERR = .TRUE.
+                        CFLTSTEP = DABS(PHISOLD(I,J,K+1)/VEL_IN)
+                        RETURN
+                     ENDIF
+C PERFORM ADVECTION
+                     CSTAR = CSTAR*CDELTIM*VEL_IN
+                     CONC(I,J,K+1) = CONC(I,J,K+1) + CSTAR
+C MASS BALANCE OF SPECIES
+                     CIN(CALPHA) = CIN(CALPHA) + CSTAR
+                  ELSE IF(K.EQ.KDIM-KLAY+1.AND.KEYOUT(I,J,K-1).EQ.1
+     &               .AND.BC_TYPEZ(I-ILAY,J-JLAY,2).EQ.1) THEN
+                     VEL_IN=-VELZ(I,J,KDIM-KLAY+1) 
+                     IF(VEL_IN.GT.0.D0) THEN              ! INFLOW
+                        CSTAR = CLAYZ(I-ILAY,J-JLAY,2,NBLK)
+                     ELSEIF(VEL_IN.LE.0D0) THEN
+                        CSTAR = CONCOLD(I,J,K-1)          ! OUTFLOW
+                     ENDIF
+C    CHECK CFL CONDITION TO PREVENT INSTABILITIES
+                     IF(CDELTIM.GT.DABS(PHISOLD(I,J,K-1)/VEL_IN)) THEN
+C    TEMP DEBUG INFO
+                        WRITE(*,*) I,J,K,' CFL BOUNDARY ',CDELTIM,
+     &                             PHISOLD(I,J,K-1)/VEL_IN
+                        CFLERR = .TRUE.
+                        CFLTSTEP = DABS(PHISOLD(I,J,K-1)/VEL_IN)
+                        RETURN
+                     ENDIF
+C PERFORM ADVECTION
+                     CSTAR = CSTAR*CDELTIM*VEL_IN
+                     CONC(I,J,K-1) = CONC(I,J,K-1) + CSTAR
+C MASS BALANCE OF SPECIES
+                     CIN(CALPHA) = CIN(CALPHA) + CSTAR
+                  ENDIF 
+
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDDO
+
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE TRMORTAR_DIFF(NALPHA,NERR)
+C*********************************************************************
+C  PERFORM DIFFUSION AT THE MORTAR INTERFACE
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'trarydat.h'
+      INCLUDE 'trmodel.h'
+$MORTAR      INCLUDE 'mbvars.h'
+
+      INTEGER NALPHA,NERR
+      INTEGER IDIFFM(8)
+      EXTERNAL TRMORTAR_DIFF_W
+      DATA IDIFFM /8*0/
+C -----------------------------------------------------
+      IDIFFM(1) = 7
+      IDIFFM(2) = N_BC_TYPE(1)
+      IDIFFM(3) = N_BC_TYPE(2)
+      IDIFFM(4) = N_BC_TYPE(3)
+      IDIFFM(5) = N_DISP
+      IDIFFM(6) = N_CONCARR(NALPHA)
+      IDIFFM(7) = N_TRCOF
+      IDIFFM(8) = N_TRRESID
+
+      CALPHA = NALPHA
+
+      CALL CALLWORK (TRMORTAR_DIFF_W,IDIFFM)
+
+C     TEMP DEBUG MESSAGE
+C     WRITE(*,*) "AFTER DIFF_MORTAR AT NSTEP ", NSTEP, " ICSTEP", ICSTEP,
+
+      RETURN
+      END
+
+
+C **********************************************************************
+      SUBROUTINE TRMORTAR_DIFF_W(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                   KL1,KL2,KEYOUT,NBLK,BC_TYPEX,BC_TYPEY,BC_TYPEZ,
+     &                   DISP,CONC,TRCOF,TRRESID)
+C **********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'tr_mbvars.h'
+
+      INTEGER I,J,K,IOFF,JOFF,KOFF,MERR
+      INTEGER IL1,IL2,JL1,JL2,KL1,KL2,IDIM,JDIM,KDIM,LDIM,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER BC_TYPEX(JDIM-2*JLAY,KDIM-2*KLAY,2)
+      INTEGER BC_TYPEY(IDIM-2*ILAY,KDIM-2*KLAY,2)
+      INTEGER BC_TYPEZ(IDIM-2*ILAY,JDIM-2*JLAY,2) 
+      REAL*8  DISP(IDIM,JDIM,KDIM,9),CONC(IDIM,JDIM,KDIM),
+     &        TRRESID(IDIM,JDIM,KDIM)
+      REAL*4  TRCOF(IDIM,JDIM,KDIM,$NUMTRCOF)
+      REAL*8  DEL,DELX,DELY,DELZ,DELXY1,DELXY2,DELYZ1,DELYZ2,DELZX1,
+     &        DELZX2,CUR_DISP,CDISTMP1,CDISTMP2,CFTMP1,CFTMP2,CDISTMP,
+     &        CFTMP,CUR_COF,CFLUX,HALF,EIGTH,TWO
+      PARAMETER (HALF=0.5D0,TWO=2.0D0,EGT=0.125D0)
+
+C  GET LOCAL TO GLOBAL INDEX OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C ------------------------------------------------------------------
+      DO I=ILAY,IDIM-ILAY+1,IDIM-2*ILAY+1
+         IF ((I.EQ.ILAY.AND.BC_MORTAR(1,NBLK).EQ.1).OR.(I.EQ.IDIM-ILAY+1
+     &        .AND.BC_MORTAR(2,NBLK).EQ.1)) THEN
+            DO K=KLAY+1,KDIM-KLAY
+               DO J=JLAY+1,JDIM-JLAY
+
+                  IF (I.EQ.ILAY.AND.KEYOUT(I+1,J,K).EQ.1
+     &                .AND.BC_TYPEX(J-JLAY,K-KLAY,1).EQ.1) THEN
+
+                     CONC(I,J,K)=CLAYX(J-JLAY,K-KLAY,1,NBLK)
+                     DEL=DXREC(I+1+IOFF,NBLK) 
+                     CUR_DISP=DISP(I+1,J,K,1) 
+                     CUR_COF=TWO*CUR_DISP/(DEL**TWO)
+                     TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1)+CUR_COF
+                     TRRESID(I+1,J,K)=TRRESID(I+1,J,K)+CUR_COF*
+     &                                CONC(I,J,K)
+C MASS BALANCE OF SPECIES
+                     CFLUX=CUR_COF*(CONC(I,J,K)-CONC(I+1,J,K))*CDELTIM
+                     CIN(CALPHA)=CIN(CALPHA)+CFLUX
+C--------------------------------------------------------------------
+C ACCOUNT FOR EFFECT OF NEIGHBORING Y AND Z FACE FLUXES (SEE PAPER BY 
+C MFW_IY_TA_2000_MIXEDCCFD)
+                     DELY=DYREC(J+JOFF,NBLK)
+                     DELZ=DZREC(K+KOFF,NBLK)
+                     IF((J.NE.JLAY+1).AND.(J.NE.JDIM-JLAY)) THEN
+                        CDISTMP1=EGT*(DISP(I+1,J-1,K,4)+DISP(I+1,J,K,4))
+                        CDISTMP2=EGT*(DISP(I+1,J,K,4)+DISP(I+1,J+1,K,4))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1)+CFTMP1-
+     &                                    CFTMP2
+                        TRCOF(I+1,J,K,4)=TRCOF(I+1,J,K,4)+CFTMP1
+                        TRCOF(I+1,J,K,5)=TRCOF(I+1,J,K,5)-CFTMP2
+                        TRRESID(I+1,J,K)=TRRESID(I+1,J,K)+TWO*(CFTMP2-
+     &                                     CFTMP1)*CONC(I,J,K)
+                     ELSEIF(J.EQ.JLAY+1) THEN
+                        CDISTMP1=HALF*DISP(I+1,J,K,4)
+                        CDISTMP2=EGT*(DISP(I+1,J,K,4)+DISP(I+1,J+1,K,4))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1)+CFTMP1-
+     &                                    CFTMP2
+                        TRRESID(I+1,J,K)=TRRESID(I+1,J,K)+TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I+1,J-1,K,4)+DISP(I+1,J,K,4))
+                        CDISTMP2 = HALF*DISP(I+1,J,K,4)
+                        CFTMP1 = TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2 = TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1)+CFTMP1-CFTMP2
+                        TRRESID(I+1,J,K)=TRRESID(I+1,J,K)-TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+                     IF((K.NE.KLAY+1).AND.(K.NE.KDIM-KLAY)) THEN
+                        CDISTMP1=EGT*(DISP(I+1,J,K-1,7)+DISP(I+1,J,K,7))
+                        CDISTMP2=EGT*(DISP(I+1,J,K,7)+DISP(I+1,J,K+1,7))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1)+CFTMP1-CFTMP2
+                        TRCOF(I+1,J,K,6)=TRCOF(I+1,J,K,6)+CFTMP1
+                        TRCOF(I+1,J,K,7)=TRCOF(I+1,J,K,7)-CFTMP2
+                        TRRESID(I+1,J,K)=TRRESID(I+1,J,K)+TWO*(CFTMP2-
+     &                                   CFTMP1)*CONC(I,J,K)
+                     ELSEIF(K.EQ.KLAY+1) THEN
+                        CDISTMP1=HALF*DISP(I+1,J,K,7)
+                        CDISTMP2=EGT*(DISP(I+1,J,K,7)+DISP(I+1,J,K+1,7))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1)+CFTMP1-CFTMP2
+                        TRRESID(I+1,J,K)=TRRESID(I+1,J,K)+TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I+1,J,K-1,7)+DISP(I+1,J,K,7))
+                        CDISTMP2=HALF*DISP(I+1,J,K,7)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1)+CFTMP1-CFTMP2
+                        TRRESID(I+1,J,K)=TRRESID(I+1,J,K)-TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+
+                     IF (((KEYOUT(I+1,J-1,K).EQ.1).OR.(KEYOUT(I+1,J-1,K)
+     &                     .EQ.-1)).AND.(KEYOUT(I+1,J,K).EQ.1))  THEN
+                        DELXY1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                        DELXY2=DYREC(J-1+JOFF,NBLK)    ! DY(J-1)
+                        CDISTMP = HALF*DISP(I+1,J,K,2)
+                        CFTMP = TWO*CDISTMP/((DELXY1+DELXY2)*DEL)
+                        TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1) + CFTMP
+                        TRCOF(I+1,J,K,4)=TRCOF(I+1,J,K,4) - CFTMP
+                     ELSEIF(((KEYOUT(I+1,J+1,K).EQ.1).OR.(KEYOUT(I+1,
+     &                  J+1,K).EQ.-1)).AND.(KEYOUT(I+1,J,K).EQ.1)) THEN
+                        DELXY1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                        DELXY2=DYREC(J+1+JOFF,NBLK)    ! DY(J+1)
+                        CDISTMP = HALF*DISP(I+1,J,K,2)
+                        CFTMP = TWO*CDISTMP/((DELXY1+DELXY2)*DEL)
+                        TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1) - CFTMP
+                        TRCOF(I+1,J,K,5)=TRCOF(I+1,J,K,5) + CFTMP
+                     ENDIF
+                     IF (((KEYOUT(I+1,J,K-1).EQ.1).OR.(KEYOUT(I+1,J,K-1)
+     &                     .EQ.-1)).AND.(KEYOUT(I+1,J,K).EQ.1))  THEN 
+                        DELZX1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                        DELZX2=DZREC(K-1+KOFF,NBLK)    ! DZ(K-1)
+                        CDISTMP = HALF*DISP(I+1,J,K,3)
+                        CFTMP = TWO*CDISTMP/((DELZX1+DELZX2)*DEL)
+                        TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1) + CFTMP
+                        TRCOF(I+1,J,K,6)=TRCOF(I+1,J,K,6) - CFTMP
+                     ELSEIF(((KEYOUT(I+1,J,K+1).EQ.1).OR.(KEYOUT(I+1,J,
+     &                  K+1).EQ.-1)).AND.(KEYOUT(I+1,J,K).EQ.1)) THEN
+                        DELZX1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                        DELZX2=DZREC(K+1+KOFF,NBLK)    ! DZ(K+1)
+                        CDISTMP = HALF*DISP(I+1,J,K,3)
+                        CFTMP = TWO*CDISTMP/((DELZX1+DELZX2)*DEL)
+                        TRCOF(I+1,J,K,1)=TRCOF(I+1,J,K,1) - CFTMP
+                        TRCOF(I+1,J,K,7)=TRCOF(I+1,J,K,7) + CFTMP
+                     ENDIF
+C--------------------------------------------------------------------
+
+                  ELSE IF(I.EQ.IDIM-ILAY+1.AND.KEYOUT(I-1,J,K).EQ.1
+     &                    .AND.BC_TYPEX(J-JLAY,K-KLAY,2).EQ.1) THEN
+
+                     CONC(I,J,K)=CLAYX(J-JLAY,K-KLAY,2,NBLK)
+                     DEL=DXREC(I-1+IOFF,NBLK) 
+                     CUR_DISP=DISP(I-1,J,K,1) 
+                     CUR_COF=TWO*CUR_DISP/(DEL**TWO)
+                     TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1)+CUR_COF
+                     TRRESID(I-1,J,K)=TRRESID(I-1,J,K)+CUR_COF*
+     &                                CONC(I,J,K)
+C MASS BALANCE OF SPECIES
+                     CFLUX=CUR_COF*(CONC(I,J,K)-CONC(I-1,J,K))*CDELTIM
+                     CIN(CALPHA)=CIN(CALPHA)+CFLUX
+C--------------------------------------------------------------------
+C ACCOUNT FOR EFFECT OF NEIGHBORING Y AND Z FACE FLUXES (SEE PAPER BY 
+C MFW_IY_TA_2000_MIXEDCCFD)
+                     DELY=DYREC(J+JOFF,NBLK)
+                     DELZ=DZREC(K+KOFF,NBLK)
+                     IF((J.NE.JLAY+1).AND.(J.NE.JDIM-JLAY)) THEN
+                        CDISTMP1=EGT*(DISP(I-1,J-1,K,4)+DISP(I-1,J,K,4))
+                        CDISTMP2=EGT*(DISP(I-1,J,K,4)+DISP(I-1,J+1,K,4))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1)-CFTMP1+CFTMP2
+                        TRCOF(I-1,J,K,4)=TRCOF(I-1,J,K,4)-CFTMP1
+                        TRCOF(I-1,J,K,5)=TRCOF(I-1,J,K,5)+CFTMP2
+                        TRRESID(I-1,J,K)=TRRESID(I-1,J,K)+TWO*(CFTMP1-
+     &                                   CFTMP2)*CONC(I,J,K)
+                     ELSEIF(J.EQ.JLAY+1) THEN
+                        CDISTMP1=HALF*DISP(I-1,J,K,4)
+                        CDISTMP2=EGT*(DISP(I-1,J,K,4)+DISP(I-1,J+1,K,4))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2=CDISTMP2/(DEL*DELY)
+                        TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1)-CFTMP1+CFTMP2
+                        TRRESID(I-1,J,K)=TRRESID(I-1,J,K)-TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I-1,J-1,K,4)+DISP(I-1,J,K,4))
+                        CDISTMP2=HALF*DISP(I-1,J,K,4)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1)-CFTMP1+CFTMP2
+                        TRRESID(I-1,J,K)=TRRESID(I-1,J,K)+TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+                     IF((K.NE.KLAY+1).AND.(K.NE.KDIM-KLAY)) THEN
+                        CDISTMP1=EGT*(DISP(I-1,J,K-1,7)+DISP(I-1,J,K,7))
+                        CDISTMP2=EGT*(DISP(I-1,J,K,7)+DISP(I-1,J,K+1,7))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1)-CFTMP1+CFTMP2
+                        TRCOF(I-1,J,K,6)=TRCOF(I-1,J,K,6)-CFTMP1
+                        TRCOF(I-1,J,K,7)=TRCOF(I-1,J,K,7)+CFTMP2
+                        TRRESID(I-1,J,K)=TRRESID(I-1,J,K)+TWO*(CFTMP1-
+     &                                   CFTMP2)*CONC(I,J,K)
+                     ELSEIF(K.EQ.KLAY+1) THEN
+                        CDISTMP1=HALF*DISP(I-1,J,K,7)
+                        CDISTMP2=EGT*(DISP(I-1,J,K,7)+DISP(I-1,J,K+1,7))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1)-CFTMP1+CFTMP2
+                        TRRESID(I-1,J,K)=TRRESID(I-1,J,K)-TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I-1,J,K-1,7)+DISP(I-1,J,K,7))
+                        CDISTMP2=HALF*DISP(I-1,J,K,7)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1)-CFTMP1+CFTMP2
+                        TRRESID(I-1,J,K)=TRRESID(I-1,J,K)+TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+
+                     IF (((KEYOUT(I-1,J-1,K).EQ.1).OR.(KEYOUT(I-1,J-1,K)
+     &                     .EQ.-1)).AND.(KEYOUT(I-1,J,K).EQ.1))  THEN
+                        DELXY1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                        DELXY2=DYREC(J-1+JOFF,NBLK)    ! DY(J-1)
+                        CDISTMP = HALF*DISP(I-1,J,K,2)
+                        CFTMP = TWO*CDISTMP/((DELXY1+DELXY2)*DEL)
+                        TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1) + CFTMP
+                        TRCOF(I-1,J,K,4)=TRCOF(I-1,J,K,4) - CFTMP
+                     ELSEIF(((KEYOUT(I-1,J+1,K).EQ.1).OR.(KEYOUT(I-1,
+     &                  J+1,K).EQ.-1)).AND.(KEYOUT(I-1,J,K).EQ.1)) THEN
+                        DELXY1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                        DELXY2=DYREC(J+1+JOFF,NBLK)    ! DY(J+1)
+                        CDISTMP = HALF*DISP(I-1,J,K,2)
+                        CFTMP = TWO*CDISTMP/((DELXY1+DELXY2)*DEL)
+                        TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1) - CFTMP
+                        TRCOF(I-1,J,K,5)=TRCOF(I-1,J,K,5) + CFTMP
+                     ENDIF
+                     IF (((KEYOUT(I-1,J,K-1).EQ.1).OR.(KEYOUT(I-1,J,K-1)
+     &                     .EQ.-1)).AND.(KEYOUT(I-1,J,K).EQ.1))  THEN 
+                        DELZX1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                        DELZX2=DZREC(K-1+KOFF,NBLK)    ! DZ(K-1)
+                        CDISTMP = HALF*DISP(I-1,J,K,3)
+                        CFTMP = TWO*CDISTMP/((DELZX1+DELZX2)*DEL)
+                        TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1) + CFTMP
+                        TRCOF(I-1,J,K,6)=TRCOF(I-1,J,K,6) - CFTMP
+                     ELSEIF(((KEYOUT(I-1,J,K+1).EQ.1).OR.(KEYOUT(I-1,J,
+     &                  K+1).EQ.-1)).AND.(KEYOUT(I-1,J,K).EQ.1)) THEN
+                        DELZX1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                        DELZX2=DZREC(K+1+KOFF,NBLK)    ! DZ(K+1)
+                        CDISTMP = HALF*DISP(I-1,J,K,3)
+                        CFTMP = TWO*CDISTMP/((DELZX1+DELZX2)*DEL)
+                        TRCOF(I-1,J,K,1)=TRCOF(I-1,J,K,1) - CFTMP
+                        TRCOF(I-1,J,K,7)=TRCOF(I-1,J,K,7) + CFTMP
+                     ENDIF
+C--------------------------------------------------------------------
+
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDDO
+
+
+      DO J=JLAY,JDIM-JLAY+1,JDIM-2*JLAY+1
+         IF ((J.EQ.JLAY.AND.BC_MORTAR(3,NBLK).EQ.1).OR.(J.EQ.JDIM-JLAY+1
+     &        .AND.BC_MORTAR(4,NBLK).EQ.1)) THEN
+            DO K=KLAY+1,KDIM-KLAY
+               DO I=ILAY+1,IDIM-ILAY
+
+                  IF(J.EQ.JLAY.AND.KEYOUT(I,J+1,K).EQ.1
+     &               .AND.BC_TYPEY(I-ILAY,K-KLAY,1).EQ.1) THEN
+
+                     CONC(I,J,K)=CLAYY(I-ILAY,K-KLAY,1,NBLK)
+                     DEL=DYREC(J+1+JOFF,NBLK) 
+                     CUR_DISP = DISP(I,J+1,K,5)
+                     CUR_COF = TWO*CUR_DISP/(DEL**TWO)
+                     TRCOF(I,J+1,K,1) = TRCOF(I,J+1,K,1) + CUR_COF
+                     TRRESID(I,J+1,K) = TRRESID(I,J+1,K) + CUR_COF*
+     &                                  CONC(I,J,K)
+
+C MASS BALANCE OF SPECIES
+                     CFLUX=CUR_COF*(CONC(I,J,K)-CONC(I,J+1,K))*CDELTIM
+                     CIN(CALPHA)=CIN(CALPHA)+CFLUX
+C--------------------------------------------------------------------
+C ACCOUNT FOR EFFECT OF NEIGHBORING X AND Z FACE FLUXES (SEE PAPER BY 
+C MFW_IY_TA_2000_MIXEDCCFD)
+                     DELX=DXREC(I+IOFF,NBLK)
+                     DELZ=DZREC(K+KOFF,NBLK)
+                     IF((I.NE.ILAY+1).AND.(I.NE.IDIM-ILAY)) THEN
+                        CDISTMP1=EGT*(DISP(I-1,J+1,K,2)+DISP(I,J+1,K,2))
+                        CDISTMP2=EGT*(DISP(I,J+1,K,2)+DISP(I+1,J+1,K,2))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J+1,K,1)=TRCOF(I,J+1,K,1)+CFTMP1-CFTMP2
+                        TRCOF(I,J+1,K,2)=TRCOF(I,J+1,K,2)+CFTMP1
+                        TRCOF(I,J+1,K,3)=TRCOF(I,J+1,K,3)-CFTMP2
+                        TRRESID(I,J+1,K)=TRRESID(I,J+1,K)+TWO*(CFTMP2-
+     &                                   CFTMP1)*CONC(I,J,K)
+                     ELSEIF(I.EQ.ILAY+1) THEN
+                        CDISTMP1=HALF*DISP(I,J+1,K,2)
+                        CDISTMP2=EGT*(DISP(I,J+1,K,2)+DISP(I+1,J+1,K,2))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J+1,K,1)=TRCOF(I,J+1,K,1)+CFTMP1-CFTMP2
+                        TRRESID(I,J+1,K)=TRRESID(I,J+1,K)+TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I-1,J+1,K,2)+DISP(I,J+1,K,2))
+                        CDISTMP2=HALF*DISP(I,J+1,K,2)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J+1,K,1)=TRCOF(I,J+1,K,1)+CFTMP1-CFTMP2
+                        TRRESID(I,J+1,K)=TRRESID(I,J+1,K)-TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+
+                     IF((K.NE.KLAY+1).AND.(K.NE.KDIM-KLAY)) THEN
+                        CDISTMP1=EGT*(DISP(I,J+1,K-1,8)+DISP(I,J+1,K,8))
+                        CDISTMP2=EGT*(DISP(I,J+1,K,8)+DISP(I,J+1,K+1,8))
+                        CFTMP1 = TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2 = TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I,J+1,K,1)=TRCOF(I,J+1,K,1)+CFTMP1-CFTMP2
+                        TRCOF(I,J+1,K,6)=TRCOF(I,J+1,K,6)+CFTMP1
+                        TRCOF(I,J+1,K,7)=TRCOF(I,J+1,K,7)-CFTMP2
+                        TRRESID(I,J+1,K)=TRRESID(I,J+1,K)+TWO*(CFTMP2-
+     &                                    CFTMP1)*CONC(I,J,K)
+                     ELSEIF(K.EQ.KLAY+1) THEN
+                        CDISTMP1=HALF*DISP(I,J+1,K,8)
+                        CDISTMP2=EGT*(DISP(I,J+1,K,8)+DISP(I,J+1,K+1,8))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I,J+1,K,1)=TRCOF(I,J+1,K,1)+CFTMP1-CFTMP2
+                        TRRESID(I,J+1,K)=TRRESID(I,J+1,K)+TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I,J+1,K-1,8)+DISP(I,J+1,K,8))
+                        CDISTMP2=HALF*DISP(I,J+1,K,8)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I,J+1,K,1)=TRCOF(I,J+1,K,1)+CFTMP1-CFTMP2
+                        TRRESID(I,J+1,K)=TRRESID(I,J+1,K)-TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+                     IF (((KEYOUT(I-1,J+1,K).EQ.1).OR.(KEYOUT(I-1,J+1,K)
+     &                     .EQ.-1)).AND.(KEYOUT(I,J+1,K).EQ.1))  THEN
+                        DELXY1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                        DELXY2=DXREC(I-1+IOFF,NBLK)    ! DX(I-1)
+                        CDISTMP = HALF*DISP(I,J+1,K,4)
+                        CFTMP = TWO*CDISTMP/((DELXY1+DELXY2)*DEL)
+                        TRCOF(I,J+1,K,1)=TRCOF(I,J+1,K,1) + CFTMP
+                        TRCOF(I,J+1,K,2)=TRCOF(I,J+1,K,2) - CFTMP
+                     ELSEIF(((KEYOUT(I+1,J+1,K).EQ.1).OR.(KEYOUT(I+1,
+     &                  J+1,K).EQ.-1)).AND.(KEYOUT(I,J+1,K).EQ.1)) THEN
+                        DELXY1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                        DELXY2=DXREC(I+1+IOFF,NBLK)    ! DX(I+1)
+                        CDISTMP=HALF*DISP(I,J+1,K,4)
+                        CFTMP=TWO*CDISTMP/((DELXY1+DELXY2)*DEL)
+                        TRCOF(I,J+1,K,1)=TRCOF(I,J+1,K,1) - CFTMP
+                        TRCOF(I,J+1,K,3)=TRCOF(I,J+1,K,3) + CFTMP
+                     ENDIF
+                     IF (((KEYOUT(I,J+1,K-1).EQ.1).OR.(KEYOUT(I,J+1,K-1)
+     &                     .EQ.-1)).AND.(KEYOUT(I,J+1,K).EQ.1))  THEN
+                        DELYZ1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                        DELYZ2=DZREC(K-1+KOFF,NBLK)    ! DZ(K-1)
+                        CDISTMP = HALF*DISP(I,J+1,K,6)
+                        CFTMP = TWO*CDISTMP/((DELYZ1+DELYZ2)*DEL)
+                        TRCOF(I,J+1,K,1)=TRCOF(I,J+1,K,1) + CFTMP
+                        TRCOF(I,J+1,K,6)=TRCOF(I,J+1,K,6) - CFTMP
+                     ELSEIF(((KEYOUT(I,J+1,K+1).EQ.1).OR.(KEYOUT(I,J+1,
+     &                  K+1).EQ.-1)).AND.(KEYOUT(I,J+1,K).EQ.1)) THEN
+                        DELYZ1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                        DELYZ2=DZREC(K+1+KOFF,NBLK)    ! DZ(K+1)
+                        CDISTMP = HALF*DISP(I,J+1,K,6)
+                        CFTMP = TWO*CDISTMP/((DELYZ1+DELYZ2)*DEL)
+                        TRCOF(I,J+1,K,1)=TRCOF(I,J+1,K,1) - CFTMP
+                        TRCOF(I,J+1,K,7)=TRCOF(I,J+1,K,7) + CFTMP
+                     ENDIF
+C--------------------------------------------------------------------
+                  ELSE IF(J.EQ.JDIM-JLAY+1.AND.KEYOUT(I,J-1,K).EQ.1
+     &               .AND.BC_TYPEY(I-ILAY,K-KLAY,2).EQ.1) THEN
+
+                     CONC(I,J,K)=CLAYY(I-ILAY,K-KLAY,2,NBLK) 
+                     DEL=DYREC(J-1+JOFF,NBLK) 
+                     CUR_DISP=DISP(I,J-1,K,5)
+                     CUR_COF=TWO*CUR_DISP/(DEL**TWO)
+                     TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1) + CUR_COF
+                     TRRESID(I,J-1,K)=TRRESID(I,J-1,K) + CUR_COF*
+     &                                  CONC(I,J,K)
+C MASS BALANCE OF SPECIES
+                     CFLUX=CUR_COF*(CONC(I,J,K)-CONC(I,J-1,K))*CDELTIM
+                     CIN(CALPHA)=CIN(CALPHA)+CFLUX
+C--------------------------------------------------------------------
+C ACCOUNT FOR EFFECT OF NEIGHBORING X AND Z FACE FLUXES (SEE PAPER BY 
+C MFW_IY_TA_2000_MIXEDCCFD)
+                     DELX=DXREC(I+IOFF,NBLK)
+                     DELZ=DZREC(K+KOFF,NBLK)
+                     IF((I.NE.ILAY+1).AND.(I.NE.IDIM-ILAY)) THEN
+                        CDISTMP1=EGT*(DISP(I-1,J-1,K,2)+DISP(I,J-1,K,2))
+                        CDISTMP2=EGT*(DISP(I,J-1,K,2)+DISP(I+1,J-1,K,2))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1)-CFTMP1+CFTMP2
+                        TRCOF(I,J-1,K,2)=TRCOF(I,J-1,K,2)-CFTMP1
+                        TRCOF(I,J-1,K,3)=TRCOF(I,J-1,K,3)+CFTMP2
+                        TRRESID(I,J-1,K)=TRRESID(I,J-1,K)+TWO*(CFTMP1-
+     &                                   CFTMP2)*CONC(I,J,K)
+                     ELSEIF(I.EQ.ILAY+1) THEN
+                        CDISTMP1=HALF*DISP(I,J-1,K,2)
+                        CDISTMP2=EGT*(DISP(I,J-1,K,2)+DISP(I+1,J-1,K,2))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1)-CFTMP1+CFTMP2
+                        TRRESID(I,J-1,K)=TRRESID(I,J-1,K)-TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I-1,J-1,K,2)+DISP(I,J-1,K,2))
+                        CDISTMP2=HALF*DISP(I,J-1,K,2)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1)-CFTMP1+CFTMP2
+                        TRRESID(I,J-1,K)=TRRESID(I,J-1,K)+TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+
+                     IF((K.NE.KLAY+1).AND.(K.NE.KDIM-KLAY)) THEN
+                        CDISTMP1=EGT*(DISP(I,J-1,K-1,8)+DISP(I,J-1,K,8))
+                        CDISTMP2=EGT*(DISP(I,J-1,K,8)+DISP(I,J-1,K+1,8))
+                        CFTMP1 = TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2 = TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1)-CFTMP1+CFTMP2
+                        TRCOF(I,J-1,K,6)=TRCOF(I,J-1,K,6)-CFTMP1
+                        TRCOF(I,J-1,K,7)=TRCOF(I,J-1,K,7)+CFTMP2
+                        TRRESID(I,J-1,K)=TRRESID(I,J-1,K)+TWO*(CFTMP1-
+     &                                   CFTMP2)*CONC(I,J,K)
+                     ELSEIF(K.EQ.KLAY+1) THEN
+                        CDISTMP1=HALF*DISP(I,J-1,K,8)
+                        CDISTMP2=EGT*(DISP(I,J-1,K,8)+DISP(I,J-1,K+1,8))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1)-CFTMP1+CFTMP2
+                        TRRESID(I,J-1,K)=TRRESID(I,J-1,K)-TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I,J-1,K-1,8)+DISP(I,J-1,K,8))
+                        CDISTMP2=HALF*DISP(I,J-1,K,8)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELZ)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELZ)
+                        TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1)-CFTMP1+CFTMP2
+                        TRRESID(I,J-1,K)=TRRESID(I,J-1,K)+TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+                     IF (((KEYOUT(I-1,J-1,K).EQ.1).OR.(KEYOUT(I-1,J-1,K)
+     &                     .EQ.-1)).AND.(KEYOUT(I,J-1,K).EQ.1))  THEN
+                        DELXY1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                        DELXY2=DXREC(I-1+IOFF,NBLK)    ! DX(I-1)
+                        CDISTMP = HALF*DISP(I,J-1,K,4)
+                        CFTMP = TWO*CDISTMP/((DELXY1+DELXY2)*DEL)
+                        TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1) + CFTMP
+                        TRCOF(I,J-1,K,2)=TRCOF(I,J-1,K,2) - CFTMP
+                     ELSEIF(((KEYOUT(I+1,J-1,K).EQ.1).OR.(KEYOUT(I+1,
+     &                  J-1,K).EQ.-1)).AND.(KEYOUT(I,J-1,K).EQ.1)) THEN
+                        DELXY1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                        DELXY2=DXREC(I+1+IOFF,NBLK)    ! DX(I+1)
+                        CDISTMP=HALF*DISP(I,J-1,K,4)
+                        CFTMP=TWO*CDISTMP/((DELXY1+DELXY2)*DEL)
+                        TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1) - CFTMP
+                        TRCOF(I,J-1,K,3)=TRCOF(I,J-1,K,3) + CFTMP
+                     ENDIF
+                     IF (((KEYOUT(I,J-1,K-1).EQ.1).OR.(KEYOUT(I,J-1,K-1)
+     &                     .EQ.-1)).AND.(KEYOUT(I,J-1,K).EQ.1))  THEN
+                        DELYZ1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                        DELYZ2=DZREC(K-1+KOFF,NBLK)    ! DZ(K-1)
+                        CDISTMP = HALF*DISP(I,J-1,K,6)
+                        CFTMP = TWO*CDISTMP/((DELYZ1+DELYZ2)*DEL)
+                        TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1) + CFTMP
+                        TRCOF(I,J-1,K,6)=TRCOF(I,J-1,K,6) - CFTMP
+                     ELSEIF(((KEYOUT(I,J-1,K+1).EQ.1).OR.(KEYOUT(I,J-1,
+     &                  K+1).EQ.-1)).AND.(KEYOUT(I,J-1,K).EQ.1)) THEN
+                        DELYZ1=DZREC(K+KOFF,NBLK)      ! DZ(K)
+                        DELYZ2=DZREC(K+1+KOFF,NBLK)    ! DZ(K+1)
+                        CDISTMP = HALF*DISP(I,J-1,K,6)
+                        CFTMP = TWO*CDISTMP/((DELYZ1+DELYZ2)*DEL)
+                        TRCOF(I,J-1,K,1)=TRCOF(I,J-1,K,1) - CFTMP
+                        TRCOF(I,J-1,K,7)=TRCOF(I,J-1,K,7) + CFTMP
+                     ENDIF
+C--------------------------------------------------------------------
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDDO
+
+      DO K=KLAY,KDIM-KLAY+1,KDIM-2*KLAY+1
+         IF ((K.EQ.KLAY.AND.BC_MORTAR(5,NBLK).EQ.1).OR.(K.EQ.KDIM-KLAY+1
+     &        .AND.BC_MORTAR(6,NBLK).EQ.1)) THEN
+            DO J=JLAY+1,JDIM-JLAY
+               DO I=ILAY+1,IDIM-ILAY
+
+                  IF(K.EQ.KLAY.AND.KEYOUT(I,J,K+1).EQ.1
+     &               .AND.BC_TYPEZ(I-ILAY,J-JLAY,1).EQ.1) THEN 
+
+                     CONC(I,J,K) = CLAYZ(I-ILAY,J-JLAY,1,NBLK) 
+                     DEL=DZREC(K+1+KOFF,NBLK) 
+                     CUR_DISP = DISP(I,J,K+1,9) 
+                     CUR_COF=TWO*CUR_DISP/(DEL**TWO)
+                     TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1) + CUR_COF
+                     TRRESID(I,J,K+1)=TRRESID(I,J,K+1) + CUR_COF*
+     &                                CONC(I,J,K)
+C MASS BALANCE OF SPECIES
+                     CFLUX=CUR_COF*(CONC(I,J,K)-CONC(I,J,K+1))*CDELTIM
+                     CIN(CALPHA)=CIN(CALPHA)+CFLUX
+C--------------------------------------------------------------------
+C ACCOUNT FOR EFFECT OF NEIGHBORING X AND Y FACE FLUXES (SEE PAPER BY 
+C MFW_IY_TA_2000_MIXEDCCFD)
+                     DELX=DXREC(I+IOFF,NBLK)
+                     DELY=DYREC(J+JOFF,NBLK)
+                     IF((I.NE.ILAY+1).AND.(I.NE.IDIM-ILAY)) THEN
+                        CDISTMP1=EGT*(DISP(I-1,J,K+1,3)+DISP(I,J,K+1,3))
+                        CDISTMP2=EGT*(DISP(I,J,K+1,3)+DISP(I+1,J,K+1,3))
+                        CFTMP1 = TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2 = TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1)+CFTMP1-CFTMP2
+                        TRCOF(I,J,K+1,2)=TRCOF(I,J,K+1,2)+CFTMP1
+                        TRCOF(I,J,K+1,3)=TRCOF(I,J,K+1,3)-CFTMP2
+                        TRRESID(I,J,K+1)=TRRESID(I,J,K+1)+TWO*(CFTMP2-
+     &                                   CFTMP1)*CONC(I,J,K)
+                     ELSEIF(I.EQ.ILAY+1) THEN
+                        CDISTMP1=HALF*DISP(I,J,K+1,3)
+                        CDISTMP2=EGT*(DISP(I,J,K+1,3)+DISP(I+1,J,K+1,3))
+                        CFTMP1 = TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2 = TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1)+CFTMP1-CFTMP2
+                        TRRESID(I,J,K+1)=TRRESID(I,J,K+1)+TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I-1,J,K+1,3)+DISP(I,J,K+1,3))
+                        CDISTMP2=HALF*DISP(I,J,K+1,3)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1)+CFTMP1-CFTMP2
+                        TRRESID(I,J,K+1)=TRRESID(I,J,K+1)-TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+                     IF((J.NE.JLAY+1).AND.(J.NE.JDIM-JLAY)) THEN
+                        CDISTMP1=EGT*(DISP(I,J-1,K+1,6)+DISP(I,J,K+1,6))
+                        CDISTMP2=EGT*(DISP(I,J,K+1,6)+DISP(I,J+1,K+1,6))
+                        CFTMP1 = TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2 = TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1)+CFTMP1-CFTMP2
+                        TRCOF(I,J,K+1,4)=TRCOF(I,J,K+1,4)+CFTMP1
+                        TRCOF(I,J,K+1,5)=TRCOF(I,J,K+1,5)-CFTMP2
+                        TRRESID(I,J,K+1)=TRRESID(I,J,K+1)+TWO*(CFTMP2-
+     &                                   CFTMP1)*CONC(I,J,K)
+                     ELSEIF(J.EQ.JLAY+1) THEN
+                        CDISTMP1=HALF*DISP(I,J,K+1,6)
+                        CDISTMP2=EGT*(DISP(I,J,K+1,6)+DISP(I,J+1,K+1,6))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1)+CFTMP1-CFTMP2
+                        TRRESID(I,J,K+1)=TRRESID(I,J,K+1)+TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I,J-1,K+1,6)+DISP(I,J,K+1,6))
+                        CDISTMP2=HALF*DISP(I,J,K+1,4)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1)+CFTMP1-CFTMP2
+                        TRRESID(I,J,K+1)=TRRESID(I,J,K+1)-TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+
+                     IF (((KEYOUT(I-1,J,K+1).EQ.1).OR.(KEYOUT(I-1,J,K+1)
+     &                     .EQ.-1)).AND.(KEYOUT(I,J,K+1).EQ.1))  THEN
+                        DELZX1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                        DELZX2=DXREC(I-1+IOFF,NBLK)    ! DX(I-1)
+                        CDISTMP = HALF*DISP(I,J,K+1,7)
+                        CFTMP = TWO*CDISTMP/((DELZX1+DELZX2)*DEL)
+                        TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1) + CFTMP
+                        TRCOF(I,J,K+1,2)=TRCOF(I,J,K+1,2) - CFTMP
+                     ELSEIF(((KEYOUT(I+1,J,K+1).EQ.1).OR.(KEYOUT(I+1,J,
+     &                     K+1).EQ.-1)).AND.(KEYOUT(I,J,K+1).EQ.1)) THEN
+                        DELZX1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                        DELZX2=DXREC(I+1+IOFF,NBLK)    ! DX(I+1)
+                        CDISTMP = HALF*DISP(I,J,K+1,7)
+                        CFTMP = TWO*CDISTMP/((DELZX1+DELZX2)*DEL)
+                        TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1) - CFTMP
+                        TRCOF(I,J,K+1,3)=TRCOF(I,J,K+1,3) + CFTMP
+                     ENDIF
+                     IF (((KEYOUT(I,J-1,K+1).EQ.1).OR.(KEYOUT(I,J-1,
+     &                     K+1).EQ.-1)).AND.(KEYOUT(I,J,K+1).EQ.1)) THEN 
+                        DELYZ1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                        DELYZ2=DYREC(J-1+JOFF,NBLK)    ! DY(J-1)
+                        CDISTMP = HALF*DISP(I,J,K+1,8)
+                        CFTMP = TWO*CDISTMP/((DELYZ1+DELYZ2)*DEL)
+                        TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1) + CFTMP
+                        TRCOF(I,J,K+1,4)=TRCOF(I,J,K+1,4) - CFTMP
+                     ELSEIF(((KEYOUT(I,J+1,K+1).EQ.1).OR.(KEYOUT(I,J+1,
+     &                     K+1).EQ.-1)).AND.(KEYOUT(I,J,K+1).EQ.1)) THEN
+                        DELYZ1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                        DELYZ2=DYREC(J+1+JOFF,NBLK)    ! DY(J+1)
+                        CDISTMP = HALF*DISP(I,J,K+1,8)
+                        CFTMP = TWO*CDISTMP/((DELYZ1+DELYZ2)*DEL)
+                        TRCOF(I,J,K+1,1)=TRCOF(I,J,K+1,1) - CFTMP
+                        TRCOF(I,J,K+1,5)=TRCOF(I,J,K+1,5) + CFTMP
+                     ENDIF
+C--------------------------------------------------------------------
+                  ELSE IF(K.EQ.KDIM-KLAY+1.AND.KEYOUT(I,J,K-1).EQ.1
+     &               .AND.BC_TYPEZ(I-ILAY,J-JLAY,2).EQ.1) THEN
+
+                     CONC(I,J,K) = CLAYZ(I-ILAY,J-JLAY,2,NBLK) 
+                     DEL=DZREC(K-1+KOFF,NBLK) 
+                     CUR_DISP = DISP(I,J,K-1,9) 
+                     CUR_COF=TWO*CUR_DISP/(DEL**TWO)
+                     TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1) + CUR_COF
+                     TRRESID(I,J,K-1)=TRRESID(I,J,K-1) + CUR_COF*
+     &                                CONC(I,J,K)
+C MASS BALANCE OF SPECIES
+                     CFLUX=CUR_COF*(CONC(I,J,K)-CONC(I,J,K-1))*CDELTIM
+                     CIN(CALPHA)=CIN(CALPHA)+CFLUX
+C--------------------------------------------------------------------
+C ACCOUNT FOR EFFECT OF NEIGHBORING X AND Y FACE FLUXES (SEE PAPER BY 
+C MFW_IY_TA_2000_MIXEDCCFD)
+                     DELX=DXREC(I+IOFF,NBLK)
+                     DELY=DYREC(J+JOFF,NBLK)
+                     IF((I.NE.ILAY+1).AND.(I.NE.IDIM-ILAY)) THEN
+                        CDISTMP1=EGT*(DISP(I-1,J,K-1,3)+DISP(I,J,K-1,3))
+                        CDISTMP2=EGT*(DISP(I,J,K-1,3)+DISP(I+1,J,K-1,3))
+                        CFTMP1 = TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2 = TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1)-CFTMP1+CFTMP2
+                        TRCOF(I,J,K-1,2)=TRCOF(I,J,K-1,2)-CFTMP1
+                        TRCOF(I,J,K-1,3)=TRCOF(I,J,K-1,3)+CFTMP2
+                        TRRESID(I,J,K-1)=TRRESID(I,J,K-1)+TWO*(CFTMP1-
+     &                                   CFTMP2)*CONC(I,J,K)
+                     ELSEIF(I.EQ.ILAY+1) THEN
+                        CDISTMP1=HALF*DISP(I,J,K-1,3)
+                        CDISTMP2=EGT*(DISP(I,J,K-1,3)+DISP(I+1,J,K-1,3))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1)-CFTMP1+CFTMP2
+                        TRRESID(I,J,K-1)=TRRESID(I,J,K-1)-TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I-1,J,K-1,3)+DISP(I,J,K-1,3))
+                        CDISTMP2=HALF*DISP(I,J,K-1,3)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELX)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELX)
+                        TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1)-CFTMP1+CFTMP2
+                        TRRESID(I,J,K-1)=TRRESID(I,J,K-1)+TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+                     IF((J.NE.JLAY+1).AND.(J.NE.JDIM-JLAY)) THEN
+                        CDISTMP1=EGT*(DISP(I,J-1,K-1,6)+DISP(I,J,K-1,6))
+                        CDISTMP2=EGT*(DISP(I,J,K-1,6)+DISP(I,J+1,K-1,6))
+                        CFTMP1 = TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2 = TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1)-CFTMP1+CFTMP2
+                        TRCOF(I,J,K-1,4)=TRCOF(I,J,K-1,4)-CFTMP1
+                        TRCOF(I,J,K-1,5)=TRCOF(I,J,K-1,5)+CFTMP2
+                        TRRESID(I,J,K-1)=TRRESID(I,J,K-1)+TWO*(CFTMP1-
+     &                                   CFTMP2)*CONC(I,J,K)
+                     ELSEIF(J.EQ.JLAY+1) THEN
+                        CDISTMP1=HALF*DISP(I,J,K-1,6)
+                        CDISTMP2=EGT*(DISP(I,J,K-1,6)+DISP(I,J+1,K-1,6))
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1)-CFTMP1+CFTMP2
+                        TRRESID(I,J,K-1)=TRRESID(I,J,K-1)-TWO*CFTMP2*
+     &                                   CONC(I,J,K)
+                     ELSE
+                        CDISTMP1=EGT*(DISP(I,J-1,K-1,6)+DISP(I,J,K-1,6))
+                        CDISTMP2=HALF*DISP(I,J,K-1,4)
+                        CFTMP1=TWO*CDISTMP1/(DEL*DELY)
+                        CFTMP2=TWO*CDISTMP2/(DEL*DELY)
+                        TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1)-CFTMP1+CFTMP2
+                        TRRESID(I,J,K-1)=TRRESID(I,J,K-1)+TWO*CFTMP1*
+     &                                   CONC(I,J,K)
+                     ENDIF
+
+                     IF (((KEYOUT(I-1,J,K-1).EQ.1).OR.(KEYOUT(I-1,J,K-1)
+     &                     .EQ.-1)).AND.(KEYOUT(I,J,K-1).EQ.1))  THEN
+                        DELZX1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                        DELZX2=DXREC(I-1+IOFF,NBLK)    ! DX(I-1)
+                        CDISTMP = HALF*DISP(I,J,K-1,7)
+                        CFTMP = TWO*CDISTMP/((DELZX1+DELZX2)*DEL)
+                        TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1) + CFTMP
+                        TRCOF(I,J,K-1,2)=TRCOF(I,J,K-1,2) - CFTMP
+                     ELSEIF(((KEYOUT(I+1,J,K-1).EQ.1).OR.(KEYOUT(I+1,J,
+     &                     K-1).EQ.-1)).AND.(KEYOUT(I,J,K-1).EQ.1)) THEN
+                        DELZX1=DXREC(I+IOFF,NBLK)      ! DX(I)
+                        DELZX2=DXREC(I+1+IOFF,NBLK)    ! DX(I+1)
+                        CDISTMP = HALF*DISP(I,J,K-1,7)
+                        CFTMP = TWO*CDISTMP/((DELZX1+DELZX2)*DEL)
+                        TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1) - CFTMP
+                        TRCOF(I,J,K-1,3)=TRCOF(I,J,K-1,3) + CFTMP
+                     ENDIF
+                     IF (((KEYOUT(I,J-1,K-1).EQ.1).OR.(KEYOUT(I,J-1,
+     &                     K-1).EQ.-1)).AND.(KEYOUT(I,J,K-1).EQ.1)) THEN 
+                        DELYZ1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                        DELYZ2=DYREC(J-1+JOFF,NBLK)    ! DY(J-1)
+                        CDISTMP = HALF*DISP(I,J,K-1,8)
+                        CFTMP = TWO*CDISTMP/((DELYZ1+DELYZ2)*DEL)
+                        TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1) + CFTMP
+                        TRCOF(I,J,K-1,4)=TRCOF(I,J,K-1,4) - CFTMP
+                     ELSEIF(((KEYOUT(I,J+1,K-1).EQ.1).OR.(KEYOUT(I,J+1,
+     &                     K-1).EQ.-1)).AND.(KEYOUT(I,J,K-1).EQ.1)) THEN
+                        DELYZ1=DYREC(J+JOFF,NBLK)      ! DY(J)
+                        DELYZ2=DYREC(J+1+JOFF,NBLK)    ! DY(J+1)
+                        CDISTMP = HALF*DISP(I,J,K-1,8)
+                        CFTMP = TWO*CDISTMP/((DELYZ1+DELYZ2)*DEL)
+                        TRCOF(I,J,K-1,1)=TRCOF(I,J,K-1,1) - CFTMP
+                        TRCOF(I,J,K-1,5)=TRCOF(I,J,K-1,5) + CFTMP
+                     ENDIF
+C--------------------------------------------------------------------
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDIF
+      ENDDO
+
+      RETURN
+      END
+
+
+C********************************************************************
+      SUBROUTINE L2PROJ_BC_EX(NALPHA)
+C********************************************************************
+C  SUBROUTINE TO 'L2 PROJECT' SUB-DOMAIN SPECIES CONC. ONTO ADJACENT 
+C  SUB-DOMAIN GHOST LAYER. (DRIVER: CALLS CALLWORK WHICH DOES L2PROJ)
+C********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'mbvars.h'
+      INCLUDE 'trarydat.h'
+      INCLUDE 'trmodel.h'
+      INTEGER NALPHA,IL2PR(5)
+      LOGICAL ONCEONLY
+      DATA IL2PR/5*0/, ONCEONLY/.TRUE./
+      EXTERNAL L2PROJ_BC
+
+      IF(ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+         IL2PR(1)=4
+         IL2PR(2)=N_CONCARR(NALPHA)
+         IL2PR(3)=N_BC_TYPE(1)
+         IL2PR(4)=N_BC_TYPE(2)
+         IL2PR(5)=N_BC_TYPE(3)
+      ENDIF
+
+      CALL CALLWORK(L2PROJ_BC,IL2PR)
+
+      RETURN
+      END
+
+
+C********************************************************************
+      SUBROUTINE L2PROJ_BC(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2
+     &                    ,KEYOUT,NBLK,CONC,BC_TYPEX,BC_TYPEY,BC_TYPEZ)
+C********************************************************************
+C  SUBROUTINE ACTUALLY DOES L2 PROJ AS DESCRIBED IN DRIVER. 
+C********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INCLUDE 'mb_utilv.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM),JL2V(KDIM),KL1,KL2,
+     &        KEYOUT(IDIM,JDIM,KDIM),NBLK,I,J,K,N1,N2,NB1,NB2,NB3,NB4,
+     &        NB5,NB6,NMORT1,NMORT2,NMORT3,NMORT4,NMORT5,NMORT6,IOFF,
+     &        JOFF,KOFF,IOFF1,KOFF1,JOFF1,IERR,BLK1,BLK2,BLK3,BLK4,BLK5,
+     &        BLK6
+      INTEGER BC_TYPEX(JDIM-2*JLAY,KDIM-2*KLAY,2), 
+     &        BC_TYPEY(IDIM-2*ILAY,KDIM-2*KLAY,2),
+     &        BC_TYPEZ(IDIM-2*ILAY,JDIM-2*JLAY,2)
+      REAL*8  CONC(IDIM,JDIM,KDIM)
+      REAL*8  CEDGEX(JDIM-2*JLAY,KDIM-2*KLAY),
+     &        CEDGEY(IDIM-2*ILAY,KDIM-2*KLAY),
+     &        CEDGEZ(IDIM-2*ILAY,JDIM-2*JLAY)
+
+
+C GET BLOCK OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      IF(IERR.GT.0) THEN
+         WRITE(0,*) "IN L2PROJ_BC: ERROR GETTING BLK OFFSETS, BLK ",NBLK
+         STOP 13
+      ENDIF
+
+C INITIALIZE CEDGEX, CEDGEY, CEDGEZ 
+      DO K=1,KDIM-2*KLAY
+         DO J=1,JDIM-2*JLAY
+            CEDGEX(J,K)=0.0D0
+         ENDDO
+      ENDDO
+
+      DO K=1,KDIM-2*KLAY
+         DO I=1,IDIM-2*ILAY
+            CEDGEY(I,K)=0.0D0
+         ENDDO
+      ENDDO
+
+      DO J=1,JDIM-2*JLAY
+         DO I=1,IDIM-2*ILAY
+            CEDGEZ(I,J)=0.0D0
+         ENDDO
+      ENDDO
+
+C X FACES -----------
+
+      DO I=ILAY,IDIM-ILAY+1,IDIM-2*ILAY+1
+
+         IF ((I.EQ.ILAY.AND.BC_MORTAR(1,NBLK).EQ.1).OR.(I.EQ.IDIM-ILAY+1
+     &       .AND.BC_MORTAR(2,NBLK).EQ.1)) THEN
+
+            DO K=KLAY+1,KDIM-KLAY
+               DO J=JLAY+1,JDIM-JLAY
+                  IF (I.EQ.ILAY.AND.KEYOUT(I+1,J,K).EQ.1
+     &               .AND.BC_TYPEX(J-JLAY,K-KLAY,1).EQ.1) THEN
+                     CEDGEX(J-JLAY,K-KLAY)=CONC(I+1,J,K)
+                  ELSEIF(I.EQ.IDIM-ILAY+1.AND.KEYOUT(I-1,J,K).EQ.1
+     &              .AND.BC_TYPEX(J-JLAY,K-KLAY,2).EQ.1) THEN
+                     CEDGEX(J-JLAY,K-KLAY)=CONC(I-1,J,K)
+                  ENDIF
+               ENDDO
+            ENDDO
+
+            IF ((I.EQ.ILAY).AND.(BC_MORTAR(1,NBLK).EQ.1)) THEN 
+               NMORT1=MORTID(NBLK,1)
+               IF(NMORT1.NE.0) THEN
+                  N1=JDIM-2*JLAY
+                  N2=KDIM-2*KLAY
+                  BLK1=NEIGHBOR(NMORT1,1)
+                  IF(BLK1.EQ.NBLK) BLK1=NEIGHBOR(NMORT1,2)
+                  NB1=NYDIM(BLK1)
+                  NB2=NZDIM(BLK1)
+                  CALL BLKOFF(BLK1,IOFF1,JOFF1,KOFF1,IERR)
+                  IF(IERR.GT.0) THEN
+                     WRITE(0,*) "IN L2PROJ_BC: ERROR GETTING BLK 
+     &                           NEIGHBOR OFFSETS, BLK ",BLK1
+                     STOP 13
+                  ENDIF
+                  CALL L2PROJ_FACE_TO_FACE(CEDGEX,N1,N2
+     &           ,YREC(1+JOFF+JLAY,NBLK),ZREC(1+KOFF+KLAY,NBLK),NB1,NB2
+     &           ,YREC(1+JOFF1+JLAY,BLK1),ZREC(1+KOFF1+KLAY,BLK1),NBLK
+     &           ,BLK1,1)
+               ELSE
+                  WRITE(0,*) "IN TRFAULT - NO MORTAR ACROSS FACE 1 OF 
+     &                        BLK ",NBLK
+                  STOP 13
+               ENDIF
+            ELSEIF((I.EQ.IDIM-ILAY+1).AND.(BC_MORTAR(2,NBLK).EQ.1)) THEN
+               NMORT2=MORTID(NBLK,2)
+               IF(NMORT2.NE.0) THEN
+                  N1=JDIM-2*JLAY
+                  N2=KDIM-2*KLAY
+                  BLK2=NEIGHBOR(NMORT2,1)
+                  IF(BLK2.EQ.NBLK) BLK2=NEIGHBOR(NMORT2,2)
+                  NB1=NYDIM(BLK2)
+                  NB2=NZDIM(BLK2)
+                  CALL BLKOFF(BLK2,IOFF1,JOFF1,KOFF1,IERR)
+                  IF(IERR.GT.0) THEN
+                     WRITE(0,*) "IN L2PROJ_BC: ERROR GETTING BLK 
+     &                           NEIGHBOR OFFSETS, BLK ",BLK2
+                     STOP 13
+                  ENDIF
+                  CALL L2PROJ_FACE_TO_FACE(CEDGEX,N1,N2
+     &           ,YREC(1+JOFF+JLAY,NBLK),ZREC(1+KOFF+KLAY,NBLK),NB1,NB2
+     &           ,YREC(1+JOFF1+JLAY,BLK2),ZREC(1+KOFF1+KLAY,BLK2),NBLK
+     &           ,BLK2,2)
+               ELSE
+                  WRITE(0,*) "IN TRFAULT - NO MORTAR ACROSS FACE 2 OF 
+     &                        BLK ",NBLK
+                  STOP 13
+               ENDIF
+            ENDIF
+
+         ENDIF
+
+      ENDDO
+
+C Y FACES -----------
+
+      DO J=JLAY,JDIM-JLAY+1,JDIM-2*JLAY+1
+
+         IF ((J.EQ.JLAY.AND.BC_MORTAR(3,NBLK).EQ.1).OR.(J.EQ.JDIM-JLAY+1
+     &       .AND.BC_MORTAR(4,NBLK).EQ.1)) THEN
+
+            DO K=KLAY+1,KDIM-KLAY
+               DO I=ILAY+1,IDIM-ILAY
+                  IF (J.EQ.JLAY.AND.KEYOUT(I,J+1,K).EQ.1
+     &               .AND.BC_TYPEY(I-ILAY,K-KLAY,1).EQ.1) THEN
+                     CEDGEY(I-ILAY,K-KLAY)=CONC(I,J+1,K)
+                  ELSEIF(J.EQ.JDIM-JLAY+1.AND.KEYOUT(I,J-1,K).EQ.1
+     &              .AND.BC_TYPEY(I-ILAY,K-KLAY,2).EQ.1) THEN
+                     CEDGEY(I-ILAY,K-KLAY)=CONC(I,J-1,K)
+                  ENDIF
+               ENDDO
+            ENDDO
+
+            IF((J.EQ.JLAY).AND.(BC_MORTAR(3,NBLK).EQ.1)) THEN
+               NMORT3=MORTID(NBLK,3)
+               IF(NMORT3.NE.0) THEN
+                  N1=IDIM-2*ILAY
+                  N2=KDIM-2*KLAY
+                  BLK3=NEIGHBOR(NMORT3,1)
+                  IF(BLK3.EQ.NBLK) BLK3=NEIGHBOR(NMORT3,2)
+                  NB1=NXDIM(BLK3)
+                  NB2=NZDIM(BLK3)
+                  CALL BLKOFF(BLK3,IOFF1,JOFF1,KOFF1,IERR)
+                  IF(IERR.GT.0) THEN
+                     WRITE(0,*) "IN L2PROJ_BC: ERROR GETTING BLK 
+     &                           NEIGHBOR OFFSETS, BLK ",BLK3
+                     STOP 13
+                  ENDIF
+
+                  CALL L2PROJ_FACE_TO_FACE(CEDGEY,N1,N2
+     &           ,XREC(1+IOFF+ILAY,NBLK),ZREC(1+KOFF+KLAY,NBLK),NB1,NB2
+     &           ,XREC(1+IOFF1+ILAY,BLK3),ZREC(1+KOFF1+KLAY,BLK3),NBLK
+     &           ,BLK3,3)
+               ELSE
+                  WRITE(0,*) "IN TRFAULT - NO MORTAR ACROSS FACE 3 OF
+     &                        BLK ",NBLK
+                  STOP 13
+               ENDIF
+            ELSEIF((J.EQ.JDIM-JLAY+1).AND.(BC_MORTAR(4,NBLK).EQ.1)) THEN
+               NMORT4=MORTID(NBLK,4)
+               IF(NMORT4.NE.0) THEN
+                  N1=IDIM-2*ILAY
+                  N2=KDIM-2*KLAY
+                  BLK4=NEIGHBOR(NMORT4,1)
+                  IF(BLK4.EQ.NBLK) BLK4=NEIGHBOR(NMORT4,2)
+                  NB1=NXDIM(BLK4)
+                  NB2=NZDIM(BLK4)
+                  CALL BLKOFF(BLK4,IOFF1,JOFF1,KOFF1,IERR)
+                  IF(IERR.GT.0) THEN
+                     WRITE(0,*) "IN L2PROJ_BC: ERROR GETTING BLK 
+     &                           NEIGHBOR OFFSETS, BLK ",BLK4
+                     STOP 13
+                  ENDIF
+                  CALL L2PROJ_FACE_TO_FACE(CEDGEY,N1,N2
+     &           ,XREC(1+IOFF+ILAY,NBLK),ZREC(1+KOFF+KLAY,NBLK),NB1,NB2
+     &           ,XREC(1+IOFF1+ILAY,BLK4),ZREC(1+KOFF1+KLAY,BLK4),NBLK
+     &           ,BLK4,4)
+               ELSE
+                  WRITE(0,*) "IN TRFAULT - NO MORTAR ACROSS FACE 4 OF
+     &                        BLK ",NBLK
+                  STOP 13
+               ENDIF
+            ENDIF
+
+         ENDIF
+
+      ENDDO
+
+C Z FACES -----------
+
+      DO K=KLAY,KDIM-KLAY+1,KDIM-2*KLAY+1
+
+         IF ((K.EQ.KLAY.AND.BC_MORTAR(5,NBLK).EQ.1).OR.(K.EQ.KDIM-KLAY+1
+     &       .AND.BC_MORTAR(6,NBLK).EQ.1)) THEN
+
+            DO J=JLAY+1,JDIM-JLAY
+               DO I=ILAY+1,IDIM-ILAY
+                  IF (K.EQ.KLAY.AND.KEYOUT(I,J,K+1).EQ.1
+     &               .AND.BC_TYPEZ(I-ILAY,J-JLAY,1).EQ.1) THEN
+                     CEDGEZ(I-ILAY,J-JLAY)=CONC(I,J,K+1)
+                  ELSEIF(K.EQ.KDIM-KLAY+1.AND.KEYOUT(I,J,K-1).EQ.1
+     &              .AND.BC_TYPEZ(I-ILAY,J-JLAY,2).EQ.1) THEN
+                     CEDGEZ(I-ILAY,J-JLAY)=CONC(I,J,K-1)
+                  ENDIF
+               ENDDO
+            ENDDO
+
+            IF ((K.EQ.KLAY).AND.(BC_MORTAR(5,NBLK).EQ.1)) THEN
+               NMORT5=MORTID(NBLK,5)
+               IF(NMORT5.NE.0) THEN
+                  N1=IDIM-2*ILAY
+                  N2=JDIM-2*JLAY
+                  BLK5=NEIGHBOR(NMORT5,1)
+                  IF(BLK5.EQ.NBLK) BLK5=NEIGHBOR(NMORT5,2)
+                  NB1=NXDIM(BLK5)
+                  NB2=NYDIM(BLK5)
+                  CALL BLKOFF(BLK5,IOFF1,JOFF1,KOFF1,IERR)
+                  IF(IERR.GT.0) THEN
+                     WRITE(0,*) "IN L2PROJ_BC: ERROR GETTING BLK 
+     &                           NEIGHBOR OFFSETS, BLK ",BLK5
+                     STOP 13
+                  ENDIF
+                  CALL L2PROJ_FACE_TO_FACE(CEDGEZ,N1,N2
+     &           ,XREC(1+IOFF+ILAY,NBLK),YREC(1+JOFF+JLAY,NBLK),NB1,NB2
+     &           ,XREC(1+IOFF1+ILAY,BLK5),YREC(1+JOFF1+JLAY,BLK5),NBLK
+     &           ,BLK5,5)
+               ELSE
+                  WRITE(0,*) "IN TRFAULT - NO MORTAR ACROSS FACE 5 OF
+     &                        BLK ",NBLK
+                  STOP 13
+               ENDIF
+            ELSEIF((K.EQ.KDIM-KLAY+1).AND.(BC_MORTAR(6,NBLK).EQ.1)) THEN
+               NMORT6=MORTID(NBLK,6)
+               IF(NMORT6.NE.0) THEN
+                  N1=IDIM-2*ILAY
+                  N2=JDIM-2*JLAY
+                  BLK6=NEIGHBOR(NMORT6,1)
+                  IF(BLK6.EQ.NBLK) BLK6=NEIGHBOR(NMORT6,2)
+                  NB1=NXDIM(BLK6)
+                  NB2=NYDIM(BLK6)
+                  CALL BLKOFF(BLK6,IOFF1,JOFF1,KOFF1,IERR)
+                  IF(IERR.GT.0) THEN
+                     WRITE(0,*) "IN L2PROJ_BC: ERROR GETTING BLK 
+     &                           NEIGHBOR OFFSETS, BLK ",BLK6
+                     STOP 13
+                  ENDIF
+                  CALL L2PROJ_FACE_TO_FACE(CEDGEZ,N1,N2
+     &           ,XREC(1+IOFF+ILAY,NBLK),YREC(1+JOFF+JLAY,NBLK),NB1,NB2
+     &           ,XREC(1+IOFF1+ILAY,BLK6),YREC(1+JOFF1+JLAY,BLK6),NBLK
+     &           ,BLK6,6)
+               ELSE
+                  WRITE(0,*) "IN TRFAULT - NO MORTAR ACROSS FACE 6 OF
+     &                        BLK ",NBLK
+                  STOP 13
+               ENDIF
+            ENDIF
+
+         ENDIF
+
+      ENDDO
+
+
+      RETURN
+      END
+
+
+C********************************************************************
+      SUBROUTINE L2PROJ_FACE_TO_FACE(V,N1,N2,X1,X2,NB1,NB2,XB1,XB2,
+     &                               BLK,BLK1,FACE)
+C********************************************************************
+C L2 PROJECTS FUNCTION V FROM FACE ON BLK TO CORRESPODING FACE OF BLK1 
+C INTO THE GLOBAL ARRAYS CLAYX,CLAYY,CLAYZ AS THE CASE MAY BE (DEPEND-
+C -ING ON THE FACE.
+C********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'mb_utilv.h'
+      INCLUDE 'tr_mbvars.h'
+      INCLUDE 'trmodel.h'
+C
+      INTEGER N1,N2,NB1,NB2,I1,I2,IB1,IB2,VB11,VB12,VB21,VB22,MORTAR,J,
+     &        IPTR,BLK,BLK1,FACE
+      REAL*8 V(N1,N2),X1(0:N1),X2(0:N2),XB1(0:NB1),XB2(0:NB2)
+      REAL*8 MASSG0,VOL,CELL
+
+C      WRITE(*,*) 'FACE TO MORT ',N1,N2,NB1,NB2
+C CONC. FROM SPECIES CALPHA OF FACE 1 OF BLK GOES INTO CLAYX AND THAT 
+C TOO IN FACE 2 OF BLK1. SIMILARLY DEDUCE FOR OTHER FACES.
+
+      DO IB2 = 1,NB2
+         DO IB1 = 1,NB1
+            IF(FACE.EQ.1) THEN
+               CLAYX(IB1,IB2,2,BLK1) = 0.0D0
+            ELSEIF(FACE.EQ.2) THEN
+               CLAYX(IB1,IB2,1,BLK1) = 0.0D0
+            ELSEIF(FACE.EQ.3) THEN
+               CLAYY(IB1,IB2,2,BLK1) = 0.0D0
+            ELSEIF(FACE.EQ.4) THEN
+               CLAYY(IB1,IB2,1,BLK1) = 0.0D0
+            ELSEIF(FACE.EQ.5) THEN
+               CLAYZ(IB1,IB2,2,BLK1) = 0.0D0
+            ELSEIF(FACE.EQ.6) THEN
+               CLAYZ(IB1,IB2,1,BLK1) = 0.0D0
+            ENDIF
+         ENDDO
+      ENDDO
+C
+C ... COMPUTE THE RHS
+C
+      VOL = 1.0D0
+      DO I2 = 1,N2
+         DO I1 = 1,N1
+            IF (VARTYPE0.EQ.VOLUMETRIC0)
+     &      VOL = (X1(I1)-X1(I1-1))*(X2(I2)-X2(I2-1))
+            IF(FACE.EQ.1) THEN
+               VB11 = VBX1(I1,1,BLK,1)
+               VB12 = VBX1(I1,2,BLK,1)
+               VB21 = VBX2(I2,1,BLK,1)
+               VB22 = VBX2(I2,2,BLK,1)
+               IPTR = IPTRX(I1,I2,BLK,1)
+            ELSEIF(FACE.EQ.2) THEN
+               VB11 = VBX1(I1,1,BLK,2)
+               VB12 = VBX1(I1,2,BLK,2)
+               VB21 = VBX2(I2,1,BLK,2)
+               VB22 = VBX2(I2,2,BLK,2)
+               IPTR = IPTRX(I1,I2,BLK,2)
+            ELSEIF(FACE.EQ.3) THEN
+               VB11 = VBY1(I1,1,BLK,1)
+               VB12 = VBY1(I1,2,BLK,1)
+               VB21 = VBY2(I2,1,BLK,1)
+               VB22 = VBY2(I2,2,BLK,1)
+               IPTR = IPTRY(I1,I2,BLK,1)
+            ELSEIF(FACE.EQ.4) THEN
+               VB11 = VBY1(I1,1,BLK,2)
+               VB12 = VBY1(I1,2,BLK,2)
+               VB21 = VBY2(I2,1,BLK,2)
+               VB22 = VBY2(I2,2,BLK,2)
+               IPTR = IPTRY(I1,I2,BLK,2)
+            ELSEIF(FACE.EQ.5) THEN
+               VB11 = VBZ1(I1,1,BLK,1)
+               VB12 = VBZ1(I1,2,BLK,1)
+               VB21 = VBZ2(I2,1,BLK,1)
+               VB22 = VBZ2(I2,2,BLK,1)
+               IPTR = IPTRZ(I1,I2,BLK,1)
+            ELSEIF(FACE.EQ.6) THEN
+               VB11 = VBZ1(I1,1,BLK,2)
+               VB12 = VBZ1(I1,2,BLK,2)
+               VB21 = VBZ2(I2,1,BLK,2)
+               VB22 = VBZ2(I2,2,BLK,2)
+               IPTR = IPTRZ(I1,I2,BLK,2)
+            ENDIF
+            DO IB2 = VB21,VB22
+               DO IB1 = VB11,VB12
+                  J = IB1 - VB11 + (IB2 - VB21)*(VB12 - VB11 + 1)
+                  IF((IPTR + J).GT.$MXPRJ) THEN
+                     STOP 'IN TRFAULT - INSUFF. MEM. ALLOC. FOR PROJG0'
+                  ELSE
+                     IF(FACE.EQ.1) THEN
+                        CLAYX(IB1,IB2,2,BLK1) 
+     &                          = CLAYX(IB1,IB2,2,BLK1) 
+     &                          + V(I1,I2)*PROJG0(IPTR + J,BLK,FACE)/VOL
+                     ELSEIF(FACE.EQ.2) THEN
+                        CLAYX(IB1,IB2,1,BLK1) 
+     &                          = CLAYX(IB1,IB2,1,BLK1) 
+     &                          + V(I1,I2)*PROJG0(IPTR + J,BLK,FACE)/VOL
+                     ELSEIF(FACE.EQ.3) THEN
+                        CLAYY(IB1,IB2,2,BLK1) 
+     &                          = CLAYY(IB1,IB2,2,BLK1) 
+     &                          + V(I1,I2)*PROJG0(IPTR + J,BLK,FACE)/VOL
+                     ELSEIF(FACE.EQ.4) THEN
+                        CLAYY(IB1,IB2,1,BLK1) 
+     &                          = CLAYY(IB1,IB2,1,BLK1) 
+     &                          + V(I1,I2)*PROJG0(IPTR + J,BLK,FACE)/VOL
+                     ELSEIF(FACE.EQ.5) THEN
+                        CLAYZ(IB1,IB2,2,BLK1) 
+     &                          = CLAYZ(IB1,IB2,2,BLK1) 
+     &                          + V(I1,I2)*PROJG0(IPTR + J,BLK,FACE)/VOL
+                     ELSEIF(FACE.EQ.6) THEN
+                        CLAYZ(IB1,IB2,1,BLK1) 
+     &                          = CLAYZ(IB1,IB2,1,BLK1) 
+     &                          + V(I1,I2)*PROJG0(IPTR + J,BLK,FACE)/VOL
+                     ENDIF
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDDO
+      ENDDO
+C
+C ... COMPUTE LUMPED MASS MATRIX AND DIVIDE THE RHS BY IT
+C
+      VOL = 1.0D0
+      DO IB2 = 1,NB2
+         DO IB1 = 1,NB1
+           IF(FACE.EQ.1) THEN
+            CLAYX(IB1,IB2,2,BLK1) 
+     &    = CLAYX(IB1,IB2,2,BLK1)/MASSG0(IB1,IB2,NB1,NB2,XB1,XB2)
+           ELSEIF(FACE.EQ.2) THEN
+            CLAYX(IB1,IB2,1,BLK1) 
+     &    = CLAYX(IB1,IB2,1,BLK1)/MASSG0(IB1,IB2,NB1,NB2,XB1,XB2)
+           ELSEIF(FACE.EQ.3) THEN
+            CLAYY(IB1,IB2,2,BLK1) 
+     &    = CLAYY(IB1,IB2,2,BLK1)/MASSG0(IB1,IB2,NB1,NB2,XB1,XB2)
+           ELSEIF(FACE.EQ.4) THEN
+            CLAYY(IB1,IB2,1,BLK1) 
+     &    = CLAYY(IB1,IB2,1,BLK1)/MASSG0(IB1,IB2,NB1,NB2,XB1,XB2)
+           ELSEIF(FACE.EQ.5) THEN
+            CLAYZ(IB1,IB2,2,BLK1) 
+     &    = CLAYZ(IB1,IB2,2,BLK1)/MASSG0(IB1,IB2,NB1,NB2,XB1,XB2)
+           ELSEIF(FACE.EQ.6) THEN
+            CLAYZ(IB1,IB2,1,BLK1) 
+     &    = CLAYZ(IB1,IB2,1,BLK1)/MASSG0(IB1,IB2,NB1,NB2,XB1,XB2)
+           ENDIF
+         ENDDO
+      ENDDO
+
+      RETURN
+      END
+
+
+      REAL*8 FUNCTION MASSG0(I1,I2,N1,N2,X1,X2)
+      IMPLICIT NONE
+C
+      INTEGER I1,I2,N1,N2
+      REAL*8  X1(0:N1),X2(0:N2)
+C
+      MASSG0 = (X1(I1)-X1(I1-1))*(X2(I2)-X2(I2-1))
+C
+      RETURN
+      END
+

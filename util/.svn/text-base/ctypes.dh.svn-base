@@ -1,0 +1,97 @@
+// ctypes.h - Include file defining the link between fortran and c
+
+// See notes below on compatability problems
+
+// HISTORY:
+
+// JOHN WHEELER       6/10/00   Extracted from memory.h
+// SUNIL G THOMAS    10/23/09   Changed long to int for 64 bit 
+//                              compatibility. 
+
+// MACHINE - Only one of the following is valid
+
+$IBMPC#define IBMPC      // IBM PC DOS, Microsoft visual c
+$RS6UN#define RS6UN      // IBM RS600 UNIX
+$CRT3E#define CRT3E      // Cray T3E  UNIX
+$SGI64#define SGI64      // SGI Octane Irix64 or Linux
+
+// TYPE DEFINITIONS - Compiler and machine dependent
+
+#ifdef IBMPC
+//   typedef void __stdcall   FORTSUB;   // fortran calling convention C 4.0
+   typedef void             FORTSUB;     // fortran calling convention C 7.0
+   typedef void *           PADD;        // pointer for address only
+   typedef float *          PREAL4;      // pointer to a REAL*4
+   typedef double *         PREAL8;      // pointer to a REAL*8
+   typedef int *            PINT4;       // pointer to a INTEGER
+   typedef int *            PINT2;       // pointer to a INTEGER
+   typedef int *            PLOG4;       // pointer to a LOGICAL
+   typedef int *            PLOG2;       // pointer to a LOGICAL
+   typedef unsigned char    CHAR;        // fortran character
+   typedef CHAR *           PCHAR;       // pointer to a CHARACTER STRING
+#endif
+
+#ifdef RS6UN
+   typedef void             FORTSUB;     // fortran calling convention
+   typedef void *           PADD;        // pointer for address only
+   typedef float *          PREAL4;      // pointer to a REAL*4
+   typedef double *         PREAL8;      // pointer to a REAL*8
+   typedef int *            PINT4;       // pointer to a INTEGER
+   typedef int *            PINT2;       // pointer to a INTEGER
+   typedef int *            PLOG4;       // pointer to a LOGICAL
+   typedef int *            PLOG2;       // pointer to a LOGICAL
+   typedef unsigned char    CHAR;        // fortran character
+   typedef char *           PCHAR;       // pointer to a CHARACTER STRING
+#endif
+
+// Include needed for typedef _fcd below:
+
+#ifdef CRT3E
+#include <fortran.h>
+#endif
+
+#ifdef CRT3E
+   typedef void             FORTSUB;     // fortran calling convention
+   typedef void *           PADD;        // pointer for address only
+   typedef float *          PREAL4;      // pointer to a REAL*4
+   typedef double *         PREAL8;      // pointer to a REAL*8
+   typedef int *            PINT4;       // pointer to a INTEGER
+   typedef int *            PINT2;       // pointer to a INTEGER
+   typedef int *            PLOG4;       // pointer to a LOGICAL
+   typedef int *            PLOG2;       // pointer to a LOGICAL
+   typedef unsigned char    CHAR;        // fortran character
+   typedef _fcd             PCHAR;       // pointer to a CHARACTER STRING
+#endif
+
+#ifdef SGI64 
+   typedef void             FORTSUB;     // fortran calling convention
+   typedef void *           PADD;        // pointer for address only
+   typedef float *          PREAL4;      // pointer to a REAL*4
+   typedef double *         PREAL8;      // pointer to a REAL*8
+   typedef int *            PINT4;       // pointer to a INTEGER 
+   typedef int *            PINT2;       // pointer to a INTEGER 
+   typedef int *            PLOG4;       // pointer to a LOGICAL 
+   typedef int *            PLOG2;       // pointer to a LOGICAL 
+   typedef unsigned char    CHAR;        // fortran character
+   typedef char *           PCHAR;       // pointer to a CHARACTER STRING
+#endif
+
+// Notes:
+
+// I)  Microsoft compiler and linker combinations
+
+//     A.  The following have been used successfully
+
+//         1.  Fortran compiler = Microsoft Powerstation 4.0
+//             C compiler = Microsoft Visual C 4.0
+//             Linker = Microsoft link.exe dated 9/25/95
+
+//         2.  Fortran compiler = Microsoft Powerstation 4.0
+//             C compiler = Microsoft Visual C 7.0
+//             Linker = Microsoft link.exe dated 6/25/98
+
+//     B.  The following does not work
+
+//         1.  Fortran compiler = Microsoft Powerstation 4.0
+//             C compiler = Microsoft Visual C 7.0
+//             Linker = Microsoft link.exe dated 9/25/95

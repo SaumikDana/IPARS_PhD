@@ -1,0 +1,269 @@
+TITLE(1)="CO2 sequestration dome"
+
+DESCRIPTION()=
+"ECMOR 2016 Paper by G. Singh and B. Ganis"
+
+BLOCKMODEL(1)="COMPOSITIONAL_MFMFE"
+
+TIMEEND = 100.0
+$TIMEEND = 500.0
+
+$ I/O OPTIONS
+$ DEBUGS  
+$ DEBUGM
+$ OUTLEVEL = 2
+$ BUGKEY(6)
+$ BUGKEY(10)
+PROCOUT
+EXTRA_TIMING
+WELLOUTKEY = 3  WELLFILE = "DOME.WEL"  WELLFCUM = "DOME_CUMULATIVE.WEL"
+
+$ FLAGS
+XNO_DIFFDISP
+$XMOL_DIFF(,,) = 100.
+
+$ Solver parameters
+LSOL_TOL = 1.E-6
+LSOL_ITMAX = 10000
+
+$----- INCLUDE CORNER POINT MESH DATA
+DOWN() = 1 0 0
+$Include grid_dome_10x30x30.dat
+Include grid_dome_25x200x200.dat
+$Include grid_dome_water_25x200x200.dat
+
+$ WATER PROPERTIES
+WATERP = 0.0
+WATFVF = 1.0
+WATVIS = .7
+WATCMP = 3.3E-6
+STDENW = 62.4
+
+$ COMP NAMES
+NHCOMP = 6
+COMP(1) = "C1"  COMP(2) = "C3"  COMP(3) = "C6"  COMP(4) = "C10"
+COMP(5) = "C15"  COMP(6) = "C20"  
+
+$ CRITICAL TEMPERATURES
+TCRIT()  343.0  665.7  913.4  1111.8  1270.0  1380.0
+
+$ CRITICAL PRESSURES
+PCRIT()  667.8  616.3  436.9  304.0  200.0  162.0 
+
+$ CRITICAL VOLUMES
+ZCRIT() .290  .277  .264  .257  .245  .235
+
+$ ACENTRIC FACTORS
+ACENT()  .0130  .1524  .3007  .4885  .6500  .8500
+
+$ MOL WEIGHTS
+MOLWT()  16.04  44.10  86.18  142.29  206.00  282.00
+
+$ VOLUMETRIC SHIFT
+VSHIFT() 6*0.0
+
+$ BINARY INTERACTION COEFFICIENTS
+BINACT(1,5) = .05
+BINACT(5,1) = .05
+BINACT(1,6) = .05
+BINACT(6,1) = .05
+BINACT(2,5) = .005
+BINACT(5,2) = .005
+BINACT(2,6) = .005
+BINACT(6,2) = .005
+
+MODREL(1) = 2
+
+$ SURFACE CONDITIONS 
+TSURF = 60.0  PSURF = 14.7
+
+$ Set the top corner of the reservoir: NOT USED FOR MPFA
+$ XYZ111(,1) = 0. 0. 0.
+
+$ INITIAL CONDITIONS
+
+PORPRES1() = 2000.0
+SWINIT1() = 0.20
+PRES1(,,) = 2000.0
+CONC1(,,,1) = .0
+CONC1(,,,2) = .1
+CONC1(,,,3) = .3
+CONC1(,,,4) = .1
+CONC1(,,,5) = .1
+CONC1(,,,6) = .4
+
+$ INITIAL TEMPERATURES
+TEMPR1() = 160.
+
+$ SEPARATORS
+PSEP(,1) = 14.7
+TSEP(,1) = 60.
+
+$ SEPARATOR ASSIGNMENT FOR IN-PLACE CALCULATIONS
+SEPSURF = 1
+
+$ POROSITY
+CR1() = 5.E-6
+POROSITY1() = .30
+
+$ PERMEABILITIES
+
+XPERM1() = 50.
+
+YPERM1() = 50. 
+
+ZPERM1() = 50. 
+
+$Tolerances
+
+$TESTALL
+$NEGFLASH
+TOL_FLASH 1.E-10
+TOL_RR 1.E-12
+TOL_TRIV 1.E-4
+
+KOSW(1) Block      $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation Constant
+
+Data    0.2       1.0       
+        0.2899    0.6769   
+        0.3778    0.4153   
+        0.4667    0.2178   
+        0.5556    0.0835   
+        0.6444    0.0123   
+        0.7000    0.0   
+        0.7333    0.0   
+        0.8222    0.0   
+        0.9111    0.0   
+        1.0       0.0   
+EndBlock
+
+KWSW(1) Block     $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    0.2       0.0       
+        0.2899    0.0022   
+        0.3778    0.0180  
+        0.4667    0.0607   
+        0.5556    0.1438   
+        0.6444    0.2809   
+        0.7000    0.4089   
+        0.7333    0.4855   
+        0.8222    0.7709   
+        0.9111    1.0   
+        1.0       1.0   
+EndBlock
+
+KOSG(1) Block     $ OIL RELATIVE PERMEABILITY VS Sg - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    0.0       1.0   
+        0.0500    0.8800  
+        0.0889    0.7023   
+        0.1778    0.4705   
+        0.2667    0.2963   
+        0.3556    0.1715   
+        0.4444    0.0878   
+        0.5333    0.0370   
+        0.6222    0.0110   
+        0.6500    0.0   
+        0.7111    0.0   
+        0.8       0.0       
+EndBlock
+
+KGSG(1) Block      $ GAS RELATIVE PERMEABILITY VS Sg - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    0.0       0.0   
+        0.0500    0.0  
+        0.0889    0.0010   
+        0.1778    0.0100   
+        0.2667    0.0300   
+        0.3556    0.0500   
+        0.4444    0.1000   
+        0.5333    0.2000   
+        0.6222    0.3500  
+        0.6500    0.3900   
+        0.7111    0.5600   
+        0.8       1.0       
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    0.2       45.0       
+        0.2899    19.03   
+        0.3778    10.07   
+        0.4667     4.90   
+        0.5556     1.80   
+        0.6444     0.50  
+        0.7000     0.05   
+        0.7333     0.01   
+        0.8222     0.0   
+        0.9111     0.0   
+        1.0        0.0 
+$Data     0.0        0.0 
+$         1.0        0.0  
+EndBlock
+
+PCGO(1) Block        $ GAS-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    0.2       30.0       
+        0.2889     8.000   
+        0.3500     4.000   
+        0.3778     3.000  
+        0.4667     0.800   
+        0.5556     0.030  
+        0.6444     0.001  
+        0.7333     0.001   
+        0.8222     0.0   
+        0.9111     0.0   
+        0.9500     0.0  
+        1.0        0.0   
+$Data     0.0        0.0
+$         1.0        0.0 
+EndBlock
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.0
+   DELTIM = 1.E-2  DTIMMUL = 1.05
+   DTIMMIN = 1.E-6
+   DTIMMAX = 1.
+   DTIMOUT = 1.
+   DSMAX .5
+
+   $ INJECTION COMPOSITION
+   COMPINJ(,1) = 0.0 0.0 0.99 0.01 0.0 0.0 0.0
+   INJCOMP() = 1
+
+   $ SEPARATOR ASSIGNMENT FOR WELLS
+   IWSEP() = 1
+
+   VISOUT = 10.  DVISOUT = 10.
+   VIS_FNAME = "DOME_"
+   VISFLAG = 8
+   VIS_SCL = 12
+   VIS_SCL_NAMES(1) = "PRES"
+   VIS_SCL_NAMES(2) = "PCWO"
+   VIS_SCL_NAMES(3) = "PCGO"
+   VIS_SCL_NAMES(4) = "SWAT"
+   VIS_SCL_NAMES(5) = "SOIL"
+   VIS_SCL_NAMES(6) = "SGAS"
+   VIS_SCL_NAMES(7) = "C1"
+   VIS_SCL_NAMES(8) = "C3"
+   VIS_SCL_NAMES(9) = "C6"
+   VIS_SCL_NAMES(10) = "C10"
+   VIS_SCL_NAMES(11) = "C15"
+   VIS_SCL_NAMES(12) = "C20"
+EndTime
+

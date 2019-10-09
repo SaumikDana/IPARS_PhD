@@ -1,0 +1,744 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.6	//
+$	tags	/^7	read2.df	\/^    7 DO 40 I=1,4$\/;"	l	subroutine:GETVAL	file:$/;"	v
+1	idata.df	/^    1 CONTINUE$/;"	l	subroutine:GETIDAT	file:
+1	idata.df	/^    1 CONTINUE$/;"	l	subroutine:MAKEMAP	file:
+1	idata.df	/^    1 FORMAT(\/' SIMULATION MODEL',T56,'BLACK OIL IMPES')$/;"	l	subroutine:GETSCAL	file:
+1	idata.df	/^    1 LENTA(I)=0$/;"	l	subroutine:GETROCK	file:
+1	idata.df	/^    1 WRITE (BNAM(I),33) I$/;"	l	subroutine:SETGEOM	file:
+1	idata.df	/^    1 WRITE (BNAM(I),33) I$/;"	l	subroutine:SETGEOMNEW	file:
+1	read1.df	/^    1    FORMAT (\/' ERROR #',I4,'; ',A50)$/;"	l	subroutine:PUTERR	file:
+1	read1.df	/^    1 CONTINUE$/;"	l	subroutine:DEFAULT	file:
+1	read1.df	/^    1 CONTINUE$/;"	l	subroutine:GETGRDA	file:
+1	read1.df	/^    1 CONTINUE$/;"	l	subroutine:READER	file:
+1	read1.df	/^    1 CONTINUE$/;"	l	subroutine:TBLKOUT	file:
+1	read1.df	/^    1 I=I+1$/;"	l	subroutine:UNDEF	file:
+1	read1.df	/^    1 LENBLK(I)=0$/;"	l	subroutine:GETBLK	file:
+1	read1.df	/^    1 VNAMC(L)=VNAMGA(I)$/;"	l	subroutine:GRDAIN	file:
+1	read2.df	/^    1 CONTINUE$/;"	l	subroutine:PUTCS	file:
+1	read2.df	/^    1 NAML=I$/;"	l	subroutine:GETVAL	file:
+1	read2.df	/^    1 V(J+NC1-1)=I(J)$/;"	l	subroutine:PUTBT	file:
+1	tdata.df	/^    1    FORMAT(\/' STOCK TANK OIL DENSITY (STDENO)',T48,F12.3,1X,A20)$/;"	l	subroutine:SETEXU	file:
+1	tdata.df	/^    1    FORMAT(\/' TIME =',T45,F12.3,1X,A20)$/;"	l	subroutine:GETTIMD	file:
+1	tdata.df	/^    1 FORMAT (4X,A20,'(',A8,')',T56,A20)$/;"	l	subroutine:EXTUIN	file:
+1	tdata.df	/^    1 MODACT=0$/;"	l	subroutine:GETTDAT	file:
+1	units.f	/^    1 CONTINUE$/;"	l	subroutine:FNDUNT	file:
+1	units.f	/^    1 CONTINUE$/;"	l	subroutine:INSTR	file:
+1	units.f	/^    1 IF (NS.GT.MXUS) GO TO 14$/;"	l	subroutine:MAKESI	file:
+1	units.f	/^    1 NI=I$/;"	l	subroutine:CONVRT	file:
+10	idata.df	/^   10 CONTINUE$/;"	l	subroutine:GETROCK	file:
+10	idata.df	/^   10 CONTINUE$/;"	l	subroutine:MAKEMAP	file:
+10	idata.df	/^   10 NUMREG(I)=J$/;"	l	subroutine:GETGAPI	file:
+10	read1.df	/^   10 K=K+1$/;"	l	subroutine:READER	file:
+10	read1.df	/^   10 L=1$/;"	l	subroutine:GETNUM	file:
+10	tdata.df	/^   10    FORMAT(' TIME STEPS COMPLETED =',T45,I12)$/;"	l	subroutine:GETTIMD	file:
+10	units.f	/^   10    UTOP(NTOP)=USI1(I)$/;"	l	subroutine:MAKESI	file:
+10	units.f	/^   10 IF (NI.NE.NO) GO TO 13$/;"	l	subroutine:CONVRT	file:
+100	idata.df	/^  100 FORMAT(\/' SIMULATION MODEL',T56,'POROELASTIC')$/;"	l	subroutine:GETSCAL	file:
+1000	idata.df	/^ 1000      FORMAT(' PAYZONE',I2,',SINGLE PHASE')$/;"	l	subroutine:SETGEOMNEW	file:
+1000	idata.df	/^ 1000 MODACT=0$/;"	l	subroutine:GETSCAL	file:
+101	idata.df	/^  101 CONTINUE$/;"	l	subroutine:GETSCAL	file:
+102	idata.df	/^  102       FORMAT (\/' ERROR # 432; NO SIMULATION MODEL SPECIFIED'\/$/;"	l	subroutine:GETSCAL	file:
+11	idata.df	/^   11    FORMAT('     PRINT REGION',I3,":")$/;"	l	subroutine:GETGAPI	file:
+11	idata.df	/^   11    FORMAT(\/1X,A78)$/;"	l	subroutine:MAKEMAP	file:
+11	idata.df	/^   11 LENTA(I)=0$/;"	l	subroutine:GETROCK	file:
+11	read1.df	/^   11 CONTINUE$/;"	l	subroutine:GETNUM	file:
+11	read1.df	/^   11 IF (CC.EQ.DOLLAR) GO TO 7$/;"	l	subroutine:READER	file:
+11	read2.df	/^   11 DO 35 I=1,NDMAX$/;"	l	subroutine:GETVAL	file:
+11	tdata.df	/^   11 BK(I)=.FALSE.$/;"	l	subroutine:GETTIMD	file:
+11	units.f	/^   11 CONTINUE$/;"	l	subroutine:CONVRT	file:
+115	idata.df	/^  115 FORMAT(\/' SIMULATION MODEL',T56,'COMPOSITIONAL MFMFE')$/;"	l	subroutine:GETSCAL	file:
+116	idata.df	/^  116 FORMAT(\/' SIMULATION MODEL',T56,'SINGLE PHASE MFMFE')$/;"	l	subroutine:GETSCAL	file:
+117	idata.df	/^  117 FORMAT(\/' SIMULATION MODEL',T56,'HYDROLOGY IMPLICIT MFMFE')$/;"	l	subroutine:GETSCAL	file:
+12	idata.df	/^   12    J2=J1+73$/;"	l	subroutine:MAKEMAP	file:
+12	idata.df	/^   12 CONTINUE$/;"	l	subroutine:GETROCK	file:
+12	idata.df	/^   12 FORMAT (\/' ERROR # 432; INVALID SIMULATION MODEL FOR BLOCK',$/;"	l	subroutine:GETSCAL	file:
+12	idata.df	/^   12 MODACT=0$/;"	l	subroutine:CREATE	file:
+12	read1.df	/^   12 READ(NFIL,4,END=20) C$/;"	l	subroutine:READER	file:
+12	tdata.df	/^   12 CONTINUE$/;"	l	subroutine:GETTIMD	file:
+12	units.f	/^   12 CONTINUE$/;"	l	subroutine:CONVRT	file:
+13	idata.df	/^   13 FORMAT(\/' SIMULATION MODEL',T56,'SINGLE PHASE_IMPLICIT')$/;"	l	subroutine:GETSCAL	file:
+13	idata.df	/^   13 NERR=NERR+1$/;"	l	subroutine:CREATE	file:
+13	idata.df	/^   13 NERR=NERR+1$/;"	l	subroutine:SETGEOM	file:
+13	idata.df	/^   13 NERR=NERR+1$/;"	l	subroutine:SETGEOMNEW	file:
+13	read1.df	/^   13 CALL PUTERR(KODRET,E,A(J),M,1)$/;"	l	subroutine:GETNUM	file:
+13	read1.df	/^   13 E='INPUT DATA FILE TOO LONG, LAST RECORD READ WAS'$/;"	l	subroutine:READER	file:
+13	read1.df	/^   13 NERR=NERR+1$/;"	l	subroutine:GETGRDA	file:
+13	read2.df	/^   13 E='INVALID ARRAY SYNTAX'$/;"	l	subroutine:GETVAL	file:
+13	units.f	/^   13 KODRET=133$/;"	l	subroutine:MAKESI	file:
+13	units.f	/^   13 KODRET=134$/;"	l	subroutine:CONVRT	file:
+14	idata.df	/^   14    FORMAT (\/' ERROR 503; INVALID ROCK TYPES SPECIFIED')$/;"	l	subroutine:GETROCK	file:
+14	idata.df	/^   14    WRITE (NFOUT,17)K,(BLKBUF(L),L=1,L2)$/;"	l	subroutine:MAKEMAP	file:
+14	idata.df	/^   14 FORMAT (\/' ERROR #',I4,'; MEMORY MANAGEMENT ERROR AT LOCATION',$/;"	l	subroutine:CREATE	file:
+14	idata.df	/^   14 FORMAT (\/' ERROR #',I4,'; MEMORY MANAGEMENT ERROR')$/;"	l	subroutine:SETGEOM	file:
+14	idata.df	/^   14 FORMAT (\/' ERROR #',I4,'; MEMORY MANAGEMENT ERROR')$/;"	l	subroutine:SETGEOMNEW	file:
+14	idata.df	/^   14 FORMAT(\/' SIMULATION MODEL',T56,'TRANSPORT_CHEMISTRY')$/;"	l	subroutine:GETSCAL	file:
+14	read1.df	/^   14       FORMAT(\/' ERROR #',I4,'; ',A50)$/;"	l	subroutine:GETNUM	file:
+14	read1.df	/^   14    A(LAST+J)=TRU(J)$/;"	l	subroutine:READER	file:
+14	read2.df	/^   14 IF (A(L).EQ.RIGHT) THEN$/;"	l	subroutine:GETVAL	file:
+14	units.f	/^   14 IF (NTOP.LT.MXUS) UTOP(NTOP+1) = ' '$/;"	l	subroutine:MAKESI	file:
+15	idata.df	/^   15    CONTINUE$/;"	l	subroutine:MAKEMAP	file:
+15	idata.df	/^   15    FORMAT (\/' ERROR 502; NO X LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOM	file:
+15	idata.df	/^   15    FORMAT (\/' ERROR 504; POROSITY ERROR')$/;"	l	subroutine:GETROCK	file:
+15	idata.df	/^   15    FORMAT(' RESTART SIMULATION (RESTART)',T56,'NO')$/;"	l	subroutine:GETSCAL	file:
+15	read1.df	/^   15       FORMAT(' IN DEFAULT UNITS ',$MAXULA1)$/;"	l	subroutine:GETNUM	file:
+15	read1.df	/^   15    DO 16 J=1,5$/;"	l	subroutine:READER	file:
+15	read2.df	/^   15 IF (A(L).NE.BLANK.AND.A(L).NE.EQUAL) THEN$/;"	l	subroutine:GETVAL	file:
+15	units.f	/^   15    CONTINUE$/;"	l	subroutine:MAKESI	file:
+16	idata.df	/^   16    FORMAT (\/' ERROR 502; NO Y LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOM	file:
+16	idata.df	/^   16    FORMAT (\/' ERROR 505; X PERMEABILITY ERROR')$/;"	l	subroutine:GETROCK	file:
+16	idata.df	/^   16    FORMAT(\/' ',15I5)$/;"	l	subroutine:MAKEMAP	file:
+16	idata.df	/^   16 FORMAT(\/' SIMULATION STOP TIME (TIMEEND)',T49,F10.2,1X,A20)$/;"	l	subroutine:GETSCAL	file:
+16	read1.df	/^   16    A(LAST+J)=FAL(J)$/;"	l	subroutine:READER	file:
+16	read2.df	/^   16 L=L+1$/;"	l	subroutine:GETVAL	file:
+16	units.f	/^   16 DO 17 I=1,NTOP$/;"	l	subroutine:MAKESI	file:
+17	idata.df	/^   17    FORMAT (\/' ERROR 502; NO Z LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOM	file:
+17	idata.df	/^   17    FORMAT (\/' ERROR 505; Y PERMEABILITY ERROR')$/;"	l	subroutine:GETROCK	file:
+17	idata.df	/^   17    FORMAT(I4,' ',74A1)$/;"	l	subroutine:MAKEMAP	file:
+17	idata.df	/^   17 FORMAT(' USER OUTPUT LEVEL (OUTLEVEL)',T56,'MINIMUM')$/;"	l	subroutine:GETSCAL	file:
+17	read1.df	/^   17    IF (NET.EQ.0.AND.NETB.EQ.0.AND.(A(LAST).EQ.BLANK.OR.A(LAST)$/;"	l	subroutine:READER	file:
+17	tdata.df	/^   17    FORMAT(' USER OUTPUT LEVEL (OUTLEVEL) =',T56,'MINIMUM')$/;"	l	subroutine:GETTIMD	file:
+17	units.f	/^   17 CONTINUE$/;"	l	subroutine:MAKESI	file:
+18	idata.df	/^   18    FORMAT (\/' ERROR 505; INVALID Z PERMEABILITY')$/;"	l	subroutine:GETROCK	file:
+18	idata.df	/^   18 FORMAT(' USER OUTPUT LEVEL (OUTLEVEL)',T56,'STANDARD')$/;"	l	subroutine:GETSCAL	file:
+18	idata.df	/^   18 LENTA(N)=0$/;"	l	subroutine:MAKEMAP	file:
+18	read1.df	/^   18 I=I+1$/;"	l	subroutine:READER	file:
+18	tdata.df	/^   18    FORMAT(' USER OUTPUT LEVEL (OUTLEVEL) =',T56,'STANDARD')$/;"	l	subroutine:GETTIMD	file:
+18	units.f	/^   18 CONTINUE$/;"	l	subroutine:MAKESI	file:
+19	idata.df	/^   19    FORMAT(' RATIO OF HOR to VERT PERMEABILITY',T48,F12.3)$/;"	l	subroutine:GETROCK	file:
+19	idata.df	/^   19 FORMAT(' USER OUTPUT LEVEL (OUTLEVEL)',T56,'MAXIMUM')$/;"	l	subroutine:GETSCAL	file:
+19	read1.df	/^   19    DO 14 J=1,4$/;"	l	subroutine:READER	file:
+19	tdata.df	/^   19    FORMAT(' USER OUTPUT LEVEL (OUTLEVEL) =',T56,'MAXIMUM')$/;"	l	subroutine:GETTIMD	file:
+19	units.f	/^   19 CONTINUE$/;"	l	subroutine:MAKESI	file:
+2	idata.df	/^    2 CONTINUE$/;"	l	subroutine:GETROCK	file:
+2	idata.df	/^    2 CONTINUE$/;"	l	subroutine:SETGEOM	file:
+2	idata.df	/^    2 FORMAT(\/' SIMULATION MODEL',T56,'BLACK OIL IMPLICIT')$/;"	l	subroutine:GETSCAL	file:
+2	idata.df	/^    2 NEMOD(I)=0$/;"	l	subroutine:GETIDAT	file:
+2	idata.df	/^    2 PRCMAP(NFRE-1+I)=-1$/;"	l	subroutine:MAKEMAP	file:
+2	read1.df	/^    2    FORMAT(1X,79A1)$/;"	l	subroutine:PUTERR	file:
+2	read1.df	/^    2    L2=J$/;"	l	subroutine:UNDEF	file:
+2	read1.df	/^    2 CONTINUE$/;"	l	subroutine:GETBLK	file:
+2	read1.df	/^    2 FORMAT(80A1)$/;"	l	subroutine:TBLKOUT	file:
+2	read1.df	/^    2 J=L$/;"	l	subroutine:GRDAIN	file:
+2	read1.df	/^    2 LAST=0$/;"	l	subroutine:READER	file:
+2	read1.df	/^    2 NUMRGA=0$/;"	l	subroutine:GETGRDA	file:
+2	read1.df	/^    2 SGN=.FALSE.$/;"	l	subroutine:GETNUM	file:
+2	read2.df	/^    2 L1=1$/;"	l	subroutine:GETVAL	file:
+2	tdata.df	/^    2    FORMAT(' STOCK TANK WATER DENSITY (STDENW)',T48,F12.3,1X,A20)$/;"	l	subroutine:SETEXU	file:
+2	tdata.df	/^    2    FORMAT(\/' ERROR #',I4,' - ',A50\/' CONVERTING FROM ',A20,$/;"	l	subroutine:EXTUIN	file:
+2	tdata.df	/^    2 FORMAT(' TARGET TIME STEP SIZE (DELTIM) =',T45,F12.3,1X,A20)$/;"	l	subroutine:GETTIMD	file:
+2	units.f	/^    2 CONTINUE$/;"	l	subroutine:INSTR	file:
+2	units.f	/^    2 NO=0$/;"	l	subroutine:CONVRT	file:
+2	units.f	/^    2 UTL1(J)=UIN(I)$/;"	l	subroutine:MAKESI	file:
+20	idata.df	/^   20    FORMAT(' DETAILED SPLINE OUTPUT (SPLINEOUT)',T56,'YES')$/;"	l	subroutine:GETSCAL	file:
+20	idata.df	/^   20    FORMAT(\/' X PERMEABILITY COPIED TO Y PERMEABILITY FOR',$/;"	l	subroutine:GETROCK	file:
+20	read1.df	/^   20 IF (NFIL.EQ.INCFIL) THEN$/;"	l	subroutine:READER	file:
+20	read2.df	/^   20 NUMRET=NUMRET+1$/;"	l	subroutine:GETVAL	file:
+20	units.f	/^   20    KODRET=135$/;"	l	subroutine:MAKESI	file:
+2000	idata.df	/^ 2000      FORMAT(' PAYZONE',I2,',COMPOSITIONAL')$/;"	l	subroutine:SETGEOMNEW	file:
+201	idata.df	/^ 201  CONTINUE$/;"	l	subroutine:SETGEOMNEW	file:
+21	idata.df	/^   21    FORMAT(' DETAILED SPLINE OUTPUT (SPLINEOUT)',T56,'NO')$/;"	l	subroutine:GETSCAL	file:
+21	idata.df	/^   21    FORMAT(\/' Y PERMEABILITY COPIED TO Z PERMEABILITY FOR',$/;"	l	subroutine:GETROCK	file:
+21	read1.df	/^   21 READ (NFIL,4,END=13) C$/;"	l	subroutine:READER	file:
+21	read2.df	/^   21 IF (NUMREP.EQ.0) LFILL=L$/;"	l	subroutine:GETVAL	file:
+213	idata.df	/^ 213      CONTINUE$/;"	l	subroutine:GETSCAL	file:
+22	idata.df	/^   22    FORMAT(' DETAILED GEOMETRY OUTPUT (GEOMOUT)',T56,'YES')$/;"	l	subroutine:GETSCAL	file:
+22	read1.df	/^   22 CONTINUE$/;"	l	subroutine:READER	file:
+22	read2.df	/^   22 IF (LFILL.EQ.0) THEN$/;"	l	subroutine:GETVAL	file:
+23	idata.df	/^   23    FORMAT(' DETAILED GEOMETRY OUTPUT (GEOMOUT)',T56,'NO')$/;"	l	subroutine:GETSCAL	file:
+23	read1.df	/^   23 IF (LAST+K.GE.MAXCHR) GO TO 25$/;"	l	subroutine:READER	file:
+23	read2.df	/^   23 IF (NUMREP.GT.0) THEN$/;"	l	subroutine:GETVAL	file:
+24	idata.df	/^   24    FORMAT(\/' Y PERMEABILITY COPIED TO X PERMEABILITY FOR',$/;"	l	subroutine:GETROCK	file:
+24	idata.df	/^   24 ACTTIM(I)=99.D15$/;"	l	subroutine:GETSCAL	file:
+24	read1.df	/^   24 LAST=LAST+1$/;"	l	subroutine:READER	file:
+24	read2.df	/^   24 IF (NUMREP.EQ.0) LFILL=L$/;"	l	subroutine:GETVAL	file:
+25	idata.df	/^   25 FORMAT(' NUMBER OF PROCESSORS',T50,I7)$/;"	l	subroutine:GETSCAL	file:
+25	idata.df	/^   25 KSAP(N,L)=1+(K2AP(N,L)-K1AP(N,L))\/6$/;"	l	subroutine:SETGEOM	file:
+25	idata.df	/^   25 KSAP(N,L)=1+(K2AP(N,L)-K1AP(N,L))\/6$/;"	l	subroutine:SETGEOMNEW	file:
+25	read1.df	/^   25 E='BLOCK DATA INPUT NOT TERMINATED'$/;"	l	subroutine:READER	file:
+26	idata.df	/^   26    FORMAT(' SINGLE PROCESSOR DEBUG OUTPUT (DEBUGS)',T56,'YES')$/;"	l	subroutine:GETSCAL	file:
+26	read2.df	/^   26 IF (NUMREP.GT.4) THEN$/;"	l	subroutine:GETVAL	file:
+26	tdata.df	/^   26       FORMAT(' SINGLE PROCESSOR DEBUG (DEBUGS) =',T56,'YES')$/;"	l	subroutine:GETTIMD	file:
+27	idata.df	/^   27    FORMAT(' MULTI-PROCESSOR DEBUG OUTPUT (DEBUGM)',T56,'YES')$/;"	l	subroutine:GETSCAL	file:
+27	read2.df	/^   27 IF (SKIPIT) GO TO 20$/;"	l	subroutine:GETVAL	file:
+27	tdata.df	/^   27       FORMAT(' SINGLE PROCESSOR DEBUG (DEBUGS) =',T56,'NO')$/;"	l	subroutine:GETTIMD	file:
+28	idata.df	/^   28       FORMAT(5X,'NORMALIZED GRAVITY VECTOR (DOWN)',5X,3F9.6)$/;"	l	subroutine:GETGAPI	file:
+28	read2.df	/^   28 IF (SKIPIT) GO TO 20$/;"	l	subroutine:GETVAL	file:
+28	tdata.df	/^   28       FORMAT(' MULTI-PROCESSOR DEBUG (DEBUGM) =',T56,'YES')$/;"	l	subroutine:GETTIMD	file:
+29	idata.df	/^   29    FORMAT(' SQUARE PROCESSOR ASSIGNMENT (METHOD)')$/;"	l	subroutine:GETSCAL	file:
+29	read2.df	/^   29    CONTINUE$/;"	l	subroutine:GETVAL	file:
+29	tdata.df	/^   29       FORMAT(' MULTI-PROCESSOR DEBUG (DEBUGM) =',T56,'NO')$/;"	l	subroutine:GETTIMD	file:
+3	idata.df	/^    3    CONTINUE$/;"	l	subroutine:GETGAPI	file:
+3	idata.df	/^    3    CONTINUE$/;"	l	subroutine:MAKEMAP	file:
+3	idata.df	/^    3    FORMAT (\/' ERROR 501; NO GRID BLOCKS DEFINED')$/;"	l	subroutine:SETGEOM	file:
+3	idata.df	/^    3    FORMAT (\/' ERROR 501; NO GRID BLOCKS DEFINED')$/;"	l	subroutine:SETGEOMNEW	file:
+3	idata.df	/^    3 D(I)=NEMOD(I)$/;"	l	subroutine:GETIDAT	file:
+3	idata.df	/^    3 FORMAT(\/' SIMULATION MODEL',T56,'COMPOSITIONAL')$/;"	l	subroutine:GETSCAL	file:
+3	idata.df	/^    3 LENTA(I)=0$/;"	l	subroutine:GETROCK	file:
+3	read1.df	/^    3       LIN(I)=BLK$/;"	l	subroutine:PUTERR	file:
+3	read1.df	/^    3    CONTINUE$/;"	l	subroutine:GRDAIN	file:
+3	read1.df	/^    3    J2=L2$/;"	l	subroutine:UNDEF	file:
+3	read1.df	/^    3 IF (A(J).EQ.POINT) THEN$/;"	l	subroutine:GETNUM	file:
+3	read1.df	/^    3 LAST=LAST+1$/;"	l	subroutine:READER	file:
+3	read2.df	/^    3 CONTINUE$/;"	l	subroutine:GETVAL	file:
+3	tdata.df	/^    3    FORMAT(' STOCK TANK GAS DENSITY (STDENG)',T48,F12.5,1X,A20)$/;"	l	subroutine:SETEXU	file:
+3	tdata.df	/^    3 FORMAT(' TIME STEP MULTIPLIER (DTIMMUL) =',T45,F12.3)$/;"	l	subroutine:GETTIMD	file:
+3	units.f	/^    3 NO=I$/;"	l	subroutine:CONVRT	file:
+3	units.f	/^    3 NS=NS+J$/;"	l	subroutine:MAKESI	file:
+30	idata.df	/^   30       FORMAT(\/' ERROR 507; NX =',I6,' FOR FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOM	file:
+30	idata.df	/^   30       FORMAT(\/' ERROR 507; NX =',I6,' FOR FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOMNEW	file:
+30	idata.df	/^   30    FORMAT(' K-STRIP PROCESSOR ASSIGNMENT (METHOD)')$/;"	l	subroutine:GETSCAL	file:
+30	read1.df	/^   30 K=K+1$/;"	l	subroutine:READER	file:
+30	read2.df	/^   30    E='RIGHT PARENTHESES FOR REPEAT FACTOR NOT FOUND'$/;"	l	subroutine:GETVAL	file:
+30	tdata.df	/^   30 FORMAT(' RESTART OUTPUT FORMATTED (FORMAT) =',T46,L8)$/;"	l	subroutine:GETTIMD	file:
+300	idata.df	/^  300       FORMAT(\/' ERROR 507; NX =',I6,' FOR FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOMNEW	file:
+31	idata.df	/^   31       FORMAT(\/' ERROR 507; NY =',I6,' FOR FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOM	file:
+31	idata.df	/^   31       FORMAT(\/' ERROR 507; NY =',I6,' FOR FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOMNEW	file:
+31	idata.df	/^   31    FORMAT (' ERROR 508; ERROR READING PERM_HTOV_RATIO')$/;"	l	subroutine:GETROCK	file:
+31	idata.df	/^   31    FORMAT(' J-STRIP PROCESSOR ASSIGNMENT (METHOD)')$/;"	l	subroutine:GETSCAL	file:
+31	read1.df	/^   31 K=I$/;"	l	subroutine:READER	file:
+31	read2.df	/^   31    CONTINUE$/;"	l	subroutine:GETVAL	file:
+310	idata.df	/^  310       FORMAT(\/' ERROR 507; NY =',I6,' FOR FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOMNEW	file:
+32	idata.df	/^   32       FORMAT(\/' ERROR 507; NZ =',I6,' FOR FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOM	file:
+32	idata.df	/^   32       FORMAT(\/' ERROR 507; NZ =',I6,' FOR FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOMNEW	file:
+32	idata.df	/^   32    FORMAT(\/' Y-PERMEABILITY SCALED ON X-PERMEABILITY FOR',$/;"	l	subroutine:GETROCK	file:
+32	idata.df	/^   32 MNAMS(I)=BNAMS$/;"	l	subroutine:GETSCAL	file:
+32	read1.df	/^   32 CONTINUE$/;"	l	subroutine:READER	file:
+32	read2.df	/^   32    DO 33 I=1,5$/;"	l	subroutine:GETVAL	file:
+320	idata.df	/^  320       FORMAT(\/' ERROR 507; NZ =',I6,' FOR FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOMNEW	file:
+33	idata.df	/^   33 CONTINUE$/;"	l	subroutine:GETSCAL	file:
+33	idata.df	/^   33 FORMAT ('FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOM	file:
+33	idata.df	/^   33 FORMAT ('FAULT BLOCK',I4)$/;"	l	subroutine:SETGEOMNEW	file:
+33	read1.df	/^   33 E='INVALID INCLUDE FILE'$/;"	l	subroutine:READER	file:
+33	read2.df	/^   33    CONTINUE$/;"	l	subroutine:GETVAL	file:
+34	idata.df	/^   34    FORMAT(\/' X-PERMEABILITY SCALED ON Y-PERMEABILITY FOR',$/;"	l	subroutine:GETROCK	file:
+34	idata.df	/^   34 MODBLK(I)=N$/;"	l	subroutine:GETSCAL	file:
+34	read1.df	/^   34 E=' '$/;"	l	subroutine:READER	file:
+34	read2.df	/^   34 E='DATA SYNTAX ERROR'$/;"	l	subroutine:GETVAL	file:
+35	idata.df	/^   35 MODELON(I)=.FALSE.$/;"	l	subroutine:GETSCAL	file:
+35	idata.df	/^   35 MODELON(M)=.FALSE.$/;"	l	subroutine:SETGEOM	file:
+35	idata.df	/^   35 MODELON(M)=.FALSE.$/;"	l	subroutine:SETGEOMNEW	file:
+35	read1.df	/^   35 K=K+1$/;"	l	subroutine:READER	file:
+35	read2.df	/^   35 CONTINUE$/;"	l	subroutine:GETVAL	file:
+36	idata.df	/^   36 CONTINUE$/;"	l	subroutine:SETGEOM	file:
+36	idata.df	/^   36 CONTINUE$/;"	l	subroutine:SETGEOMNEW	file:
+36	idata.df	/^   36 FORMAT(' BLOCK',I4,' SIMULATION MODEL',T53,A26)$/;"	l	subroutine:GETSCAL	file:
+36	read1.df	/^   36 OPEN (INCFIL,FILE=E,STATUS='OLD',ERR=33)$/;"	l	subroutine:READER	file:
+36	read2.df	/^   36 FORMAT(' ERROR 121, PROGRAM ERROR: TYPE ',A2,' FOR VARIABLE ',$/;"	l	subroutine:GETVAL	file:
+37	idata.df	/^   37 CONTINUE$/;"	l	subroutine:GETSCAL	file:
+38	idata.df	/^   38    FORMAT(' DETAILED TIMER OUTPUT (ALLTIMES)',T56,'YES')$/;"	l	subroutine:GETSCAL	file:
+38	read2.df	/^   38 IF (A(L).EQ.BLANK.OR.A(L).EQ.COMMA.OR.A(L).EQ.RIGHT) THEN$/;"	l	subroutine:GETVAL	file:
+39	idata.df	/^   39    FORMAT(' DETAILED TIMER OUTPUT (ALLTIMES)',T56,'NO')$/;"	l	subroutine:GETSCAL	file:
+4	idata.df	/^    4    FORMAT(\/1X,A$MXBNAM)$/;"	l	subroutine:GETGAPI	file:
+4	idata.df	/^    4    IF (K.LE.NZ) THEN$/;"	l	subroutine:MAKEMAP	file:
+4	idata.df	/^    4    NEMOD(I)=D(I)+.1D0$/;"	l	subroutine:GETIDAT	file:
+4	idata.df	/^    4 CONTINUE$/;"	l	subroutine:GETROCK	file:
+4	idata.df	/^    4 FORMAT(\/' SIMULATION MODEL',T56,'CHEMICAL FLOOD')$/;"	l	subroutine:GETSCAL	file:
+4	read1.df	/^    4    FORMAT(\/' ERROR # 116, UNDEFINED VARIABLE OR SYNTAX ERROR'\/$/;"	l	subroutine:UNDEF	file:
+4	read1.df	/^    4 CALL BLKDIM(NBLKA,IDIMG,JDIMG,KDIMG,NERR)$/;"	l	subroutine:GRDAIN	file:
+4	read1.df	/^    4 CONTINUE$/;"	l	subroutine:GETNUM	file:
+4	read1.df	/^    4 FORMAT($MXRECORDA1)$/;"	l	subroutine:READER	file:
+4	read1.df	/^    4 LL=LDAT$/;"	l	subroutine:PUTERR	file:
+4	read2.df	/^    4    CONTINUE$/;"	l	subroutine:GETVAL	file:
+4	tdata.df	/^    4 FORMAT(' MAXIMUM TIME STEP (DTIMMAX) =',T45,F12.3,1X,A20)$/;"	l	subroutine:GETTIMD	file:
+4	units.f	/^    4    ERMS1(I+14)=UTL1(I)$/;"	l	subroutine:MAKESI	file:
+4	units.f	/^    4 IF (NI.NE.NO) GO TO 13$/;"	l	subroutine:CONVRT	file:
+40	idata.df	/^   40 FORMAT(' MAX NEWTONIAN ITERATIONS (MAXNEWT)',T50,I7)$/;"	l	subroutine:GETSCAL	file:
+40	read1.df	/^   40    CONTINUE$/;"	l	subroutine:READER	file:
+40	read2.df	/^   40 NN(3,I)=1$/;"	l	subroutine:GETVAL	file:
+41	idata.df	/^   41 DZREC(I,N)=1.$/;"	l	subroutine:SETGEOM	file:
+41	idata.df	/^   41 DZREC(I,N)=1.$/;"	l	subroutine:SETGEOMNEW	file:
+41	read2.df	/^   41 E='INVALID SUBSCRIPT RANGE'$/;"	l	subroutine:GETVAL	file:
+42	idata.df	/^   42 DXREC(I,N)=1.$/;"	l	subroutine:SETGEOM	file:
+42	idata.df	/^   42 DXREC(I,N)=1.$/;"	l	subroutine:SETGEOMNEW	file:
+42	read2.df	/^ 42      CONTINUE$/;"	l	subroutine:GETVAL	file:
+43	idata.df	/^   43 DYREC(I,N)=1.$/;"	l	subroutine:SETGEOM	file:
+43	idata.df	/^   43 DYREC(I,N)=1.$/;"	l	subroutine:SETGEOMNEW	file:
+44	idata.df	/^   44       CALL PRTVEC4 (TITU,NZ(N),DZREC(1,N))$/;"	l	subroutine:SETGEOM	file:
+44	idata.df	/^   44       CALL PRTVEC4 (TITU,NZ(N),DZREC(1,N))$/;"	l	subroutine:SETGEOMNEW	file:
+45	read2.df	/^   45 IF (A(L).EQ.BLANK.OR.A(L).EQ.COMMA) THEN$/;"	l	subroutine:GETVAL	file:
+47	idata.df	/^   47    FORMAT(' SINGLE PROCESSOR DEBUG OUTPUT (DEBUGS)',T56,'NO')$/;"	l	subroutine:GETSCAL	file:
+49	idata.df	/^   49    FORMAT(' SEISMIC DATA OUTPUT (SEISMIC)',T56,'YES')$/;"	l	subroutine:GETSCAL	file:
+5	idata.df	/^    5          PRCMAP(N0+NY*K+JJ)=-2$/;"	l	subroutine:MAKEMAP	file:
+5	idata.df	/^    5       FORMAT (\/' ERROR 502; NO X LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOMNEW	file:
+5	idata.df	/^    5    FORMAT (\/' ERROR 502; NO X LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOM	file:
+5	idata.df	/^    5    FORMAT(5X,'FIRST, LAST, AND STEP I FOR OUTPUT (IFIRST,ILAST,'$/;"	l	subroutine:GETGAPI	file:
+5	idata.df	/^    5    FORMAT(\/' MODEL    ELEMENTS')$/;"	l	subroutine:GETIDAT	file:
+5	idata.df	/^    5 FORMAT(\/' SIMULATION MODEL',T56,'HYDROLOGY IMPLICIT')$/;"	l	subroutine:GETSCAL	file:
+5	idata.df	/^    5 LENTA(I)=0$/;"	l	subroutine:GETROCK	file:
+5	read1.df	/^    5 CONTINUE$/;"	l	subroutine:READER	file:
+5	read1.df	/^    5 CONTINUE$/;"	l	subroutine:UNDEF	file:
+5	read1.df	/^    5 DO 6 I=1,10$/;"	l	subroutine:GETNUM	file:
+5	read1.df	/^    5 IF (LL.GT.0) THEN$/;"	l	subroutine:PUTERR	file:
+5	read2.df	/^    5 DO 6 I=1,9$/;"	l	subroutine:GETVAL	file:
+5	tdata.df	/^    5 FORMAT(' NEXT SCHEDULED OUTPUT (TIMOUT) =',T45,F12.3,1X,A20)$/;"	l	subroutine:GETTIMD	file:
+5	units.f	/^    5    UTOP(NTOP)=USI1(I)$/;"	l	subroutine:MAKESI	file:
+5	units.f	/^    5 CONTINUE$/;"	l	subroutine:CONVRT	file:
+50	idata.df	/^   50    FORMAT(' SEISMIC DATA OUTPUT (SEISMIC)',T56,'NO')$/;"	l	subroutine:GETSCAL	file:
+50	read2.df	/^   50 IF (I1.EQ.I2.OR.I1.EQ.I3.OR.I1.EQ.I4.OR.I2.EQ.I3.OR.I2.EQ.I4$/;"	l	subroutine:GETVAL	file:
+500	idata.df	/^  500       FORMAT (\/' ERROR 502; NO X LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOMNEW	file:
+51	idata.df	/^   51    FORMAT(' RESTART SIMULATION TIME (RESTART)',T49,F10.2,1X,A20)$/;"	l	subroutine:GETSCAL	file:
+510	tdata.df	/^  510  FORMAT(' TIME BETWEEN SCHEDULED VISUALIZATION OUTPUTS =',$/;"	l	subroutine:GETTIMD	file:
+52	idata.df	/^   52    FORMAT (\/' ERROR 512; MORE PROCESSORS THAN GRID COLUMNS')$/;"	l	subroutine:SETGEOM	file:
+52	idata.df	/^   52    FORMAT (\/' ERROR 512; MORE PROCESSORS THAN GRID COLUMNS')$/;"	l	subroutine:SETGEOMNEW	file:
+55	idata.df	/^   55       FORMAT(\/' COORDINATES OF GRID 1,1,1 CORNER:'\/$/;"	l	subroutine:SETGEOM	file:
+55	idata.df	/^   55       FORMAT(\/' COORDINATES OF GRID 1,1,1 CORNER:'\/$/;"	l	subroutine:SETGEOMNEW	file:
+56	idata.df	/^   56       WRITE (NFOUT,57) N,(XYZ111(M,N),M=1,3)$/;"	l	subroutine:SETGEOM	file:
+56	idata.df	/^   56       WRITE (NFOUT,57) N,(XYZ111(M,N),M=1,3)$/;"	l	subroutine:SETGEOMNEW	file:
+57	idata.df	/^   57       FORMAT(I5,3G15.6)$/;"	l	subroutine:SETGEOM	file:
+57	idata.df	/^   57       FORMAT(I5,3G15.6)$/;"	l	subroutine:SETGEOMNEW	file:
+58	idata.df	/^   58       FORMAT(\/' MAJOR DIMENSIONS:'\/$/;"	l	subroutine:SETGEOM	file:
+58	idata.df	/^   58       FORMAT(\/' MAJOR DIMENSIONS:'\/$/;"	l	subroutine:SETGEOMNEW	file:
+59	idata.df	/^   59       WRITE (NFOUT,63) N,DUB1,DUB2,DUB3$/;"	l	subroutine:SETGEOM	file:
+59	idata.df	/^   59       WRITE (NFOUT,63) N,DUB1,DUB2,DUB3$/;"	l	subroutine:SETGEOMNEW	file:
+59	tdata.df	/^ 59   FORMAT(' NEXT SCHEDULED VISUALIZATION OUTPUT =',T45,F12.3,1X,A20)$/;"	l	subroutine:GETTIMD	file:
+6	idata.df	/^    6       FORMAT (\/' ERROR 502; NO Y LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOMNEW	file:
+6	idata.df	/^    6       PRCMAP(N0+NY*KK+JJ)=-2$/;"	l	subroutine:MAKEMAP	file:
+6	idata.df	/^    6    CONTINUE$/;"	l	subroutine:GETIDAT	file:
+6	idata.df	/^    6    FORMAT (\/' ERROR 502; NO Y LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOM	file:
+6	idata.df	/^    6    FORMAT(5X,'FIRST, LAST, AND STEP J FOR OUTPUT (JFIRST,JLAST,'$/;"	l	subroutine:GETGAPI	file:
+6	idata.df	/^    6 CONTINUE$/;"	l	subroutine:GETROCK	file:
+6	idata.df	/^    6 FORMAT(\/' SIMULATION MODEL',T56,'HYDROLOGY IMPES')$/;"	l	subroutine:GETSCAL	file:
+6	read1.df	/^    6    FORMAT(\/' ERROR #',I4,' ON PROCESSOR',I4\/1X,A50)$/;"	l	subroutine:PUTERR	file:
+6	read1.df	/^    6 CONTINUE$/;"	l	subroutine:GETNUM	file:
+6	read1.df	/^    6 LQ=.FALSE.$/;"	l	subroutine:READER	file:
+6	read2.df	/^    6 CONTINUE$/;"	l	subroutine:GETVAL	file:
+6	tdata.df	/^    6 FORMAT(' TIME BETWEEN OUTPUTS (DTIMOUT) =',T45,F12.3,1X,A20)$/;"	l	subroutine:GETTIMD	file:
+6	units.f	/^    6    DO 7 I=J,MXU2$/;"	l	subroutine:MAKESI	file:
+6	units.f	/^    6 CONTINUE$/;"	l	subroutine:CONVRT	file:
+60	idata.df	/^   60       DUB1=DUB1+DXREC(I,N)$/;"	l	subroutine:SETGEOM	file:
+60	idata.df	/^   60       DUB1=DUB1+DXREC(I,N)$/;"	l	subroutine:SETGEOMNEW	file:
+600	idata.df	/^  600       FORMAT (\/' ERROR 502; NO Y LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOMNEW	file:
+61	idata.df	/^   61       DUB2=DUB2+DYREC(I,N)$/;"	l	subroutine:SETGEOM	file:
+61	idata.df	/^   61       DUB2=DUB2+DYREC(I,N)$/;"	l	subroutine:SETGEOMNEW	file:
+62	idata.df	/^   62       DUB3=DUB3+DZREC(I,N)$/;"	l	subroutine:SETGEOM	file:
+62	idata.df	/^   62       DUB3=DUB3+DZREC(I,N)$/;"	l	subroutine:SETGEOMNEW	file:
+63	idata.df	/^   63       FORMAT(I5,3G15.6)$/;"	l	subroutine:SETGEOM	file:
+63	idata.df	/^   63       FORMAT(I5,3G15.6)$/;"	l	subroutine:SETGEOMNEW	file:
+7	idata.df	/^    7       FORMAT (\/' ERROR 502; NO Z LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOMNEW	file:
+7	idata.df	/^    7    FORMAT (\/' ERROR 502; NO Z LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOM	file:
+7	idata.df	/^    7    FORMAT(5X,'FIRST, LAST, AND STEP K FOR OUTPUT (KFIRST,KLAST,'$/;"	l	subroutine:GETGAPI	file:
+7	idata.df	/^    7    FORMAT(I4,4X,I8)$/;"	l	subroutine:GETIDAT	file:
+7	idata.df	/^    7 FORMAT(\/' SIMULATION MODEL',T56,'MULTI MODEL')$/;"	l	subroutine:GETSCAL	file:
+7	idata.df	/^    7 LENTA(I)=0$/;"	l	subroutine:GETROCK	file:
+7	read1.df	/^    7 IF (ISUNTD.AND.NOTINDX) THEN$/;"	l	subroutine:GETNUM	file:
+7	read1.df	/^    7 IF (LQ) THEN$/;"	l	subroutine:READER	file:
+7	read2.df	/^    7 DO 40 I=1,4$/;"	l	subroutine:GETVAL	file:
+7	tdata.df	/^    7 FORMAT(' NEXT RESTART OUTPUT (TIMRES) =',T45,F12.3,1X,A20)$/;"	l	subroutine:GETTIMD	file:
+7	units.f	/^    7    UBOT(NBOT)=USI1(I)$/;"	l	subroutine:MAKESI	file:
+7	units.f	/^    7 NI=I$/;"	l	subroutine:CONVRT	file:
+700	idata.df	/^  700       FORMAT (\/' ERROR 502; NO Z LOCATIONS DEFINED')$/;"	l	subroutine:SETGEOMNEW	file:
+77	idata.df	/^   77 FORMAT(\/' Input file ERROR for ',A)$/;"	l	subroutine:GETGAPI	file:
+77	idata.df	/^   77 FORMAT(\/' Input file ERROR for ',A)$/;"	l	subroutine:GETSCAL	file:
+77	idata.df	/^   77 FORMAT(\/' Input file ERROR for ',A)$/;"	l	subroutine:MAKEMAP	file:
+77	idata.df	/^   77 FORMAT(\/' Input file ERROR for ',A)$/;"	l	subroutine:SETGEOM	file:
+77	idata.df	/^   77 FORMAT(\/' Input file ERROR for ',A)$/;"	l	subroutine:SETGEOMNEW	file:
+78	idata.df	/^   78    FORMAT(\/' Error in ',A)$/;"	l	subroutine:SETGEOM	file:
+78	idata.df	/^   78 FORMAT(\/' Error in ',A)$/;"	l	subroutine:GETSCAL	file:
+8	idata.df	/^    8       FORMAT(5X,'NX =',I6,5X,'NY =',I6,5X,'NZ =',I6)$/;"	l	subroutine:GETGAPI	file:
+8	idata.df	/^    8    FORMAT (\/' ERROR 506; INPUT OF KEYOUT ARRAY FAILED')$/;"	l	subroutine:SETGEOM	file:
+8	idata.df	/^    8 CONTINUE$/;"	l	subroutine:GETIDAT	file:
+8	idata.df	/^    8 CONTINUE$/;"	l	subroutine:GETROCK	file:
+8	read1.df	/^    8    A(LAST+J)=BLOCK(J)$/;"	l	subroutine:READER	file:
+8	read1.df	/^    8    CONTINUE$/;"	l	subroutine:GETNUM	file:
+8	tdata.df	/^    8 FORMAT(' TIME BETWEEN RESTART OUTPUTS (DTIMRES) =',T45,F12.3,$/;"	l	subroutine:GETTIMD	file:
+8	units.f	/^    8    UBOT(NBOT)=USI1(I)$/;"	l	subroutine:MAKESI	file:
+8	units.f	/^    8 NO=0$/;"	l	subroutine:CONVRT	file:
+800	idata.df	/^  800    FORMAT (\/' ERROR 506; INPUT OF KEYOUT ARRAY FAILED')$/;"	l	subroutine:SETGEOMNEW	file:
+9	idata.df	/^    9    FORMAT (\/' ERROR 501; MODEL NOT SPECIFIED FOR ALL BLOCKS')$/;"	l	subroutine:SETGEOM	file:
+9	idata.df	/^    9    FORMAT (\/' ERROR 501; MODEL NOT SPECIFIED FOR ALL BLOCKS')$/;"	l	subroutine:SETGEOMNEW	file:
+9	idata.df	/^    9 CONTINUE$/;"	l	subroutine:GETGAPI	file:
+9	idata.df	/^    9 CONTINUE$/;"	l	subroutine:GETIDAT	file:
+9	idata.df	/^    9 FORMAT(\/' SIMULATION MODEL',T56,'SINGLE PHASE_EXPLICIT')$/;"	l	subroutine:GETSCAL	file:
+9	idata.df	/^    9 LENTA(I)=0$/;"	l	subroutine:GETROCK	file:
+9	read1.df	/^    9    CALL CONVRT(A(J),UNTSTD,FACMU,FACAU,KODRET,E)$/;"	l	subroutine:GETNUM	file:
+9	read1.df	/^    9 LAST=LAST+1$/;"	l	subroutine:READER	file:
+9	tdata.df	/^    9    FORMAT(' MINIMUM TIME STEP (DTIMMIN) =',T45,F12.3,1X,A20)$/;"	l	subroutine:GETTIMD	file:
+9	units.f	/^    9    DO 10 I=J,MXU2$/;"	l	subroutine:MAKESI	file:
+9	units.f	/^    9 NO=I$/;"	l	subroutine:CONVRT	file:
+90	read2.df	/^   90 IF (L-LV1.GT.65) THEN$/;"	l	subroutine:GETVAL	file:
+91	idata.df	/^   91    XREC(I+1,N)=XREC(I,N)+DXREC(I,N)$/;"	l	subroutine:SETGEOM	file:
+91	idata.df	/^   91    XREC(I+1,N)=XREC(I,N)+DXREC(I,N)$/;"	l	subroutine:SETGEOMNEW	file:
+91	read2.df	/^   91 M=M+1$/;"	l	subroutine:GETVAL	file:
+92	idata.df	/^   92    YREC(J+1,N)=YREC(J,N)+DYREC(J,N)$/;"	l	subroutine:SETGEOM	file:
+92	idata.df	/^   92    YREC(J+1,N)=YREC(J,N)+DYREC(J,N)$/;"	l	subroutine:SETGEOMNEW	file:
+92	read2.df	/^   92 CALL PUTERR(NER,E,A(NS),M,L-NS+1)$/;"	l	subroutine:GETVAL	file:
+93	idata.df	/^   93    ZREC(K+1,N)=ZREC(K,N)+DZREC(K,N)$/;"	l	subroutine:SETGEOM	file:
+93	idata.df	/^   93    ZREC(K+1,N)=ZREC(K,N)+DZREC(K,N)$/;"	l	subroutine:SETGEOMNEW	file:
+95	read2.df	/^   95 LQ=.TRUE.$/;"	l	subroutine:GETVAL	file:
+96	read2.df	/^   96 CONTINUE$/;"	l	subroutine:GETVAL	file:
+97	read2.df	/^   97 LQ=.TRUE.$/;"	l	subroutine:GETVAL	file:
+98	read2.df	/^   98 NERR=NERR+1$/;"	l	subroutine:GETVAL	file:
+A	scrat1.df	/^      CHAR/;"	v	module:scrat1mod
+A	scrat1.dh	/^      CHAR/;"	v
+AREL	rock.dh	/^     &       RPLMDAW,RPLMDANW,RPLMDAIM,REFPERM,REFPORO,KRW0,$/;"	v
+BB	scrat2.dh	/^      REAL*8    W,BB,/;"	v
+BBB	scrat2.dh	/^      REAL*8    W,BB,BBB,/;"	v
+BCF	scrat2.dh	/^      REAL*8    W,BB,BBB,BCF,/;"	v
+BIG	blkary.dh	48;"	c
+BLKARY	blkary.dh	15;"	c
+BLKARY2	blkary.dh	39;"	c
+BUF	binary_converter.f90	/^      DOUBLE PRECISION, ALLOCATABLE :: BUF(/;"	v	program:binary_converter
+CONVRT	units.f	/^      SUBROUTINE CONVRT /;"	s
+CREATE	idata.df	/^      SUBROUTINE CREATE /;"	s
+CVACOMP	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP,$/;"	v
+CVACONC	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP$/;"	v
+CVACONC	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP,$/;"	v
+CVADENS	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP$/;"	v
+CVADENS	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP,$/;"	v
+CVADIST	unitsex.h	/^     & CVAMASS,CVADIST,CVAVOLL,CVATIME,CVATEMP,CVAPRES,CVAPERM,$/;"	v
+CVAMASS	unitsex.h	/^     & CVAMASS,CVADIST,CVAVOLL,CVATIME,CVATEMP,CVAPRES,CVAPERM,$/;"	v
+CVAPERM	unitsex.h	/^     & CVAMASS,CVADIST,CVAVOLL,CVATIME,CVATEMP,CVAPRES,CVAPERM,$/;"	v
+CVAPRES	unitsex.h	/^     & CVAMASS,CVADIST,CVAVOLL,CVATIME,CVATEMP,CVAPRES,CVAPERM,$/;"	v
+CVATEMP	unitsex.h	/^     & CVAMASS,CVADIST,CVAVOLL,CVATIME,CVATEMP,CVAPRES,CVAPERM,$/;"	v
+CVATIME	unitsex.h	/^     & CVAMASS,CVADIST,CVAVOLL,CVATIME,CVATEMP,CVAPRES,CVAPERM,$/;"	v
+CVAVISC	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP$/;"	v
+CVAVISC	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP,$/;"	v
+CVAVOLL	unitsex.h	/^     & CVAMASS,CVADIST,CVAVOLL,CVATIME,CVATEMP,CVAPRES,CVAPERM,$/;"	v
+CVAWELG	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP$/;"	v
+CVAWELG	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP,$/;"	v
+CVAWELL	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP$/;"	v
+CVAWELL	unitsex.h	/^     & CVAWELL,CVAWELG,CVAVISC,CVADENS,CVACONC,CVACOMP,$/;"	v
+CVMCOMP	unitsex.h	/^     & CVMWELL,CVMWELG,CVMVISC,CVMDENS,CVMCONC,CVMCOMP,$/;"	v
+CVMCONC	unitsex.h	/^     & CVMWELL,CVMWELG,CVMVISC,CVMDENS,CVMCONC,CVMCOMP,$/;"	v
+CVMDENS	unitsex.h	/^     & CVMWELL,CVMWELG,CVMVISC,CVMDENS,CVMCONC,CVMCOMP,$/;"	v
+CVMDIST	unitsex.h	/^     $ CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMDIST	unitsex.h	/^     & CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMMASS	unitsex.h	/^     $ CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMMASS	unitsex.h	/^     & CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMPERM	unitsex.h	/^     $ CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMPERM	unitsex.h	/^     & CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMPRES	unitsex.h	/^     $ CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMPRES	unitsex.h	/^     & CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMTEMP	unitsex.h	/^     $ CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMTEMP	unitsex.h	/^     & CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMTIME	unitsex.h	/^     $ CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMTIME	unitsex.h	/^     & CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMVISC	unitsex.h	/^     & CVMWELL,CVMWELG,CVMVISC,CVMDENS,CVMCONC,CVMCOMP,$/;"	v
+CVMVOLL	unitsex.h	/^     $ CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMVOLL	unitsex.h	/^     & CVMMASS,CVMDIST,CVMVOLL,CVMTIME,CVMTEMP,CVMPRES,CVMPERM,$/;"	v
+CVMWELG	unitsex.h	/^     & CVMWELL,CVMWELG,CVMVISC,CVMDENS,CVMCONC,CVMCOMP,$/;"	v
+CVMWELL	unitsex.h	/^     & CVMWELL,CVMWELG,CVMVISC,CVMDENS,CVMCONC,CVMCOMP,$/;"	v
+DATS	scrat2.dh	/^      REAL*8    W,BB,BBB,BCF,DATS,/;"	v
+DEFAULT	read1.df	/^      SUBROUTINE DEFAULT /;"	s
+EGHIGH	rock.dh	/^     &       EGLOW,EGHIGH,/;"	v
+EGLOW	rock.dh	/^     &       SGLOW,SGHIGH,SWLOW,SWHIGH,KGLOW,KGHIGH,KWLOW,KWHIGH,$/;"	v
+ENTRYP	rock.dh	/^      REAL*8 SATWC,SATOC,SWRES,SORES,SGRES,KRNW0,RPLMDA,ENTRYP,/;"	v
+EPC	rock.dh	/^     &       EGLOW,EGHIGH,EWLOW,EWHIGH,TWL,TGL,TAUG,TAUW,$/;"	v
+EWHIGH	rock.dh	/^     &       EGLOW,EGHIGH,EWLOW,EWHIGH,/;"	v
+EWLOW	rock.dh	/^     &       EGLOW,EGHIGH,EWLOW,/;"	v
+EXTCOMP	unitsex.h	/^     & EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,INTTIME,$/;"	v
+EXTCOMP	unitsex.h	/^     & EXTVISC,EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,$/;"	v
+EXTCONC	unitsex.h	/^     & EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,INTTIME,$/;"	v
+EXTCONC	unitsex.h	/^     & EXTVISC,EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,$/;"	v
+EXTDENS	unitsex.h	/^     & EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,INTTIME,$/;"	v
+EXTDENS	unitsex.h	/^     & EXTVISC,EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,$/;"	v
+EXTDIST	unitsex.h	/^      CHARACTER*20 EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,$/;"	v
+EXTDIST	unitsex.h	/^     & EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,EXTPERM,$/;"	v
+EXTMASS	unitsex.h	/^      CHARACTER*20 EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,$/;"	v
+EXTMASS	unitsex.h	/^     & EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,EXTPERM,$/;"	v
+EXTPERM	unitsex.h	/^     & EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,EXTPERM,$/;"	v
+EXTPERM	unitsex.h	/^     & EXTPERM,EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,$/;"	v
+EXTPRES	unitsex.h	/^      CHARACTER*20 EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,$/;"	v
+EXTPRES	unitsex.h	/^     & EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,EXTPERM,$/;"	v
+EXTTEMP	unitsex.h	/^      CHARACTER*20 EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,$/;"	v
+EXTTEMP	unitsex.h	/^     & EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,EXTPERM,$/;"	v
+EXTTIME	unitsex.h	/^      CHARACTER*20 EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,$/;"	v
+EXTTIME	unitsex.h	/^     & EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,EXTPERM,$/;"	v
+EXTUIN	tdata.df	/^      SUBROUTINE EXTUIN /;"	s
+EXTVISC	unitsex.h	/^     & EXTVISC,EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,$/;"	v
+EXTVISC	unitsex.h	/^     & EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,EXTVISC,$/;"	v
+EXTVOLL	unitsex.h	/^      CHARACTER*20 EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,$/;"	v
+EXTVOLL	unitsex.h	/^     & EXTMASS,EXTDIST,EXTVOLL,EXTTIME,EXTTEMP,EXTPRES,EXTPERM,$/;"	v
+EXTWELG	unitsex.h	/^     & EXTPERM,EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,$/;"	v
+EXTWELG	unitsex.h	/^     & EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,EXTVISC,$/;"	v
+EXTWELG	unitsex.h	/^C         appear in EXTWELG, otherwise SCFEXT is set to FALSE.  Note that if$/;"	v
+EXTWELGC	unitsex.h	/^     & EXTPERM,EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,$/;"	v
+EXTWELGC	unitsex.h	/^     & EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,EXTVISC,$/;"	v
+EXTWELL	unitsex.h	/^     & EXTPERM,EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,$/;"	v
+EXTWELL	unitsex.h	/^     & EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,EXTVISC,$/;"	v
+EXTWELLC	unitsex.h	/^     & EXTPERM,EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,$/;"	v
+EXTWELLC	unitsex.h	/^     & EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,EXTVISC,$/;"	v
+EXTWELX	unitsex.h	/^     & EXTPERM,EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,$/;"	v
+EXTWELX	unitsex.h	/^     & EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,EXTVISC,$/;"	v
+EXTWELXC	unitsex.h	/^     & EXTPERM,EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,$/;"	v
+EXTWELXC	unitsex.h	/^     & EXTWELL,EXTWELLC,EXTWELG,EXTWELGC,EXTWELX,EXTWELXC,EXTVISC,$/;"	v
+External	unitsex.h	/^C Value External = (Value Internal) * CVMxxxx + CVAxxxx$/;"	v
+FACAU	readdat.dh	/^      REAL*8 FACMU,FACAU$/;"	v
+FACAU	scrat2.dh	/^      REAL*8    W,BB,BBB,BCF,DATS,SCOF,SCONS,SNOD,FACMU,FACAU$/;"	v
+FACMU	readdat.dh	/^      REAL*8 FACMU,/;"	v
+FACMU	scrat2.dh	/^      REAL*8    W,BB,BBB,BCF,DATS,SCOF,SCONS,SNOD,FACMU,/;"	v
+FLAGBLK	blkary.dh	/^      LOGICAL FLAGBLK(/;"	v
+FLOW_COMM	blkary.dh	/^     &        NEW_COMM,NEW_RANK,FLOW_COMM(/;"	v
+FNDUNT	units.f	/^      SUBROUTINE FNDUNT /;"	s
+FRACP	rock.dh	/^     &       ,FRACP,/;"	v
+FRACPERM	rock.dh	/^     &       ,FRACP,FRACPERM,/;"	v
+FRACPORO	rock.dh	/^     &       ,FRACP,FRACPERM,FRACPORO$/;"	v
+GETBLK	read1.df	/^      SUBROUTINE GETBLK /;"	s
+GETGAPI	idata.df	/^      SUBROUTINE GETGAPI /;"	s
+GETGRDA	read1.df	/^      SUBROUTINE GETGRDA /;"	s
+GETIDAT	idata.df	/^      SUBROUTINE GETIDAT /;"	s
+GETNUM	read1.df	/^      SUBROUTINE GETNUM /;"	s
+GETROCK	idata.df	/^      SUBROUTINE GETROCK /;"	s
+GETSCAL	idata.df	/^      SUBROUTINE GETSCAL /;"	s
+GETTDAT	tdata.df	/^      SUBROUTINE GETTDAT /;"	s
+GETTIMD	tdata.df	/^      SUBROUTINE GETTIMD /;"	s
+GETTSCL	tdata.df	/^      SUBROUTINE GETTSCL /;"	s
+GETVAL	read2.df	/^      SUBROUTINE GETVAL /;"	s
+GETVALS	read2.df	/^      ENTRY GETVALS /;"	e	subroutine:GETVAL
+GLOBAL	blkary.dh	/^     &        NPAY,START1,GLOBAL$/;"	v
+GRDAIN	read1.df	/^      SUBROUTINE GRDAIN /;"	s
+GRDBIN4	read1.df	/^      SUBROUTINE GRDBIN4(/;"	s
+GRDBIN8	read1.df	/^      SUBROUTINE GRDBIN8(/;"	s
+GRDBINCOM	read1.df	615;"	c	subroutine:GETGRDA
+GRDBINCOM	read1.df	789;"	c	subroutine:GRDBIN4
+GRDBINCOM	read1.df	877;"	c	subroutine:GRDBIN8
+I	binary_converter.f90	/^      IN/;"	v	program:binary_converter
+I4UTIL	blkary.dh	/^      INTEGER NXDIM($MXBLKS),NYDIM($MXBLKS),NZDIM($MXBLKS),$/;"	v
+I4UTIL	blkary.h	/^      COMMON \/BLKARY\/R8UTIL,R4UTIL,I4UTIL,$/;"	v
+I4UTIL1	blkary.dh	/^     & I4UTIL,I4UTIL1,/;"	v
+I4UTIL2	blkary.dh	/^     & I4UTIL,I4UTIL1,I4UTIL2,/;"	v
+IDIML	readdat.dh	/^     &        KERRGA,NUMRGA,IDIML,/;"	v
+IERR	binary_converter.f90	/^      INTEGER :: I,J,K,L,NX,NY,NZ,N4,N,IERR$/;"	v	program:binary_converter
+IFTTHETA	rock.dh	/^     &       EPC,PCLOW,IFTTHETA$/;"	v
+IGLT	readdat.dh	/^      INTEGER LENBLK,LOCBLK,NBLKG,IGLT,/;"	v
+INFILE	binary_converter.f90	/^      CHARACTER*80 :: INFILE,/;"	v	program:binary_converter
+INPUTNAME	binary_converter.f90	/^      CHARACTER*80 :: INFILE, OUTFILE, INPUTNAME$/;"	v	program:binary_converter
+INSTR	units.f	/^      SUBROUTINE INSTR /;"	s
+INTCOMP	unitsex.h	/^     & INTDENS,INTCONC,INTCOMP,STBEXT,SCFEXT$/;"	v
+INTCONC	unitsex.h	/^     & INTDENS,INTCONC,INTCOMP,STBEXT,SCFEXT$/;"	v
+INTCONC	unitsex.h	/^     & INTVISC,INTDENS,INTCONC,INTCOMP$/;"	v
+INTDENS	unitsex.h	/^     & INTDENS,INTCONC,INTCOMP,STBEXT,SCFEXT$/;"	v
+INTDENS	unitsex.h	/^     & INTVISC,INTDENS,INTCONC,INTCOMP$/;"	v
+INTDIST	unitsex.h	/^     & EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,INTTIME,$/;"	v
+INTDIST	unitsex.h	/^     & EXTVISC,EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,$/;"	v
+INTMASS	unitsex.h	/^     & EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,INTTIME,$/;"	v
+INTMASS	unitsex.h	/^     & EXTVISC,EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,$/;"	v
+INTPERM	unitsex.h	/^     & INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,INTVISC,$/;"	v
+INTPERM	unitsex.h	/^     & INTTIME,INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,$/;"	v
+INTPRES	unitsex.h	/^     & INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,INTVISC,$/;"	v
+INTPRES	unitsex.h	/^     & INTTIME,INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,$/;"	v
+INTTEMP	unitsex.h	/^     & INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,INTVISC,$/;"	v
+INTTEMP	unitsex.h	/^     & INTTIME,INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,$/;"	v
+INTTIME	unitsex.h	/^     & EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,INTTIME,$/;"	v
+INTTIME	unitsex.h	/^     & INTTIME,INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,$/;"	v
+INTVISC	unitsex.h	/^     & INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,INTVISC,$/;"	v
+INTVISC	unitsex.h	/^     & INTVISC,INTDENS,INTCONC,INTCOMP$/;"	v
+INTVOLL	unitsex.h	/^     & EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,INTTIME,$/;"	v
+INTVOLL	unitsex.h	/^     & EXTVISC,EXTDENS,EXTCONC,EXTCOMP,INTMASS,INTDIST,INTVOLL,$/;"	v
+INTWELG	unitsex.h	/^     & INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,INTVISC,$/;"	v
+INTWELG	unitsex.h	/^     & INTTIME,INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,$/;"	v
+INTWELL	unitsex.h	/^     & INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,INTVISC,$/;"	v
+INTWELL	unitsex.h	/^     & INTTIME,INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,$/;"	v
+INTWELX	unitsex.h	/^     & INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,INTVISC,$/;"	v
+INTWELX	unitsex.h	/^     & INTTIME,INTTEMP,INTPRES,INTPERM,INTWELL,INTWELG,INTWELX,$/;"	v
+ISUNT	readdat.dh	/^      LOGICAL ISUNT,/;"	v
+ISUNT	scrat2.dh	/^      LOGICAL ISUNT$/;"	v
+ISUNTD	readdat.dh	/^      LOGICAL ISUNT,ISUNTD,/;"	v
+J	binary_converter.f90	/^      INTEGER :: I,J,/;"	v	program:binary_converter
+JDIML	readdat.dh	/^     &        KERRGA,NUMRGA,IDIML,JDIML,/;"	v
+JGLT	readdat.dh	/^      INTEGER LENBLK,LOCBLK,NBLKG,IGLT,JGLT,/;"	v
+K	binary_converter.f90	/^      INTEGER :: I,J,K,/;"	v	program:binary_converter
+KDIML	readdat.dh	/^     &        KERRGA,NUMRGA,IDIML,JDIML,KDIML$/;"	v
+KERRGA	readdat.dh	/^      INTEGER LENBLK,LOCBLK,NBLKG,IGLT,JGLT,KGLT,KNDARY,NTYPGA,ND4GA,$/;"	v
+KGHIGH	rock.dh	/^     &       SGLOW,SGHIGH,SWLOW,SWHIGH,KGLOW,KGHIGH,/;"	v
+KGLOW	rock.dh	/^     &       SGLOW,SGHIGH,SWLOW,SWHIGH,KGLOW,/;"	v
+KGLT	readdat.dh	/^      INTEGER LENBLK,LOCBLK,NBLKG,IGLT,JGLT,KGLT,/;"	v
+KNDARY	readdat.dh	/^      INTEGER LENBLK,LOCBLK,NBLKG,IGLT,JGLT,KGLT,KNDARY,/;"	v
+KPU	blkary.dh	/^     & N_KPU,/;"	v
+KPU	blkary.h	/^     & KTU,KPU,TITU$/;"	v
+KPU	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_KPU,KTU,KPU,$/;"	v
+KRNW0	rock.dh	/^      REAL*8 SATWC,SATOC,SWRES,SORES,SGRES,KRNW0,/;"	v
+KRW0	rock.dh	/^     &       RPLMDAW,RPLMDANW,RPLMDAIM,REFPERM,REFPORO,KRW0,/;"	v
+KTU	blkary.dh	/^     & N_KPU,KTU,/;"	v
+KTU	blkary.h	/^     & KTU,KPU,TITU$/;"	v
+KTU	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_KPU,KTU,KPU,$/;"	v
+KWHIGH	rock.dh	/^     &       SGLOW,SGHIGH,SWLOW,SWHIGH,KGLOW,KGHIGH,KWLOW,KWHIGH,/;"	v
+KWLOW	rock.dh	/^     &       SGLOW,SGHIGH,SWLOW,SWHIGH,KGLOW,KGHIGH,KWLOW,/;"	v
+L	binary_converter.f90	/^      INTEGER :: I,J,K,L,/;"	v	program:binary_converter
+LAST	scrat1.df	/^      INTEGER :: LAST,/;"	v	module:scrat1mod
+LAST	scrat1.dh	/^      INTEGER LAST,/;"	v
+LDUM	scrat1.df	/^      INTEGER :: LAST, LDUM$/;"	v	module:scrat1mod
+LDUM	scrat1.dh	/^      INTEGER LAST, LDUM$/;"	v
+LENBLK	readdat.dh	/^      INTEGER LENBLK,/;"	v
+LOCBLK	readdat.dh	/^      INTEGER LENBLK,LOCBLK,/;"	v
+MAKEMAP	idata.df	/^      SUBROUTINE MAKEMAP /;"	s
+MAKESI	units.f	/^      SUBROUTINE MAKESI /;"	s
+MIDPOINTS	blkary.dh	/^      REAL*8  MIDPOINTS(/;"	v
+MODE	binary_converter.f90	/^      INTEGER MODE$/;"	v	program:binary_converter
+MODREL	rock.dh	/^      INTEGER MXROCK,MODREL,/;"	v
+MXROCK	rock.dh	/^      INTEGER MXROCK,/;"	v
+N	binary_converter.f90	/^      INT/;"	v	program:binary_converter
+N4	binary_converter.f90	/^      INTEGER :: I,J,K,L,NX,NY,NZ,N4,/;"	v	program:binary_converter
+NBLKG	readdat.dh	/^      INTEGER LENBLK,LOCBLK,NBLKG,/;"	v
+ND4GA	readdat.dh	/^      INTEGER LENBLK,LOCBLK,NBLKG,IGLT,JGLT,KGLT,KNDARY,NTYPGA,ND4GA,/;"	v
+NEW_COMM	blkary.dh	/^      INTEGER N_PORTRUE,N_RC,$/;"	v
+NEW_RANK	blkary.dh	/^     &        NEW_COMM,NEW_RANK,/;"	v
+NKGSG	rock.dh	/^      INTEGER MXROCK,MODREL,NKOSW,NKWSW,NKOSG,NKGSG,/;"	v
+NKOSG	rock.dh	/^      INTEGER MXROCK,MODREL,NKOSW,NKWSW,NKOSG,/;"	v
+NKOSW	rock.dh	/^      INTEGER MXROCK,MODREL,NKOSW,/;"	v
+NKWSW	rock.dh	/^      INTEGER MXROCK,MODREL,NKOSW,NKWSW,/;"	v
+NOERASE	readdat.dh	/^      LOGICAL ISUNT,ISUNTD,NOTINDX,NOERASE$/;"	v
+NONMATCHING	blkary.dh	/^      LOGICAL FLAGBLK($MXBLKS),NONMATCHING$/;"	v
+NOTINDX	readdat.dh	/^      LOGICAL ISUNT,ISUNTD,NOTINDX,/;"	v
+NPAY	blkary.dh	/^     &        NEW_COMM,NEW_RANK,FLOW_COMM($MXBLKS),$/;"	v
+NPCGO	rock.dh	/^      INTEGER MXROCK,MODREL,NKOSW,NKWSW,NKOSG,NKGSG,NPCOW,NPCGO$/;"	v
+NPCOW	rock.dh	/^      INTEGER MXROCK,MODREL,NKOSW,NKWSW,NKOSG,NKGSG,NPCOW,/;"	v
+NTYPGA	readdat.dh	/^      INTEGER LENBLK,LOCBLK,NBLKG,IGLT,JGLT,KGLT,KNDARY,NTYPGA,/;"	v
+NUMRGA	readdat.dh	/^     &        KERRGA,NUMRGA,/;"	v
+NX	binary_converter.f90	/^      INTEGER :: I,J,K,L,NX,/;"	v	program:binary_converter
+NXDIM	blkary.dh	/^      INTEGER NXDIM(/;"	v
+NY	binary_converter.f90	/^      INTEGER :: I,J,K,L,NX,NY,/;"	v	program:binary_converter
+NYDIM	blkary.dh	/^      INTEGER NXDIM($MXBLKS),NYDIM(/;"	v
+NZ	binary_converter.f90	/^      INTEGER :: I,J,K,L,NX,NY,NZ,/;"	v	program:binary_converter
+NZDIM	blkary.dh	/^      INTEGER NXDIM($MXBLKS),NYDIM($MXBLKS),NZDIM(/;"	v
+N_BC_TYPE	blkary.dh	/^     & N_DUNKV($MXMOD),N_COFV($MXMOD),N_RESIDV($MXMOD),N_BC_TYPE(/;"	v
+N_BC_TYPE	blkary.h	/^     & N_BC_TYPE,$/;"	v
+N_COFV	blkary.dh	/^     & N_DUNKV($MXMOD),N_COFV(/;"	v
+N_DEPTH	blkary.dh	/^     & N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,/;"	v
+N_DEPTH	blkary.h	/^      INTEGER I4UTIL,N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,$/;"	v
+N_DEPTH	blkary.h	/^     & N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,$/;"	v
+N_DUNKV	blkary.dh	/^     & N_KPU,KTU,KPU,N_EVOL,$/;"	v
+N_EVOL	blkary.dh	/^     & N_KPU,KTU,KPU,N_EVOL,/;"	v
+N_I4U	blkary.dh	/^     & N_R8U,N_R4U,N_I4U,/;"	v
+N_I4U	blkary.h	/^     & N_TCOFX,N_TCOFY,N_TCOFZ,N_R8U,N_R4U,N_I4U,N_KTU,$/;"	v
+N_I4U	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_R8U,N_R4U,N_I4U,N_KTU,N_KPU,$/;"	v
+N_I4U	blkary.h	/^C  N_R8U, N_R4U, N_I4U = ARRAY NUMBERS FOR R8UTIL, R4UTIL, AND I4UTIL$/;"	v
+N_I4U1	blkary.dh	/^     & N_R8U,N_R4U,N_I4U,N_I4U1,/;"	v
+N_I4U2	blkary.dh	/^     & N_R8U,N_R4U,N_I4U,N_I4U1,N_I4U2,/;"	v
+N_KPU	blkary.dh	/^     & N_R8U,N_R4U,N_I4U,N_I4U1,N_I4U2,N_KTU,N_XPERM,N_YPERM,N_ZPERM,$/;"	v
+N_KPU	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_KPU,KTU,KPU,$/;"	v
+N_KPU	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_R8U,N_R4U,N_I4U,N_KTU,N_KPU,$/;"	v
+N_KPU	blkary.h	/^C  N_KTU, N_KPU = ARRAY NUMBERS FOR KTU AND KPU$/;"	v
+N_KTU	blkary.dh	/^     & N_R8U,N_R4U,N_I4U,N_I4U1,N_I4U2,N_KTU,/;"	v
+N_KTU	blkary.h	/^     & N_TCOFX,N_TCOFY,N_TCOFZ,N_R8U,N_R4U,N_I4U,N_KTU,$/;"	v
+N_KTU	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_R8U,N_R4U,N_I4U,N_KTU,N_KPU,$/;"	v
+N_MYPRC	blkary.dh	/^     & N_DUNKV($MXMOD),N_COFV($MXMOD),N_RESIDV($MXMOD),N_BC_TYPE(3),$/;"	v
+N_POR	blkary.dh	/^     & N_YC,N_ZC,N_ROCK,N_POR,/;"	v
+N_POR	blkary.h	/^      INTEGER I4UTIL,N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,$/;"	v
+N_POR	blkary.h	/^     & N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,$/;"	v
+N_PORO	blkary.dh	/^     & N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,N_PORO,/;"	v
+N_PORTRUE	blkary.dh	/^      INTEGER N_PORTRUE,/;"	v
+N_R4U	blkary.dh	/^     & N_R8U,N_R4U,/;"	v
+N_R4U	blkary.h	/^     & N_TCOFX,N_TCOFY,N_TCOFZ,N_R8U,N_R4U,N_I4U,N_KTU,$/;"	v
+N_R4U	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_R8U,N_R4U,N_I4U,N_KTU,N_KPU,$/;"	v
+N_R4U	blkary.h	/^C  N_R8U, N_R4U, N_I4U = ARRAY NUMBERS FOR R8UTIL, R4UTIL, AND I4UTIL$/;"	v
+N_R8U	blkary.dh	/^     & N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,N_PORO,$/;"	v
+N_R8U	blkary.h	/^     & N_TCOFX,N_TCOFY,N_TCOFZ,N_R8U,N_R4U,N_I4U,N_KTU,$/;"	v
+N_R8U	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_R8U,N_R4U,N_I4U,N_KTU,N_KPU,$/;"	v
+N_RC	blkary.dh	/^      INTEGER N_PORTRUE,N_RC,/;"	v
+N_RESIDV	blkary.dh	/^     & N_DUNKV($MXMOD),N_COFV($MXMOD),N_RESIDV(/;"	v
+N_ROCK	blkary.dh	/^     & N_YC,N_ZC,N_ROCK,/;"	v
+N_ROCK	blkary.h	/^      INTEGER I4UTIL,N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,$/;"	v
+N_ROCK	blkary.h	/^     & N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,$/;"	v
+N_TCOFX	blkary.dh	/^     & N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,/;"	v
+N_TCOFX	blkary.h	/^     & N_TCOFX,N_TCOFY,N_TCOFZ,N_R8U,N_R4U,N_I4U,N_KTU,$/;"	v
+N_TCOFX	blkary.h	/^     & N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,$/;"	v
+N_TCOFY	blkary.dh	/^     & N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,/;"	v
+N_TCOFY	blkary.h	/^     & N_TCOFX,N_TCOFY,N_TCOFZ,N_R8U,N_R4U,N_I4U,N_KTU,$/;"	v
+N_TCOFY	blkary.h	/^     & N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,$/;"	v
+N_TCOFZ	blkary.dh	/^     & N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,/;"	v
+N_TCOFZ	blkary.h	/^     & N_TCOFX,N_TCOFY,N_TCOFZ,N_R8U,N_R4U,N_I4U,N_KTU,$/;"	v
+N_TCOFZ	blkary.h	/^     & N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,$/;"	v
+N_XC	blkary.dh	/^     & I4UTIL,I4UTIL1,I4UTIL2,N_XC,/;"	v
+N_XC	blkary.h	/^      INTEGER I4UTIL,N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,$/;"	v
+N_XC	blkary.h	/^     & N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,$/;"	v
+N_XC	blkary.h	/^C  N_XC, N_YC, N_ZC = GRID BLOCK CORNER ARRAY NUMBERS (FT,REAL*4)$/;"	v
+N_XPERM	blkary.dh	/^     & N_R8U,N_R4U,N_I4U,N_I4U1,N_I4U2,N_KTU,N_XPERM,/;"	v
+N_XPERM	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_KPU,KTU,KPU,$/;"	v
+N_XPERM	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_R8U,N_R4U,N_I4U,N_KTU,N_KPU,$/;"	v
+N_YC	blkary.dh	/^     & I4UTIL,I4UTIL1,I4UTIL2,N_XC,$/;"	v
+N_YC	blkary.h	/^      INTEGER I4UTIL,N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,$/;"	v
+N_YC	blkary.h	/^     & N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,$/;"	v
+N_YC	blkary.h	/^C  N_XC, N_YC, N_ZC = GRID BLOCK CORNER ARRAY NUMBERS (FT,REAL*4)$/;"	v
+N_YPERM	blkary.dh	/^     & N_R8U,N_R4U,N_I4U,N_I4U1,N_I4U2,N_KTU,N_XPERM,N_YPERM,/;"	v
+N_YPERM	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_KPU,KTU,KPU,$/;"	v
+N_YPERM	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_R8U,N_R4U,N_I4U,N_KTU,N_KPU,$/;"	v
+N_ZC	blkary.dh	/^     & N_YC,N_ZC,/;"	v
+N_ZC	blkary.h	/^      INTEGER I4UTIL,N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,$/;"	v
+N_ZC	blkary.h	/^     & N_XC,N_YC,N_ZC,N_ROCK,N_POR,N_DEPTH,N_TCOFX,N_TCOFY,N_TCOFZ,$/;"	v
+N_ZC	blkary.h	/^C  N_XC, N_YC, N_ZC = GRID BLOCK CORNER ARRAY NUMBERS (FT,REAL*4)$/;"	v
+N_ZPERM	blkary.dh	/^     & N_R8U,N_R4U,N_I4U,N_I4U1,N_I4U2,N_KTU,N_XPERM,N_YPERM,N_ZPERM,/;"	v
+N_ZPERM	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_KPU,KTU,KPU,$/;"	v
+N_ZPERM	blkary.h	/^     & N_XPERM,N_YPERM,N_ZPERM,N_R8U,N_R4U,N_I4U,N_KTU,N_KPU,$/;"	v
+OB_LAYER	blkary.dh	/^      INTEGER OB_LAYER,/;"	v
+OUTFILE	binary_converter.f90	/^      CHARACTER*80 :: INFILE, OUTFILE,/;"	v	program:binary_converter
+PCLOW	rock.dh	/^     &       EPC,PCLOW,/;"	v
+PERM_HTOV	rock.dh	/^      REAL*4 PERM_HTOV$/;"	v
+PUTBT	read2.df	/^      SUBROUTINE PUTBT /;"	s
+PUTCS	read2.df	/^      SUBROUTINE PUTCS /;"	s
+PUTERR	read1.df	/^      SUBROUTINE PUTERR /;"	s
+PUTI2	read2.df	/^      SUBROUTINE PUTI2 /;"	s
+PUTI4	read2.df	/^      SUBROUTINE PUTI4 /;"	s
+PUTL2	read2.df	/^      SUBROUTINE PUTL2 /;"	s
+PUTL4	read2.df	/^      SUBROUTINE PUTL4 /;"	s
+PUTR4	read2.df	/^      SUBROUTINE PUTR4 /;"	s
+R4UTIL	blkary.dh	/^      REAL*4 R4UTIL$/;"	v
+R4UTIL	blkary.h	/^      COMMON \/BLKARY\/R8UTIL,R4UTIL,I4UTIL,$/;"	v
+R4UTIL	blkary.h	/^C  N_R8U, N_R4U, N_I4U = ARRAY NUMBERS FOR R8UTIL, R4UTIL, AND I4UTIL$/;"	v
+R8UTIL	blkary.dh	/^      REAL*8 R8UTIL$/;"	v
+R8UTIL	blkary.h	/^      COMMON \/BLKARY\/R8UTIL,R4UTIL,I4UTIL,$/;"	v
+R8UTIL	blkary.h	/^C  R8UTIL = UTILITY VARIABLE (REAL*8)$/;"	v
+READAT	readdat.dh	8;"	c
+READER	read1.df	/^      SUBROUTINE READER /;"	s
+REFPERM	rock.dh	/^     &       RPLMDAW,RPLMDANW,RPLMDAIM,REFPERM,/;"	v
+REFPORO	rock.dh	/^     &       RPLMDAW,RPLMDANW,RPLMDAIM,REFPERM,REFPORO,/;"	v
+ROCK	rock.dh	9;"	c
+RPLMDA	rock.dh	/^      REAL*8 SATWC,SATOC,SWRES,SORES,SGRES,KRNW0,RPLMDA,/;"	v
+RPLMDAIM	rock.dh	/^     &       RPLMDAW,RPLMDANW,RPLMDAIM,/;"	v
+RPLMDANW	rock.dh	/^     &       RPLMDAW,RPLMDANW,/;"	v
+RPLMDAW	rock.dh	/^      REAL*8 SATWC,SATOC,SWRES,SORES,SGRES,KRNW0,RPLMDA,ENTRYP,$/;"	v
+SATOC	rock.dh	/^      REAL*8 SATWC,SATOC,/;"	v
+SATWC	rock.dh	/^      REAL*8 SATWC,/;"	v
+SCOF	scrat2.dh	/^      REAL*8    W,BB,BBB,BCF,DATS,SCOF,/;"	v
+SCONS	scrat2.dh	/^      REAL*8    W,BB,BBB,BCF,DATS,SCOF,SCONS,/;"	v
+SCRAT1	scrat1.dh	3;"	c
+SETBLKS	idata.df	/^      SUBROUTINE SETBLKS(/;"	s
+SETCVF	units.f	/^      ENTRY SETCVF(/;"	e	subroutine:MAKESI
+SETEXU	tdata.df	/^      SUBROUTINE SETEXU /;"	s
+SETGEOM	idata.df	/^      SUBROUTINE SETGEOM /;"	s
+SETGEOMNEW	idata.df	/^      SUBROUTINE SETGEOMNEW /;"	s
+SETMODEL	idata.df	/^      SUBROUTINE SETMODEL(/;"	s
+SETNBG	read1.df	/^      SUBROUTINE SETNBG /;"	s
+SGHIGH	rock.dh	/^     &       SGLOW,SGHIGH,/;"	v
+SGLOW	rock.dh	/^	REAL*8 $/;"	v
+SGRES	rock.dh	/^      REAL*8 SATWC,SATOC,SWRES,SORES,SGRES,/;"	v
+SNOD	scrat2.dh	/^      REAL*8    W,BB,BBB,BCF,DATS,SCOF,SCONS,SNOD,/;"	v
+SORES	rock.dh	/^      REAL*8 SATWC,SATOC,SWRES,SORES,/;"	v
+START1	blkary.dh	/^     &        NPAY,START1,/;"	v
+STBEXT	unitsex.h	/^      LOGICAL STBEXT,SCFEXT$/;"	v
+STBEXT	unitsex.h	/^     & INTDENS,INTCONC,INTCOMP,STBEXT,SCFEXT$/;"	v
+STDENG	unitsex.h	/^      COMMON \/UNITSEX\/STDENO,STDENW,STDENG,$/;"	v
+STDENG	unitsex.h	/^      REAL*8 STDENO,STDENW,STDENG,$/;"	v
+STDENO	unitsex.h	/^      REAL*8 STDENO,STDENW,STDENG,$/;"	v
+STDENW	unitsex.h	/^      COMMON \/UNITSEX\/STDENO,STDENW,STDENG,$/;"	v
+STDENW	unitsex.h	/^      REAL*8 STDENO,STDENW,STDENG,$/;"	v
+SWHIGH	rock.dh	/^     &       SGLOW,SGHIGH,SWLOW,SWHIGH,/;"	v
+SWLOW	rock.dh	/^     &       SGLOW,SGHIGH,SWLOW,/;"	v
+SWRES	rock.dh	/^      REAL*8 SATWC,SATOC,SWRES,/;"	v
+TAUG	rock.dh	/^     &       EGLOW,EGHIGH,EWLOW,EWHIGH,TWL,TGL,TAUG,/;"	v
+TAUW	rock.dh	/^     &       EGLOW,EGHIGH,EWLOW,EWHIGH,TWL,TGL,TAUG,TAUW,/;"	v
+TBLKOUT	read1.df	/^      SUBROUTINE TBLKOUT /;"	s
+TGL	rock.dh	/^     &       EGLOW,EGHIGH,EWLOW,EWHIGH,TWL,TGL,/;"	v
+TITU	blkary.dh	/^      CHARACTER*50 TITU$/;"	v
+TWL	rock.dh	/^     &       EGLOW,EGHIGH,EWLOW,EWHIGH,TWL,/;"	v
+UB_LAYER	blkary.dh	/^      INTEGER OB_LAYER,UB_LAYER$/;"	v
+UNDEF	read1.df	/^      SUBROUTINE UNDEF /;"	s
+UNTDEF	readdat.dh	/^      CHARACTER*1 UNTSTD,UNTDEF,/;"	v
+UNTSTD	readdat.dh	/^      CHARACTER*1 UNTSTD,/;"	v
+VNAMGA	readdat.dh	/^      CHARACTER*1 UNTSTD,UNTDEF,VNAMGA$/;"	v
+W	scrat2.dh	/^      REAL*8    W,/;"	v
+XIFTVAR	rock.dh	28;"	c
+Y	blkary.h	/^C              THREE VALUES FOR X, Y, Z DIRECTION RESPECTIVELY.$/;"	v
+binary_converter	binary_converter.f90	/^      PROGRAM binary_converter$/;"	p
+day	unitsex.h	/^C         for internal masses and corespondingly stbo\/day, stbw\/day, and$/;"	v
+format	tags	/^!_TAG_FILE_FORMAT	2	\/extended format; --format=1 will not append ;" to lines\/$/;"	v
+mass	unitsex.h	/^C         lb and external stb.  Thus, to correct an input oil mass, the value$/;"	v
+required	unitsex.h	/^C         required, a correction similar to that in Note 1 must be made.  The$/;"	v
+scrat1mod	scrat1.df	/^      MODULE scrat1mod$/;"	m
+stbo	unitsex.h	/^C Note 3: Some physical models (eg. black oil model) use stbo, stbw, and mscf$/;"	v
+stbw	unitsex.h	/^C Note 3: Some physical models (eg. black oil model) use stbo, stbw, and mscf$/;"	v

@@ -1,0 +1,27 @@
+C  XQUIT.DF - COMPOSITIONAL MODEL TERMINATION
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE XQUIT  (NERR)
+
+C  CODE HISTORY:        THE IPARS TEAM          04/02/1997
+
+C*********************************************************************
+      SUBROUTINE XQUIT (NERR)
+C*********************************************************************
+
+C  Complete compositional model initialization
+
+C  NERR = Error number steped by 1 on error (input & output, INTEGER*4)
+
+C*********************************************************************
+      USE xgendat
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INTEGER NERR
+
+c bag8 - deallocate variables for flash calculation
+      CALL XGENDAT_DEALLOC()
+
+      NERR=NERR
+      END

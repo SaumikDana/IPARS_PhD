@@ -1,0 +1,864 @@
+C--------------------------------------------------------------------
+C EQSTEP.F
+C
+C DRIVER FOR THE EQUILIBRIUM CALCULATION. ALLOCATES SPACE, 
+C INITIALIZES PARAMETERS (ARRAYS) FOR NIPS, CALLS NIPS AND 
+C CONVERTS OUTPUT FROM COMPUTATIONAL VARIABLES INTO A VECTOR
+C OF MOLE-NUMBERS.
+C--------------------------------------------------------------------
+C     
+C INPUTS:            
+C
+C EPSCONC                       THE SMALLEST MOLE-NUMBER PERMITTED
+C PIMULTI                       NUMBER OF MULTI-PHASES
+C PIPURE                        NUMBER OF PURE PHASES
+C NRQ                           NUMBER OF EQUILIBRIUM REACTIONS (=< NR)
+C NPHASE(PIMULTI+PIPURE)        NUMBER OF SPECIES IN EACH PHASE
+C PHASEIDENTITY(NSPECIES)       PHASE-INDEX FOR EACH SPECIES
+C REACTIONTYPE(NR)              REACTION TYPE INDICATOR,
+C                               (0 = EQUILIBRIUM, 1 = KINETIC)
+C
+C NIPSIPARM(*)
+C NIPSRPARM(*)
+C NIPSCPARM(*)
+C FORMULAMATRIX(NCOMP,NSPECIES)
+C V(NSPECIES,NR)
+C MU(NSPECIES)
+C COMPCHARGE(NCOMP)
+C 
+C
+C INPUT/OUTPUT:
+C
+C NVEC(NSPECIES)                ON CALL: GUESS FOR THE MOLE-NUMBERS 
+C                               ON EXIT: NEW EQUILIBRATED MOLE-NUMBERS 
+C
+C OUTPUT:
+C
+C IERROR                        SIGNAL PROBLEM IN NIPS (.NE.0)
+C ITERATIONS                    NUMBER OF ITERATIONS TAKEN IN NIPS
+C
+C ADDITIONAL INFORMATION:
+C
+C THE COMPILATION OF THIS ROUNTINE DEPENDS ON THE CHOICE OF VERSION
+C AS SPECIFIED IN THE MAKEFILE (UNSF, SF OR RNSF).
+C     
+C-----------------------------------------------------------------------
+
+C SLB 14/10/97 RECEIVE INITIAL GUESS 
+
+      SUBROUTINE EQSTEP(NVEC,
+     1                  INITGUESS,
+     &     EPSCONC,PIMULTI,PIPURE,NRQ,NPRODUCTS,
+     &     NPHASE,NS, NC,PHASEIDENTITY,REACTIONTYPE,NIPSIPARM,
+     &     FORMULAMATRIX,V,MU,COMPCHARGE,NIPSRPARM,
+     &     RWK,DIMRWK,IWK,DIMIWK,IDEBUG,DEBUGUNIT,
+     &     ITERATIONS,IERROR,NIPSCPARM)
+       
+      IMPLICIT NONE
+ 
+      INTEGER NS, NC, NPRODUCTS 
+      INTEGER NSPECIES,NCOMP,NR
+      COMMON /CHEMSIZES/NSPECIES,NCOMP,NR
+
+      INTEGER PIMULTI,PIPURE,NRQ,NPHASE(PIMULTI+PIPURE),
+     &     PHASEIDENTITY(NS),REACTIONTYPE(NPRODUCTS),
+     &     NIPSIPARM(*),DIMIWK,DIMRWK,IWK(DIMIWK),
+     &     IERROR,LOCH,LOCWATER,MAXITER,NVIOL,IDEALFLAG,SCALEFLAG,
+     &     TESTSOLFLAG,INTERPFLAG,HESSFLAG,IPTR,IPTR_NEXT,IWKSIZE,
+     &     RPTR,RPTR_NEXT,RPTR_SOL,RWKSIZE,ITERATIONS,
+     &     IDEBUG,DEBUGUNIT,I,J
+C#IF SF
+C     INTEGER RPTR_VQ,RPTR_N0
+C#ELIF RNSF
+      INTEGER IND,NMINQ
+      LOGICAL MINERAL
+C#ENDIF
+
+      REAL*8 NVEC(NS),FORMULAMATRIX(NC,NS),
+     &     V(NS,NPRODUCTS),MU(NS),COMPCHARGE(NC),NIPSRPARM(*),
+     &     RWK(DIMRWK),EPSCONC,RELTOL,ALPHA,TAUMIN,RHO,ONE,ZERO,BIGEXP
+
+      PARAMETER(ONE = 1.0D0, ZERO = 0.0D0, BIGEXP = -100.0)
+      
+      CHARACTER*15 NIPSCPARM(*)
+
+C     COMMON AREAS FOR NIPS PACKAGE
+
+      INTEGER N,ME,MI,NEQ,NIPARM,NRPARM
+      COMMON /NIPS_SIZES/N,ME,MI,NEQ,NIPARM,NRPARM
+
+      REAL*8 GASCONST,ABSTEMP,SIMTEMP,PRESSURE
+      LOGICAL IDEAL
+      COMMON /THERMOPARAM/ GASCONST,ABSTEMP,PRESSURE,IDEAL
+
+C   SLB 14/10/97 DECLARE INITIAL GUESS
+      REAL*8 INITGUESS(NS)
+
+C     SHUYU DEBUG
+C     WRITE(*,*) " --------- IN EQSTEP PRINT:"
+C      CALL ECHOR8ARRAYD1("MU(NS)", MU,NS)
+C     WRITE(*,*) " --------- IN EQSTEP END OF PRINT"
+      
+      IF ( IDEBUG .GE. 1 ) THEN
+        WRITE (DEBUGUNIT,*) ' HERE IS INITGUESS INSIDE EQSTEP:'
+       WRITE (DEBUGUNIT,'(1PE10.3)') (INITGUESS(J),J=1,NSPECIES)
+      ENDIF
+      NSPECIES = NS
+      NCOMP = NC
+      NR = NPRODUCTS
+
+      GASCONST = 1.0D0
+      ABSTEMP = 1.0D0
+
+
+C-----------------------------------------------------------------------
+C     PACK PARAMETER VECTORS FOR NIPS/NLEQ
+C
+C     INTEGER VECTOR: IPARAM(NIPARAM)
+C     REAL*8  VECTOR: RPARAM(NRPARAM)
+
+
+C-----------------------------------------------------------------------
+C     /INTEGER/
+C-----------------------------------------------------------------------
+
+C#IF SF
+C      IWK(1) = NRQ
+C      IWK(2) = NSPECIES
+C      IWK(3) = NCOMP
+C      IWK(4) = PIMULTI
+C      IWK(5) = PIPURE
+C      IPTR = 5
+C
+CC     /NPHASE/
+C
+C      DO I = 1, PIMULTI+PIPURE
+C         IPTR = IPTR + 1
+C         IWK(IPTR) = NPHASE(I)
+C      ENDDO
+C
+CC     /PHASEIDENTITY/
+C
+C      DO I = 1, NSPECIES
+C         IPTR = IPTR + 1
+C         IWK(IPTR) = PHASEIDENTITY(I)
+C      ENDDO
+C
+CC     /REACTIONTYPE/
+C
+C      DO I = 1,NR
+C         IPTR = IPTR + 1
+C         IWK(IPTR) = REACTIONTYPE(I)
+C      ENDDO
+C
+C#ELIF UNSF 
+C
+C      IWK(1) = NCOMP
+C      IWK(2) = NSPECIES
+C      IWK(3) = PIMULTI
+C     IWK(4) = PIPURE
+C      IPTR = 4
+C
+CC     /NPHASE/
+C
+C      DO I = 1, PIMULTI+PIPURE
+C         IPTR = IPTR + 1
+C         IWK(IPTR) = NPHASE(I)
+C      ENDDO
+C
+CC     /PHASEIDENTITY/
+C
+C      DO I = 1, NSPECIES
+C         IPTR = IPTR + 1
+C         IWK(IPTR) = PHASEIDENTITY(I)
+C      ENDDO
+C
+C#ELIF RNSF
+C
+C     FIND OUT HOW MANY EQUILIBRIUM MINERALS THERE ARE
+C
+C     WRITE(*,*) 'PACKING MINERAL DATA'
+      NMINQ = 0
+      DO I = 1,NR
+         MINERAL = NPHASE(PHASEIDENTITY(NCOMP+I)).EQ.1
+         IF (MINERAL.AND.(REACTIONTYPE(I).EQ.0)) NMINQ = NMINQ + 1
+      ENDDO
+
+C     WRITE(*,*) 'DONE WITH MINERAL DATA',NMINQ
+C
+C     PACK A SMALLER PROBLEM CORRESPONDING TO 
+C     EQUILIBRIUM PRODUCTS ONLY!
+C
+
+C      WRITE(*,*)'NCOMP:', NC,' NCOMP:',NCOMP, NPRODUCTS, NRQ
+C     WRITE(*,*) (IWK(I),I=1,4)
+      IWK(1) = NC
+      IWK(2) = NC + NRQ
+      IWK(3) = NMINQ
+C     WRITE(*,*) (IWK(I),I=1,4)
+
+      IPTR = 3
+
+C     /MINERAL LIST - INDICATES WHETHER A GIVEN EQUILIBRIUM 
+C     PRODUCT-SPECIES IS A MINERAL /
+
+C     WRITE(*,*) 'PACKING PHASE DATA'
+      DO I = 1, NR
+         IF (REACTIONTYPE(I).EQ.0) THEN
+            IPTR = IPTR + 1
+            MINERAL = NPHASE(PHASEIDENTITY(NCOMP+I)).EQ.1
+            IF (MINERAL) THEN
+               IWK(IPTR) = 1
+            ELSE
+               IWK(IPTR) = 0
+            ENDIF
+         ENDIF
+      ENDDO
+
+C     /MINERAL TABLE - INDEX INTO EQUILIBRIUM PRODUCT-SPECIES 
+C     LIST OF THE JTH EQUILIBRIUM MINERAL/
+
+      IND = 0
+      DO I = 1, NR
+         IF (REACTIONTYPE(I).EQ.0) THEN
+            IND = IND + 1
+            MINERAL = NPHASE(PHASEIDENTITY(NCOMP+I)).EQ.1
+            IF (MINERAL) THEN
+               IPTR = IPTR + 1
+               IWK(IPTR) = IND
+            ENDIF
+         ENDIF
+      ENDDO
+C#ENDIF
+
+      NIPARM = IPTR
+      IPTR_NEXT = IPTR + 1
+      IWKSIZE = DIMIWK - IPTR_NEXT + 1
+
+      IF (IWKSIZE.LE.0) GOTO 998
+
+C-----------------------------------------------------------------------
+C     /REAL*8/
+C-----------------------------------------------------------------------    
+
+      RPTR = 1
+      RWK(RPTR) = EPSCONC
+
+C#IF SF
+CC
+CC     FOR THE STOICHIOMETRIC ALGORITHM, PACK IN
+CC     THE FOLLOWING DATA:
+CC
+CC     STOICHIOMETRIC MATRIX VQ FOR EQUILIBRIUM SUB-SPACE
+CC     CHEMICAL REFERENCE POTENTIALS MU0
+CC     REFERENCE MOLE-VECTOR N0 (SATISFYING A*N0 = B)
+CC     FOR SAFETY, ENSURE THAT COMPONENT & EQUILIBRIUM PRODUCTS
+CC     IN N0 ARE SLIGHTLY LARGER THAN EPSCONC (FOR FEASIBILITY).
+CC
+CC
+CC     NOTE: THESE POINTERS ARE USED BY XSITOMOLES.
+CC     
+C      RPTR_VQ = 2
+C      RPTR_N0 = RPTR_VQ + NSPECIES*NRQ + NSPECIES
+C
+CC     /V/
+C
+C      DO I = 1, NR
+C         IF (REACTIONTYPE(I).EQ.0) THEN
+C            DO J = 1, NSPECIES
+C               RPTR = RPTR + 1
+C               RWK(RPTR) = V(J,I)
+C            ENDDO
+C         ENDIF
+C      ENDDO
+C
+CC     /MU/
+C
+C      DO I = 1, NSPECIES
+C         RPTR = RPTR + 1
+C         RWK(RPTR) = MU(I)
+C      ENDDO
+C
+CC     /N0/
+C
+C      DO I = 1,NCOMP
+C         RPTR = RPTR + 1 
+C         RWK(RPTR) = DMAX1(NVEC(I), 1.01*EPSCONC)
+C      ENDDO
+C
+C      DO I = 1,NR
+C         RPTR = RPTR + 1 
+C         IF (REACTIONTYPE(I).EQ.0) THEN
+C            RWK(RPTR) = DMAX1(NVEC(NCOMP+I), 1.01*EPSCONC)
+C         ELSE
+C            RWK(RPTR) = NVEC(NCOMP+I)
+C         ENDIF
+C      ENDDO
+C
+C#ELIF UNSF 
+CC
+CC     FOR NON-STOICHIOMETRIC ALGORITHMS, PACK IN 
+CC     THE FOLLOWING DATA:
+CC
+CC     FORMULAMATRIX
+CC     TOTAL MOLES
+CC     CHEMICAL REFERENCE POTENTIALS MU0
+CC
+C
+CC     /A/
+C
+C      DO I = 1, NSPECIES
+C         DO J = 1, NCOMP
+C            RPTR = RPTR + 1
+C            RWK(RPTR) = FORMULAMATRIX(J,I)
+C         ENDDO
+C      ENDDO
+CC
+CC     /TOTALS/
+C
+C      DO I = 1,NCOMP
+C         RWK(RPTR+I) = NVEC(I)
+C      ENDDO
+C
+C      DO I = 1,NR
+C         DO J = 1, NCOMP
+C            RWK(RPTR+J) = RWK(RPTR+J) + 
+C     &           FORMULAMATRIX(J,NCOMP+I)*NVEC(NCOMP+I)
+C         ENDDO
+C      ENDDO
+C
+C      RPTR = RPTR + NCOMP
+C
+CC     /MU/
+C
+C      DO I = 1, NSPECIES
+C         RPTR = RPTR + 1
+C         RWK(RPTR) = MU(I)
+C      ENDDO
+C#ELIF RNSF
+C
+C     FOR NON-LINEAR EQUATION ALGORITHMS, PACK IN 
+C     THE FOLLOWING DATA:
+C
+C     REDUCED NCOMP*(NCOMP+NRQ) FORMULAMATRIX CORRESPONDING TO EQUILIBRIUM
+C      SYSTEM ONLY.
+C     TOTAL MOLES NOT IN THE FORM OF KINETIC PRODUCT SPECIES
+C     REDUCED VECTOR OF CHEMICAL REFERENCE POTENTIALS MU0(NCOMP+NRQ)
+C
+
+C     /A (REDUCED)/
+C     WRITE(*,*) 'PACKING A MATRIX'
+      DO I = 1, NCOMP
+         DO J = 1, NCOMP
+            RPTR = RPTR + 1
+            RWK(RPTR) = FORMULAMATRIX(J,I)
+         ENDDO
+      ENDDO
+
+      DO I = 1, NR
+         IF (REACTIONTYPE(I).EQ.0) THEN
+            DO J = 1, NCOMP
+               RPTR = RPTR + 1
+               RWK(RPTR) = FORMULAMATRIX(J,NCOMP+I)
+            ENDDO
+         ENDIF
+      ENDDO
+
+C     /TOTALS/
+
+      DO I = 1,NCOMP
+         RWK(RPTR+I) = NVEC(I)
+      ENDDO
+
+C     WRITE(*,*) 'FIXING TOTALS'
+      DO I = 1,NR
+         IF (REACTIONTYPE(I).EQ.0) THEN
+            DO J = 1, NCOMP
+               RWK(RPTR+J) = RWK(RPTR+J) + 
+     &              FORMULAMATRIX(J,NCOMP+I)*NVEC(NCOMP+I)
+            ENDDO
+         ENDIF
+      ENDDO
+      
+      RPTR = RPTR + NCOMP
+
+
+C     /MU (REDUCED)/
+
+C     WRITE(*,*) 'PACKING MU'
+      DO I = 1, NCOMP
+         RPTR = RPTR + 1
+         RWK(RPTR) = MU(I)
+      ENDDO
+
+      DO I = 1, NR
+         IF (REACTIONTYPE(I).EQ.0) THEN
+            RPTR = RPTR + 1
+            RWK(RPTR) = MU(NCOMP+I)
+         ENDIF
+      ENDDO
+C     WRITE(*,*) 'DONE PACKING RNSF DATA'
+C#ENDIF
+
+C-----------------------------------------------------------------------
+C     DETERMINE NIPS/NLEQ SIZES 
+C
+C     N      =  NUMBER OF PRIMARY UNKNOWNS
+C     ME     =  NUMBER OF EQUALITY CONSTRAINTS
+C     MI     =  NUMBER OF INEQUALITY CONSTRAINTS
+C     NEQ    =  TOTAL NUMBER OF UNKNOWNS (SIZE OF LINEAR SYSTEM)
+C     NIPARM =  NUMBER OF INTEGER PARAMETERS FOR NIPS
+C     NRPARM =  NUMBER OF REAL*8 PARAMETERS FOR NIPS
+C-----------------------------------------------------------------------
+
+C#IF UNSF
+C      N = NSPECIES
+C      ME = NCOMP
+C      MI = NSPECIES
+C#ELIF SF
+C      N =  NRQ
+C      ME = 0
+C      MI = NRQ + NCOMP
+C#ELIF RNSF
+      N =  NCOMP + NMINQ
+      ME = 0
+      MI = NMINQ
+C#ENDIF
+
+      NEQ = N + ME + MI
+
+      NRPARM     = RPTR
+      RPTR_SOL   = RPTR + 1
+      RPTR_NEXT  = RPTR_SOL + NEQ
+      RWKSIZE    = DIMRWK - RPTR_NEXT + 1
+      IF (RWKSIZE.LE.0) GOTO 999
+
+C      
+C-----------------------------------------------------------------------
+C     UNPACK SOME PARAMETERS USED EXCLUSIVELY BY NIPS
+C-----------------------------------------------------------------------
+C
+C     /INTEGER/
+      
+      LOCH        = NIPSIPARM(1)
+      LOCWATER    = NIPSIPARM(2)
+      MAXITER     = NIPSIPARM(3)
+      NVIOL       = NIPSIPARM(4)
+      IDEALFLAG   = NIPSIPARM(5)
+      SCALEFLAG   = NIPSIPARM(6)
+      TESTSOLFLAG = NIPSIPARM(7)
+      INTERPFLAG  = NIPSIPARM(8)
+      HESSFLAG    = NIPSIPARM(9)
+
+      IF (IDEALFLAG.EQ.1) THEN
+         IDEAL = .TRUE.
+      ELSE
+         IDEAL = .FALSE.
+      ENDIF
+
+
+C     /REAL*8/
+
+      SIMTEMP   = NIPSRPARM(1)
+      PRESSURE  = NIPSRPARM(2)
+      RELTOL    = NIPSRPARM(3)
+      ALPHA     = NIPSRPARM(4)
+      TAUMIN    = NIPSRPARM(5)
+      RHO       = NIPSRPARM(6)
+
+
+C-----------------------------------------------------------------------
+C     WRITE VERSION INFORMATION ON DEBUG UNIT
+C-----------------------------------------------------------------------
+
+      IF (IDEBUG.GT.0) THEN
+C#IF UNSF 
+C         WRITE(DEBUGUNIT,1000)
+C#ELIF RNSF
+         WRITE(DEBUGUNIT,1100)
+C#ELIF SF
+C         WRITE(DEBUGUNIT,1200)
+C#ENDIF
+      ENDIF         
+
+C-----------------------------------------------------------------------
+C     PREPARE INITIAL GUESS FOR PRIMARY UNKNOWNS
+C-----------------------------------------------------------------------
+
+C#IF UNSF
+CC     THIS GUESS IS A VECTOR OF MOLENUMBERS
+C      DO I = 1,N
+C         RWK(RPTR_SOL + I - 1) = DMAX1(NVEC(I), 1.1*EPSCONC)
+C      ENDDO
+C#ELIF SF
+CC     THIS GUESS IS A VECTOR OF EXTENTS OF REACTION (ZERO)
+C      DO I = 1,N
+C         RWK(RPTR_SOL + I - 1) = ZERO
+C      ENDDO
+C#ELIF RNSF
+C
+C     THIS GUESS HAS TWO PARTS:
+C
+
+C     - COMPONENT-CONCENTRATIONS: NATURAL LOGARITHMS
+
+      DO I = 1,NCOMP
+C SLB  14/10/97 USE CONC AT PREVIOUS TIME STEP AS INITIAL GUESS
+C         IF (NVEC(I).LE.ZERO) THEN
+         IF (INITGUESS(I).LE.ZERO) THEN
+            IF ( IDEBUG .GE. 1 ) THEN
+              WRITE (DEBUGUNIT,*) ' INITGUESS(',I,') = ',
+     &                               INITGUESS(I)
+              WRITE (DEBUGUNIT,*) ' REPLACING IT WITH LN(X) = ',BIGEXP
+            ENDIF
+            RWK(RPTR_SOL + I - 1) = BIGEXP
+         ELSE
+C SLB  14/10/97 USE CONC AT PREVIOUS TIME STEP AS INITIAL GUESS
+C           RWK(RPTR_SOL + I - 1) = DLOG(NVEC(I))
+           RWK(RPTR_SOL + I - 1) = DLOG(INITGUESS(I))
+         ENDIF
+      ENDDO
+
+C     - EQUILIBRIUM MINERALS: CONCENTRATIONS
+
+      IND = RPTR_SOL + NCOMP - 1
+      DO I = 1,NR
+         IF ((REACTIONTYPE(I).EQ.0).AND.
+     &        (NPHASE(PHASEIDENTITY(NCOMP+I)).EQ.1)) THEN
+            IND = IND + 1
+C SLB  14/10/97 USE CONC AT PREVIOUS TIME STEP AS INITIAL GUESS
+C            RWK(IND) = DMAX1(NVEC(NCOMP+I), 1.1*EPSCONC)
+            RWK(IND) = DMAX1(INITGUESS(NCOMP+I), 1.1*EPSCONC)
+         ENDIF
+      ENDDO
+C#ENDIF
+
+
+C# IF RNSF
+C-----------------------------------------------------------------------
+C     CALL NLEQ PACKAGE
+C-----------------------------------------------------------------------
+C     WRITE(*,*) 'CALLING NLEQ..'
+      CALL NLEQ(RWK(RPTR_SOL),IWK(1),RWK(1),IWK(IPTR_NEXT),IWKSIZE,
+     &     RWK(RPTR_NEXT),RWKSIZE,RELTOL,ALPHA,TAUMIN,RHO,
+     &     MAXITER,NVIOL,SCALEFLAG,INTERPFLAG,IDEBUG,DEBUGUNIT,
+     &     ITERATIONS,IERROR)
+C#ELSE
+CC-----------------------------------------------------------------------
+CC     CALL NIPS PACKAGE TO SOLVE MINIMIZATION PROBLEM
+CC-----------------------------------------------------------------------
+CC     WRITE(*,*) 'CALLING NIPS..'
+C      CALL NIPS(RWK(RPTR_SOL),IWK(1),RWK(1),IWK(IPTR_NEXT),IWKSIZE,
+C     &     RWK(RPTR_NEXT),RWKSIZE,RELTOL,ALPHA,TAUMIN,RHO,
+C     &     MAXITER,NVIOL,SCALEFLAG,TESTSOLFLAG,INTERPFLAG,HESSFLAG,
+C     &     IDEBUG,DEBUGUNIT,ITERATIONS,IERROR)
+C#ENDIF
+
+      IF (IERROR.NE.0 .OR. ITERATIONS.EQ.0) RETURN
+
+C-----------------------------------------------------------------------
+C     POST-PROCESSING OF SOLUTION BEFORE RETURN
+C-----------------------------------------------------------------------
+
+C#IF UNSF
+CC     ALREADY IN MOLE-NUMBER FORMAT, JUST COPY INTO RETURNED VECTOR.
+C      
+C      CALL DCOPY(NSPECIES,RWK(RPTR_SOL),1,NVEC,1)
+C
+C#ELIF SF
+CC     USE COMPUTED EXTENTS-OF REACTIONS TO FIND CORRESPONDING 
+CC     MOLE-NUMBERS
+C
+C      CALL XSITOMOLES(NVEC,RWK(RPTR_N0),RWK(RPTR_SOL),
+C     &     RWK(RPTR_VQ),NSPECIES,NRQ)
+C#ELIF RNSF
+C     CONVERT FROM COMPUTATIONAL VARIABLES TO MOLENUMBERS
+C
+C     WRITE(*,*) 'CALLING COMPTOMOLES'
+      CALL COMPTOMOLES(NVEC,RWK(RPTR_SOL),NSPECIES,NCOMP,NR,NMINQ,
+     &     FORMULAMATRIX,MU,NPHASE,PHASEIDENTITY,REACTIONTYPE,
+     &     RWK(RPTR_NEXT),IWK(IPTR_NEXT))
+
+C#ENDIF
+
+
+      RETURN
+
+C-----------------------------------------------------------------------
+C     ERROR TRAP (WORKSPACE)
+C-----------------------------------------------------------------------
+
+ 998  WRITE(*,*)'OUT OF INTEGER WORKSPACE IN EQSTEP'
+      STOP
+ 999  WRITE(*,*)'OUT OF REAL*8 WORKSPACE IN EQSTEP'
+      STOP
+
+ 1000 FORMAT(/,'EQUILIBRIUM SUBSTEP, VERSION UNSF',/)
+ 1100 FORMAT(/,'EQUILIBRIUM SUBSTEP, VERSION RNSF',/)
+ 1200 FORMAT(/,'EQUILIBRIUM SUBSTEP, VERSION SF',/)
+
+      END
+
+
+C--------------------------------------------------------------------
+C COMPTOMOLES.F
+C
+C CONVERT FROM COMPUTATIONAL TO PHYSICAL VARIABLES. 
+C
+C--------------------------------------------------------------------
+
+      SUBROUTINE COMPTOMOLES(NVEC,X,NSPECIES,NCOMP,NR,NMINQ,
+     &     FORMULAMATRIX,MU0,NPHASE,PHASEIDENTITY,REACTIONTYPE,
+     &     PROD,LIST)
+
+      IMPLICIT NONE
+      INTRINSIC EXP
+
+      INTEGER NSPECIES,NCOMP,NR,NMINQ,I,IND,NPHASE(*),LIST(NR),
+     &     PHASEIDENTITY(NSPECIES),REACTIONTYPE(NR)
+
+      REAL*8 NVEC(NSPECIES),PROD(NR),X(NCOMP+NMINQ),
+     &     FORMULAMATRIX(NCOMP,NSPECIES),MU0(NSPECIES)
+
+      LOGICAL MINERAL
+
+C--------------------------------------------------------------------
+C     EVALUATE THE SECONDARY UNKNOWNS
+C--------------------------------------------------------------------
+
+      DO I = 1,NR
+         LIST(I) = 0
+      ENDDO
+
+      CALL MASSACTION(PROD,X,FORMULAMATRIX,MU0,LIST,NSPECIES,NCOMP,NR)
+
+C--------------------------------------------------------------------
+C     THE FIRST NCOMP UNKNOWNS ARE THE NATURAL LOGARITHMS OF THE
+C     COMPONENT-SPECIES CONCENTRATIONS
+C--------------------------------------------------------------------
+
+      DO I = 1,NCOMP
+         NVEC(I) = EXP(X(I))
+      ENDDO
+
+C--------------------------------------------------------------------
+C     THE PRODUCT SPECIES ARE EITHER:
+C
+C     (1) KINETIC  --> LEAVE UNCHANGED
+C     (2) REGULAR EQUILIBRIUM  --> USE MASS-ACTION EXPRESSION
+C     (3) MINERAL EQUILIBRIUM  --> PRIMARY VARIABLE
+C--------------------------------------------------------------------
+
+      IND = 0
+      DO I = 1,NR
+         IF (REACTIONTYPE(I).EQ.0) THEN
+            MINERAL = NPHASE(PHASEIDENTITY(NCOMP+I)).EQ.1
+            IF (MINERAL) THEN
+               IND = IND + 1
+               NVEC(NCOMP+I) = X(NCOMP+IND)
+            ELSE
+               NVEC(NCOMP+I) = PROD(I)
+            ENDIF
+         ENDIF
+      ENDDO
+
+
+      RETURN
+      END
+C--------------------------------------------------------------------
+C LINEARSOLVER.F
+C
+C SOLVE THE NEQ*NEQ LINEAR SYSTEM. 
+C--------------------------------------------------------------------
+C     
+C INPUTS:
+C 
+C JOB                    INDICATES WHETHER SYSTEM TO BE SOLVED 
+C                          IS SYMMETRIC (1) OR NOT (0)
+C                          ALGORITHM IS CHOSEN ACCORDINGLY.
+C DEBUG                  LOGICAL TO COMPUTE CONDITION NUMBER FOR DEBUGGING
+C                          PURPOSES
+C OUTUNIT                OUTPUT UNIT NUMBER FOR DEBUGGING INFO
+C
+C INPUT/OUTPUT:
+C
+C MATRIX(NEQ,NEQ)        ON CALL: MATRIX FOR LINEAR SYSTEM
+C                        ON RETURN: DESTROYED
+C
+C RHS(NEQ)               ON CALL: RIGHT-HAND SIDE FOR THE LINEAR SYSTEM
+C                        ON RETURN: THE COMPUTED SOLUTION
+C     
+C
+C OUTPUTS:
+C
+C RCOND                  APPROXIMATE CONDITION-NUMBER OF THE PROBLEM
+C     
+C --------------------------------------------------------------------
+C     
+
+      SUBROUTINE LINEARSOLVER(MATRIX,RHS,RCOND,JOB,DEBUG,
+     &     IWK,DIMIWK,RWK,DIMRWK,OUTUNIT)
+
+      IMPLICIT NONE
+      
+      INTEGER N,ME,MI,NEQ,NIPARAM,NRPARAM
+      INTEGER DIMIWK,DIMRWK,IWK(DIMIWK),JOB,INFO,OUTUNIT
+      LOGICAL DEBUG
+      REAL*8 MATRIX(NEQ,NEQ),RHS(NEQ),RWK(DIMRWK),RCOND
+
+      REAL*8 DLANGE ,DLANSY ,ANORM
+
+      COMMON /NIPS_SIZES/N,ME,MI,NEQ,NIPARAM,NRPARAM
+
+C
+C     ERROR TRAP
+C
+      IF (DIMRWK .LT. 4*NEQ .OR. DIMIWK .LT. 2*NEQ)  THEN
+         IF(DEBUG .OR. DIMRWK .LT. 4*NEQ .OR. DIMIWK .LT. NEQ) THEN
+            WRITE(*,*) 'INSUFFICIENT WORK-SPACE IN LINEARSOLVER'
+            STOP
+         ENDIF
+      ENDIF
+
+C     
+C     SOLVE THE LINEAR SYSTEM MATRIX*V = RHS 
+C     NOTE : RESULT IS STORED IN RHS. MATRIX IS OVERWRITTEN.
+C 
+CLINPACK      ('DGEFA(MATRIX,NEQ,NEQ,IWK(1),INFO)' ,
+CLINPACK      'DSIFA(MATRIX,NEQ,NEQ,IWK(1),INFO)' CAN ALSO BE USED.)
+C
+
+      IF (JOB.EQ.1) THEN
+CLINPACK        CALL DSICO(MATRIX,NEQ,NEQ,IWK(1),RCOND,RWK(1))
+CLINPACK        CALL DSISL(MATRIX,NEQ,NEQ,IWK(1),RHS)
+C
+C +++ SLB 10 FEB 98   CANT FIND CERTAIN ROUTINES ON CRAY :-(.  LEAVE THEM OUT!
+C
+        IF(.NOT.DEBUG) THEN
+           CALL DSYTRF ('U',NEQ,MATRIX,NEQ,IWK(1),RWK(1),4*NEQ,INFO)
+           CALL DSYTRS ('U',NEQ,1,MATRIX,NEQ,IWK(1),RHS,NEQ,INFO)
+         ELSE
+CCRAY       ANORM = DLANSY ('1','U',NEQ,MATRIX,NEQ,RWK(1))
+            CALL DSYTRF ('U',NEQ,MATRIX,NEQ,IWK(1),RWK(1),4*NEQ,INFO)
+            IF(INFO.NE.0) THEN
+               WRITE(OUTUNIT,*) "ERROR IN LAPACK(SYTRF):",INFO
+               IF(INFO.GT.0) WRITE(OUTUNIT,*) "  (SINGULAR MATRIX)"
+            ENDIF
+            CALL DSYTRS ('U',NEQ,1,MATRIX,NEQ,IWK(1),RHS,NEQ,INFO)
+            IF(INFO.NE.0)
+     &          WRITE(OUTUNIT,*) "ERROR IN LAPACK(SYTRS):",INFO
+CCRAY       CALL DSYCON ('U',NEQ,MATRIX,NEQ,IWK(1),ANORM,RCOND,RWK(1),
+CCRAY &          IWK(NEQ+1),INFO)
+CCRAY       IF(INFO.NE.0)
+CCRAY &          WRITE(OUTUNIT,*) "ERROR IN LAPACK(SYCON):",INFO
+        ENDIF
+      ELSE
+CLINPACK        CALL DGECO(MATRIX,NEQ,NEQ,IWK(1),RCOND,RWK(1))
+CLINPACK        CALL DGESL(MATRIX,NEQ,NEQ,IWK(1),RHS,0)
+
+        IF(.NOT.DEBUG) THEN
+           CALL DGETRF (NEQ,NEQ,MATRIX,NEQ,IWK(1),INFO)
+           CALL DGETRS ('N',NEQ,1,MATRIX,NEQ,IWK(1),RHS,NEQ,INFO)
+         ELSE
+CCRAY       ANORM = DLANGE ('1',NEQ,NEQ,MATRIX,NEQ,RWK(1))
+            CALL DGETRF (NEQ,NEQ,MATRIX,NEQ,IWK(1),INFO)
+            IF(INFO.NE.0) THEN
+               WRITE(OUTUNIT,*) "ERROR IN LAPACK(GETRF):",INFO
+               IF(INFO.GT.0) WRITE(OUTUNIT,*) "  (SINGULAR MATRIX)"
+            ENDIF
+            CALL DGETRS ('N',NEQ,1,MATRIX,NEQ,IWK(1),RHS,NEQ,INFO)
+            IF(INFO.NE.0)
+     &          WRITE(OUTUNIT,*) "ERROR IN LAPACK(GETRS):",INFO
+CCRAY       CALL DGECON ('1',NEQ,MATRIX,NEQ,ANORM,RCOND,
+CCRAY &          RWK(1),IWK(1),INFO)
+CCRAY       IF(INFO.NE.0)
+CCRAY &          WRITE(OUTUNIT,*) "ERROR IN LAPACK(GECON):",INFO
+        ENDIF
+C
+CLINPACK     (NOTE: IF CONDITION NUMBER IS NOT NEEDED, WE CAN INSTEAD 
+CLINPACK     FACTORIZE USING: 'CALL DGEFA(MATRIX,NEQ,NEQ,IWK(1),INFO)')
+C
+
+      ENDIF
+
+      RETURN
+      END	
+C--------------------------------------------------------------------
+C PHASEMOLES
+C
+C COMPUTE TOTAL MOLES OF EACH PHASE.
+C
+C INPUT:
+C
+C NVEC(NSPECIES)            COMPOSITION VECTOR
+C PI                        TOTAL NUMBER OF PHASES
+C NSPECIES                  TOTAL NUMBER OF SPECIES
+C PHASEIDENTITY(NSPECIES)   SPECIES PHASE-IDENTITY
+C
+C OUTPUT:
+C
+C NTOT(PI)                  TOTAL NUMBER OF MOLES IN EACH PHASE
+C                           (INCLUDING SINGLE-SPECIES PHASES)
+C
+C--------------------------------------------------------------------
+
+      SUBROUTINE PHASEMOLES(NTOT,NVEC,PI,NSPECIES,PHASEIDENTITY)
+
+      IMPLICIT NONE
+      INTEGER NSPECIES,PI,PHASEIDENTITY(NSPECIES),I,PHASE
+      REAL*8 NTOT(PI),NVEC(NSPECIES)
+
+      DO I = 1,PI
+         NTOT(I) = 0.0D0
+      ENDDO
+      
+      DO I = 1,NSPECIES
+         PHASE = PHASEIDENTITY(I)
+         NTOT(PHASE) = NTOT(PHASE) + NVEC(I)
+      ENDDO
+
+      RETURN
+      END
+C--------------------------------------------------------------------
+C XSITOMOLES.F
+C
+C COMPUTE MOLEVECTOR BASED ON EXTENTS-OF REACTION
+C--------------------------------------------------------------------
+C INPUT:
+C
+C N0(NSPECIES)      SOME COMPOSITION SATISFYING THE MASS-BALANCE
+C XSI(NRXN)         EXTENTS OF REACTION
+C V(NSPECIES,NRXN)  COLLECTION OF NRXN LINEARLY INDEPENDENT REACTION VECTORS
+C                   (NEED NOT BE THE ENTIRE STOICHIOMETRIC SUBSPACE)
+C
+C OUTPUT:
+C
+C N(NSPECIES)       NEW COMPOSITION
+C
+C ALGORITHM (DAXPY):
+C
+C N < --- N0 + V*XSI
+C
+C--------------------------------------------------------------------
+
+      SUBROUTINE XSITOMOLES(N,N0,XSI,V,NSPECIES,NRXN)
+      IMPLICIT NONE
+      INTEGER NSPECIES,NRXN,I,J
+      REAL*8 N(NSPECIES),N0(NSPECIES),V(NSPECIES,NRXN),XSI(NRXN)
+C
+C     COLUMN-ORIENTED
+C
+
+      DO I = 1,NSPECIES
+         N(I) = N0(I)
+      ENDDO
+
+      DO J = 1,NRXN
+         DO I = 1,NSPECIES
+            N(I)  = N(I) + V(I,J)*XSI(J)
+         ENDDO
+      ENDDO
+
+
+      RETURN
+      END

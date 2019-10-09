@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/repos/csm/!svn/ver/203/IPARSv3.1/trchem/data/hydro/multi_block/test1_hetK
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/data/hydro/multi_block/test1_hetK/IPARS.IN
+END
+barrierK.dat
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/data/hydro/multi_block/test1_hetK/barrierK.dat
+END
+trhmb2bBarrK.dat
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/repos/csm/!svn/ver/203/IPARSv3.1/trchem/data/hydro/multi_block/test1_hetK/trhmb2bBarrK.dat
+END
+barrierK2.dat
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/12/IPARSv3.1/trchem/data/hydro/multi_block/test1_hetK/barrierK2.dat
+END

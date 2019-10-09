@@ -1,0 +1,27 @@
+C  TFLUIDSC.H - IMPLICIT SINGLE PHASE FLOW FLUID PROPERTIES
+
+C  CODE HISTORY:
+
+C  BAHAREH MOMKEN  02/02/99  Hydrology-IMPES gfluidsc.h is used as template
+C  JOHN WHEELER    04/03/99  IMPLICIT SINGLE PHASE MODEL
+
+C*********************************************************************
+      REAL*4 FLCMP,STFLDEN,FLVIS,DINIT,PINIT
+      LOGICAL TPARABOLIC	
+      COMMON /TFLUIDS/FLCMP,STFLDEN,FLVIS,DINIT,PINIT,TPARABOLIC
+
+C*********************************************************************
+ 
+C  FLCMP = FLUID COMPRESSABILITY, 1/psi
+
+C  STFLDEN = FLUID DENSITY AT 0 PRESSURE, lb/cu-ft(STANDARD FLUID DENSITY)
+
+C  FLVIS  = FLUID VISCOSITY, cp
+
+C  DINIT  = INITIAL REFERENCE DEPTH, ft
+
+C  PINIT  = INITIAL FLUID PRESSURE AT REFERENCE DEPTH, psi
+
+C yerlan
+C  TPARABOLIC = USE d(P)/dt in TPROP instead of d(rho*phi)/dt
+

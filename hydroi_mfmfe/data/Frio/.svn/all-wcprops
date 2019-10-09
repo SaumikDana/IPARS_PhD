@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/538/IPARSv3.1/hydroi_mfmfe/data/Frio
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/csm/!svn/ver/538/IPARSv3.1/hydroi_mfmfe/data/Frio/IPARS.IN
+END
+mesh.dat
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/csm/!svn/ver/538/IPARSv3.1/hydroi_mfmfe/data/Frio/mesh.dat
+END
+poro.dat
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/csm/!svn/ver/538/IPARSv3.1/hydroi_mfmfe/data/Frio/poro.dat
+END
+keyout.dat
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/repos/csm/!svn/ver/538/IPARSv3.1/hydroi_mfmfe/data/Frio/keyout.dat
+END
+genmesh.f
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/repos/csm/!svn/ver/538/IPARSv3.1/hydroi_mfmfe/data/Frio/genmesh.f
+END
+perm.dat
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/csm/!svn/ver/538/IPARSv3.1/hydroi_mfmfe/data/Frio/perm.dat
+END
+hydro1.dat
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/repos/csm/!svn/ver/538/IPARSv3.1/hydroi_mfmfe/data/Frio/hydro1.dat
+END
+wells.dat
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/repos/csm/!svn/ver/538/IPARSv3.1/hydroi_mfmfe/data/Frio/wells.dat
+END

@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/stuttgart/StgP2/10x44x44
+END
+co2_prob2a.dat
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/stuttgart/StgP2/10x44x44/co2_prob2a.dat
+END
+co2_prob2b.dat
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/stuttgart/StgP2/10x44x44/co2_prob2b.dat
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/stuttgart/StgP2/10x44x44/IPARS.IN
+END

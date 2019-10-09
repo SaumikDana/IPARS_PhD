@@ -1,0 +1,893 @@
+/* mulgrdm.c - Memory Management Routines in C for multigrid in pemodel
+
+   HISTORY:
+
+   JOHN WHEELER       4/21/00   ORIGINAL BETA CODE
+   XIULI GAI          6/30/02   MORIDIFY IT FOR ELASTICITY
+
+   NOTES: ERROR NUMBERS 461-500 ARE RESERVED FOR MEMORY MANAGEMENT */
+
+// DATA
+
+#include "memory.h"
+
+#define EMAXLEVP  $MXPEMGL    /* Maximum number of multigrid levels */
+#define EMAXCOL   $MXCOLS/4   /* Maximum number of columns */
+
+int   enxgmg[EMAXLEVP][MAXBLK];  /* number of grid block in x direction*/  
+int   enygmg[EMAXLEVP][MAXBLK];  /* number of grid block in y direction*/
+int   enzgmg[EMAXLEVP][MAXBLK];  /* number of grid block in z direction*/
+int   eidimg[EMAXLEVP][MAXBLK];  /* array dimensions in x direction */
+int   ejdimg[EMAXLEVP][MAXBLK];  /* array dimensions in y direction */
+int   ekdimg[EMAXLEVP][MAXBLK];  /* array dimensions in z direction */
+int   eilmg1[EMAXLEVP][MAXBLK];  /* i index lower limit */
+int   eilmg2[EMAXLEVP][MAXBLK];  /* i index upper limit */
+int   ejlmg1[EMAXLEVP][MAXBLK];  /* j index lower limit */
+int   ejlmg2[EMAXLEVP][MAXBLK];  /* j index upper limit */
+int   eklmg1[EMAXLEVP][MAXBLK];  /* k index lower limit */
+int   eklmg2[EMAXLEVP][MAXBLK];  /* k index upper limit */
+int   emyelemg[EMAXLEVP][MAXBLK];/* number of element */
+
+PREAL8 edxmg[EMAXLEVP][MAXBLK];   /* pointers to dx array */
+PREAL8 edymg[EMAXLEVP][MAXBLK];   /* pointers to dy array */
+PREAL8 edzmg[EMAXLEVP][MAXBLK];   /* pointers to dz array */
+PREAL8 ebmg[EMAXLEVP][MAXBLK];    /* pointers to off diag. coef. array */
+PREAL8 edmg[EMAXLEVP][MAXBLK];    /* pointers to diag. coef. array */
+PREAL8 ermg[EMAXLEVP][MAXBLK];    /* pointers to residual array */
+PREAL8 eunkmg[EMAXLEVP][MAXBLK];  /* pointers to unknowns arrays */
+PREAL8 emdmg[EMAXLEVP][MAXBLK];   /* pointers to lame's constant array */   
+PREAL8 epsmg[EMAXLEVP][MAXBLK];   /* pointers to lame's constant array */
+PREAL8 eb2d[MAXBLK];              /* pointers to off diag. coef. arrary (2D)*/
+PREAL8 ed2d[MAXBLK];              /* pointers to diag. coef. arrary (2D)*/
+PREAL8 er2d[MAXBLK];              /* pointers to residual arrary (2D)*/
+PREAL8 eunk2d[MAXBLK];            /* pointers to unknown arrary (2D)*/
+
+PINT4  ekey2d[MAXBLK];            /* pointers to keyout array (2D)*/
+PINT4  ekeymg[EMAXLEVP][MAXBLK];  /* pointers to keyout arrays (local) */
+PINT4  ekeycrmg[EMAXLEVP][MAXBLK];/* pointers to corner point keyout array */
+PINT4  eznmg[EMAXLEVP][MAXBLK];   /* Pointers to zero node array */
+
+/* Note: On multiprocessor machines a grid element in a multigrid level 
+         will beint to the processor that owns the grid base location of 
+         the next finer level */
+
+/* Routine declaration: */
+
+FORTSUB $UPPERpedefblkmg$USAN  (PINT4 vnxg, PINT4 vnyg, PINT4 vnzg,
+               PINT4 mgl, PINT4 blknum, PINT4 err);
+
+FORTSUB $UPPERpedefgrdmg$USAN (PINT4 myprc, PINT4 vn0map, PINT4 vnymap, 
+               PINT4 vprcmap, PINT4 vn0mapmg, PINT2 vprcmapmg, PINT4 mgl, 
+               PINT4 peioffmg,PINT4 pejoffmg, PINT4 pekoffmg, PINT4 prec, 
+               PINT4 err);
+
+FORTSUB $UPPERpealcmga$USAN (PINT4 nmga, PINT4 neqs, PINT4 prec, PINT4 err);
+
+FORTSUB $UPPERpeworkmg0$USAN (FORTSUB (*subadd) (), PINT4 d);
+
+FORTSUB $UPPERpeworkmg1$USAN (FORTSUB (*subadd) ());                      
+
+FORTSUB $UPPERpeworkmg2$USAN (FORTSUB (*subadd) (), PINT4 mglfa);
+
+FORTSUB $UPPERpeworkmg3$USAN (FORTSUB (*subadd) (), PINT4 mgla);
+/**********************************************************************/
+FORTSUB  $UPPERpedefblkmg$USAN  (PINT4 vnxg, PINT4 vnyg, PINT4 vnzg,
+             PINT4 mgl, PINT4 blknum, PINT4 err) 
+{
+/*********************************************************************
+   Registers a subgrid of a block with the data management system.
+   This routine must be called for all blocks before any other
+   multigrid data-management routine is called.
+
+   vnxg = Number of grid elements in x direction for a block (input)
+   vnyg = Number of grid elements in y direction for a block (input)
+   vnzg = Number of grid elements in z direction for a block (input)
+
+   mgl  = Multigrid level (input)
+
+   blknum = Block number (modulo 1) (input)
+
+   err = Error number (output)
+       = 0 ==> no error
+       = 461 ==> max number of blocks exceeded      
+*********************************************************************/
+ int nb,mlev;
+ nb=(*blknum)-1;
+ mlev=(*mgl)-1;
+ enxgmg[mlev][nb] = max (1, *vnxg);
+ enygmg[mlev][nb] = max (1, *vnyg);
+ enzgmg[mlev][nb] = max (1, *vnzg);
+ *err = 0;
+ return;
+}
+
+/********************************************************************/
+FORTSUB $UPPERpedefgrdmg$USAN (PINT4 myprc, PINT4 vn0map, PINT4 vnymap,
+               PINT4 vprcmap, PINT4 vn0mapmg, PINT4 vprcmapmg, 
+               PINT4 mgl, PINT4 peioffmg, PINT4 pejoffmg, PINT4 pekoffmg,  
+               PINT4 prec, PINT4 err)
+{  
+/******************************************************************* 
+   Defines mulgrid scheme to be used. This routine must be called after
+   DIVIDE and before any calles to multigrid data mamagement and 
+   work routines.
+
+   input:
+     myprc = Active processor number (mod 0) 
+     vn0map = Pointers to N0MAP() on 3d grid 
+     vnymap = Pointers to NYMAP() on 3d grid 
+     vprcmap = Pointers to PRCMAP() on 3d grid 
+     vn0mapmg = Pointers to N0MAPMG() on 2d coarse grid 
+     vprcmapmg = Pointers to PRCMAPMG() on 2d coarse grid
+     mgl = Total number of multigrid levels
+     prec = Preconditioner number (input)
+
+   output:
+   peioffmg = Pointer to x direction local-global offset vector for myprc
+   pejoffmg = Pointer to y direction local-global offset vector for myprc
+   pekoffmg = Pointer to k direction local-global offset vector for myprc
+   err = Error number (output)
+       = 0 ==> No error
+       = 462 ==> Insufficient memory available         
+********************************************************************/
+  int nb, n, ne, nk, i, j, k, j1, j2, k1, k2, j2g, k2g, nm, jg, kg;
+  int jlg, klg, m, nint, i1, i2, nl, mlev, n0, ny, n0map, nymap, nprc;
+  int n0mapf,nymapf,nprcf,nf,jf,kf,iselem,j2gf,k2gf;
+
+  mynod = *myprc;
+  mlev = *mgl;
+
+/* initialize */
+
+  for (nb = 0; nb < numblks; nb++)
+    {
+    for (nl = 0; nl < EMAXLEVP; nl++)
+       {
+       eidimg[nl][nb] = 0;
+       ejdimg[nl][nb] = 0;
+       ekdimg[nl][nb] = 0;
+       eilmg1[nl][nb] = 2000000000;
+       eilmg2[nl][nb] = 0;
+       ejlmg1[nl][nb] = 2000000000;
+       ejlmg2[nl][nb] = 0;
+       eklmg1[nl][nb] = 2000000000;
+       eklmg2[nl][nb] = 0;
+       *(peioffmg + nl + nb * (EMAXLEVP)) = 0;
+       *(pejoffmg + nl + nb * (EMAXLEVP)) = 0;
+       *(pekoffmg + nl + nb * (EMAXLEVP)) = 0;
+ 
+       edxmg[nl][nb] = NULL;
+       edymg[nl][nb] = NULL;
+       edzmg[nl][nb] = NULL; 
+       ekeymg[nl][nb] = NULL;
+       }
+    }
+
+  for (nb = 0; nb < numblks; nb++) 
+    {
+    n0 = nb*EMAXLEVP; 
+    ny = nb*EMAXLEVP;
+    for (nl = 0; nl < mlev; nl++)
+      { 
+      if(nl==0) 
+        {
+        n0mapf = vn0map[nb];
+        nymapf = vnymap[nb];
+        j2gf = nyg[nb];
+        k2gf = nzg[nb];
+        }
+      else 
+        {
+        n0mapf = vn0mapmg[n0-1];
+        nymapf = enygmg[nl-1][nb];
+        j2gf = enygmg[nl-1][nb];
+        k2gf = enzgmg[nl-1][nb];
+        nprcf = (nl-1) * EMAXCOL;
+      }
+      n0map = vn0mapmg[n0++];
+      nymap = enygmg[nl][nb];
+      nprc = nl * EMAXCOL;
+      j1 = j2g = enygmg[nl][nb];
+      k1 = k2g = enzgmg[nl][nb];
+      j2 = k2 = 0;
+      ne = 0;
+      for (k = 0; k < k2g; k++)         
+         {
+         n = n0map + (k + 1) * enygmg[nl][nb];
+         kf = 2 * k;
+         nf = n0mapf + (kf + 1) * nymapf;
+         for (j = 0; j < j2g; j++)
+            {
+            jf = 2 * j;
+            iselem = 0;
+            if (vprcmapmg[nprc+n+j] == mynod)
+               iselem = 1;
+            else
+               {
+               if(nl==0) 
+                 {
+    
+                 if(jf+1<j2gf && vprcmap[nf+jf+1] == mynod) 
+                    iselem = 1;
+                 if(kf+1<k2gf && vprcmap[nf+jf+nymapf] == mynod) 
+                    iselem= 1; 
+                 if(jf+1<j2gf && kf+1<k2gf && 
+                    vprcmap[nf+jf+nymapf+1] == mynod)  
+                    iselem = 1; 
+                 }
+               else
+                 {
+                 if(jf+1<j2gf && vprcmapmg[nprcf+nf+jf+1] == mynod) 
+                    iselem = 1;
+                 if(kf+1<k2gf && vprcmapmg[nprcf+nf+jf+nymapf] == mynod) 
+                    iselem = 1;
+                 if(jf+1<j2gf && kf+1<k2gf &&
+                    vprcmapmg[nprcf+nf+jf+nymapf+1] == mynod) 
+                    iselem = 1;
+                 }
+               }
+            if(iselem == 1) 
+               {
+               ne++;
+               if (j < j1) j1 = j;
+               if (j > j2) j2 = j;
+               if (k < k1) k1 = k;
+               if (k > k2) k2 = k;
+               }
+            }
+       
+         }
+      
+      emyelemg[nl][nb] = ne;
+
+      if (ne > 0) 
+         {
+         if(*prec<=2) {
+            eidimg[nl][nb]=1;
+            eilmg1[nl][nb]=1;
+            eilmg2[nl][nb]=1;
+            }
+         else {
+            eidimg[nl][nb]=enxgmg[nl][nb] + max(1, 2 * layer[0]);
+            eilmg1[nl][nb] = layer[0] + 1;
+            eilmg2[nl][nb] = eidimg[nl][nb] - max(1, layer[0]);
+            }
+         ejdimg[nl][nb] = j2 - j1 + 1 + max(1, 2 * layer[1]);
+         ejlmg1[nl][nb] = layer[2] + 1;
+         ejlmg2[nl][nb] = ejdimg[nl][nb] - max(1,layer[2]);
+         ekdimg[nl][nb] = k2 - k1 + 1 + max(1, 2 * layer[2]);
+         eklmg1[nl][nb] = layer[2] + 1;
+         eklmg2[nl][nb] = ekdimg[nl][nb] - max(1,layer[2]);
+ 
+         *(peioffmg + nl + nb * (EMAXLEVP)) = -layer[0];    
+         *(pejoffmg + nl + nb * (EMAXLEVP)) = j1 - layer[1];
+         *(pekoffmg + nl + nb * (EMAXLEVP)) = k1 - layer[2];
+
+         nint = eidimg[nl][nb];
+         if ((edxmg[nl][nb] = (PREAL8) malloc(nint * sizeof(double))) == NULL)
+            return;
+         for (k = 0; k < nint; k++) *(edxmg[nl][nb] + k) = 0.0;
+
+         nint = ejdimg[nl][nb];
+         if ((edymg[nl][nb] = (PREAL8) malloc(nint * sizeof(double))) == NULL)
+            return;
+         for (k = 0; k < nint; k++) *(edymg[nl][nb] + k) = 0.0;
+
+         nint = ekdimg[nl][nb];
+         if ((edzmg[nl][nb] = (PREAL8) malloc(nint * sizeof(double))) == NULL)
+            return;
+         for (k = 0; k < nint; k++) *(edzmg[nl][nb] + k) = 0.0;
+
+         nint = eidimg[nl][nb]*ejdimg[nl][nb]*ekdimg[nl][nb];
+         if ((ekeymg[nl][nb] = (PINT4) malloc(nint * sizeof(int))) == NULL)
+            return;
+         for (k = 0; k < nint; k++) *(ekeymg[nl][nb] + k) = 0;
+
+         jlg = *(pejoffmg + nl + nb * (EMAXLEVP)) + 1;
+         klg = *(pekoffmg + nl + nb * (EMAXLEVP)) + 1;
+         i1 = eilmg1[nl][nb] - 1;
+         i2 = eilmg2[nl][nb] - 1;
+         j1 = ejdimg[nl][nb];
+         j2 = 0;
+
+         for (k = 0, kg = klg; k < ekdimg[nl][nb]; k++, kg++)
+            {
+            if ((kg > 0) && (kg <= k2g))
+               {
+               nk = n0map + nymap * kg - 1;
+               for (j = 0, jg = jlg; j < ejdimg[nl][nb]; j++, jg++)
+                  {
+                  if ((jg > 0) && (jg <= j2g))
+                     {
+                     if (vprcmapmg[nprc+ nk + jg] == mynod)
+                        {
+                        m = 1;
+                        if (j < j1) j1 = j;
+                        if (j > j2) j2 = j;
+                        }
+                     else
+                        {
+                        if (vprcmapmg[nprc+ nk + jg] < 0)
+                           m = 0;
+                        else
+                           m = -1;
+                        }
+                     nm =  eidimg[nl][nb] * (j + ejdimg[nl][nb] * k);
+                     for (i = i1; i <= i2; i++)
+                        *(ekeymg[nl][nb] + nm + i) = m;
+                     }
+                  }
+               }
+            }
+         }
+      else
+         {
+         eidimg[nl][nb] = 0;                                     
+         ejdimg[nl][nb] = 0;
+         ekdimg[nl][nb] = 0;
+         eilmg1[nl][nb] = 0;
+         eilmg2[nl][nb] = 0;
+         eklmg1[nl][nb] = 0;
+         eklmg2[nl][nb] = 0;
+
+         *(peioffmg + nl + nb * (EMAXLEVP)) = 0;          
+         *(pejoffmg + nl + nb * (EMAXLEVP)) = 0;
+         *(pekoffmg + nl + nb * (EMAXLEVP)) = 0;
+         }    
+      }
+   }  
+
+   return;
+}
+
+/*********************************************************************/
+FORTSUB $UPPERpealcmga$USAN (PINT4 nmga, PINT4 neqs, PINT4 prec, PINT4 err)
+{
+/*********************************************************************
+
+ 2d coarse grid-element array creation for a multigrid linear solver
+ Call this routine after PEDIVIDE but before calling any multigrid
+ work routines with reference to the array.
+
+ input:
+   nmga = Number of multigrid levels (levels) 
+          nmga+1 arrays will be created for the coasest grid level          
+   neqs = Number of equations in block b 
+   prec = Preconditioner number 
+
+ output:
+   err = Error number (output)
+       = 0 ==> no error
+       = 462 ==> insufficient memory
+*********************************************************************/
+  int eq,nmgl;
+  int nl,nb,idc,jdc,kdc,nm,ijk,i,k;
+
+  nmgl=*nmga;
+  eq=*neqs;
+  *err = 462;
+
+/* Initialize data */
+
+  for (nb = 0; nb < numblks; nb++)
+    {
+    for (nl = 0; nl < EMAXLEVP; nl++)
+      {
+      ebmg[nl][nb] = NULL; 
+      edmg[nl][nb] = NULL;
+      ermg[nl][nb] = NULL;
+      eunkmg[nl][nb] = NULL;
+      emdmg[nl][nb] = NULL;
+      epsmg[nl][nb] = NULL;
+      eznmg[nl][nb] = NULL;
+      ekeycrmg[nl][nb] = NULL;
+      }
+    eb2d[nb] = NULL;
+    ed2d[nb] = NULL;
+    er2d[nb] = NULL;
+    eunk2d[nb] = NULL;
+    ekey2d[nb] = NULL;
+    }
+
+// Allocate space and clear it
+  for (nb = 0; nb < numblks; nb++)
+    {
+    if (myelem[nb] > 0)
+      { 
+      for (nl = 0; nl < nmgl; nl++)
+         {
+         if (emyelemg[nl][nb]>0 ) {
+         idc = eidimg[nl][nb];
+         jdc = ejdimg[nl][nb];
+         kdc = ekdimg[nl][nb];
+
+         ijk = idc*jdc*kdc;
+
+         if(*prec<=2) 
+            {
+             nm = 4 * eq * eq * ijk;
+            }
+         else
+            {
+             nm = 13 * eq * eq * ijk;
+            }
+
+         if ((ebmg[nl][nb] = (PREAL8) malloc(nm * sizeof(double))) == NULL)
+            return;
+
+         for (k = 0; k < nm; k++) *(ebmg[nl][nb] + k) = 0.0;
+
+         nm = eq * (eq + 1) / 2 * ijk;
+         if ((edmg[nl][nb] = (PREAL8) malloc(nm * sizeof(double))) == NULL)
+            return;
+         for (k = 0; k < nm; k++) *(edmg[nl][nb] + k) = 0.;
+
+         nm = eq * ijk;
+         if ((ermg[nl][nb] = (PREAL8) malloc(nm * sizeof(double))) == NULL)
+            return;
+         for (k = 0; k < nm; k++) *(ermg[nl][nb] + k) = 0.;
+
+         if ((eunkmg[nl][nb] = (PREAL8) malloc(nm * sizeof(double))) == NULL)
+            return;
+         for (k = 0; k < nm; k++) *(eunkmg[nl][nb] + k) = 0.;
+
+         nm = ijk;
+
+         if ((emdmg[nl][nb] = (PREAL8) malloc(nm * sizeof(double))) == NULL)
+            return;
+         for (k = 0; k < nm; k++) *(emdmg[nl][nb] + k) = 0.;
+
+         if ((epsmg[nl][nb] = (PREAL8) malloc(nm * sizeof(double))) == NULL)
+            return;
+         for (k = 0; k < nm; k++) *(epsmg[nl][nb] + k) = 0.;
+
+         if ((eznmg[nl][nb] = (PINT4) malloc(nm * sizeof(int))) == NULL)
+            return;
+         for (k = 0; k < nm; k++) *(eznmg[nl][nb] + k) = 0;
+
+         if ((ekeycrmg[nl][nb] = (PINT4) malloc(nm * sizeof(int))) == NULL)
+            return;
+         for (k = 0; k < nm; k++) *(ekeycrmg[nl][nb] + k) = 0;
+         }
+        } //end if (emyelemg[nl][nb]>0)
+
+      ijk=idim[nb]*jdim[nb]*kdim[nb];
+      nm= 4 * eq * eq *ijk; 
+      if ((eb2d[nb] = (PREAL8) malloc(nm * sizeof(double))) == NULL)
+            return;
+      for (k = 0; k < nm; k++) *(eb2d[nb] + k) = 0.;
+
+      nm = eq * (eq+1)/2 * ijk;
+      if ((ed2d[nb] = (PREAL8) malloc(nm * sizeof(double))) == NULL)
+            return;
+      for (k = 0; k < nm; k++) *(ed2d[nb] + k) = 0.;
+
+      nm = eq * ijk;
+      if ((er2d[nb] = (PREAL8) malloc(nm * sizeof(double))) == NULL)
+            return;
+      for (k = 0; k < nm; k++) *(er2d[nb] + k) = 0.;
+
+      nm = eq * ijk;
+      if ((eunk2d[nb] = (PREAL8) malloc(nm * sizeof(double))) == NULL)
+            return;
+      for (k = 0; k < nm; k++) *(eunk2d[nb] + k) = 0.;
+     
+      nm = ijk;
+      if ((ekey2d[nb] = (PINT4) malloc(nm * sizeof(int))) == NULL)
+         return;
+      for (k = 0; k < nm; k++) *(ekey2d[nb] + k) = 0;
+
+      }
+    }
+    *err = 0;
+    return;
+}
+
+/**********************************************************************/
+FORTSUB $UPPERpeworkmg0$USAN (FORTSUB (*subadd) (), PINT4 d)
+{
+/**********************************************************************
+ Calls a multigrid work routine that involves elements of a 3d grid
+ and the 2d grid.
+
+ input:
+   subadd = Name of the work routine 
+   d = Array number of the 3d grid element array
+
+ Augument of the work routine:
+
+   IDIM,JDIM,KDIM = Local grid element dimensions of a 3d array.   
+
+   LDIM = The first dimension of grid-refinement arrays 
+
+   IL1,IL2 = The smallest and largest local 3d I indexes for which the work
+              routine is responsible 
+
+   JL1V(K),JL2V(K) = the smallest and largest local 3d J indexes for which
+              the work routine is responsible in row K. 
+
+   KL1, KL2 = The smallest and largest local 3d K indexes for which the work
+              routine is responsible 
+
+   KEYOUT(I,J,K) = A 3d array defining element type.  Local indexes are
+              used as subscripts for KEYOUT. 
+              0  ==> The grid element does not exist. It may be outside 
+                     the boundary of the reservoir or may represent a shale.
+              1  ==> The grid element exists and belongs to the current 
+                     processor. The element is not refined.
+             -1  ==> The grid element exists but belongs to a neighboring 
+                     processor. The element is not refined.
+
+   NBLK = Grid-block number 
+
+   KEY2D(J,K) = A 2d array defineing 2d element type, as KEYOUT(I,J,K)
+
+   BCOF2D(M,L,J,K) = Off diagonal coef. of the 2d grid matrix
+
+   DCOF2D(L,J,K) = Diagonal coef. of the 2d grid matrix.
+
+   R2D(J,K,L) = Residuals on the 2d grid
+   X2D(J,K,L) = Unknown values on the 2d grid
+***********************************************************************/
+  int nbp;
+  int  nb,mgl;
+  void **a;
+  int narg;
+  narg = d[0]+17;
+
+  for (nb = 0; nb < numblks; nb++){
+   if ((CurrentModel == 0 || CurrentModel == blkmodel_c[nb])
+      && (myelem[nb] > 0) )
+      {
+      nbp=nb+1;
+      a = &(aryadd[nb][0]);
+      switch(narg)
+         {
+         case 17:
+            (*subadd) (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&dimr,
+               &(iloc1[nb]),&(iloc2[nb]),jloc1[nb],jloc2[nb],
+               &(kloc1[nb]),&(kloc2[nb]),keyout[nb],&nbp,ekey2d[nb],
+               eb2d[nb],ed2d[nb],er2d[nb],eunk2d[nb]);
+            break;
+
+         case 18:
+            (*subadd) (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&dimr,
+               &(iloc1[nb]),&(iloc2[nb]),jloc1[nb],jloc2[nb],
+               &(kloc1[nb]),&(kloc2[nb]),keyout[nb],&nbp,ekey2d[nb],
+               eb2d[nb],ed2d[nb],er2d[nb],eunk2d[nb],*(a+d[1]));
+            break;
+
+         case 19:
+            (*subadd) (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&dimr,
+               &(iloc1[nb]),&(iloc2[nb]),jloc1[nb],jloc2[nb],
+               &(kloc1[nb]),&(kloc2[nb]),keyout[nb],&nbp,ekey2d[nb],
+               eb2d[nb],ed2d[nb],er2d[nb],eunk2d[nb],*(a+d[1]),
+               *(a+d[2]));
+            break;
+
+         case 20:
+            (*subadd) (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&dimr,
+               &(iloc1[nb]),&(iloc2[nb]),jloc1[nb],jloc2[nb],
+               &(kloc1[nb]),&(kloc2[nb]),keyout[nb],&nbp,ekey2d[nb],
+               eb2d[nb],ed2d[nb],er2d[nb],eunk2d[nb],*(a+d[1]),
+               *(a+d[2]),*(a+d[3]));
+            break;
+
+         case 21:
+            (*subadd) (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&dimr,
+               &(iloc1[nb]),&(iloc2[nb]),jloc1[nb],jloc2[nb],
+               &(kloc1[nb]),&(kloc2[nb]),keyout[nb],&nbp,ekey2d[nb],
+               eb2d[nb],ed2d[nb],er2d[nb],eunk2d[nb],*(a+d[1]),
+               *(a+d[2]),*(a+d[3]),*(a+d[4]));
+            break;
+
+         case 22:
+            (*subadd) (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&dimr,
+               &(iloc1[nb]),&(iloc2[nb]),jloc1[nb],jloc2[nb],
+               &(kloc1[nb]),&(kloc2[nb]),keyout[nb],&nbp,ekey2d[nb],
+               eb2d[nb],ed2d[nb],er2d[nb],eunk2d[nb],*(a+d[1]),
+               *(a+d[2]),*(a+d[3]),*(a+d[4]),*(a+d[5]));
+            break;
+
+         case 23:
+            (*subadd) (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&dimr,
+               &(iloc1[nb]),&(iloc2[nb]),jloc1[nb],jloc2[nb],
+               &(kloc1[nb]),&(kloc2[nb]),keyout[nb],&nbp,ekey2d[nb],
+               eb2d[nb],ed2d[nb],er2d[nb],eunk2d[nb],*(a+d[1]),
+               *(a+d[2]),*(a+d[3]),*(a+d[4]),*(a+d[5]),*(a+d[6]));
+            break;
+
+         case 24:
+            (*subadd) (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&dimr,
+               &(iloc1[nb]),&(iloc2[nb]),jloc1[nb],jloc2[nb],
+               &(kloc1[nb]),&(kloc2[nb]),keyout[nb],&nbp,ekey2d[nb],
+               eb2d[nb],ed2d[nb],er2d[nb],eunk2d[nb],*(a+d[1]),
+               *(a+d[2]),*(a+d[3]),*(a+d[4]),*(a+d[5]),*(a+d[6]),
+               *(a+d[7]));
+            break;
+
+         default:
+            break;
+         }
+      }
+   }
+ return;
+}
+
+/*******************************************************************/
+FORTSUB $UPPERpeworkmg1$USAN (FORTSUB (*subadd) ())
+{
+/*******************************************************************
+ Calls a multigrid work routine that involves elements of the 2d grid       
+ the first level 2d coarse grid.
+
+ Input:
+   subadd = Name of the work routine 
+
+ Argument in the peworkmg1 routine:
+
+   IDIM,JDIM,KDIM = local grid element dimensions of a 3d array.
+
+   LDIM = The first dimension of grid-refinement arrays 
+
+   IL1,IL2 = The smallest and largest local 3d I indexes for which the work
+              routine is responsible.
+
+   JL1V(K),JL2V(K) = the smallest and largest local 3d J indexes for which
+              the work routine is responsible in row K. 
+
+   KL1, KL2 = The smallest and largest local 3d K indexes for which the work
+              routine is responsible 
+
+   KEYOUT(I,J,K) = A 3d array defining element type.  Local indexes are
+              used as subscripts for KEYOUT.
+              0  ==> The grid element does not exist. It may be outside
+                     the boundary of the reservoir or may represent a shale.
+              1  ==> The grid element exists and belongs to the current
+                     processor. The element is not refined.
+             -1  ==> The grid element exists but belongs to a neighboring
+                     processor. The element is not refined.
+   NBLK = Grid-block number 
+
+   IDMG,JDMG,KDMG = Local grid element dimensions of the first level 2d 
+                    coarse grid array
+
+   IMG1,IMG2 = The smallest and largest local I indexes for which the work
+               routine is responsible for the first level coarse grid
+               for 2d coarse grid, IMG1=IMG2=1. 
+
+   JMG1,JMG2 = The smallest and largest local J indexes for which the work
+               routine is responsible for the first level coarse grid
+
+   KMG1,KMG2 = The smallest and largest local K indexes for which the work
+               routine is responsible for the first level coarse grid
+
+   KEYMG(IC,JC,KC) = Keyout values for the first level coarse grid element
+
+   KEYCRMG(IC,JC,KC) = Keyout values for corner points on the first coarse
+                       grid level
+ 
+   EZNMG(IC,JC,KC) = Flag of turning on/off elastic calculation a grid
+                     node of the first 2d coarse grid level
+ 
+   EBMB(L,M,IC,JC,KC) = Off diagonal coef. of the first level 2d coarse
+                        grid matrix
+
+   EDMAG(L,IC,JC,KC) = Diagonal coef. of the first level 2d coarse grid matrix
+
+   ERMG(L,IC,JC,KC) = Residuals of the first level 2d coarse grid
+
+   EUNKMG(L,IC,JC,KC) = Unknown values of the first level 2d coarse grid
+
+   KEY2D(J,K) = A 2d array defineing 2d element type, as KEYOUT(I,J,K)
+
+   BCOF2D(M,L,J,K) = Off diagonal coef. of the 2d grid matrix
+
+   DCOF2D(L,J,K) = Diagonal coef. of the 2d grid matrix.
+
+   R2D(J,K,L) = Residuals on the 2d grid   
+
+   X2D(J,K,L) = Unknown values on the 2d grid
+******************************************************************/
+  int nbp;
+  int  nb,mgl;
+  mgl=0;
+  for (nb = 0; nb < numblks; nb++)
+    {
+   if ((CurrentModel == 0 || CurrentModel == blkmodel_c[nb])
+      && (myelem[nb] > 0) )
+       {
+       nbp = nb + 1;
+       (*subadd) (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&dimr,
+           &(iloc1[nb]),&(iloc2[nb]),jloc1[nb],jloc2[nb],
+           &(kloc1[nb]),&(kloc2[nb]),keyout[nb],&nbp,
+           &(eidimg[mgl][nb]),&(ejdimg[mgl][nb]),&(ekdimg[mgl][nb]),
+           &(eilmg1[mgl][nb]),&(eilmg2[mgl][nb]),
+           &(ejlmg1[mgl][nb]),&(ejlmg2[mgl][nb]),
+           &(eklmg1[mgl][nb]),&(eklmg2[mgl][nb]),
+           ekeymg[mgl][nb],
+           ekeycrmg[mgl][nb],eznmg[mgl][nb],
+           emdmg[mgl][nb],epsmg[mgl][nb],ebmg[mgl][nb],
+           edmg[mgl][nb],ermg[mgl][nb],eunkmg[mgl][nb],ekey2d[nb],
+           eb2d[nb],ed2d[nb],er2d[nb],eunk2d[nb]);
+       }
+    }
+  return;
+}
+/*********************************************************************/
+FORTSUB $UPPERpeworkmg2$USAN (FORTSUB (*subadd) (), PINT4 mglfa)
+{
+/*********************************************************************
+ Calls a multigrid work routine that involves elements of two 2d coarse
+ grid levels
+
+ Input:
+   subadd = Name of the work routine 
+   mglfa = Multigrid level of the fine grid.
+
+ Argument in the peworkmg1 routine:
+
+   MGLV = Multigrid level of the fien grid
+  
+   NBLK = Grid-block number 
+
+   IDMG,JDMG,KDMG = Local grid element dimensions of a 2d coarse grid array
+               
+   IDMGC,JDMGC,KDMGC = Local grid element dimensions of the next 2d coarser
+                       grid array
+
+   IDMGC,JDMGC,KDMGC = Local grid element dimensions of the
+
+   IMG1,IMG2 = The smallest and largest local I indexes for which the work
+               routine is responsible for a 2d coarse grid, IMG1=IMG2=1.
+
+   JMG1,JMG2 = The smallest and largest local J indexes for which the work
+               routine is responsible for a 2d coarse grid.
+
+   KMG1,KMG2 = The smallest and largest local K indexes for which the work
+               routine is responsible for a 2d coarse grid
+
+   IMG1C,IMG2C = The smallest and largest local I indexes for which the work
+               routine is responsible for the next 2d coarser grid,IMG1=IMG2=1.
+
+   JMG1C,JMG2C = The smallest and largest local J indexes for which the work
+               routine is responsible for the next 2d coarser grid.
+
+   KMG1C,KMG2C = The smallest and largest local K indexes for which the work
+               routine is responsible for the next 2d coarser grid
+
+   KEYMG(I,J,K) = Keyout values for a 2d coarse level elements
+
+   KEYMGC(IC,JC,KC) = Keyout values for the next 2d coarser level elements
+    
+   KEYCRMG(I,J,K) = Keyout values for corner points on a 2d coarse grid
+  
+   KEYCRMGC(IC,JC,KC) = Keyout values for corner points on the next 2d
+                        coarser grid
+   EZNMG(I,J,K) = Elastic calculation flag on a 2d coarse grid
+
+   EZNMGC(IC,JC,KC) = Elastic calculation flag on the next 2d coarser grid
+
+   EBMG(L,M,I,J,K) = Off diagonal coef. of a 2d coarse grid matrix
+
+   EBMGC(L,M,IC,JC,KC) = Off diagonal coef. of the matxi on the next 2d
+                         coarser level
+   EDMG(L,I,J,K) = Diagonal coef. of a 2d coarse grid matrix
+   
+   EDMGC(L,IC,JC,KC) = Diagonal coef. of the matrix on the next 2d 
+                       coarser level
+   
+   ERMG(L,I,J,K) = Residuals on a 2d coarse grid
+  
+   ERMGC(L,IC,JC,KC) = Residuals on the next 2d coarser grid
+
+   EUNKMG(L,I,J,K) = Unknown values on a 2d coarse grid
+
+   EUNKMGC(L,IC,JC,KC) = Unknown values on the next 2d coarser grid  
+*******************************************************************/
+  int nbp, mglf, mglc;
+  int  nb;
+
+  mglf = (*mglfa) - 1;
+  mglc = mglf + 1;
+
+  for (nb = 0; nb < numblks; nb++)
+    {
+    if ((CurrentModel == 0 || CurrentModel == blkmodel_c[nb])
+      && (myelem[nb] > 0) && (emyelemg[mglc][nb]>0)
+      && (emyelemg[mglf][nb]>0))
+      {
+      nbp = nb + 1;
+      (*subadd) (mglfa,&nbp,
+            &(eidimg[mglf][nb]),&(ejdimg[mglf][nb]),&(ekdimg[mglf][nb]),
+            &(eidimg[mglc][nb]),&(ejdimg[mglc][nb]),&(ekdimg[mglc][nb]),
+            &(eilmg1[mglf][nb]),&(eilmg2[mglf][nb]),
+            &(ejlmg1[mglf][nb]),&(ejlmg2[mglf][nb]),
+            &(eklmg1[mglf][nb]),&(eklmg2[mglf][nb]),
+            &(eilmg1[mglc][nb]),&(eilmg2[mglc][nb]),
+            &(ejlmg1[mglc][nb]),&(ejlmg2[mglc][nb]),
+            &(eklmg1[mglc][nb]),&(eklmg2[mglc][nb]),
+            ekeymg[mglf][nb],ekeymg[mglc][nb],
+            ekeycrmg[mglf][nb],ekeycrmg[mglc][nb],
+            eznmg[mglf][nb], eznmg[mglc][nb],
+            emdmg[mglf][nb], emdmg[mglc][nb],
+            epsmg[mglf][nb], epsmg[mglc][nb],
+            ebmg[mglf][nb],  ebmg[mglc][nb],
+            edmg[mglf][nb],  edmg[mglc][nb],
+            ermg[mglf][nb],  ermg[mglc][nb],
+            eunkmg[mglf][nb],  eunkmg[mglc][nb]);
+      }
+   }
+return;
+}
+
+/*********************************************************************/
+FORTSUB $UPPERpeworkmg3$USAN (FORTSUB (*subadd) (), PINT4 mgla)
+{
+/*********************************************************************
+ Calls a multigrid work routine that involve elements of one 2d coarse
+ grid level
+
+ Input:
+   subadd = Name of the work routine 
+   mgla = Multigrid level 
+
+ Arguments in the peworkmg3 routine:
+
+   MGLV = Multigrid level
+
+   NBLK = Grid block number
+
+   IDMGC,JDMGC,KDMGC = Local grid element dimensions of the
+
+   IMG1,IMG2 = The smallest and largest local I indexes for which the work
+               routine is responsible for a 2d coarse grid, IMG1=IMG2=1.
+
+   JMG1,JMG2 = The smallest and largest local J indexes for which the work
+               routine is responsible for a 2d coarse grid.
+
+   KMG1,KMG2 = The smallest and largest local K indexes for which the work
+               routine is responsible for a 2d coarse grid
+
+   KEYMG(I,J,K) = Keyout values for a 2d coarse level elements
+
+   KEYCRMG(I,J,K) = Keyout values for corner points on a 2d coarse grid
+
+   EZNMG(I,J,K) = Elastic calculation flag on a 2d coarse grid
+
+   EBMG(L,M,I,J,K) = Off diagonal coef. of a 2d coarse grid matrix
+
+   EDMG(L,I,J,K) = Diagonal coef. of a 2d coarse grid matrix
+
+   ERMG(L,I,J,K) = Residuals on a 2d coarse grid
+
+   EUNKMG(L,I,J,K) = Unknown values on a 2d coarse grid
+*******************************************************************/
+  int nbp, mgl;
+  int  nb;
+
+  mgl = (*mgla) - 1;
+
+  for (nb = 0; nb < numblks; nb++)
+    {
+    if ((CurrentModel == 0 || CurrentModel == blkmodel_c[nb])
+       && (myelem[nb] > 0) )
+       {
+       nbp = nb + 1;
+       (*subadd) (mgla,&nbp,&(eidimg[mgl][nb]),&(ejdimg[mgl][nb]),
+                 &(ekdimg[mgl][nb]),
+                 &(eilmg1[mgl][nb]),&(eilmg2[mgl][nb]),
+                 &(ejlmg1[mgl][nb]),&(ejlmg2[mgl][nb]),
+                 &(eklmg1[mgl][nb]),&(eklmg2[mgl][nb]),
+                 edxmg[mgl][nb],edymg[mgl][nb],edzmg[mgl][nb],
+                 ekeymg[mgl][nb],ekeycrmg[mgl][nb],
+                 eznmg[mgl][nb],emdmg[mgl][nb],epsmg[mgl][nb],
+                 ebmg[mgl][nb],edmg[mgl][nb],ermg[mgl][nb],
+                 eunkmg[mgl][nb]);
+
+      }
+   }
+return;
+}
+
+

@@ -1,0 +1,1108 @@
+                                Appendix A
+                       Keyword Input Specification
+
+                       John Wheeler        2/15/99
+
+   I. General
+
+      A.  Free-form keyword input will be used for direct data input to
+          the computation stage of the simulator.  It will be an ASCII
+          file since it will often be transmitted between platforms.  The
+          user may employ a graphical front end to the simulator or any
+          ASCII editor to prepare the file.  All noninteractive input to
+          the simulator except for restart files will be read by the
+          keyword input processor.
+
+      B.  Code that reads the keyword file is written in FORTRAN77 and is
+          machine independent.  Code that prepares the file may be written
+          in any language and typically will be machine dependent.
+
+      C.  The keyword input will be divided into two modules, an initial
+          data module and one or more transient modules.  Within a module,
+          the order of data input will be free-form in the sense that the
+          order in which the simulator reads variables will be independent
+          of the order in which variables appear in the keyword file.  The
+          initial data module must precede all transient data modules.
+          Module initiators and terminators are:
+          EndInitial
+          BeginTime   time
+          EndTime
+          The main body of the simulator will read the BeginTimeData
+          record which includes the simulation time at which the next
+          transient data module is to be read and implemented.  The input
+          package will read the terminator records.
+
+      D.  The input processor will have the ability to "include" other
+          files as part of the input.  Includes may not be nested. The
+          format for an include statement is
+          Include= filename
+          No data other than a comment may appear in an include record.
+
+      E.  In general, the body of the simulator will provide default data
+          for variables in the keyword input.  Exceptions to this rule
+          will be clearly documented.
+
+ II.  Rules for free-form key-word input.
+
+      A.  Free-form key-word input is easy to use.  The user simply enters
+          the name of variable and follows it with the data he wants to
+          assign to the variable.  An equal sign between the variable name
+          and the data is optional.  Variables may be entered in any
+          order.  For example,
+
+          SW = .3   POROSITY=.25   YPERM .2E-3    ANISOTROPIC = FALSE
+          PLOT      TITLE = "CASE 3B"       POINT(5) = 2.34  4.56
+
+      B.  Each variable is identified by a name beginning with an
+          alphabetic character.  A variable name must be be preceded by a
+          blank or comma, or be the first entry on a record.  A variable
+          name is terminated by a space, an equal sign, a comma, a left
+          parenthesis, or end of record. If a variable is defined more
+          than once, the last definition will prevail. Only capital
+          letters and numbers may be used in variable names.  If a
+          variable name does not appear in the input, then the variable
+          remains set to its default value (if provided by the application
+          program).
+
+      C.  A numeric, character, or logical variable name must be followed
+          by one or more data entries.  The number of data entries must be
+          consistent with the variable definition.  A flag variable may
+          not be followed by data; only the presence or absence of the
+          variable will be noted by the input processor.  For example the
+          numeric variable XMAX will be set equal to 6. and the flag
+          variable PLOT will set to TRUE by the input:
+
+          XMAX = 6.  PLOT
+
+      D.  Each data entry must be separated from other data entries and
+          succeeding variable names by a comma, blank(s), and/or an end of
+          record.  A data entry or variable name may not be split between
+          records.  A series of data entries may be distributed over as
+          many records as desired.
+
+      E.  Numeric data entries may have any one of the forms:
+          SN     SN.     SN.N     SNESN     SN.ESN     SN.NESN
+          where   N = a string of integers
+                  S = sign (+ is optional)
+                  E = power of 10 flag
+          There is no distinction between integers and reals in data
+          entries. Decimal entries associated with integer variables will
+          be truncated. Blank spaces may not appear between the first and
+          last character of a numeric entry.  Examples of numeric data
+          are:
+
+          2  -2  +2  2.  2.345  -2E3  2.34E-5  -2.34E+5
+
+      F.  A logical data entry must be either TRUE or FALSE.
+
+      G.  Character data entries must be enclosed in quotes (").  The
+          opening and closing quotes for a character entry must be in the
+          same record. For example,
+
+          TITLE = "Relative Permeability vs Saturation"
+
+      H.  A data entry, v, may be repeated n times by the entry n*v.  A
+          series of data entries, v1 v2 ...., may be repeated n times by
+          the entry n*(v1 v2 ....).  Up to 5 repeat factors may be nested.
+          No blank spaces may be used between n and vi or (.  For example:
+
+          FLOW() = 0  4*(.5  3*1  .1)     $ ok
+          FLOW() = 0  4 *(.5  3*1  .1)    $ error due to blank space
+
+      I.  Variable subscripts may be specified in any of the forms:
+
+          NAME(n1) implying set the n1 element of array NAME.
+
+          NAME() implying set all admissible elements (single subscript)
+          NAME(,,) implying set all admissible elements (three subscripts)
+          (note: NAME= will be flagged as an user error for array
+          variables.)
+
+          NAME(n1 TO n2) implying set elements n1 to n2 inclusive.
+
+          NAME(n1 TO n2 STEP n3) implying set elements n1, n1+n3, n1+2*n3,
+          .... n1+m*n3 <= n2.
+
+          NAME(n1 TO) implying set all elements from n1 to the last
+          admissible element.
+
+          NAME(TO n2) implying set all elements from the first admissible
+          element to element n2.
+
+          where n1, n2, and n3 are integers.  The following are examples:
+
+          PERM()=5      POROSITY(3 TO 8) = 7 7 .1 5 5 5
+          DELX() 3.5    DELY(1 TO 19 STEP 2)=7.0
+
+      J.  For a subscripted variable name, the number of elements defined
+          is determined by the index range(s) rather than the data
+          entries. If the number of data entries is less than that
+          required by the index range(s), the last data entry or repeated
+          block(s) will be used to define the remaining elements.  For
+          example, NAME()=7 will cause all admissible values of NAME to be
+          set equal to 7.  If the number of data entries exceeds that
+          required by the index range(s), an error condition will be
+          flagged.  However, if the last data entry is repeated, no error
+          condition will occur.  For example:
+
+          ABC(1 TO 10) = 5 7 3*( 1 2 3 )
+
+          will result in A() = 5 7 1 2 3 1 2 3 1 2
+
+          but
+
+          ABC(1 TO 10) = 3*( 1 2 3 ) 5 7
+
+          will result in an input error message.
+
+      K.  Double and triple subscripted variables may be input; a comma is
+          used to separate one subscript from the next.  Normally, the
+          first subscript varies most rapidly, then the second subscript,
+          then the third subscript (if any); for example:
+
+          POR(1 TO 3, 5 TO 7) = 1*(11 12 13)
+
+          implies
+
+          POR(1,5)=11   POR(2,5)=12   POR(3,5)=13
+          POR(1,6)=11   POR(2,6)=12   POR(3,6)=13
+          POR(1,7)=11   POR(2,7)=12   POR(3,7)=13
+
+          However, the default index sequence can be changed by inserting
+          an index sequence composed of the characters I, J, and K
+          immediately after the left parentheses.  Admissible index
+          sequences are:
+
+          IJ (default) and JI for double subscripted variables and
+
+          IJK (default), IKJ, JIK, JKI, KIJ, and KJI for triple
+          subscripted variables.
+
+          For example,
+
+          POR(JI 1 TO 3, 5 TO 7) = 1*(11 12 13)
+
+          implies
+
+          POR(1,5)=11   POR(2,5)=11   POR(3,5)=11
+          POR(1,6)=12   POR(2,6)=12   POR(3,6)=12
+          POR(1,7)=13   POR(2,7)=13   POR(3,7)=13
+
+          Note that the index sequence affects the order used to place
+          data in the array; it does not affect the order in which the
+          indexes are defined within the parentheses.
+
+      L.  Comments in the input must be preceded by $.  The $ and any
+          characters after the $ in the same record will be discarded by
+          the input processor.  In a quoted character string, $ will be
+          treated as simply another character rather than a comment
+          marker.
+
+      M.  Extra blank spaces and blank lines can be used to improve
+          readability of the data.  The following lines are equivalent:
+               ABC(3TO5)=3,4,5
+               ABC(3 TO 5) = 3 4 5
+               ABC(3 TO 5)   3    4.   5.00   $  Comments are discarded
+               ABC ( 3 TO 5 STEP 1 ) = 3 , 4 , 5
+
+      N.  The maximum record length is 128 characters.  The maximum number
+          of characters in a data file (excluding blanks and comments)
+          will be machine dependent; on a IBM PC, it may be as little as
+          64K.
+
+      O.  Most programs use a "block text" option provided by the input
+          processor.  When this is indicated, follow the variable name
+          (and =) by the key word Block; enter text associated with the
+          variable on succeeding records; then enter the key word,
+          EndBlock, at the beginning of a record.  During block text
+          input, a record can be concatenated with the previous record by
+          placing & in column 1; the & will be discarded.  Any data
+          following the key words Block and EndBlock on a record will be
+          discarded.
+          Example:
+
+          MODEL=Block         $ Block and EndBlock are case sensitive
+          DUMMY=EXP(P1*V1)
+          Y=DUMMY*SIN(P2*V1)
+          DYDP1=V1*Y
+          DYDP=V1*DUMMY*
+          &COS(P2*V1)         $ CONCATENATION
+          EndBlock            $ E MUST BE IN COLUMN 1
+
+      P.  Block input is used for function input.  Within a block, x,y
+          data is read along with information on how the x,y data is to be
+          interperted. Special keywords (not valid outside the block) are
+          used to identify and specify information.  The primary key words
+          Interpolation, Extrapolation, Constraint, Derivative, Nodes,
+          Reverse, Data, and Program can each be followed by specific data
+          or secondary key words.
+
+          1.  Interpolation
+
+              a.  Step    ==> Step interpolation
+
+              b.  Linear  ==> Linear interpolation (default)
+
+              c.  Spline2 ==> Fit the data with a quadratic spline
+
+              d.  Spline3 ==> Fit the data with a cubic spline
+
+              e.  Log     ==> Log interpolation
+
+          2.  Extrapolation
+
+              a.  Constant ==> y values at the ends of the data are
+                  extended outside the x range of the data
+
+              b.  Same  ==> Use same extrapolation as interpolation
+
+              c.  Error ==> Fatal error if an x value outside the range of
+                  the x data occurs
+
+              d.  Return ==> Inform the calling program that an out of
+                  table lookup has occurred.  This option is available
+                  only if the simulator documentation specifically
+                  mentions it for a specific function.
+
+          3.  Constraint    (splines only)
+
+              a.  Constrain y to a specific value in the least-squares fit
+                  of a spline function to the x,y data.  The maximum
+                  number of constraints including derivative constraints
+                  is 6.
+
+              b.  Format:
+
+                  Constraint yyy At xxx
+
+          4.  Derivative    (splines only)
+
+              a.  Constrain dy/dx to a specific value in the least-squares
+                  fit of a spline function to the x,y data
+
+              b.  Format:
+
+                  Derivative dydx At xxx
+
+          5.  Nodes         (splines only)
+
+              a.  Specify spline node locations.  The default is no nodes.
+                  Data must be ordered with ascending values of xxi.
+
+              b.  Format:
+
+                  Nodes  xx1 xx2 xx3 ...
+
+          6.  Pole          (splines only)
+
+              a.  Divide out a pole before fitting by the transform
+                  yfit = ydata / (xdata - xpole)
+                  Default is no pole
+
+              b.  Format:
+
+                  Pole  xpole
+
+
+          7.  Otimise       (splines only)
+
+              a.  Optimise spline node locations n times.  The default is
+                  no optimization.  Set n equal to 6 or 7 times the number
+                  of nodes.
+
+              b.  Format:
+
+                  Optimse  n
+
+          8.  Data          (required, initial default)
+
+              a.  x,y data for the function.
+
+              b.  Format:
+
+                  Data  xxx yyy xxx yyy xxx yyy ..........
+
+              c.  Data must be ordered with ascending values of x
+
+              d.  Multiple records may be used
+
+          9.  Reverse    (if used, must preceed key word Data)
+
+              a.  Reverses the x y order of data after the Data key word.
+
+         10.  Program       (only key word; code follows)
+                 X, Y, and DYDX must be declared as externals in the
+                 program.
+
+         11.  Units, if appropriate, may be placed on numbers in the
+              block. The only exception is dydx which must not have units;
+              the units for dydx will be derived by the program from the
+              units most recently specified for x and y in the block.
+
+         12.  Example
+
+              KWVSW=Block            $ WATER RELATIVE PERMEABILITY
+              Interpolation Spline2
+              Extrapolation Constant
+              Constraint  0. At .15
+              Constraint  1. At 1.
+              Derivative  0. At .15
+              Nodes  .4  .7
+              Optimise  12
+              Data
+              .15    0  ,  .2  .01  ,  .3   .04
+              .4   .14  ,  .5  .35  ,  .65  .58
+              .7   .695 ,  .8  .86  ,  .9   .905  ,  .95  .98
+              EndBlock
+
+      Q.  The input processor can also handle data in a tabular format
+          triggered by TableInput and terminated by EndTable (at the
+          beginning of a record).  Only subscripted variables may be input
+          in a table and all variables in a single table must have the
+          same number of subscripts. The input record immediately
+          following TableInput must specify the contents and format of the
+          table. Braces, {}, enclosing a variable name (without the equal
+          sign) define a column of fields. One column of fields must be
+          headed with the key-word Index; fields in this column contain
+          subscripts. The rules for subscript ranges and missing
+          subscripts are identical to those given above for normal
+          variables. Neither the format line nor any other line in a table
+          may may be continued from record to record.  Data for character
+          variables are not enclosed in quotes; leading and trailing
+          blanks will be discarded in each field. ZZZZZ TABULAR INPUT HAS
+          NOT YET BEEN IMPLEMENTED ZZZZZ
+          Example:
+
+          TableInput             $  New production well names and
+          locations
+          { WELLNAME     }{Index }{ WELLX }{ WELLY }{WELLTOP}{WELLBOT}
+          JUDYCK13b          7     30742.    9126.   3045.5   3062.
+          JUDYCK19b          9     31542.   12155.   3049.    3066.
+          JUDYCK31b         25     30742.   12202.   3061.5   3075.
+          JUDYCK38b         14     33656.    8114.   3040.    3052.5
+          Future Well     32 TO 42    0        0       0        0
+          EndTable
+
+      R.  Physical units may be included on numbers provided program
+          documentation explicitly mentions the type of unit (e.g. mass /
+          time). Units are enclosed in brackets and must immediately
+          follow a number (no blanks).  For a subscripted variable, a
+          units specification remains in effect until changed or the end
+          of the data is encountered; units specifications are carried
+          forward from one instance of a variable name to the next.  A
+          table of admissible units is included in section III.
+          Example:
+
+          WELLTOP(2)  1100     $ Defaults to meters
+          WELLTOP(5)  3461[ft]
+          PRODRATE    376[bpd] 382 381.5 388
+          INJRATE     155[acre ft/mo] 166 167.5 370[bpd] 372
+          WELLTOP(4)  3470     $ Converted from feet to meters
+
+III.  Units
+
+      A.  Many variables in a simulator have units and these units are
+          hard coded for each variable.  On the other hand, the user will
+          often want to use some other set of units in specifying a value
+          for a variable.  For the input package to accommodate the user,
+          two conditions must be met: 1) The programmer must specify the
+          internal units in a subroutine call to the input package and
+          document these units for the user.  2) The user must specify
+          consistent units in the key-word input.
+
+      B.  A units specification must be enclosed in brackets, [].
+          Individual units in a specification must be separated by *, /,
+          or a blank space. Only one / (for division) may appear in a
+          specification.  A blank space and an * (for multiplication) are
+          equivalent.
+
+      C.  Individual units abbreviations must exactly match those given in
+          the first column of the table below.  Abbreviations are case
+          sensitive.
+
+      D.  All conversions are accomplished by multiplication (only) with
+          the single exception of temperature.  Conversion of a unit of
+          temperature by itself may also involve an additive factor;
+          conversion of a unit of temperature in combination with other
+          units will not involve an additive factor.
+          Example:
+
+          0[C] = 32[F]          9[F/hr] = 5[C/hr]
+
+      E.  zzzzzz
+
+      E.  Units conversion is accomplished by converting both the user's
+          units and internal units to SI units and then testing to insure
+          the two sets of SI units are identical.  The SI units in column
+          3 of the table below are:
+
+             a ==> ampere                       m ==> meter
+             c ==> candela                      r ==> radian
+             K ==> deg Kelvin                   S ==> Siemens
+             k ==> kilogram                     s ==> second
+             M ==> kilogram mol
+
+      F.  Table of admissible units:
+
+      ABBREVIATION    EXPLANATION     SI EQUIV.  CONVERSION FACTOR
+
+      A              angstrom        m          1E-10
+      Btu            steam table     kmm/ss     1055.05586
+      Btu{m}         mean            kmm/ss     1055.87
+      Btu{t}         thermodynamic   kmm/ss     1054.35
+      C              Celsius         K          1
+      F              Fahrenheit      K          .555555556
+      H              henry           kmm/ssaa   1
+      Hz             hertz           /s         1
+      J              joule           kmm/ss     1
+      K              Kelvin          K          1
+      L              liter           mmm        1E-3
+      M              kg mol          M          1
+      Mwt-Air        mol wt. air     k/M        28.967
+      Mwt-C2H6                       k/M        30.07012
+      Mwt-C3H8                       k/M        44.09721
+      Mwt-CH4                        k/M        16.04303
+      Mwt-CO                         k/M        28.01055
+      Mwt-CO2                        k/M        44.00995
+      Mwt-H2                         k/M        2.01594
+      Mwt-H2O                        k/M        18.01534
+      Mwt-N2                         k/M        28.0134
+      Mwt-O2                         k/M        31.9988
+      N              newton          km/ss      1
+      Pa             pascal          k/mss      1
+      R              Rankine         K          .555555556
+      S              siemens         S          1
+      a              ampere          a          1
+      acre                           mm         4046.873
+      atm            atmosphere      k/mss      101325
+      au             astro-unit      m          1.495979E11
+      awtAg          atom weight Ag  k/M        107.87
+      awtAl                          k/M        26.9815
+      awtAr                          k/M        39.948
+      awtAs                          k/M        74.9216
+      awtAu                          k/M        196.967
+      awtB                           k/M        10.811
+      awtBa                          k/M        137.34
+      awtBr                          k/M        79.909
+      awtC                           k/M        12.01115
+      awtCa                          k/M        40.08
+      awtCd                          k/M        112.4
+      awtCl                          k/M        35.453
+      awtCo                          k/M        58.9332
+      awtCr                          k/M        51.996
+      awtCu                          k/M        63.54
+      awtF                           k/M        18.9984
+      awtFe                          k/M        55.847
+      awtH                           k/M        1.00797
+      awtHe                          k/M        4.0026
+      awtHg                          k/M        200.59
+      awtI                           k/M        126.9044
+      awtK                           k/M        39.102
+      awtLi                          k/M        6.9417
+      awtMg                          k/M        24.312
+      awtMn                          k/M        54.938
+      awtN                           k/M        14.0067
+      awtNa                          k/M        22.9898
+      awtNi                          k/M        58.71
+      awtO                           k/M        15.9994
+      awtP                           k/M        30.9738
+      awtPb                          k/M        207.19
+      awtPt                          k/M        195.09
+      awtS                           k/M        32.064
+      awtSi                          k/M        28.086
+      awtSn                          k/M        118.69
+      awtU                           k/M        238.03
+      awtV                           k/M        50.9415
+      awtZn                          k/M        65.37
+      bar                            k/mss      1E5
+      barn                           mm         1E-28
+      bbl            barrel          mmm        .1589873
+      bbl-H2O        60F, 1 atm      k          158.826429
+      bf             board-ft        mmm        2.359737E-3
+      bpd            bbl/day         mmm/s      1.8401308E-6
+      bq             becquerel       /s         1
+      bu             bushel          mmm        3.523907E-2
+      c              candela         c          1
+      cal            steam table     kmm/ss     4.1868
+      caliber                        m          2.54E-4
+      cal{m}         mean            kmm/ss     4.19002
+      cal{t}         thermodynamic   kmm/ss     4.184
+      carat                          k          2.E-4
+      cc             cubic cm        mmm        1E-6
+      cm             centimeter      m          .01
+      cm-H2O         60F, 1 atm      k/mss      97.968504
+      cm-H2O{4C}     1 atm           k/mss      98.06378
+      cm-Hg          0C, 1 atm       k/mss      1333.22
+      cm-Hg{60F}     1 atm           k/mss      1329.4685
+      cord           of wood         mmm        .226534773
+      cp             centipoise      k/ms       1E-3
+      cs             centistoke      mm/s       1E-6
+      cu-ft          cubic foot      mmm        2.83168466E-2
+      cu-ft-H2O      60F, 1 atm      k          28.2885501
+      cu-ft-H2O{4C}  1 atm           k          28.316061
+      cu-in.         cubic inch      mmm        1.6387064E-5
+      cu-m           cubic meter     mmm        1
+      cu-m-H2O       60F, 1 atm      k          999.00072
+      cu-m-H2O{4C}   1 atm           k          999.97226
+      cu-yd          cubic yard      mmm        .764554858
+      cul            coulomb         as         1
+      cup                            mmm        2.365882E-4
+      curie                          /s         3.7E10
+      darcy                          mm         9.869233E-13
+      day                            s          86400
+      deg            angle           r          1.74532925E-2
+      dm             decimeter       m          .1
+      dyne                           km/ss      1E-5
+      erg                            kmm/ss     1.E-7
+      ev             electronvolt    kmm/ss     1.60219E-19
+      farad                          aassss/kmm 1
+      fc             footcandle      cS/mm      10.76391
+      fd             faraday         as         96521.9
+      fl             furlong         m          201.168
+      fm             fathom          m          1.8288
+      fn             fortnight       s          1209600
+      ft             foot            m          .3048
+      ft-H2O         60F, 1 atm      k/mss      2986.08
+      ft-H2O{4C}     1 atm           k/mss      2988.984
+      ft{s}          US survey       m          .3048006
+      g              std. gravity    m/ss       9.80665
+      gal            gallon,US liq.  mmm        3.785412E-3
+      gal-H2O        60F, 1 atm      k          3.7816293
+      gal{Can}       gallon, Canada  mmm        4.54609E-3
+      gal{UK}        gallon, UK      mmm        4.546092E-3
+      gal{dry}       gallon, dry     mmm        4.404884E-3
+      gauss                          k/ssaa     1E-4
+      gc             gas constant    kmm/MssK   8314.31976
+      gm             gram            k          1E-3
+      gmM            gram mole       M          1E-3
+      grad                           r          1.570796327E-2
+      grain                          k          6.479891E-5
+      ha             hectare         mm         10000
+      hp             horsepower      kmm/sss    745.6999
+      hp{UK}         horsepower UK   kmm/sss    745.7
+      hp{m}          metric          kmm/sss    735.499
+      hr             hour,mean solar s          3600
+      in.            inch            m          2.54E-2
+      in.-H2O        60F, 1 atm      k/mss      248.84
+      in.-Hg         0C, 1 atm       k/mss      3386.3788
+      in.-Hg{60F}    1 atm           k/mss      3376.85
+      k              kilogram        k          1
+      kM             kilogram mol    M          1
+      kPa            kilopascal      k/mss      1E-3
+      kcal           steam table     kmm/ss     4186.8
+      kcal{m}        mean            kmm/ss     4190.02
+      kcal{t}        thermodynamic   kmm/ss     4184
+      kf             kilogram force  km/ss      9.80665
+      kip            1000 lbf        km/ss      4448.222
+      km             kilometer       m          1000
+      knot                           m/s        .5144444
+      kw             kilowatt        kmm/sss    1
+      lb             pound avoir.    k          .45359237
+      lbM            lb-mole         M          .45359237
+      lbf            pound force     km/ss      4.44822162
+      lg             league          m          4828.032
+      lmb            lambert         c/mm       3183.099
+      lumen                          cS         1
+      lux            illuminance     cS/mm      1
+      ly             light-year      m          9.46055E15
+      m              meter           m          1
+      m-H2O          60F, 1 atm      k/mss      9796.8504
+      mb             millibar        k/mss      100
+      mc             millicurie      /s         3.7E7
+      md             millidarcy      mm         9.869233E-16
+      mg             milligram       k          1E-6
+      mho                            aasss/kmm  1
+      mi             internat. mile  m          1609.344
+      mic            micron          m          1E-6
+      mica           microamp        a          1E-6
+      miccurie       microcurie      /s         3.7E4
+      micdarcy       microdarcy      mm         1E-19
+      mics           microsecond     s          1E-6
+      micv           microvolt       kmm/sssa   1E-6
+      mil                            m          2.54E-5
+      min            minute, time    s          60
+      min{a}         minute, angle   r          2.90888208E-4
+      mi{n}          US nautical     m          1852
+      mi{s}          US survey       m          1609.347
+      ml             milliliter      mmm        1E-6
+      mm             millimeter      m          1E-3
+      mm-Hg          0C, 1 atm       k/mss      133.322
+      mo             month           s          2.628E6
+      mph            mile/hr         m/s        .44704
+      mr             milliroentgen   as/k       2.58E-7
+      ms             millisecond     s          1E-3
+      mxw            maxwell         kmm/ssa    1E-8
+      ns             nanosecond      s          1E-9
+      ohm                            kmm/sssaa  1
+      oz             avoirdupois     k          2.8349523E-2
+      oz{f}          fluid ounce     mmm        2.957353E-5
+      oz{t}          troy ounce      k          3.110348E-2
+      parsec                         m          3.085678E16
+      pd             poundal         km/ss      .138255
+      peck                           mmm        8.809768E-3
+      pica                           m          4.217518E-3
+      pint           US liquid       mmm        4.731765E-4
+      pint{d}        US dry          mmm        5.506105E-4
+      poise                          k/ms       .1
+      ppm            gm/cc           k/mmm      1000
+      psi            pound/sq. inch  k/mss      6894.757
+      quart          US liquid       mmm        9.463529E-4
+      quart{d}       US dry          mmm        1.101221E-3
+      r              radian          r          1
+      rad            radiation dose  mm/ss      .01
+      rod                            m          5.0292
+      rpm            rev./min        r/s        1.047197551E-1
+      rps            rev./sec        r/s        6.283185307
+      rtg            roentgen        as/k       2.58E-4
+      s              second          s          1
+      scf            cu ft,0C 1 atm  M          1.26336463E-3
+      scf{60F}       1atm            M          1.19529413E-3
+      scm            cu m,0C,1 atm   M          4.4615301E-2
+      scm{60F}       1 atm           M          4.2211413E-2
+      sct            section         mm         2589988.11
+      sec            angle           r          4.84813681
+      slug                           k          14.5939
+      sq-cm          sq. centimeter  mm         1E-4
+      sq-ft          square foot     mm         9.290304E-2
+      sq-in.         square inch     mm         6.4516E-4
+      sq-m           square meter    mm         1
+      sq-mi          international   mm         2589988.11
+      sq-mi{s}       US survey       mm         2589997.77
+      sq-mm          sq. millimeter  mm         1E-6
+      sq-sec                         ss         1
+      sq-yd          square yard     mm         .83612736
+      sr             steradian       S          1
+      stokes                         mm/s       1E-4
+      tbs            tablespoon      mmm        1.478676E-5
+      tes            teaspoon        mmm        4.928922E-6
+      tesla                          k/ssaa     1
+      ton            short           k          907.1847
+      ton{TNT}                       kmm/ss     4.184E9
+      ton{l}         long            k          1016.047
+      ton{m}         metric          k          1000
+      ton{r}         refrigeration   kmm/sss    3516.8
+      torr                           k/mss      133.322
+      v              volt            kmm/sssa   1
+      w              watt            kmm/sss    1
+      yd             yard            m          .9144
+      yr             year            s          3.15576E7
+
+ IV.  Input data example
+
+      The following example is intended to demonstrate the versatility and
+      readability of key-word input; it is not the input for an actual or
+      proposed simulator.
+
+      TITLE="CASE 18 - KANGAROO RESERVOIR - 3D"
+      $  Try a porosity of .09 in zone B of strata 9 to improve match of
+      $  well EAST-7A
+
+      TIMESTART = 517.3    TIMEEND = 1765.2    OUTLEVEL = 2
+
+      $  Default units
+      DISTANCE = "ft"    PRESSURE = "atm"      TIME = "day"
+      VOLUME = "bbl"     PERMEABILITY = "md"   RATE = "bbl/day"
+
+      YZMAP=Block
+                         10000100001
+                     00001000010000100
+                  0010000100001000010000
+                00001000010000100001000010
+               11111111111111111111111111111
+               1000010000100001000010000100001
+                            :
+                            :
+      00001000010000100001000010000100001000010000100001000
+       11111111111111111111111111111111111111111111111111
+         010000100001000010000100001000010000100001000
+           000010000100001000010000100001000010000
+            000100001000010000100001000010000100
+             001000010000100001000010000100001
+               11111111111111111111111111111
+      EndBlock
+
+      $  Grid coordinates
+
+      IXREF = 5    XREF = 4714
+      IYREF = 17   YREF = 0         YTILT = 2.3[deg]
+      IZREF = 41   ZREF = 742.5     ZTILT = -.4[deg]
+
+      DX() = 6*4 3 2 1 1 1 7*3     $ 54 FEET IN 18 GRID LAYERS
+
+      $ 2000 FEET IN 63 GRID INTERVALS
+      DY()= 4*48 40 30 20 15 10 15 20 30 40 2*45 40 30 20 15 10 15 20 30
+      40
+            2*54 40 30 20 15 10 15 20 30 40 2*51 40 30 20 15 10 15 20 30
+            40
+            4*50 40 30 20 15 10 15 20 30 40 4*52
+
+      $ 2580 FEET IN 70 GRID INTERVALS
+      DZ()= 3*46 40 30 20 15 10 15 20 30 40 23*50 40 30 20 15 10 15 20 30
+      40
+            2*53 40 30 20 15 10 15 20 30 40  2*53 40 30 20 15 10 15 20 30
+            40
+            4*50
+
+      $  Initial conditions
+
+      DEPTHI = 4711.5    POILI = 700[psi]     SWI = .6
+
+      $  Fluid properties
+
+      OILDENZ = 48.    OILCOMP  = 4.2E-5[/psi]
+      OILVIS  = 1.0    WATERVIS = .23
+
+      $  Porosity & permeability
+
+      POR(1 TO 8)     .28     PERMX(1 TO 8)      20     PERMY(1 TO 8)= 200
+      POR(9,,1 TO 25) .05     PERMX(9,,1 TO 25)   4     PERMY(9,,1 TO 25)
+      20
+      POR(9,,26 TO)   .09     PERMX(9,,26 TO)     4     PERMY(9,,26 TO) 20
+      POR(10 TO)      .22     PERMX(10 TO)       10     PERMY(10 TO) 100
+
+      KWVSW(1)=Block            $ Water relative permeability
+        Interpolation Spline2
+        Extrapolation Constant
+        Constraint  0. At .15
+        Constraint  1. At  1.
+        Derivative  0. At .15
+        Nodes  .4  .7
+        Data
+        .15    0  ,  .2  .01  ,  .3   .04
+        .4   .14  ,  .5  .35  ,  .65  .58
+        .7   .695 ,  .8  .86  ,  .9   .905  ,  .95  .98  ,  1.  1.
+      EndBlock
+
+      KOVSW(1)=Block            $ Oil relative permeability
+        Interpolation Spline2
+        Extrapolation Constant
+        Constraint  0. At .85
+        Constraint  1. At   0
+        Derivative  0. At .85
+        Nodes  .3  .6
+        Data
+        .05  .99  ,  .1  .98  ,  .2   .91
+        .3   .84  ,  .35 .63  ,  .42  .4    ,  .51  .25
+        .6   .13  ,  .7  .055 ,  .75  .03
+      EndBlock
+
+      PCPOLE(1)=.15             $ Capillary pressure
+      PCVSW(1)=Block
+        Interpolation Spline3
+        Extrapolation Same
+        Nodes  .25  .4  .7  .9
+        Data
+        .16   9.[psi] , .2    6.12 , .225  4.86 , .25  4.22 , .275 3.78
+        .325  3.2     , .375  2.74 , .45   2.28 , .55  1.94 , .65  1.74
+        .75   1.61    , .85   1.54 , .925  1.44 , .95  1.37 , .975 1.14
+        1.0   .7
+      EndBlock
+
+      TableInput             $  Well data
+      { WELLNAME     }{INDEX}{ WELLY }{ WELLZ }{WELLTOP}{WELLBOT}{WELLTYP}
+      JUDYCK13           1      302.     990.5   4712.5   4740.   PROD-R1
+      EAST-7A            2      612.    3012.5   4714.    4748.   PROD-R2
+      EAST-7B            3      940.    2363.0   4717.5   4755.   INJ-P1
+      JUDYCK38           4     1262.    2686.5   4718.    4742.5  PROD-GL1
+      JUDYCK17           5     1682.    2357.0   4714.    4752.5  PROD-GL1
+      EndTable
+
+      $ Well rates
+
+      WATERRATEOUT(3)   OILRATEOUT(1 TO 2)   OILRATEOUT(4 TO 5)
+
+      WELLRATE(1)=Block            $ JUDYCK13
+           0     0  , 118.5     0  ,  130   480.2 ,   195     478
+         307   470  , 583.33  468  ,  905   460   ,   907.25    0
+         910     0  , 912     463  , 1311   451   ,  2000     440
+      EndBlock
+
+      WELLRATE(2)=Block            $ EAST-7A
+           0     0  , 110.5     0  ,  120   470   ,   211     471
+         309   470  , 583     460  ,  905   450   ,   907.25    0
+         910     0  , 912     453  , 1311   444   ,  2000     436
+      EndBlock
+
+      WELLBHP(3)=Block             $ EAST-7B
+           0     0  , 600       0  ,  630   710   ,  1000     705
+        1500   698  , 2000    690
+      EndBlock
+
+      WELLRATE(4)=Block            $ JUDYCK38
+           0     0  , 211       0  ,  221   470   ,   288     471
+         319   472  , 580     462  ,  909   452   ,   907.25    0
+         910     0  , 912     455  , 1318   445   ,  2000     438
+      EndBlock
+
+      WELLRATE(5)=Block            $ JUDYCK17
+           0     0  , 110.5     0  ,  190   475   ,   211     474
+         309   472  , 583     464  ,  905   452   ,  907.25     0
+         910     0  , 912     459  , 1311   444   ,  2000     435
+      EndBlock
+
+      EndInitialData
+
+      BeginTimeData    110.5
+      DT = 1.          DTMAX = 2.5       DTMIN = .3333     DTFACTOR = 1.05
+      TOUT = 140.      DTOUT = 60.       TRESTART = 800    DTRESTART = 800
+      MAXNEWT = 12     MAXCUTS = 2       SWOUT             POOUT
+      EndTimeData
+
+      BeginTimeData    140
+      DTMAX = 5
+      EndTimeData
+
+      BeginTimeData    200
+      DTMAX = 10       DTOUT = 200
+      EndTimeData
+
+  V.  Programming notes.
+
+      A.  Code for the key-word input package is included in 3 files,
+          READER.FOR, UNITS.FOR, and TABLE.FOR.
+
+      B.  There are two types of variable units, internal and external.
+
+          1.  Internal to the simulator, a variable will have a single set
+              of units.  If the variable is input, internal units are set
+              in a call to GETVAL, GETGRDA, or TABLE.
+
+          2.  External to the simulator (input and output), a variable may
+              have any units consistant with the internal units for the
+              variable.  The user may explicitly specify the external
+              units after a data value. If explicit units are not
+              specified, then default external units will be assumed.
+
+          3.  Default external units are associated with the following:
+
+              Keyword    Initial       Definition
+
+              EXTMASS    [lb]          Mass
+              EXTDIST    [ft]          Distance
+              EXTVOLL    [cu-ft]       Volume
+              EXTTIME    [day]         Time
+              EXTTEMP    [F]           Temperature
+              EXTPRES    [psi]         Pressure
+              EXTPERM    [md]          Permeability
+              EXTWELL    [stb/day]     Liquid mass rate
+              EXTWELG    [scf/day]     Gas mass rate
+              EXTVISC    [cp]          Viscosity
+              EXTDENS    [lb/cu-ft]    Density
+              EXTCONC    [M/cu-ft]     Molar Concentration
+              EXTCOMP    [/psi]        Compressability
+
+          Default external units for a variable are set by a call to
+          DEFAULT or TABUNT immediately before reading the variable.
+
+      C.  The body of the simulator will communicate with the input
+          package via eight subroutines.
+
+          READER     Reads data from a file(s) into memory
+          GETVAL     Extracts data for a variable (not a grid-element
+          array)
+          GETGRDA    Extracts data for a grid-element array
+          UNDEF      Checks for undefined variables
+          DEFAULT    Sets external default units for a variable
+          GETBLK     Extracts data for an array of blocks or tables
+          TABLE      Extracts data for a table or function (Appendix B)
+          TABUNT     Sets external default units for a table (Appendix B)
+
+      D.  SUBROUTINE READER (ENDKEY,INPFIL,INCFIL,IERFIL,KODRET)
+
+          1.  Reads a module of free-form key-word data into memory from
+              an open file and does some preprocessing and error checking.
+              READER is typically called once (per processor) for each
+              key-word module.
+
+          2.  ENDKEY = Key word that terminates the key-word block.
+                       (input, CHARACTER*20)
+
+          3.  INPFIL = Input file number (input, INTEGER*4).
+                       The file must be open.
+
+          4.  INCFIL = Include file number (input, INTEGER*4).
+                       The file must be closed.
+
+          5.  IERFIL = Output file number (input, INTEGER*4).
+                       Error and progress messages will be sent to this
+                       file which may correspond to the users terminal.
+                       The file must be open.
+
+          6.  KODRET = Completion code (output, INTEGER*4)
+                     = 0 ==> No data errors encountered
+                     = 1 ==> Data error, message issued
+
+      E.  SUBROUTINE GETVAL
+      (VNAM,VAL,VTYP,NDIM1,NDIM2,NDIM3,NDIM4,NUMRET,NERR)
+
+          1.  GETVAL extracts data for a specified variable from a
+              free-form key-word module.  It is typically called 40 to 100
+              times in a simulator.  Sample call for a 2-D array of
+              permeabilities:
+
+              CALL GETVAL ('PERM[md]',PERM,'R4',MAXI,MAXJ,0,NUM,NERR)
+
+              Use GETGRDA rather than GETVAL to read grid-element arrays.
+
+          2.  VNAM = Variable name with optional units (input,
+              CHARACTER*60). Units in brackets may follow the name.  The
+              name is terminated by a blank space (outside of any
+              brackets) or by the right bracket of a units specification.
+
+          3.  VAL = FORTRAN variable to be defined (output, TYPE an
+          argument)
+
+          4.  VTYP = Variable FORTRAN type (input, CHARACTER*2)
+              I2 ==> INTERGER*2
+              I4 ==> INTERGER*4
+              R4 ==> REAL*4
+              R8 ==> REAL*8
+              L2 ==> LOGICAL*2
+              L4 ==> LOGICAL*4
+              CS ==> Character string (MAX LENGTH GIVEN BY DIM3)
+              FG ==> Flag variable, LOGICAL*4
+              BT ==> Text block with max length of DM3 characters
+
+          5.  NDIM1 = First dimension of the variable (input, INTEGER*4)
+                    = 0 for scalars and unused dimensions.
+
+          6.  NDIM2 = Second dimension of the variable (input, INTEGER*4)
+
+          7.  NDIM3 = Third dimension of the variable (input, INTEGER*4).
+
+          8.  NDIM4 = Forth dimension of the variable (input, INTEGER*4).
+                      For character strings and text blocks, NDIM3 is the
+                      maximum string length.
+
+          9.  NUMRET = Number of variable elements defined (output,
+          INTEGER*4)
+                       For block text variables, NUMRET is the number of
+                       characters in the block.
+
+         10.  NERR = Counter stepped if errors are encountered in the data
+                     (input and output, INTEGER*4).  When an error is
+                     encountered in the data, the input processor discards
+                     the remainder of the data for the variable, sends an
+                     explicit error message to IERFIL, and continues
+                     processing.
+
+         11.  GETVAL can read a scalar block text variable but not an
+              array of block text variables.  Use GETBLK to read such
+              arrays.
+
+      F.  SUBROUTINE UNDEF (NERR)
+
+          1.  UNDEF verifies that all of the data in a key-word block has
+              been processed.  Misspelled variable names, for example, are
+              detected by this routine.  An error message is sent to
+              IERFIL for each record that contains extraneous data.
+
+          2.  NERR = number of errors (input and output, INTEGER*4).
+                     Stepped by 1 for each error.
+
+      G.  SUBROUTINE GETGRDA (VNAM, NUMRET, NERR)
+
+          1.  Reads a grid-element array in key-word input.  Data is read
+              for only the elements assigned to the active processor.  Do
+              not use GETVAL to read grid-element arrays.
+
+          2.  VNAM = Variable name with optional units (input,
+              CHARACTER*60). Units in brackets may follow the name.  The
+              name is terminated by a blank space (outside of any
+              brackets) or by the right bracket of a units specification.
+
+          3.  KARY = Array key (input, INTEGER*4) = 1 ==> Block center
+                   array = 2 ==> Block corner array
+
+          4.  NUMRET = Number of values read (for the active processor)
+              (output, INTEGER*4)
+
+          5.  NERR = Error number stepped by one for each data error
+              (input and output, INTEGER*4)
+
+      H.  SUBROUTINE DEFAULT (DEFUNT)
+
+          1.  DEFAULT sets default external units for the next (only) call
+              to GETVAL or GETGRDA.  Any specification of units by the
+              user in the input data replaces this default.
+
+          2  DEFUNT = Default external units (input, CHARACTER*1). Must be
+                      terminated with ].
+
+      I.  SUBROUTINE GETBLK (VNAM,BUF,MAXBUF,NDIM,LOC,LEN,NERR)
+
+          1.  GETBLK can read an array of block text variables such as an
+              array of capillary pressure tables or an array of user
+              programs.
+
+          2.  VNAM = Variable name (input, CHARACTER*?). The name must be
+                     terminated with a blank and must not exceed 60
+                     characters. Units are not allowed on the name.
+
+          3.  BUF() = Space for the text returned (output, CHARACTER*1).
+
+          4.  MAXBUF = Maximum number of characters in BUF() (input,
+          INTEGER*4).
+
+          5.  NDIM = Dimension of the block text variable (input,
+          INTEGER*4)
+                   = 0 ==> No subscript
+
+          6.  LOC() = Locations of the text blocks in BUF()
+                      (output, INTEGER*4) (dimension NDIM)
+
+          7.  LEN() = Lengths of the text blocks in BUF()
+                      (output, INTEGER*4) (dimension NDIM)
+
+          8.  NERR  = Error counter stepped by 1 if a data error is
+                      encountered (INPUT AND OUTPUT, INTEGER*4).
+
+          9.  If block i is not read, then LOC(i) and LEN(i) will not be
+          changed.
+
+ VI.  Simple code example (for a curve fitting program)
+
+         CHARACTER*20 ENDKEY
+           :
+           :
+           :
+         ENDKEY='EndOfData'
+         CALL READER (ENDKEY,INPFIL,INCFIL,IERFIL,KODRET)
+         NERR=0
+
+         CALL GETVAL ('MODEL ',PROG,'BT',0,0,0,MAXPRG,NPRG,NERR)
+         IF (NPRG.EQ.0) THEN
+             WRITE (IERFIL,2)
+       2     FORMAT(/' ERROR - NO MODEL CODE')
+             NERR=NERR+1
+         ENDIF
+
+         TITLE=' '
+         CALL GETVAL ('TITLE ',TITLE,'CS',0,0,0,60,NDUM,NERR)
+
+         NUMVAR=2
+         CALL GETVAL ('NUMVAR ',NUMVAR,'I4',0,0,0,0,NDUM,NERR)
+
+         NUMY=2
+         CALL GETVAL ('NUMY ',NUMY,'I4',0,0,0,0,NDUM,NERR)
+
+         KWT=0
+         CALL GETVAL ('WEIGHT ',KWT,'I4',0,0,0,0,NDUM,NERR)
+
+         CALL GETVAL ('GUESS ',PARMS,'R8',MAXPRM,0,0,0,NUMPRM,NERR)
+         IF (NUMPRM.EQ.0) THEN
+             WRITE (IERFIL,3)
+       3     FORMAT(/' ERROR - NO PARAMETER GUESSES SPECIFIED')
+             NERR=NERR+1
+         ENDIF
+           :
+           :
+           :
+         CALL UNDEF (NERR)
+         IF (NERR.GT.0) THEN
+             WRITE (*,5)
+             STOP 13
+         ENDIF
+       5 FORMAT(' RUN TERMINATED BY INPUT ERRORS')
+           :
+           :

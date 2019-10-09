@@ -1,0 +1,16 @@
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+$ Pcow vs Sw (zero) 
+Data  .000000    .0000000
+     1.000000    .0000000
+EndBlock
+
+
+PCGO(1) Block        $ GAS-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+$ Pcgo vs Sw (zero) 
+Data  .000000    .0000000
+     1.000000    .0000000
+EndBlock

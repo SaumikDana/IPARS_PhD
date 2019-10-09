@@ -1,0 +1,685 @@
+C  XDUAL.F - COMPOSITIONAL MODEL DUAL APPROXIMATION MULTIBLOCK ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE XDUALS  (NERR)
+C  SUBROUTINE XDUALR  ()
+C  SUBROUTINE XDUALCOND  ()
+C  SUBROUTINE XDUALFLOW  ()
+C  SUBROUTINE XLODBUF(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                     KL2,KEYOUT,NBLK,DEPTH,PRES,MDEN,MOBPROD,PC,
+C                     NBUFDIM,BUFIF8)
+C  SUBROUTINE XFLTCAL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,DEPTH,PRES,MDEN,MOBPROD,PC,
+C                     NBUFDIM,BUFIF8,TBUF,DFLOW,RESID)
+C  SUBROUTINE XFLTSCAL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,SCALE,XCOF,NBUFDIM,TBUF)
+C  SUBROUTINE XFLTFLOW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,NBUFDIM,BUFIF8,TBUF,DELC)
+C  SUBROUTINE XBLKIN (KERR)
+C  SUBROUTINE DUAL_BNDRY(IVAL,IDIM,JDIM,KDIM,NBLK)
+
+C  CODE HISTORY:
+
+C  RICK DEAN        01/07/02     MODIFIED VERSION OF IDUAL.F
+C  SUNIL G. THOMAS  09/01/07     ACCOUNT FOR POSSIBLE TRCHEM COUPLING
+
+C*********************************************************************
+      SUBROUTINE XDUALS (NERR)
+C*********************************************************************
+
+C  Loads buffers for Jocabian and residual contributions for the dual
+C  approximation block interface
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'sblkc.h'
+
+      INCLUDE 'xarydat.h'
+      INCLUDE 'xmodel.h'
+
+      INTEGER IA(8),NERR
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./,IA/8*0/
+
+      EXTERNAL XLODBUF
+C-----------------------------------------------------------------------
+C     Common Variables
+C-----------------------------------------------------------------------
+      INTEGER IDEP,IP,IMDEN,IMOB,IPC
+      COMMON/FCOMP/IDEP,IP,IMDEN,IMOB,IPC
+
+      IF (NFACES == 0) RETURN
+      CALL TIMON(12)
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &    ' ENTERING SUBROUTINE XDUALS, OLD TAG =',MSGTAG($XMODEL+1)
+
+         IA(1)=7
+         IA(2)=N_PRES
+         IA(3)=N_DEPTH
+         IA(4)=N_MDENN
+         IA(5)=N_MOBPROD
+         IA(6)=N_PC
+         IA(7)=N_BUFDIM
+         IA(8)=N_BUFIF
+         IP = 2
+         IDEP = 3
+         IMDEN = 3
+         IMOB = IMDEN+NPH
+         IPC = IMOB+NCINPH
+         IF($MXIBUF < 3+2*NPH+NCINPH) THEN
+            NERR = NERR + 1
+            IF(LEVELC) THEN
+               WRITE(NFOUT,*) ' MXIBUF parameter must be set to ',
+     &                         3+2*NPH+NCINPH
+            ENDIF
+         ENDIF
+      ENDIF
+
+C  PUT B BLOCK QUANTITIES IN INTERFACE BUFFERS
+
+      CALL CALLWORK(XLODBUF,IA)
+
+      CALL TIMOFF(12)
+
+      END
+C*********************************************************************
+      SUBROUTINE XDUALR ()
+C*********************************************************************
+
+C  Computes Jacobian and residual contributions for the dual approximation
+C  block interface
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'sblkc.h'
+
+      INCLUDE 'xarydat.h'
+
+      INTEGER IA(11)
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./,IA/11*0/
+
+      EXTERNAL XFLTCAL
+
+      IF (NFACES.EQ.0) RETURN
+      CALL TIMON(12)
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &    ' ENTERING SUBROUTINE XDUALR, OLD TAG =',MSGTAG($XMODEL+1)
+
+         IA(1)=10
+         IA(2)=N_PRES
+         IA(3)=N_DEPTH
+         IA(4)=N_MDENN
+         IA(5)=N_MOBPROD
+         IA(6)=N_PC
+         IA(7)=N_BUFDIM
+         IA(8)=N_BUFIF
+         IA(9)=N_BUFCOMP
+         IA(10)=N_DFLOW
+         IA(11)=N_RESID
+      ENDIF
+
+      CALL CALLWORK(XFLTCAL,IA)
+
+      CALL TIMOFF(12)
+
+      END
+C*********************************************************************
+      SUBROUTINE XDUALCOND ()
+C*********************************************************************
+
+C  Computes Jacobian and residual contributions for the dual approximation
+C  block interface
+C  Assumes scaling variable for impec is contained in N_DELC
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'sblkc.h'
+
+      INCLUDE 'xarydat.h'
+
+      INTEGER IA(5)
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./,IA/5*0/
+
+      EXTERNAL XFLTSCAL
+
+      IF (NFACES.EQ.0) RETURN
+      CALL TIMON(12)
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &    ' ENTERING SUBROUTINE XDUALCOND, OLD TAG =',MSGTAG($XMODEL+1)
+
+         IA(1)=4
+         IA(2)=N_DELC
+         IA(3)=N_XCOF
+         IA(4)=N_BUFDIM
+         IA(5)=N_BUFCOMP
+      ENDIF
+
+      CALL CALLWORK(XFLTSCAL,IA)
+
+      CALL TIMOFF(12)
+
+      END
+C*********************************************************************
+      SUBROUTINE XDUALFLOW ()
+C*********************************************************************
+
+C  Computes interface contribution to mass change
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'sblkc.h'
+
+      INCLUDE 'xarydat.h'
+
+      INTEGER IA(5)
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./,IA/5*0/
+
+      EXTERNAL XFLTFLOW
+
+      IF (NFACES.EQ.0) RETURN
+      CALL TIMON(12)
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &    ' ENTERING SUBROUTINE XDUALCOND, OLD TAG =',MSGTAG($XMODEL+1)
+
+         IA(1)=4
+         IA(2)=N_BUFDIM
+         IA(3)=N_BUFIF
+         IA(4)=N_BUFCOMP
+         IA(5)=N_DELC
+      ENDIF
+
+      CALL CALLWORK(XFLTFLOW,IA)
+
+      CALL TIMOFF(12)
+
+      END
+C*********************************************************************
+      SUBROUTINE XLODBUF(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                   KL2,KEYOUT,NBLK,PRES,DEPTH,MDEN,MOBPROD,PC,
+     &                   NBUFDIM,BUFIF8)
+C*********************************************************************
+
+C  PUT B BLOCK QUANTITIES IN INTERFACE BUFFERS
+C  SAVE FIRST LOCATION FOR PRESSURE CHANGES
+
+C  INPUT:
+C     DEPTH(I,J,K) = CELL DEPTH (REAL*8)
+C     PRES(I,J,K) = PRESSURE (REAL*8)
+C     MOBPROD(I,J,K,L) = MOBILITY X MOLE FRACTION X MOLAR DENSITY (REAL*8)
+C                     VALUE OF L DETERMINED BY ICINPH(IC,IPH)
+C     MDEN(I,J,K,IPH) = MASS DENSITY FOR PHASE IPH (REAL*8)
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE FOR PHASE IPH (REAL*8)
+C     NBUFDIM = FIRST DIMENSION OF BUFIF8(,) (INTEGER)
+
+C  OUTPUT:
+C     BUFIF8(n,m) = INTERFACE BUFFERS (REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'sblkc.h'
+
+      INCLUDE 'xmodel.h'
+      INCLUDE 'xparam.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 DEPTH(IDIM,JDIM,KDIM),PC(IDIM,JDIM,KDIM,NPH),
+     &       PRES(IDIM,JDIM,KDIM),MDEN(IDIM,JDIM,KDIM,NPH),
+     &       MOBPROD(IDIM,JDIM,KDIM,NCINPH),BUFIF8(NBUFDIM,*)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER II,JJ,M,II1,II2,NBT,IA,JA,KA,K,LL
+C-----------------------------------------------------------------------
+C     Common Variables
+C-----------------------------------------------------------------------
+      INTEGER IDEP,IP,IMDEN,IMOB,IPC
+      COMMON/FCOMP/IDEP,IP,IMDEN,IMOB,IPC
+
+      IF(NEWT == 1) THEN
+         DO M = 1,NPAI(NBLK)
+            II1 = IESNDI(M,NBLK)
+            II2 = II1 + NESNDI(M,NBLK) - 1
+            NBT = NBSRI(M,NBLK)
+
+C            IF (MODBLK(NBT) /= $XMODEL) CYCLE
+            IF (FMODBLK(NBT) /= $XMODEL) CYCLE
+
+            DO II = II1,II2
+               JJ = KFESR(II)
+               IA = IJKS(1,JJ)
+               JA = IJKS(2,JJ)
+               KA = IJKS(3,JJ)
+               BUFIF8(II,1) = ZERO
+               BUFIF8(II,IP) = PRES(IA,JA,KA)
+               BUFIF8(II,IDEP) = DEPTH(IA,JA,KA)
+               DO LL = 1,NPH
+                  BUFIF8(II,IMDEN+LL) = MDEN(IA,JA,KA,LL)
+               END DO
+               DO LL = 1,NCINPH
+                  BUFIF8(II,IMOB+LL) = MOBPROD(IA,JA,KA,LL)
+               END DO
+               DO LL = 1,NPH
+                  BUFIF8(II,IPC+LL) = PC(IA,JA,KA,LL)
+               END DO
+            END DO
+         END DO
+      ELSE
+         DO M = 1,NPAI(NBLK)
+            II1 = IESNDI(M,NBLK)
+            II2 = II1 + NESNDI(M,NBLK) - 1
+            NBT = NBSRI(M,NBLK)
+
+C            IF (MODBLK(NBT) /= $XMODEL) CYCLE
+            IF (FMODBLK(NBT) /= $XMODEL) CYCLE
+
+            DO II = II1,II2
+               JJ = KFESR(II)
+               IA = IJKS(1,JJ)
+               JA = IJKS(2,JJ)
+               KA = IJKS(3,JJ)
+               BUFIF8(II,IP) = PRES(IA,JA,KA)
+            END DO
+         END DO
+      ENDIF
+
+      END
+C*********************************************************************
+      SUBROUTINE XFLTCAL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                   KEYOUT,NBLK,PRES,DEPTH,MDEN,MOBPROD,PC,
+     &                   NBUFDIM,BUFIF8,TBUF,DFLOW,RESID)
+C*********************************************************************
+
+C  COMPUTE JACOBIAN AND RESIDUAL CONTRIBUTIONS 
+
+C  INPUT:
+C     TCOF(I,J,K) = TRANSMISSIBILITY BETWEEN CELL I AND I-1 (REAL*8)
+C     DEPTH(I,J,K) = CELL DEPTH (REAL*8)
+C     PRES(I,J,K) = PRESSURE (REAL*8)
+C     MOBPROD(I,J,K,L) = MOBILITY X MOLE FRACTION X MOLAR DENSITY (REAL*8)
+C                        VALUE OF L DETERMINED BY ICINPH(IC,IPH)
+C     MDEN(I,J,K,IPH) = MASS DENSITY FOR PHASE IPH (REAL*8)
+C     PC(I,J,K,IPH) = CAPILLARY PRESSURE FOR PHASE IPH (REAL*8)
+C     NBUFDIM = FIRST DIMENSION OF BUFIF8(,) (INTEGER)
+
+C  INPUT/OUTPUT:
+C     RESID(I,J,K,IC) = RESIDUAL FOR RIGHT HAND SIDE (REAL*8)
+C     DFLOW(I,J,K,IC) = DIAGONAL FLOW COEFFICIENT FOR P(I,J,K) 
+C                       IN (I,J,K,IC) MASS CONSERVATION EQUATION (REAL*8)
+
+C  OUTPUT:
+C     TBUF(N,IC) = INTERFACE FLOW COEFFICIENTS (REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'sblkc.h'
+
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 TBUF(NBUFCOMP,NC),DEPTH(IDIM,JDIM,KDIM),
+     &       PRES(IDIM,JDIM,KDIM),RESID(IDIM,JDIM,KDIM,NC),
+     &       DFLOW(IDIM,JDIM,KDIM,NC),PC(IDIM,JDIM,KDIM,NPH),
+     &       MDEN(IDIM,JDIM,KDIM,NPH),MOBPROD(IDIM,JDIM,KDIM,NCINPH),
+     &       BUFIF8(NBUFDIM,*)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER K1,K2,K,J1,J2,J,IA,JA,KA,L,IPH,IC,LC
+      REAL*8 DEN,G,TC,COEF,R,D
+      REAL*8 DELH(NBUFCOMP),DELP(NBUFCOMP)
+C-----------------------------------------------------------------------
+C     Common Variables
+C-----------------------------------------------------------------------
+      INTEGER IDEP,IP,IMDEN,IMOB,IPC
+      COMMON/FCOMP/IDEP,IP,IMDEN,IMOB,IPC
+
+      IF (NIEBS(NBLK) == 0) RETURN
+      K1 = IIEBS(NBLK)
+      K2 = K1+NIEBS(NBLK)-1
+
+C  SET GRAVITY CONSTANT TO .5 g  
+      G = HALF*GRAV
+
+C-------set difference in depth times half gravity
+      DO K = K1,K2
+         J1 = ICGES(K)
+         J2 = J1+NCGES(K)-1
+         IA = IJKS(1,K)
+         JA = IJKS(2,K)
+         KA = IJKS(3,K)
+         DO J = J1,J2
+            L = LIBUF(J)
+C            IF(MODBLK(JBLOCK(J)) /= MODACT) CYCLE
+            IF(FMODBLK(JBLOCK(J)) /= MODACT) CYCLE
+            DELH(J) = G *(DEPTH(IA,JA,KA)-BUFIF8(L,IDEP))
+         END DO
+      END DO
+
+C-------zero TBUF
+      DO IC = 1,NC
+         DO K = K1,K2
+            J1 = ICGES(K)
+            J2 = J1+NCGES(K)-1
+            DO J = J1,J2
+C               IF(MODBLK(JBLOCK(J)) /= MODACT) CYCLE
+               IF(FMODBLK(JBLOCK(J)) /= MODACT) CYCLE
+               TBUF(J,IC) = ZERO
+            END DO
+         END DO
+      END DO
+
+      DO IPH = 1,NPH     
+
+C----------setup up potential for phase IPH 
+         DO K = K1,K2
+            J1 = ICGES(K)
+            J2 = J1+NCGES(K)-1
+            IA = IJKS(1,K)
+            JA = IJKS(2,K)
+            KA = IJKS(3,K)
+            DO J = J1,J2
+               L = LIBUF(J)
+C               IF(MODBLK(JBLOCK(J)) /= MODACT) CYCLE
+               IF(FMODBLK(JBLOCK(J)) /= MODACT) CYCLE
+               DEN = MDEN(IA,JA,KA,IPH) + BUFIF8(L,IMDEN+IPH) 
+               IF(MDEN(IA,JA,KA,IPH) == ZERO .OR.
+     &            BUFIF8(L,IMDEN+IPH) == ZERO) DEN = TWO*DEN
+               DELP(J) = (PRES(IA,JA,KA)-BUFIF8(L,IP))
+     &                 + (PC(IA,JA,KA,IPH)-BUFIF8(L,IPC+IPH)) 
+     &                 - DEN*DELH(J)
+            END DO
+         END DO
+
+C----------add contribution for each component in phase IPH
+         DO IC = 1,NC
+            LC = ICINPH(IC,IPH)
+            IF (LC == 0) CYCLE
+            DO K = K1,K2
+               J1 = ICGES(K)
+               J2 = J1+NCGES(K)-1
+               IA = IJKS(1,K)
+               JA = IJKS(2,K)
+               KA = IJKS(3,K)
+               R = ZERO
+               D = ZERO
+               DO J = J1,J2
+                  L = LIBUF(J)
+C                  IF(MODBLK(JBLOCK(J)) /= MODACT) CYCLE
+                  IF(FMODBLK(JBLOCK(J)) /= MODACT) CYCLE
+                  TC = TFINS(J)*DELTIM
+                  IF(DELP(J) > ZERO) THEN
+                     COEF = TC*MOBPROD(IA,JA,KA,LC)
+                  ELSEIF(DELP(J) < ZERO) THEN
+                     COEF = TC*BUFIF8(L,IMOB+LC)
+                  ELSE
+                     COEF = TC*HALF*(MOBPROD(IA,JA,KA,LC)
+     &                    +          BUFIF8(L,IMOB+LC))
+                  ENDIF
+                  R = R + COEF*DELP(J)
+                  D = D + COEF
+                  TBUF(J,IC) = TBUF(J,IC) + COEF
+               END DO
+               RESID(IA,JA,KA,IC) = RESID(IA,JA,KA,IC) + R
+               DFLOW(IA,JA,KA,IC) = DFLOW(IA,JA,KA,IC) + D
+            END DO 
+         END DO
+      END DO 
+
+      END
+C*********************************************************************
+      SUBROUTINE XFLTSCAL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,SCALE,XCOF,NBUFDIM,TBUF)
+C*********************************************************************
+
+C  SETUP IMPEC COEFFICIENTS FOR INTERFACES 
+
+C  INPUT:
+C     TBUF(N,IC) = INTERFACE FLOW COEFFICIENTS (REAL*8)
+C     SCALE(I,J,K,IPH) = SCALING FACTOR OFR IMPEC (REAL*8)
+C     NBUFDIM = FIRST DIMENSION OF BUFIF8(,) (INTEGER)
+
+C  INPUT/OUTPUT:
+C     XCOF(I,J,K,L) = IMPEC FLOW COEFFICENTS (REAL*4)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'sblkc.h'
+
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*4 XCOF(IDIM,JDIM,KDIM,$NUMCOF)
+      REAL*8 TBUF(NBUFCOMP,NC),SCALE(IDIM,JDIM,KDIM,NC)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER K1,K2,K,J1,J2,J,IA,JA,KA,IC
+      REAL*8 X,XTOTL
+
+      IF (NIEBS(NBLK) == 0) RETURN
+      K1 = IIEBS(NBLK)
+      K2 = K1+NIEBS(NBLK)-1
+
+C  SET GRAVITY CONSTANT TO .5 g AND ZERO COFINF  
+      DO K = K1,K2
+         J1 = ICGES(K)
+         J2 = J1+NCGES(K)-1
+         DO J = J1,J2
+C            IF(MODBLK(JBLOCK(J)) /= MODACT) CYCLE
+            IF(FMODBLK(JBLOCK(J)) /= MODACT) CYCLE
+            COFINF(J,1,1) = ZERO
+         END DO 
+      END DO
+
+C----------add contribution for each component 
+      DO IC = 1,NC
+         DO K = K1,K2
+            J1 = ICGES(K)
+            J2 = J1+NCGES(K)-1
+            IA = IJKS(1,K)
+            JA = IJKS(2,K)
+            KA = IJKS(3,K)
+            XTOTL = ZERO
+            DO J = J1,J2
+C               IF(MODBLK(JBLOCK(J)) /= MODACT) CYCLE
+               IF(FMODBLK(JBLOCK(J)) /= MODACT) CYCLE
+               X = SCALE(IA,JA,KA,IC)*TBUF(J,IC)
+               COFINF(J,1,1) = COFINF(J,1,1) + X
+               XTOTL = XTOTL + X
+            END DO
+
+            GO TO (11,12,13,14,15,16), KDIRS(J1)
+   11       XCOF(IA,JA,KA,3) = XCOF(IA,JA,KA,3) + XTOTL
+            GO TO 17
+   12       XCOF(IA,JA,KA,5) = XCOF(IA,JA,KA,5) + XTOTL
+            GO TO 17
+   13       XCOF(IA,JA,KA,7) =  XCOF(IA,JA,KA,7) + XTOTL
+            GO TO 17
+   14       XCOF(IA,JA,KA,2) = XCOF(IA,JA,KA,2) + XTOTL
+            GO TO 17
+   15       XCOF(IA,JA,KA,4) = XCOF(IA,JA,KA,4) + XTOTL
+            GO TO 17
+   16       XCOF(IA,JA,KA,6) = XCOF(IA,JA,KA,6) + XTOTL
+
+   17       CONTINUE
+
+         END DO 
+      END DO
+
+      END
+C*********************************************************************
+      SUBROUTINE XFLTFLOW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                    KEYOUT,NBLK,NBUFDIM,BUFIF8,TBUF,DELC)
+C*********************************************************************
+
+C  ADDS INTERFACE CONTRIBUTION TO MASS UPDATE 
+
+C  INPUT:
+C     TBUF(N,IC) = INTERFACE FLOW COEFFICIENTS (REAL*8)
+C     BUFIF8((,1) = PRESSURE CHANGE (REAL*8)
+C     NBUFDIM = FIRST DIMENSION OF BUFIF8(,) (INTEGER)
+
+C  INPUT/OUTPUT:
+C     DELC(I,J,K,L) = CHANGE IN MASS (REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'sblkc.h'
+
+      INCLUDE 'xparam.h'
+      INCLUDE 'xmodel.h'
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER KL1,KL2,IL1,IL2,IDIM,JDIM,KDIM,NBLK,LDIM,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 TBUF(NBUFCOMP,NC),DELC(IDIM,JDIM,KDIM,NC),
+     &       BUFIF8(NBUFDIM,*)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER K1,K2,K,J,IA,JA,KA,IC
+      REAL*8 Z
+
+      IF (NIEBS(NBLK) == 0) RETURN
+      K1 = IIEBS(NBLK)
+      K2 = K1+NIEBS(NBLK)-1
+
+C----------add contribution for each component in phase IPH
+      DO IC = 1,NC
+         DO K = K1,K2
+            Z = ZERO
+            DO J = ICGES(K),ICGES(K)+NCGES(K)-1
+C               IF(MODBLK(JBLOCK(J)) /= MODACT) CYCLE
+               IF(FMODBLK(JBLOCK(J)) /= MODACT) CYCLE
+               Z = Z + TBUF(J,IC)*BUFIF8(LIBUF(J),1)
+            END DO 
+            IA = IJKS(1,K)
+            JA = IJKS(2,K)
+            KA = IJKS(3,K)
+            DELC(IA,JA,KA,IC) = DELC(IA,JA,KA,IC) + Z 
+         END DO
+      END DO 
+
+      END
+C*********************************************************************
+      SUBROUTINE XBLKIN (KERR)
+C*********************************************************************
+
+C  Creates compositional model fault arrays
+
+C  KERR = ERROR NUMBER (OUTPUT, INTEGER)
+
+C  NOTE: See xarydat.h for array descriptions
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'sblkc.h'
+      INCLUDE 'xarydat.h'
+      INCLUDE 'xmodel.h'
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &                         ' ENTERING SUBROUTINE XBLKIN'
+      KERR=0
+      M = 0
+      N = 0
+      DO L = 1,$MXBLKS
+         DO K = 1,NIEBS(L)
+            M = M + 1
+            N = N+NCGES(M)
+         END DO
+      END DO
+      NBUFCOMP = MAX(N,1)
+
+C-------fault flow coefficient
+      CALL ALCIBUF ($MXCOMP+1,NBUFCOMP,N_BUFCOMP,KERR)
+
+      END
+C*********************************************************************
+      SUBROUTINE DUAL_BNDRY(IVAL,IDIM,JDIM,KDIM,NBLK)
+C*********************************************************************
+
+C  LOCATE CELLS NEAR FAULTS FOR STABILITY TEST
+
+C  INPUT/OUTPUT:
+C     IVAL(I,J,K) = INDICATOR FOR STABILITY TEST
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'sblkc.h'
+
+C-----------------------------------------------------------------------
+C     Dummy Arguments
+C-----------------------------------------------------------------------
+      INTEGER IDIM,JDIM,KDIM,NBLK,IVAL(IDIM,JDIM,KDIM)
+C-----------------------------------------------------------------------
+C     Local Variables
+C-----------------------------------------------------------------------
+      INTEGER II,JJ,M,II1,II2,NBT,IA,JA,KA
+
+      DO M = 1,NPAI(NBLK)
+         II1 = IESNDI(M,NBLK)
+         II2 = II1 + NESNDI(M,NBLK) - 1
+         NBT = NBSRI(M,NBLK)
+
+C         IF (MODBLK(NBT) /= $XMODEL) CYCLE
+         IF (FMODBLK(NBT) /= $XMODEL) CYCLE
+
+         DO II = II1,II2
+            JJ = KFESR(II)
+            IA = IJKS(1,JJ)
+            JA = IJKS(2,JJ)
+            KA = IJKS(3,JJ)
+            IVAL(IA,JA,KA) = 3
+         END DO
+      END DO
+
+      END

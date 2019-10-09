@@ -1,0 +1,310 @@
+// ===================================================
+// slip.c 
+// M. Peszynska, 5/00
+// postprocessing tool for collecting slice'ing output from
+// multiple processors
+// ===================================================
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAXPROC $MXPROC
+#define MAXL    $MAXUL
+
+int _Myprc;
+char ROOTname [MAXL];
+int _Nstep;
+int _Filestyle;
+int Numsli;
+int numproc;
+int nlines;
+int realvars, numvars ;
+
+void logo(), logoerr(), mperr(char *s);
+
+void _cr_INIT_fname(char *filename,int flag,int myblk);
+void _cr_ZONE_fname(char *filename,int flag,int myblk);
+void _cr_SLICE_fname(char *filename,int slice);
+
+
+// ===============================================
+// parameters are passed by 
+//                          command line
+//                          files: 
+//                                 dumtstep
+//                                 dumproclist
+main(int argc, char *argv[]) {
+  FILE *fin[MAXPROC];
+  FILE *fout;
+
+  FILE *fvistim;
+
+  int proclist [MAXPROC];
+
+  char INITfilename[50];    
+  char ZONEfilename[50];    
+  char SLICEfilename[50];    
+  int myproc [ 10000 ];
+  int nsteps, nstep, i, var;
+  int Debug = 0;
+  int sli_i, sli_j, line;
+
+  const int flag = 4;
+  int slice=Numsli;
+  _Filestyle = 1;
+
+  //---------------------------------  get data for postprocessing
+
+  if(argc <= 5) logoerr(); else logo();
+
+  //-------- data from command line
+  {
+    char cf[20],*f;
+    f=strcpy (ROOTname, argv[1]);
+    f=strcpy (cf, argv[2]);Numsli = atoi(cf);
+    slice = Numsli;
+    f=strcpy (cf, argv[3]);realvars = atoi(cf);
+    numvars = realvars +7;
+    f=strcpy (cf, argv[4]);sli_i = atoi(cf);
+    f=strcpy (cf, argv[5]);sli_j = atoi(cf);
+    nlines = sli_i*sli_j;      
+
+    if(Debug)printf("Parameters: <%s> %d %d %d %d %d\n",
+		    ROOTname,Numsli,realvars,sli_i,sli_j,nlines);
+    
+  }
+  // ---------- processor list from temp file <dumproclist>
+  { 
+    FILE  *fp; int i;
+
+    fp=fopen("dumproclist","r");
+    if(fp==NULL) mperr("File dumproclist unavailable.");
+
+    fscanf(fp,"%d",&numproc);
+
+    if(Debug)printf("Procs %d: \n",numproc);
+    for(i=0;i<numproc;i++) {
+      fscanf(fp,"%d",&proclist[i]);
+      if(Debug)printf("%d ",proclist[i]);
+    }
+    if(Debug)printf("\n");
+    fclose(fp);
+  }
+
+  // ----------------------------------------
+  {
+    char fline[MAXPROC][MAXL];
+    int k;char *s;
+    int ind_proc;
+
+    _cr_SLICE_fname(SLICEfilename,slice);
+    fout=fopen(SLICEfilename,"w");
+    if(fout==NULL) mperr("File with slice unavailable.");
+
+    // -------------------
+    // open files "init"
+
+    for(ind_proc=0;ind_proc<numproc;ind_proc++) {
+
+      _Myprc = proclist[ind_proc];
+
+      _cr_INIT_fname(INITfilename,flag,slice);
+      
+      fin[_Myprc]=fopen(INITfilename,"r");
+      if(fin[_Myprc]==NULL) mperr("File with init data unavailable.");
+
+      printf("\nOpen file %s for proc=%d slice=%d \n",
+	     INITfilename,_Myprc,slice);
+
+      if(ind_proc == 0) { 
+	for(line=0;line<nlines;line++) myproc[line]=-1;
+      }
+    }
+
+    // -------------------
+    // skip first three lines of header for all processors
+    for(ind_proc=0;ind_proc<numproc;ind_proc++) {
+
+      _Myprc = proclist[ind_proc];
+      
+      for(k=0;k<4;k++){
+	s = fgets(fline[_Myprc], MAXL,fin[_Myprc]);
+
+	if(ind_proc==0) 
+	  fprintf(fout,"%s\n",fline[_Myprc]);
+      }
+    }
+    
+    // -------------------
+    // read geometry lines and find owner of each line
+    for(line=0;line<nlines;line++) {
+
+      myproc[line]=-1;
+      for(ind_proc=0;ind_proc<numproc;ind_proc++) {
+
+	int id,jd,kd,ind;
+	_Myprc = proclist[ind_proc];
+	s = fgets(fline[_Myprc], MAXL,fin[_Myprc]);
+      
+	sscanf(fline[_Myprc],"%d %d %d %d ",&id,&jd,&kd,&ind);
+	/*
+       	printf("Line read proc=%d :<%s> ind=%d\n",
+	       _Myprc,fline[_Myprc],ind);
+	*/
+	if ( ind >0 ) {
+	  if(myproc [line]!=-1) {
+	    
+	    printf("\ncell already found %d at %d and currproc=%d\n",
+		   line,myproc[line],_Myprc);
+	    printf("\n%d %d %d %d\n",id,jd,kd,ind);
+	    exit(-1);
+	  } else {
+	    myproc [line] = _Myprc;
+	    /*
+	      printf("marking line %d with proc=%d\n",line,_Myprc);
+	    */
+	    fprintf(fout,"%s",fline[_Myprc]);
+	  }
+	}
+	  
+      } // end mprocs
+      
+      //printf("Line %d owned by proc %d\n",line,myproc[line]);
+
+    } // end all lines 
+
+    // ----------------------
+    // close the "init" files
+
+      for(ind_proc=0;ind_proc<numproc;ind_proc++) {
+	_Myprc = proclist[ind_proc];
+	fclose(fin[_Myprc]);
+      }
+    //=================================================================
+    // process the time step files : from <dumtstep>
+    
+    fprintf(fout,"\n\n");
+    
+    fvistim = fopen("dumtstep","r");
+    if(fvistim==NULL) mperr("File dumtstep unavailable.");
+
+    fscanf(fvistim,"%d",&nsteps);
+
+    for (i=0;i<nsteps;i++) {
+      fscanf(fvistim,"%d",&nstep);
+      printf("\nProcessing tstep %d",nstep); 
+
+      // -------------------------------------
+      // open files "tstep"
+
+      _Nstep = nstep;
+      for(ind_proc=0;ind_proc<numproc;ind_proc++) {
+	_Myprc = proclist[ind_proc];
+		
+	_cr_ZONE_fname(ZONEfilename,flag,slice);
+      
+	fin[_Myprc]=fopen(ZONEfilename,"r");
+	if(fin[_Myprc]==NULL) mperr("File with zone data unavailable.");
+
+	printf("\nOpen file %s for proc=%d slice=%d tstep=%d\n",
+	       ZONEfilename,_Myprc,slice,nstep);
+      }
+
+      // -------------------------------------
+      // skip first lines or header for all processors
+      for(ind_proc=0;ind_proc<numproc;ind_proc++) {
+	_Myprc = proclist[ind_proc];
+
+	for(k=0;k<2;k++){
+	  s = fgets(fline[_Myprc], MAXL,fin[_Myprc]);
+	  if((_Myprc==0) && (k==1))
+	    fprintf(fout,"%s\n",fline[_Myprc]);
+	  
+	}
+      }
+      
+      for(var=0;var<realvars;var++) {
+	for(line=0;line<nlines;line++) {
+	  const int newline=(line+1) % 5;
+	  
+	  for(ind_proc=0;ind_proc<numproc;ind_proc++) {
+	    float val;
+	    _Myprc = proclist[ind_proc]	;
+	    fscanf(fin[_Myprc],"%g",&val);
+	    
+	    if (myproc [line] == _Myprc) { // print me 
+	      fprintf(fout,"%g ",val);
+	    }		  
+	  }
+	  if(newline==0) fprintf(fout,"\n");
+
+	} // end all lines 
+	fprintf(fout,"\n\n");
+
+      } // end all variables
+      
+      // ----------------------
+      // close the "tstep " files
+      
+      for(ind_proc=0;ind_proc<numproc;ind_proc++) {
+	    _Myprc = proclist[ind_proc]	;
+	    fclose(fin[_Myprc]);
+      }
+    } // end tstep
+    
+    fclose(fvistim);
+    fclose(fout);
+  } // end processing this slice
+
+  printf("=================================================\n");
+  
+}
+
+
+
+
+void logo(){
+  printf("=================================================\n");
+  printf("Utility SLIP (mpesz, 5/1/00) \n");
+  printf("=============================\n");
+}
+
+void logoerr() {
+  logo();
+  printf("=================================================\n");
+  printf("Not enough parameters. Exit.\n");
+  printf("=================================================\n");
+  exit(-1);
+}
+
+void _cr_INIT_fname(char *filename,int flag,int myblk){
+  switch(_Filestyle) {
+  case 2:  // IBM PC style
+		sprintf(filename,"%s_%d_%d.ini",
+			ROOTname,myblk,_Myprc);break;
+  default: // NO_PC
+		sprintf(filename,"%s.%d.%d.%d.init",
+			ROOTname,myblk,_Myprc,flag);break;
+  } 
+}
+
+void _cr_ZONE_fname(char *filename,int flag,int myblk){
+  switch(_Filestyle) {
+  case 2:  // IBM PC style
+		sprintf(filename,"%s_%d_%d.%d",
+			ROOTname,myblk,_Myprc,_Nstep); break;
+  default: // NO_PC
+		  sprintf(filename,"%s.%d.%d.%d.%d",
+			  ROOTname,myblk,_Myprc,flag,_Nstep);  break;
+  }   
+}
+
+void _cr_SLICE_fname(char *filename,int slice){
+  sprintf(filename,"%s.%d.tec",
+	  ROOTname,slice);
+}
+
+void mperr(char *s) {
+  fprintf(stderr,"%s\n",s);
+  exit(-1);
+}

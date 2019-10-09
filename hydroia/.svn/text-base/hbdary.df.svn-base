@@ -1,0 +1,1127 @@
+C  HBDARY.F - IMPLICIT SINGLE PHASE MODEL BOUNDARY CONDITION ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+
+C SUBROUTINE HBDINTAB
+C SUBROUTINE HBDPROP    
+C SUBROUTINE HBDPROPW 
+c SUBROUTINE HBDTRAN
+c SUBROUTINE HBDTRANW
+c SUBROUTINE HBDBAL 
+
+C  CODE HISTORY:
+
+C  M. PESZYNSKA,      1/01  INITIAL VERSION
+c
+c   Routines in this file are written for boundary conditions
+c   of type = bound_type(region):
+c    type =  1: values = POIL, COIL [psi,lb/cu-ft]
+c    type =  2: values = POIL, SWAT [psi,nondim]
+c    type =  3: values = POIL, outflow SWAT [psi,nondim]
+c    type =  4: values = reserved for POIL, WAT_FLUX (under construction) 
+c    type =  5: values = POILDEP/RDEP, SWAT [psi,nondim]
+c    type =  6: values = POILDEP/RDEP, outflow SWAT [osi,nondim]
+c    type = -1: values = FLUXO, FLUXW [lb/day*sq-ft,lb/day*sq-ft]
+c   Other boundary conditions, if specified, are ignored.
+c   Geometrical information about regions is read and processed 
+c   by the framework.
+C*********************************************************************
+      SUBROUTINE HBDINTAB(NTIME,NERR)
+C*********************************************************************
+c input tables with boundary values
+C*********************************************************************
+      IMPLICIT NONE
+      INTEGER NTIME, NERR
+
+      INCLUDE 'unitsex.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      
+      integer i,j, nt
+
+c space for getblk      
+
+      INTEGER LOCTA($MXBREG,$MXNUMEQ),LENTA($MXBREG,$MXNUMEQ)
+      CHARACTER*1 BLKBUF($MXTBUF,$MXNUMEQ)
+      CHARACTER*50 TABTIT
+
+c ---------------------------------------------
+c read in the boundary values for each region 
+
+      DO I=1,$MXBREG
+         DO J=1,2
+            LENTA(I,J)=0
+         ENDDO
+      ENDDO
+
+      CALL GETBLK('HBOUND1 ',BLKBUF,$MXTBUF,NBND_REG,
+     &     LOCTA,LENTA,NERR)
+      CALL GETBLK('HBOUND2 ',BLKBUF(1,2),$MXTBUF,NBND_REG,
+     &     LOCTA(1,2),LENTA(1,2),NERR)
+
+      DO I=1,NBND_REG
+         IF (LENTA(I,1).GT.0.AND.LENTA(I,2).GT.0) THEN
+
+            NT= NBND_TYPE(I)
+            IF(NT.EQ.1) THEN
+c poil,coil-------------------
+               TABTIT='POIL FOR BDARY REGION'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,EXTPRES)
+               CALL TABLE(BLKBUF(LOCTA(I,1),1),LENTA(I,1),
+     &              'TIME[day] ','BPOIL[psi] ',TABTIT,
+     &              NTABBND(I,1),NERR)
+
+               TABTIT='COIL FOR BDARY REGION'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,EXTDENS)
+               CALL TABLE(BLKBUF(LOCTA(I,2),2),LENTA(I,2),
+     &           'TIME[day] ','BCOIL[lb/cu-ft] ',TABTIT,
+     &           NTABBND(I,2),NERR)
+              
+            ELSE IF(NT.EQ.2) THEN
+c poil,swat -------------------
+               TABTIT='POIL FOR BDARY REGION'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,EXTPRES)
+               CALL TABLE(BLKBUF(LOCTA(I,1),1),LENTA(I,1),
+     &              'TIME[day] ','BPOIL[psi] ',TABTIT,
+     &              NTABBND(I,1),NERR)
+
+               TABTIT='SWAT FOR BDARY REGION'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,'[]')
+               CALL TABLE(BLKBUF(LOCTA(I,2),2),LENTA(I,2),
+     &           'TIME[day] ','BSWAT ',TABTIT,
+     &           NTABBND(I,2),NERR)
+              
+            ELSE IF(NT.EQ.3) THEN
+c poil,outflow -------------------
+               TABTIT='POIL FOR BDARY REGION'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,EXTPRES)
+               CALL TABLE(BLKBUF(LOCTA(I,1),1),LENTA(I,1),
+     &              'TIME[day] ','BPOIL[psi] ',TABTIT,
+     &              NTABBND(I,1),NERR)
+
+               TABTIT='SWAT FOR BDARY REGION (IGNORED)'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,'[]')
+               CALL TABLE(BLKBUF(LOCTA(I,2),2),LENTA(I,2),
+     &           'TIME[day] ','BSWAT ',TABTIT,
+     &           NTABBND(I,2),NERR)
+              
+            ELSE IF(NT.EQ.4) THEN              ! under construction
+c poil,fluxwat -------------------
+               TABTIT='POIL FOR BDARY REGION'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,EXTPRES)
+               CALL TABLE(BLKBUF(LOCTA(I,1),1),LENTA(I,1),
+     &              'TIME[day] ','BPOIL[psi] ',TABTIT,
+     &              NTABBND(I,1),NERR)
+
+               TABTIT='SWAT FOR BDARY REGION'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,'[]')
+               CALL TABLE(BLKBUF(LOCTA(I,2),2),LENTA(I,2),
+     &           'TIME[day] ','BSWAT ',TABTIT,
+     &           NTABBND(I,2),NERR)
+              
+            ELSE IF(NT.EQ.5.OR.NT.EQ.6) THEN
+c poil at rdep sat -------------------
+               TABTIT='POIL FOR BDARY REGION AT RDEP'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,EXTPRES)
+               CALL TABLE(BLKBUF(LOCTA(I,1),1),LENTA(I,1),
+     &              'TIME[day] ','BPOIL[psi] ',TABTIT,
+     &              NTABBND(I,1),NERR)
+
+               TABTIT='SWAT FOR BDARY REGION'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,'[]')
+               CALL TABLE(BLKBUF(LOCTA(I,2),2),LENTA(I,2),
+     &           'TIME[day] ','BSWAT ',TABTIT,
+     &           NTABBND(I,2),NERR)
+              
+            ELSE IF(NT.EQ.-1) THEN
+c oilflux,watflux -------------------
+               TABTIT='OILFLUX FOR BDARY REGION'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,'[lb/day*sq-ft]')
+               CALL TABLE(BLKBUF(LOCTA(I,1),1),LENTA(I,1),
+     &              'TIME[day] ','BOFLUX[lb/day*sq-ft] ',TABTIT,
+     &              NTABBND(I,1),NERR)
+
+               TABTIT='WATERFLUX FOR BDARY REGION'
+               CALL MAKTIT(TABTIT,50,I)
+               CALL TABUNT (EXTTIME,'[lb/day*sq-ft]')
+               CALL TABLE(BLKBUF(LOCTA(I,2),2),LENTA(I,2),
+     &           'TIME[day] ','BWFLUX[lb/day*sq-ft]  ',TABTIT,
+     &           NTABBND(I,2),NERR)
+              
+            ENDIF
+         ENDIF
+      ENDDO
+
+      RETURN
+
+c debug info
+
+      DO I=1,NBND_REG
+         DO J=1,2
+            WRITE(*,*) 'TABLE ? ',I,J,NTABBND(I,J)
+         ENDDO
+      ENDDO
+      
+      END
+
+C*********************************************************************
+      SUBROUTINE HBDPROP()
+C*********************************************************************
+c executive for HBDPROPW
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'harydat.h'
+      INCLUDE 'blkary.h'      
+      INCLUDE 'control.h'
+$BUCKLEV      INCLUDE 'bucklev.h'
+$BUCKLEV      INCLUDE 'hfluids.h'
+$BUCKLEV      INCLUDE 'boundary.h'
+$BUCKLEV      INCLUDE 'rock.h'
+
+      INTEGER IBDPROP(15) 
+      DATA IBDPROP / 15*0 /
+      EXTERNAL HBDPROPW
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./
+      REAL*8 TIMZ,SWATLEFT,DUM
+
+c---------------------------
+
+      IF(ONCEONLY) THEN
+         ONCEONLY = .FALSE.
+
+         IBDPROP(1)=14
+         IBDPROP(2)=N_PV
+         IBDPROP(3)=N_POIL
+         IBDPROP(4)=N_PWAT
+         IBDPROP(5)=N_COIL
+         IBDPROP(6)=N_DUNK
+         IBDPROP(7)=N_COILN
+         IBDPROP(8)=N_CWATN
+         IBDPROP(9)=N_RELPRM
+         IBDPROP(10)=N_DPCSW
+         IBDPROP(11)=N_COF
+         IBDPROP(12)=N_RESID
+         IBDPROP(13)=N_ROCK
+         IBDPROP(14)=N_POILN
+         IBDPROP(15)=N_DEPTH
+
+$BUCKLEV         TIMZ=0.D0
+$BUCKLEV         CALL LOOKUP(NTABBND(BLREG,2),TIMZ,SWATLEFT,DUM)
+$BUCKLEV         DUM = SWINIT
+$BUCKLEV         IF(BLFLAG) CALL WRITE_FRFLOW(1,
+$BUCKLEV     &   nkwsw(1),nkosw(1),DUM,SWATLEFT)
+
+      ENDIF
+            
+      CALL CALLWORK(HBDPROPW,IBDPROP)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE HBDPROPW 
+     &     (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &     KEYOUT,NBLK,PV,POIL,PWAT,COIL,DUNK,COILN,
+     &     CWATN,RELPRM,DPCSW,COF,RESID,KROCK,POILN,
+     &     POIL_RATE, COIL_RATE, DEPTH)
+C*********************************************************************
+C  ROUTINE EVALUATES properties on the bdary, see PROP()
+C*********************************************************************
+      implicit none
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'hfluids.h'
+      INCLUDE 'rock.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,
+     &     IOFF,JOFF,KOFF,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+
+      integer  KROCK(IDIM,JDIM,KDIM)
+
+      REAL*8 PV(IDIM,JDIM,KDIM),
+     &       POIL(IDIM,JDIM,KDIM),        DPCSW(IDIM,JDIM,KDIM),
+     &       PWAT(IDIM,JDIM,KDIM),        COIL(IDIM,JDIM,KDIM),
+     &       DUNK(IDIM,JDIM,KDIM,2),      RESID(IDIM,JDIM,KDIM,2),
+     &       COILN(IDIM,JDIM,KDIM),       CWATN(IDIM,JDIM,KDIM),
+     &       RELPRM(IDIM,JDIM,KDIM,4),    POILN(IDIM,JDIM,KDIM)
+     &      ,POIL_RATE(IDIM,JDIM,KDIM),   COIL_RATE(IDIM,JDIM,KDIM)
+      REAL*4 COF(IDIM,JDIM,KDIM,$NUMCOF,2)
+
+      REAL*8 DEPTH(IDIM,JDIM,KDIM)
+
+      REAL*8 TE,VAL1,VAL2,DPQ,DOP,SO,SW,PC,DWP,swat
+      INTEGER I,J,K,L,KR,IW,MERR,IB,NDIR,NFOFF,NTYPE
+
+c--------------------------------------------
+
+      IF (NBND_REG.EQ.0.OR.NBEL.EQ.0) RETURN
+
+C  EVALUATE boundary TERMS AT TIME N + 1
+
+      TE=TIM+DELTIM
+
+C  GET LOCAL TO GLOBAL INDEX OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  LOOP OVER THE bdary condition regions
+
+      DO 1 IB=1,NBND_REG
+
+         NTYPE = NBND_TYPE(IB)
+
+c properties and values set only for Dirichlet condition, type >0
+
+         IF(NTYPE.LE.0) GOTO 1
+
+         IF(NBLK.EQ.1.AND.IB.EQ.1) NFOFF=1
+         IF(NBLK.GT.1.AND.IB.EQ.1) NFOFF=LOFFBND(NBND_REG,NBLK-1)+1
+         IF(IB.NE.1) NFOFF=LOFFBND(IB-1,NBLK)+1
+
+c get the current value of primary variable (pressure)
+
+         CALL LOOKUP(NTABBND(IB,1),TE,VAL1,DPQ)
+         CALL LOOKUP(NTABBND(IB,2),TE,VAl2,DPQ)
+
+c loop over all bdary elements in this region
+c         write (*,*) 'nfoff ', nfoff, ' loff ', loffbnd(ib,nblk)
+         DO 2 L=NFOFF,LOFFBND(IB,NBLK)
+            I = LOCBND(1,L)
+            J = LOCBND(2,L)
+            K = LOCBND(3,L)
+            
+c ... to evaluate properties given the bdary cond. (density) 
+
+            IF(NTYPE.EQ.1) THEN
+c -- poil,coil
+               POIL(I,J,K) = VAL1
+               DUNK(I,J,K,1)=OILDEN*EXP(OILCMP*VAL1)
+
+               COIL(I,J,K) = VAL2
+               SO=COIL(I,J,K)/DUNK(I,J,K,1)
+               SW=1.D0-SO
+               KR=KROCK(I,J,K)
+               CALL LOOKUP(NPCOW(KR),SW,PC,DPCSW(I,J,K))
+               PWAT(I,J,K)=VAL1-PC
+               DUNK(I,J,K,2)= WATDEN*EXP(WATCMP*(VAL1-PC))
+
+               CALL LOOKUP(NKOSW(KR),SW,RELPRM(I,J,K,1),RELPRM(I,J,K,2))
+               CALL LOOKUP(NKWSW(KR),SW,RELPRM(I,J,K,3),RELPRM(I,J,K,4))
+    
+            ELSE IF (NTYPE.EQ.2) THEN
+c -- poil,swat
+               POIL(I,J,K) = VAL1
+               DUNK(I,J,K,1)=OILDEN*EXP(OILCMP*VAL1)
+
+               SWAT = VAL2
+               COIL(I,J,K) = (1.D0-SWAT)*DUNK(I,J,K,1)
+               SO=COIL(I,J,K)/DUNK(I,J,K,1)
+               SW=1.D0-SO
+               KR=KROCK(I,J,K)
+               CALL LOOKUP(NPCOW(KR),SW,PC,DPCSW(I,J,K))
+               PWAT(I,J,K)=VAL1-PC
+               DUNK(I,J,K,2)= WATDEN*EXP(WATCMP*(VAL1-PC))
+
+               CALL LOOKUP(NKOSW(KR),SW,RELPRM(I,J,K,1),RELPRM(I,J,K,2))
+               CALL LOOKUP(NKWSW(KR),SW,RELPRM(I,J,K,3),RELPRM(I,J,K,4))
+    
+            ELSE IF (NTYPE.EQ.3) THEN
+               POIL(I,J,K) = VAL1
+               DUNK(I,J,K,1)=OILDEN*EXP(OILCMP*VAL1)
+
+c for outflow like condition
+c ignore val2, take the value of saturation from neighboring cell
+
+               NDIR = LOCBND(4,L)
+               IF(NDIR.EQ.1) COIL(I,J,K) = COIL(I+1,J,K)
+               IF(NDIR.EQ.2) COIL(I,J,K) = COIL(I-1,J,K)
+               IF(NDIR.EQ.3) COIL(I,J,K) = COIL(I,J+1,K)
+               IF(NDIR.EQ.4) COIL(I,J,K) = COIL(I,J-1,K)
+               IF(NDIR.EQ.5) COIL(I,J,K) = COIL(I,J,K+1)
+               IF(NDIR.EQ.6) COIL(I,J,K) = COIL(I,J,K-1)
+
+               SO=COIL(I,J,K)/DUNK(I,J,K,1)
+               SW=1.D0-SO
+               KR=KROCK(I,J,K)
+               CALL LOOKUP(NPCOW(KR),SW,PC,DPCSW(I,J,K))
+               PWAT(I,J,K)=VAL1-PC
+               DUNK(I,J,K,2)= WATDEN*EXP(WATCMP*(VAL1-PC))
+
+               CALL LOOKUP(NKOSW(KR),SW,RELPRM(I,J,K,1),RELPRM(I,J,K,2))
+               CALL LOOKUP(NKWSW(KR),SW,RELPRM(I,J,K,3),RELPRM(I,J,K,4))
+    
+            ELSE IF (NTYPE.EQ.5) THEN
+c -- poil at rdep, wat sat 
+
+               CALL COMPPOILDEN(BND_DEP(IB),val1,DEPTH(I,J,K),
+     &              POIL(I,J,K),dunk(I,J,K,1))
+
+c inflow
+               SWAT = VAL2
+               COIL(I,J,K) = (1.D0-SWAT)*DUNK(I,J,K,1)
+               SO=COIL(I,J,K)/DUNK(I,J,K,1)
+               KR=KROCK(I,J,K)
+               CALL LOOKUP(NPCOW(KR),SWat,PC,DPCSW(I,J,K))
+               PWAT(I,J,K)=poil(i,j,k)-PC
+               DUNK(I,J,K,2)= WATDEN*EXP(WATCMP*pwat(i,j,k))
+
+               CALL LOOKUP(NKOSW(KR),SWat,
+     &              RELPRM(I,J,K,1),RELPRM(I,J,K,2))
+               CALL LOOKUP(NKWSW(KR),SWat,
+     &              RELPRM(I,J,K,3),RELPRM(I,J,K,4))
+    
+c               write(*,*) 'type 5 ',i,poil(i,j,k),pwat(i,j,k),swat
+
+            ELSE IF (NTYPE.EQ.6) THEN
+c -- poil at rdep, swat from outflow
+
+               CALL COMPPOILDEN(BND_DEP(IB),VAL1,DEPTH(I,J,K),
+     &              POIL(I,J,K),DUNK(I,J,K,1))
+
+c for outflow like condition
+c ignore val2, take the value of saturation from neighboring cell
+
+               NDIR = LOCBND(4,L)
+
+               IF(NDIR.EQ.1) COIL(I,J,K) = COIL(I+1,J,K)
+               IF(NDIR.EQ.2) COIL(I,J,K) = COIL(I-1,J,K)
+               IF(NDIR.EQ.3) COIL(I,J,K) = COIL(I,J+1,K)
+               IF(NDIR.EQ.4) COIL(I,J,K) = COIL(I,J-1,K)
+               IF(NDIR.EQ.5) COIL(I,J,K) = COIL(I,J,K+1)
+               IF(NDIR.EQ.6) COIL(I,J,K) = COIL(I,J,K-1)
+
+               SO=COIL(I,J,K)/DUNK(I,J,K,1)
+               SW=1.D0-SO
+               KR=KROCK(I,J,K)
+               CALL LOOKUP(NPCOW(KR),SW,PC,DPCSW(I,J,K))
+               PWAT(I,J,K)=poil(i,j,k)-PC
+               DUNK(I,J,K,2)= WATDEN*EXP(WATCMP*pwat(i,j,k))
+
+               CALL LOOKUP(NKOSW(KR),SW,RELPRM(I,J,K,1),RELPRM(I,J,K,2))
+               CALL LOOKUP(NKWSW(KR),SW,RELPRM(I,J,K,3),RELPRM(I,J,K,4))
+    
+            ENDIF
+
+            goto 2
+
+c            if(ntype.gt.0) then
+c               write(*,*) i,j,k,' bdprop ',poil(i,j,k),coil(i,j,k),
+c     &              dunk(i,j,k,1),dunk(i,j,k,2),sw,
+c     &              relprm(i,j,k,1),relprm(i,j,k,2),
+c     &              relprm(i,j,k,3),relprm(i,j,k,4),
+c     &              dpcsw(i,j,k)
+c               
+c            endif
+
+    2 CONTINUE
+    1 CONTINUE
+
+      END
+
+c ************************************************
+      SUBROUTINE HBDTRAN()
+c ************************************************
+c executive for HBDTRANW
+C*************************************************
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'harydat.h'
+      INCLUDE 'hbaldat.h'
+      INCLUDE 'boundary.h'
+
+      INTEGER A(15),I
+      EXTERNAL HBDTRANW
+C -----------------------
+      A(1)  = 14
+      A(2)  = N_XPERM
+      A(3)  = N_YPERM
+      A(4)  = N_ZPERM
+      A(5)  = N_DEPTH
+      A(6)  = N_POIL
+      A(7)  = N_PWAT
+      A(8)  = N_DUNK
+      A(9)  = N_HVEL
+      A(10) = N_RELPRM
+      A(11) = N_DPCSW
+      A(12) = N_COF
+      A(13) = N_RESID
+      A(14) = N_COIL
+      A(15) = N_ROCK
+
+      CALL BDCLEARFLUX()
+
+      CALL CALLWORK(HBDTRANW,A)
+
+
+      END
+
+C*********************************************************************
+      SUBROUTINE HBDTRANW (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &     KL2,KEYOUT,NBLK,PERMX,PERMY,PERMZ,DEPTH,POIL,PWAT,DUNK,
+     &     VEL,RELPRM,DPCSW,COF,RESID,COIL,KROCK)
+C*********************************************************************
+c  Routine evaluates transport contributions across boundary.
+c
+c  The following bdary conditions are allowed/implemented:
+c  bound_type=1:    Dirichlet condition on pressure [psi]
+c  bound_type=-1:   Flux condition [lb/day]
+c                   positive value: injection, negative: production
+c
+c  Parameters: like in TRAN3... exxcept TCOF? replaced by PERM?
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'boundary.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'hfluids.h'
+      INCLUDE 'hbaldat.h'
+      INCLUDE 'rock.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,
+     &     IOFF,JOFF,KOFF,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 POIL(IDIM,JDIM,KDIM), DEPTH(IDIM,JDIM,KDIM),
+     &     DUNK(IDIM,JDIM,KDIM,2),  PWAT(IDIM,JDIM,KDIM),
+     &     COIL(IDIM,JDIM,KDIM),    VEL(IDIM,JDIM,KDIM,2,3),
+     &     RESID(IDIM,JDIM,KDIM,2), DPCSW(IDIM,JDIM,KDIM) ,
+     &     RELPRM(IDIM,JDIM,KDIM,4) 
+      REAL*4 PERMX(IDIM,JDIM,KDIM), PERMY(IDIM,JDIM,KDIM),
+     &     PERMZ(IDIM,JDIM,KDIM)
+      REAL*4 COF(IDIM,JDIM,KDIM,$NUMCOF,2,2)
+
+      INTEGER I,J,K,L,IW,MERR,IB,NDIR,NFOFF,NT
+
+      REAL*8 TVO,TVW,DX, DY, DZ, DD, DOP, DOW, DUB1, DUB2,SDUB2,DUM
+      REAL*8 CVC,TC,TE,BFLUXO,BFLUXW,DFLUX
+      REAL*8 BDFLUXO,BDFLUXW,DUB3,DWP,DUM1,DUM2, G2
+$TRCHEM     &     , RHOW, RHOO
+
+      real*8 f,fprim,kw,dkw,pc,dpc,toln,tolder,flux,swat,dp,ds,so,sw,
+     &     val1,flux1,nsw,alpha
+      integer m,maxn,kr
+      PARAMETER (TOLN =1.D-10,TOLDER=1.D-8,MAXN=15)
+      integer  KROCK(IDIM,JDIM,KDIM)
+
+c--------------------------------------------
+      IF (NBND_REG.EQ.0.OR.NBEL.EQ.0) RETURN
+
+C bag8 - CVC = 2 sq-ft cp / md psi day
+      CVC = 2 * CONV_FACTOR
+
+      G2=.5D0*GRAV
+      TVW=DELTIM/WATVIS
+      TVO=DELTIM/OILVIS
+      TE = TIM + DELTIM
+
+c  get local to global index offsets
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+c  loop over the bdary condition regions
+
+      DO 1 IB=1,NBND_REG
+
+         NT=NBND_TYPE(IB)
+
+         IF(.NOT.(NT.EQ.1.OR.NT.EQ.2.OR.NT.EQ.3.
+     &        OR.NT.EQ.4.OR.NT.EQ.5.OR.NT.EQ.6
+     &        .OR.NT.EQ.-1)) GOTO 1
+
+         IF(NT.EQ.-1) THEN
+            CALL LOOKUP(NTABBND(IB,1),TE,BFLUXO,DFLUX)
+            CALL LOOKUP(NTABBND(IB,2),TE,BFLUXW,DFLUX)
+         ENDIF
+
+         IF(NBLK.EQ.1.AND.IB.EQ.1) NFOFF=1
+         IF(NBLK.GT.1.AND.IB.EQ.1) NFOFF=LOFFBND(NBND_REG,NBLK-1)+1
+         IF(IB.NE.1) NFOFF=LOFFBND(IB-1,NBLK)+1
+
+c loop over all bdary elements in this region
+
+c         write(*,*) myprc,' BDARY reg ',ib,' typ=',nbnd_type(ib),
+c     &        ' els: ',nfoff,' .... ',loffbnd(ib,nblk)
+
+         DO 2 L=NFOFF,LOFFBND(IB,NBLK)
+            I = LOCBND(1,L)
+            J = LOCBND(2,L)
+            K = LOCBND(3,L)
+
+            NDIR = LOCBND(4,L)
+            GOTO (21,22,23,24,25,26), NDIR
+            GOTO 2
+
+c x- --------------
+ 21         CONTINUE
+
+            IF(NT.GE.1.AND.NT.LE.6) THEN
+
+               DX = DXREC(I+IOFF+1,NBLK)
+               TC = PERMX(I+1,J,K)*CVC*BAREA(L)/DX
+               DD = (DEPTH(I+1,J,K)-DEPTH(I,J,K))*G2
+c oil equation               
+               DOP=POIL(I+1,J,K)-POIL(I,J,K)
+     &              -(DUNK(I+1,J,K,1)+DUNK(I,J,K,1))*DD
+
+               DUB1=TVO*TC
+               IF (DOP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+                  SDUB2=DUB2
+                  DUB3=DUB2*DOP
+                  COF(I+1,J,K,1,1,1)= COF(I+1,J,K,1,1,1) + SDUB2
+               ELSE
+                  DUB2=DUB1*RELPRM(I+1,J,K,1)*DUNK(I+1,J,K,1)
+                  SDUB2=DUB2
+                  DUM=DUB1*DOP*RELPRM(I+1,J,K,2)
+                  DUB3=DUB2*DOP
+                  COF(I+1,J,K,1,1,1)= COF(I+1,J,K,1,1,1) + SDUB2
+                  COF(I+1,J,K,1,1,2)=COF(I+1,J,K,1,1,2)-DUM
+               ENDIF
+               BDFLUXO = DUB3
+               
+c water equation               
+               DWP=PWAT(I+1,J,K)-PWAT(I,J,K)
+     &              -(DUNK(I+1,J,K,2)+DUNK(I,J,K,2))*DD
+
+               DUB1=TVW*TC
+               IF (DWP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I,J,K,3)*DUNK(I,J,K,2)
+                  DD=RDENOR*DUB2
+                  DUM2=DPCSW(I+1,J,K)*DD
+                  SDUB2=DUB2
+                  DUB3=DUB2*DWP
+               ELSE
+                  DUB2=DUB1*RELPRM(I+1,J,K,3)*DUNK(I+1,J,K,2)
+                  DD=RDENOR*DUB2
+                  DUM2=DPCSW(I+1,J,K)*DD-RELPRM(I+1,J,K,4)
+     &                 *DWP*DRATIO*DUB1
+                  SDUB2=DUB2
+                  DUB3=DUB2*DWP
+               ENDIF
+
+               BDFLUXW = DUB3
+               
+               COF(I+1,J,K,1,2,1)=COF(I+1,J,K,1,2,1)+SDUB2
+               COF(I+1,J,K,1,2,2)=COF(I+1,J,K,1,2,2)+DUM2
+
+            ELSE IF(NT.EQ.-1) THEN
+               BDFLUXO =  - BFLUXO*DELTIM*BAREA(L)
+               BDFLUXW =  - BFLUXW*DELTIM*BAREA(L)
+            ENDIF
+
+            RESID(I+1,J,K,1)=RESID(I+1,J,K,1) - BDFLUXO
+            RESID(I+1,J,K,2)=RESID(I+1,J,K,2) - BDFLUXW
+
+            BND_FLUX(IB,1) = BND_FLUX(IB,1) - BDFLUXO
+            BND_FLUX(IB,2) = BND_FLUX(IB,2) - BDFLUXW
+
+$TRCHEM            RHOO = DUNK(I+1,J,K,1)
+$TRCHEM            RHOW = DUNK(I+1,J,K,2)
+$TRCHEM      bflux(1,l) = - bdfluxo/rhoo/deltim
+$TRCHEM      bflux(2,l) = - bdfluxw/rhow/deltim
+            VEL(I+1,J,K,1,1) = -BDFLUXO/DELTIM/BAREA(L)
+            VEL(I+1,J,K,2,1) = -BDFLUXW/DELTIM/BAREA(L)
+
+c            write(*,*) 'after x-',bdfluxo,bdfluxw
+
+            GOTO 2
+
+c x+ --------------
+ 22         continue
+
+            IF(NT.GE.1.AND.NT.LE.6) THEN
+
+               DX = DXREC(I+IOFF-1,NBLK)
+               TC = PERMX(I-1,J,K)*CVC*BAREA(L)/DX
+               DD = (DEPTH(I,J,K)-DEPTH(I-1,J,K))*G2
+c oil equation               
+               DOP = POIL(I,J,K)-POIL(I-1,J,K)
+     &              -(DUNK(I,J,K,1)+DUNK(I-1,J,K,1))*DD
+
+               DUB1=TVO*TC
+               IF (DOP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I-1,J,K,1)*DUNK(I-1,J,K,1)
+                  SDUB2=DUB2
+                  DUM=DUB1*DOP*RELPRM(I-1,J,K,2)
+                  DUB3=DUB2*DOP
+                  COF(I-1,J,K,1,1,1)=COF(I-1,J,K,1,1,1)+SDUB2
+                  COF(I-1,J,K,1,1,2)=COF(I-1,J,K,1,1,2)+DUM
+               ELSE
+                  DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+                  SDUB2=DUB2
+                  DUB3=DUB2*DOP
+                  COF(I-1,J,K,1,1,1)=COF(I-1,J,K,1,1,1)+SDUB2
+               ENDIF
+               BDFLUXO = DUB3
+               
+c water equation               
+               DWP=PWAT(I,J,K)-PWAT(I-1,J,K)
+     &              -(DUNK(I,J,K,2)+DUNK(I-1,J,K,2))*DD
+
+               DUB1=TVW*TC
+               IF (DWP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I-1,J,K,3)*DUNK(I-1,J,K,2)
+                  DD=RDENOR*DUB2
+                  DUM1=DPCSW(I-1,J,K)*DD+RELPRM(I-1,J,K,4)*
+     &                 DWP*DRATIO*DUB1
+               ELSE
+                  DUB2=DUB1*RELPRM(I,J,K,3)*DUNK(I,J,K,2)
+                  DD=RDENOR*DUB2
+                  DUM1=DPCSW(I-1,J,K)*DD
+               ENDIF
+               SDUB2=DUB2
+               DUB3=DUB2*DWP
+
+               BDFLUXW = DUB3
+               
+               COF(I-1,J,K,1,2,1)=COF(I-1,J,K,1,2,1)+SDUB2
+               COF(I-1,J,K,1,2,2)=COF(I-1,J,K,1,2,2)+DUM1
+
+            ELSE IF(NT.EQ.-1) THEN
+               BDFLUXO =  BFLUXO*DELTIM*BAREA(L)
+               BDFLUXW =  BFLUXW*DELTIM*BAREA(L)
+            ENDIF
+
+            RESID(I-1,J,K,1)=RESID(I-1,J,K,1) + BDFLUXO
+            RESID(I-1,J,K,2)=RESID(I-1,J,K,2) + BDFLUXW
+
+            BND_FLUX(IB,1) = BND_FLUX(IB,1) + BDFLUXO
+            BND_FLUX(IB,2) = BND_FLUX(IB,2) + BDFLUXW
+
+$TRCHEM            RHOO = DUNK(I-1,J,K,1)
+$TRCHEM            RHOW = DUNK(I-1,J,K,2)
+$TRCHEM      bflux(1,l) = - bdfluxo/rhoo/deltim
+$TRCHEM      bflux(2,l) = - bdfluxw/rhow/deltim
+            VEL(I,J,K,1,1) = -BDFLUXO/DELTIM/BAREA(L)
+            VEL(I,J,K,2,1) = -BDFLUXW/DELTIM/BAREA(L)
+
+c            write(*,*) 'after x+',bdfluxo,bdfluxw
+
+            GOTO 2
+
+c y- --------------
+ 23         continue
+
+            IF(NT.GE.1.AND.NT.LE.6) THEN
+
+               DY = DYREC(J+JOFF+1,NBLK)
+               TC = PERMY(I,J+1,K)*CVC*BAREA(L)/DY
+               DD = (DEPTH(I,J+1,K)-DEPTH(I,J,K))*G2
+
+c oil equation               
+               DOP=POIL(I,J+1,K)-POIL(I,J,K)
+     &              -(DUNK(I,J+1,K,1)+DUNK(I,J,K,1))*DD
+               DUB1=TVO*TC
+               IF (DOP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+                  SDUB2=DUB2
+                  DUM=DUB1*DOP*RELPRM(I,J,K,2)
+                  DUB3=DUB2*DOP
+                  COF(I,J+1,K,1,1,1)= COF(I,J+1,K,1,1,1) + SDUB2
+
+               ELSE
+                  DUB2=DUB1*RELPRM(I,J+1,K,1)*DUNK(I,J+1,K,1)
+                  SDUB2=DUB2
+                  DUM=DUB1*DOP*RELPRM(I,J+1,K,2)
+                  DUB3=DUB2*DOP
+                  COF(I,J+1,K,1,1,1)= COF(I,J+1,K,1,1,1) + SDUB2
+                  COF(I,J+1,K,1,1,2)=COF(I,J+1,K,1,1,2)-DUM
+               ENDIF
+               BDFLUXO = DUB3
+               
+c water equation               
+               DWP=PWAT(I,J+1,K)-PWAT(I,J,K)
+     &              -(DUNK(I,J+1,K,2)+DUNK(I,J,K,2))*DD
+
+               DUB1=TVW*TC
+               IF (DWP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I,J,K,3)*DUNK(I,J,K,2)
+                  DD=RDENOR*DUB2
+                  DUM2=DPCSW(I,J+1,K)*DD
+                  SDUB2=DUB2
+                  DUB3=DUB2*DWP
+               ELSE
+                  DUB2=DUB1*RELPRM(I,J+1,K,3)*DUNK(I,J+1,K,2)
+                  DD=RDENOR*DUB2
+                  DUM2=DPCSW(I,J+1,K)*DD-RELPRM(I,J+1,K,4)
+     &                 *DWP*DRATIO*DUB1
+                  SDUB2=DUB2
+                  DUB3=DUB2*DWP
+               ENDIF
+
+               BDFLUXW = DUB3
+               COF(I,J+1,K,1,2,1)=COF(I,J+1,K,1,2,1)+SDUB2
+               COF(I,J+1,K,1,2,2)=COF(I,J+1,K,1,2,2)+DUM2
+
+            ELSE IF(NT.EQ.-1) THEN
+            
+               BDFLUXO =  - BFLUXO*DELTIM*BAREA(L)
+               BDFLUXW =  - BFLUXW*DELTIM*BAREA(L)
+            ENDIF
+            
+c            write(*,*) 'after y- ',-bdfluxo/oilden,-bdfluxw/watden,
+c     &           -bdfluxo/oilden-bdfluxw/watden
+            
+c            write(*,*) 'y- ',-bdfluxw/deltim/barea(l),dwp,sdub2,dum2
+
+            RESID(I,J+1,K,1)=RESID(I,J+1,K,1) - BDFLUXO
+            RESID(I,J+1,K,2)=RESID(I,J+1,K,2) - BDFLUXW
+
+            BND_FLUX(IB,1) = BND_FLUX(IB,1) - BDFLUXO
+            BND_FLUX(IB,2) = BND_FLUX(IB,2) - BDFLUXW
+
+$TRCHEM            RHOO = DUNK(I,J+1,K,1)
+$TRCHEM            RHOW = DUNK(I,J+1,K,2)
+$TRCHEM      bflux(1,l) = - bdfluxo/rhoo/deltim
+$TRCHEM      bflux(2,l) = - bdfluxw/rhow/deltim
+            VEL(I,J+1,K,1,2) = -BDFLUXO/DELTIM/BAREA(L)
+            VEL(I,J+1,K,2,2) = -BDFLUXW/DELTIM/BAREA(L)
+
+c            write(*,*) 'after y- ',bdfluxo,bdfluxw
+
+            GOTO 2
+c y+ --------------
+ 24         continue
+
+            IF(NT.GE.1.AND.NT.LE.6) THEN
+
+               DY = DYREC(J+JOFF-1,NBLK)
+               TC = PERMY(I,J-1,K)*CVC*BAREA(L)/DY
+               DD = (DEPTH(I,J,K)-DEPTH(I,J-1,K))*G2
+c oil equation               
+               DOP = POIL(I,J,K)-POIL(I,J-1,K)
+     &              -(DUNK(I,J,K,1)+DUNK(I,J-1,K,1))*DD
+
+               DUB1=TVO*TC
+               IF (DOP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I,J-1,K,1)*DUNK(I,J-1,K,1)
+                  SDUB2=DUB2
+                  DUM=DUB1*DOP*RELPRM(I,J-1,K,2)
+                  DUB3=DUB2*DOP
+                  COF(I,J-1,K,1,1,1)=COF(I,J-1,K,1,1,1)+SDUB2
+                  COF(I,J-1,K,1,1,2)=COF(I,J-1,K,1,1,2)+DUM
+               ELSE
+                  DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+                  SDUB2=DUB2
+                  DUM=DUB1*DOP*RELPRM(I,J,K,2)
+                  DUB3=DUB2*DOP
+                  COF(I,J-1,K,1,1,1)=COF(I,J-1,K,1,1,1)+SDUB2
+
+               ENDIF
+               BDFLUXO = DUB3
+               
+c water equation               
+               DWP=PWAT(I,J,K)-PWAT(I,J-1,K)
+     &              -(DUNK(I,J,K,2)+DUNK(I,J-1,K,2))*DD
+
+               DUB1=TVW*TC
+               IF (DWP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I,J-1,K,3)*DUNK(I,J-1,K,2)
+                  DD=RDENOR*DUB2
+                  DUM1=DPCSW(I,J-1,K)*DD+RELPRM(I,J-1,K,4)*
+     &                 DWP*DRATIO*DUB1
+               ELSE
+                  DUB2=DUB1*RELPRM(I,J,K,3)*DUNK(I,J,K,2)
+                  DD=RDENOR*DUB2
+                  DUM1=DPCSW(I,J-1,K)*DD
+               ENDIF
+               SDUB2=DUB2
+               DUB3=DUB2*DWP
+               BDFLUXW = DUB3              
+               COF(I,J-1,K,1,2,1)=COF(I,J-1,K,1,2,1)+SDUB2
+               COF(I,J-1,K,1,2,2)=COF(I,J-1,K,1,2,2)+DUM1
+            ELSE IF(NT.EQ.-1) THEN
+
+c               write(*,*) 'after y+ ',bfluxo/oilden,bfluxw/watden,
+c     &              bfluxo/oilden+bfluxw/watden
+
+               BDFLUXO =  BFLUXO*DELTIM*BAREA(L)
+               BDFLUXW =  BFLUXW*DELTIM*BAREA(L)
+            ENDIF
+
+            RESID(I,J-1,K,1)=RESID(I,J-1,K,1) + BDFLUXO
+            RESID(I,J-1,K,2)=RESID(I,J-1,K,2) + BDFLUXW
+
+c            write(*,*) 'after y+ ',bdfluxo/oilden,bdfluxw/watden,
+c     &           bdfluxo/oilden+bdfluxw/watden
+
+            BND_FLUX(IB,1) = BND_FLUX(IB,1) + BDFLUXO
+            BND_FLUX(IB,2) = BND_FLUX(IB,2) + BDFLUXW
+
+$TRCHEM            RHOO = DUNK(I,J-1,K,1)
+$TRCHEM            RHOW = DUNK(I,J-1,K,2)
+$TRCHEM      bflux(1,l) = - bdfluxo/rhoo/deltim
+$TRCHEM      bflux(2,l) = - bdfluxw/rhow/deltim
+            VEL(I,J,K,1,2) = -BDFLUXO/DELTIM/BAREA(L)
+            VEL(I,J,K,2,2) = -BDFLUXW/DELTIM/BAREA(L)
+
+c            write(*,*) 'after y+ ',bdfluxo,bdfluxw
+
+            GOTO 2
+
+c z- --------------
+ 25         CONTINUE
+
+            IF(NT.GE.1.AND.NT.LE.6) THEN
+
+               DZ = DZREC(K+KOFF+1,NBLK)
+               TC = PERMZ(I,J,K+1)*CVC*BAREA(L)/DZ
+               DD = (DEPTH(I,J,K+1)-DEPTH(I,J,K))*G2
+
+c oil equation               
+               DOP=POIL(I,J,K+1)-POIL(I,J,K)
+     &              -(DUNK(I,J,K+1,1)+DUNK(I,J,K,1))*DD
+               DUB1=TVO*TC
+               IF (DOP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+                  SDUB2=DUB2
+                  DUM=DUB1*DOP*RELPRM(I,J,K,2)
+                  DUB3=DUB2*DOP
+                  COF(I,J,K+1,1,1,1)= COF(I,J,K+1,1,1,1) + SDUB2
+
+               ELSE
+                  DUB2=DUB1*RELPRM(I,J,K+1,1)*DUNK(I,J,K+1,1)
+                  SDUB2=DUB2
+                  DUM=DUB1*DOP*RELPRM(I,J,K+1,2)
+                  DUB3=DUB2*DOP
+                  COF(I,J,K+1,1,1,1)= COF(I,J,K+1,1,1,1) + SDUB2
+                  COF(I,J,K+1,1,1,2)=COF(I,J,K+1,1,1,2)-DUM
+               ENDIF
+               BDFLUXO = DUB3
+               
+c water equation               
+               DWP=PWAT(I,J,K+1)-PWAT(I,J,K)
+     &              -(DUNK(I,J,K+1,2)+DUNK(I,J,K,2))*DD
+
+               DUB1=TVW*TC
+               IF (DWP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I,J,K,3)*DUNK(I,J,K,2)
+                  DD=RDENOR*DUB2
+                  DUM2=DPCSW(I,J,K+1)*DD
+                  SDUB2=DUB2
+                  DUB3=DUB2*DWP
+               ELSE
+                  DUB2=DUB1*RELPRM(I,J,K+1,3)*DUNK(I,J,K+1,2)
+                  DD=RDENOR*DUB2
+                  DUM2=DPCSW(I,J,K+1)*DD-RELPRM(I,J,K+1,4)
+     &                 *DWP*DRATIO*DUB1
+                  SDUB2=DUB2
+                  DUB3=DUB2*DWP
+               ENDIF
+
+               BDFLUXW = DUB3
+               
+               COF(I,J,K+1,1,2,1)=COF(I,J,K+1,1,2,1)+SDUB2
+               COF(I,J,K+1,1,2,2)=COF(I,J,K+1,1,2,2)+DUM2
+            ELSE IF(NT.EQ.-1) THEN
+               BDFLUXO =  - BFLUXO*DELTIM*BAREA(L)
+               BDFLUXW =  - BFLUXW*DELTIM*BAREA(L)
+            ENDIF
+                        
+            RESID(I,J,K+1,1)=RESID(I,J,K+1,1) - BDFLUXO
+            RESID(I,J,K+1,2)=RESID(I,J,K+1,2) - BDFLUXW
+
+            BND_FLUX(IB,1) = BND_FLUX(IB,1) - BDFLUXO
+            BND_FLUX(IB,2) = BND_FLUX(IB,2) - BDFLUXW
+
+$TRCHEM            RHOO = DUNK(I,J,K+1,1)
+$TRCHEM            RHOW = DUNK(I,J,K+1,2)
+$TRCHEM      bflux(1,l) = - bdfluxo/rhoo/deltim
+$TRCHEM      bflux(2,l) = - bdfluxw/rhow/deltim
+            VEL(I,J,K+1,1,3) = -BDFLUXO/DELTIM/BAREA(L)
+            VEL(I,J,K+1,2,3) = -BDFLUXW/DELTIM/BAREA(L)
+
+c            write(*,*) '(H) after z- ',bdfluxo,bdfluxw
+
+            GOTO 2
+
+c z+ --------------
+ 26         continue
+
+            IF(NT.GE.1.AND.NT.LE.6) THEN
+
+               DZ = DZREC(K+KOFF-1,NBLK)
+               TC = PERMZ(I,J,K-1)*CVC*BAREA(L)/DZ
+               DD = (DEPTH(I,J,K)-DEPTH(I,J,K-1))*G2
+c oil equation               
+               DOP = POIL(I,J,K)-POIL(I,J,K-1)
+     &              -(DUNK(I,J,K,1)+DUNK(I,J,K-1,1))*DD
+
+               DUB1=TVO*TC
+               IF (DOP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I,J,K-1,1)*DUNK(I,J,K-1,1)
+                  DUM=DUB1*DOP*RELPRM(I,J,K-1,2)
+                  DUB3=DUB2*DOP
+                  COF(I,J,K-1,1,1,1)=COF(I,J,K-1,1,1,1)+DUB2
+                  COF(I,J,K-1,1,1,2)=COF(I,J,K-1,1,1,2)+DUM
+               ELSE
+                  DUB2=DUB1*RELPRM(I,J,K,1)*DUNK(I,J,K,1)
+                  DUM=DUB1*DOP*RELPRM(I,J,K,2)
+                  DUB3=DUB2*DOP
+                  COF(I,J,K-1,1,1,1)=COF(I,J,K-1,1,1,1)+DUB2
+               ENDIF
+               BDFLUXO = DUB3
+               
+c water equation               
+               DWP=PWAT(I,J,K)-PWAT(I,J,K-1)
+     &              -(DUNK(I,J,K,2)+DUNK(I,J,K-1,2))*DD
+
+               DUB1=TVW*TC
+               IF (DWP.LT.0.0D0) THEN
+                  DUB2=DUB1*RELPRM(I,J,K-1,3)*DUNK(I,J,K-1,2)
+                  DD=RDENOR*DUB2
+                  DUM1=DPCSW(I,J,K-1)*DD+RELPRM(I,J,K-1,4)*
+     &                 DWP*DRATIO*DUB1
+               ELSE
+                  DUB2=DUB1*RELPRM(I,J,K,3)*DUNK(I,J,K,2)
+                  DD=RDENOR*DUB2
+                  DUM1=DPCSW(I,J,K-1)*DD
+               ENDIF
+               SDUB2=DUB2
+               DUB3=DUB2*DWP
+               BDFLUXW = DUB3              
+               COF(I,J,K-1,1,2,1)=COF(I,J,K-1,1,2,1)+SDUB2
+               COF(I,J,K-1,1,2,2)=COF(I,J,K-1,1,2,2)+DUM1
+            ELSE IF(NT.EQ.-1) THEN
+               BDFLUXO =  BFLUXO*DELTIM*BAREA(L)
+               BDFLUXW =  BFLUXW*DELTIM*BAREA(L)
+            ENDIF
+
+            RESID(I,J,K-1,1)=RESID(I,J,K-1,1) + BDFLUXO
+            RESID(I,J,K-1,2)=RESID(I,J,K-1,2) + BDFLUXW
+
+            BND_FLUX(IB,1) = BND_FLUX(IB,1) + BDFLUXO
+            BND_FLUX(IB,2) = BND_FLUX(IB,2) + BDFLUXW
+
+$TRCHEM            RHOO = DUNK(I,J,K-1,1)
+$TRCHEM            RHOW = DUNK(I,J,K-1,2)
+$TRCHEM      bflux(1,l) = - bdfluxo/rhoo/deltim
+$TRCHEM      bflux(2,l) = - bdfluxw/rhow/deltim
+            VEL(I,J,K,1,3) = -BDFLUXO/DELTIM/BAREA(L)
+            VEL(I,J,K,2,3) = -BDFLUXW/DELTIM/BAREA(L)
+
+c            write(*,*) 'after z+ ',bdfluxo,bdfluxw
+
+            GOTO 2
+
+    2 CONTINUE
+    1 CONTINUE
+
+      END
+
+c *********************************************************
+      SUBROUTINE HBDBAL()
+c *********************************************************
+c evaluates total contribution of fluxes across boundary
+c and adds it to the flitnp
+c *********************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'hbaldat.h'
+      INCLUDE 'boundary.h'
+$BUCKLEV      INCLUDE 'bucklev.h'
+$BUCKLEV      INCLUDE 'hfluids.h'
+$MMODEL      include 'mmodel.h'
+
+      REAL*8  HBDFLUXO, HBDFLUXW
+      INTEGER I
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./
+c-------------------------------
+      IF (NBND_REG.EQ.0) RETURN
+
+$MANY      CALL SUMIT(NBND_REG,BND_FLUX(1,1))
+$MANY      CALL SUMIT(NBND_REG,BND_FLUX(1,2))
+
+      IF (NBEL.EQ.0.OR.MYPRC.NE.0) RETURN
+
+      HBDFLUXO =  0.D0
+      HBDFLUXW =  0.D0
+      DO I=1,NBND_REG
+$MMODEL         IF(BNDRMOD(I).EQ.HYDROI) THEN
+         HBDFLUXO =  HBDFLUXO + BND_FLUX(I,1)
+         HBDFLUXW =  HBDFLUXW + BND_FLUX(I,2)
+$MMODEL         ENDIF
+      ENDDO
+
+$BUCKLEV      IF(BLFLAG) THEN
+$BUCKLEV         IF(ONCEONLY) INJLEFT = 0.D0            
+$BUCKLEV         IF(ONCEONLY) ONCEONLY = .FALSE.
+$BUCKLEV         INJLEFT =  INJLEFT 
+$BUCKLEV     &        + BND_FLUX(1,1)/OILDEN
+$BUCKLEV     &        + BND_FLUX(1,2)/WATDEN
+
+c         write(*,*) 'inj.+prod. inj.volume =',
+c     &        BND_FLUX(1,1)/OILDEN
+c     &        + BND_FLUX(1,2)/WATDEN+
+c     &        BND_FLUX(2,1)/OILDEN
+c     &        + BND_FLUX(2,2)/WATDEN,
+c     &        injleft,injleft/pov
+$BUCKLEV      ENDIF
+
+      OILITNP=OILITNP + HBDFLUXO
+      WATITNP=WATITNP + HBDFLUXW
+
+      END
+
+
+c ************************************************
+      SUBROUTINE COMPPOILDEN(REFD,REFP,DEP,PRES,DEN)
+c ************************************************
+c computes OIL pressure <pres> and OIL density <den> at depth <dep>
+c using as reference pressure <refp> at depth <refd>
+c ************************************************
+      IMPLICIT NONE
+      INCLUDE 'hfluids.h'
+      INCLUDE 'layout.h'
+
+      REAL*4 REFD
+      REAL*8 REFP,DEP,PRES,DEN
+      REAL*8 GRD2,DP,DENB,F,DF,DENA
+      INTEGER N
+c-----------------------------------
+      DENA  = OILDEN*EXP(OILCMP*REFP)
+      GRD2=.5D0*GRAV*DENA*(DEP-REFD)
+      DP=2.D0*GRD2/(1.D0-GRD2*OILCMP)
+      
+      DO  N=1,3
+         DENB=EXP(OILCMP*DP)
+         F=DP-GRD2*(1.D0+DENB)
+         DF=1.D0-GRD2*OILCMP*DENB
+         DP=DP-F/DF
+      ENDDO
+      
+      PRES = REFP+DP
+      DEN  = OILDEN*EXP(OILCMP*PRES)
+
+
+c	write(*,*) 'compPOILden ',dep,pres,den,' given ',refp,refd
+
+      END
+
+
+
+
+
+
+
+
+
+

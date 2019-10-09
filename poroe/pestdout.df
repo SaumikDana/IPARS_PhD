@@ -1,0 +1,186 @@
+C  ISTDOUT.F - PRINT BLACK OIL MODEL STANDARD OUTPUT
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE PESTDOUT()
+
+C  CODE HISTORY:
+C       XIULI GAI   05/23/01                        
+
+C*********************************************************************
+      SUBROUTINE PESTDOUTS ()
+C*********************************************************************
+
+C  Prints poroelastic model standard output - scalars
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+
+cbw $COMP      MODACT = $XMODEL
+cbw $COMP      IF (PEFLOW.EQ.$XMODEL) CALL XSTDOUTS()
+cbw $COMP      MODACT = $PEMODEL
+ 
+      END
+C*********************************************************************
+      SUBROUTINE PESTDOUTA ()
+C*********************************************************************
+C  Poroelastic model standard output - grid element arrays
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pemodel.h'
+
+      LOGICAL ONCEONLY
+      INTEGER JDISP(3),JSTRN(3),JSTRS(13),
+cbw
+     &        JASTRS(10)
+cbw
+      EXTERNAL AVERAGE_DISP,AVERAGE_STRESS,AVERAGE_STRAIN,STRESS_3D
+      DATA     ONCEONLY/.TRUE./,JDISP/3*0/,JSTRN/3*0/,JSTRS/13*0/ 
+      
+      IF(ONCEONLY) THEN
+         JDISP(1) = 2
+         JDISP(2) = N_EDISP
+         JDISP(3) = N_STRESS
+
+         JSTRN(1) = 2
+         JSTRN(2) = N_EDISP
+         JSTRN(3) = N_STRESS
+
+c        JSTRS(1) = 9
+c        JSTRS(2) = N_MODUL
+c        JSTRS(3) = N_POISS
+c        JSTRS(4) = N_BIOTA
+c        JSTRS(5) = N_STRXX_INIT
+c        JSTRS(6) = N_STRYY_INIT
+c        JSTRS(7) = N_STRZZ_INIT
+c        JSTRS(8) = N_STRESS
+c        JSTRS(9) = N_PREF
+c        JSTRS(10) = N_PRESS
+
+cbw
+         JASTRS(1) = 9
+         JASTRS(2) = N_MODUL
+         JASTRS(3) = N_POISS
+         JASTRS(4) = N_BIOTA
+         JASTRS(5) = N_STRXX_INIT
+         JASTRS(6) = N_STRYY_INIT
+         JASTRS(7) = N_STRZZ_INIT
+         JASTRS(8) = N_STRESS
+         JASTRS(9) = N_PREF
+         JASTRS(10) = N_PRESS
+cbw
+         JSTRS(1) = 12
+         JSTRS(2) = N_KEYOUT_CR
+         JSTRS(3) = N_MODUL
+         JSTRS(4) = N_POISS
+         JSTRS(5) = N_BIOTA
+         JSTRS(6) = N_STRXX_INIT
+         JSTRS(7) = N_STRYY_INIT
+         JSTRS(8) = N_STRZZ_INIT
+         JSTRS(9) = N_EDISP
+         JSTRS(10 )= N_PREF
+         JSTRS(11) = N_PRESS
+         JSTRS(12) = N_STRESS
+         JSTRS(13) = N_I4U
+       
+         ONCEONLY = .FALSE.
+      ENDIF
+
+C  PRINT FLOW MODEL GRID ELEMENT DATA
+
+cbw $BLACKI      IF(PEFLOW.EQ.BLACKI) CALL ISTDOUT()
+cbw $COMP      MODACT = $XMODEL
+cbw $COMP      IF (PEFLOW.EQ.$XMODEL) CALL XSTDOUTA()
+cbw $COMP      MODACT = $PEMODEL
+
+C  PRINT AVERAGE DISPLACEMENT AT THE CENTER, OR TOP, OR BOTTOM OF 
+C  EACH GRID BLOCK 
+
+      IF(DISPOUT.GT.0) THEN
+         CALL CALLWORK(AVERAGE_DISP,JDISP)
+         IF(NDIM_ELASTIC.EQ.3) THEN
+            TITU = 'DISPLACEMENTS IN X DIRECTION FOR FAULT BLOCK'
+cbw            CALL GEAOUT(N_EDISP,1,2)
+            CALL GEAOUT(N_STRESS,1,1)
+            TITU = 'DISPLACEMENTS IN Y DIRECTION FOR FAULT BLOCK'
+cbw            CALL GEAOUT(N_EDISP,2,2)
+            CALL GEAOUT(N_STRESS,2,1)
+            TITU = 'DISPLACEMENTS IN Z DIRECTION FOR FAULT BLOCK'
+cbw            CALL GEAOUT(N_EDISP,3,2)
+            CALL GEAOUT(N_STRESS,3,1)
+         ELSE 
+            IF(LEVELC) WRITE(NFOUT,10)
+            NERRC = NERRC + 1
+            RETURN
+         ENDIF
+      ENDIF
+      
+C  PRINT AVERAGE STRAIN AT THE CENTER OF EACH GRID BLOCK
+
+      IF(STRNOUT) THEN
+         CALL CALLWORK(AVERAGE_STRAIN,JSTRN)
+         IF(NDIM_ELASTIC.EQ.3) THEN
+            TITU = 'STRAIN_XX IN FAULT BLOCK'
+            CALL GEAOUT(N_STRESS,1,1)
+            TITU = 'STRAIN_YY IN FAULT BLOCK'
+            CALL GEAOUT(N_STRESS,2,1) 
+            TITU = 'STRAIN_ZZ IN FAULT BLOCK'
+            CALL GEAOUT(N_STRESS,3,1)
+            TITU = 'STRAIN_XY IN FAULT BLOCK'
+            CALL GEAOUT(N_STRESS,4,1)
+            TITU = 'STRAIN_XZ IN FAULT BLOCK'
+            CALL GEAOUT(N_STRESS,5,1)
+            TITU = 'STRAIN_YZ IN FAULT BLOCK'
+            CALL GEAOUT(N_STRESS,6,1)
+         ELSE 
+            IF(LEVELC) WRITE(NFOUT,10)
+            NERRC = NERRC + 1
+            RETURN
+         ENDIF
+      ENDIF
+      
+C PRINT AVERAGE STRESS AT THE CENTER OF EACH GRID BLOCK
+
+      IF(STRSOUT) THEN
+
+         CALL CALLWORK(AVERAGE_STRESS,JASTRS)
+
+         IF(NDIM_ELASTIC.EQ.3) THEN
+            TITU = 'STRESS_XX IN FAULT BLOCK'
+cbw            CALL GEAOUT(N_STRESS,1,2)
+            CALL GEAOUT(N_STRESS,1,1)
+            TITU = 'STRESS_YY IN FAULT BLOCK'
+cbw            CALL GEAOUT(N_STRESS,2,2)
+            CALL GEAOUT(N_STRESS,2,1)
+            TITU = 'STRESS_ZZ IN FAULT BLOCK'
+cbw            CALL GEAOUT(N_STRESS,3,2)
+            CALL GEAOUT(N_STRESS,3,1)
+            TITU = 'STRESS_XY IN FAULT BLOCK'
+cbw            CALL GEAOUT(N_STRESS,4,2)
+            CALL GEAOUT(N_STRESS,4,1)
+            TITU = 'STRESS_XZ IN FAULT BLOCK'
+cbw            CALL GEAOUT(N_STRESS,5,2)
+            CALL GEAOUT(N_STRESS,5,1)
+            TITU = 'STRESS_YZ IN FAULT BLOCK'
+cbw            CALL GEAOUT(N_STRESS,6,2)
+            CALL GEAOUT(N_STRESS,6,1)
+         ELSE
+            IF(LEVELC) WRITE(NFOUT,10)
+            NERRC = NERRC + 1
+            RETURN
+         ENDIF
+         I4UTIL = INTEGRATION_NODES
+         CALL CALLWORK(STRESS_3D,JSTRS)
+      ENDIF
+  10  FORMAT(/'ERROR: NOT STEP FOR POROELASTIC 1D OR 2D SYSTEM')
+
+      END
+C*********************************************************************
+C                   END OF PESTDOUT.DF
+C*********************************************************************

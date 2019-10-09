@@ -1,0 +1,570 @@
+C  TDUAL.F - SINGLE PHASE IMPLICIT MODEL DUAL APPROXIMATION MULTIBLOCK ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE TDUALS  ()
+C  SUBROUTINE TDUALR  ()
+C  SUBROUTINE TDUALV  ()
+C  SUBROUTINE TLODBUF (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                      KL2,KEYOUT,NBLK,PRES,FLDEN,DEPTH,NBUFDIM,BUFIF8)
+C  SUBROUTINE TJRCAL (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,PRES,FLDEN,DEPTH,NBUFDIM,BUFIF8,COF,
+C                     RESID)
+C  SUBROUTINE T2TRVELD (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,PRES,FLDEN,DEPTH,NBUFDIM,BUFIF8,VEL)
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     2/27/99     ALPHA CODE
+C  JOHN WHEELER     3/14/99     MEMORY MANAGEMENT FOR INTERFACE BUFFERS
+C  JOHN WHEELER     5/08/99     SINGLE PHASE IMPLICIT MODEL
+C  JOHN WHEELER     6/20/99     MULTIMODEL CAPABILITY (DUAL APPROXIMATION)
+C  SUNIL G THOMAS   3/01/09     MODS FOR COUPLING TO TRANSPORT
+C  SUNIL G. THOMAS  9/--/09     MODS TO COMPUTE VELOCITY (FOR VECTOR VIS) 
+C                               ON INTERFACES FOR EVMFEM
+
+C*********************************************************************
+      SUBROUTINE TDUALS ()
+C*********************************************************************
+
+C  Loads buffers for Jocabian and residual contributions for the dual
+C  approximation block interface
+
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'sblkc.h'
+      INCLUDE 'tarydat.h'
+
+      INTEGER IA(6)
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./,IA/6*0/
+
+      EXTERNAL TLODBUF
+
+      IF (NFACES.EQ.0) RETURN
+      CALL TIMON(12)
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &    ' ENTERING SUBROUTINE TDUALS, OLD TAG =',MSGTAG($TMODEL+1)
+
+         IA(1)=5
+         IA(2)=N_PRES
+         IA(3)=N_FLDEN
+         IA(4)=N_DEPTH
+         IA(5)=N_BUFDIM
+         IA(6)=N_BUFIF
+      ENDIF
+
+C  PUT B BLOCK QUANTITIES FOR THE WATER BALANCE IN INTERFACE BUFFERS
+
+      CALL CALLWORK(TLODBUF,IA)
+
+      CALL TIMOFF(12)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE TDUALR ()
+C*********************************************************************
+
+C  Computes Jocabian and residual contributions for the dual approximation
+C  block interface
+
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'sblkc.h'
+
+      INCLUDE 'tarydat.h'
+
+      INTEGER IA(9)
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./,IA/9*0/
+
+      EXTERNAL TJRCAL
+
+      IF (NFACES.EQ.0) RETURN
+      CALL TIMON(12)
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &    ' ENTERING SUBROUTINE TDUALR, OLD TAG =',MSGTAG($TMODEL+1)
+
+         IA(1)=8
+         IA(2)=N_PRES
+         IA(3)=N_FLDEN
+         IA(4)=N_VEL
+         IA(5)=N_DEPTH
+         IA(6)=N_BUFDIM
+         IA(7)=N_BUFIF
+         IA(8)=N_COF
+         IA(9)=N_RESID
+
+      ENDIF
+      
+C  COMPUTE JACOBIAN AND RESIDUAL CONTRIBUTIONS FOR THE WATER BALANCE
+
+      CALL CALLWORK(TJRCAL,IA)
+
+      CALL TIMOFF(12)
+      END
+
+C*********************************************************************
+      SUBROUTINE TDUALV (N_VELD)
+C*********************************************************************
+
+C  Computes Jocabian and residual contributions for the dual approximation
+C  block interface
+
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'sblkc.h'
+      INCLUDE 'tarydat.h'
+
+      INTEGER IV(7),N_VELD
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./,IV/7*0/
+
+      EXTERNAL T2TRVELD
+
+      IF (NFACES.EQ.0) RETURN
+      CALL TIMON(12)
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &    ' ENTERING SUBROUTINE TDUALR, OLD TAG =',MSGTAG($TMODEL+1)
+
+         IV(1)=6
+         IV(2)=N_PRES
+         IV(3)=N_FLDEN
+         IV(4)=N_DEPTH
+         IV(5)=N_BUFDIM
+         IV(6)=N_BUFIF
+
+      ENDIF
+
+C  COMPUTE VELOCITY ON FAULT BLOCK INTERFACES 
+
+      IV(7)=N_VELD
+      CALL CALLWORK(T2TRVELD,IV)
+
+      CALL TIMOFF(12)
+      END
+
+C*********************************************************************
+      SUBROUTINE TLODBUF (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &           KL2,KEYOUT,NBLK,PRES,FLDEN,DEPTH,NBUFDIM,BUFIF8)
+C*********************************************************************
+
+C  PUT B BLOCK QUANTITIES FOR THE BALANCE IN INTERFACE BUFFERS
+
+C  PRES(I,J,K) = PRESSURE, PSI (INPUT, REAL*8)
+
+C  FLDEN(I,J,K,1) = DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT DEPTHS , FT (INPUT, REAL*8)
+
+C  NBUFDIM = FIRST DIMENSION OF BUFIF8(,) (INPUT, INTEGER)
+
+C  OUTPUT:
+
+C  BUFIF8(,1) = PRES(,,) = PRESSURE
+C  BUFIF8(,2) = FLDEN(,,) = DENSITY
+C  BUFIF8(,3) = DEPTH(,,) = ELEMENT DEPTH
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'unitsex.h'
+
+      INCLUDE 'sblkc.h'
+      INCLUDE 'tfluidsc.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER M,II,JJ,II1,II2,IA,JA,KA,K,NBT,NMT
+      REAL*8  PRES(IDIM,JDIM,KDIM),     FLDEN(IDIM,JDIM,KDIM),
+     &        DEPTH(IDIM,JDIM,KDIM),    BUFIF8(NBUFDIM,*)
+      REAL*8 BW,TLW,DENW,DRBW
+
+      IF (NPAI(NBLK).EQ.0) RETURN
+
+      DO 90 M=1,NPAI(NBLK)
+      II1=IESNDI(M,NBLK)
+      II2=II1+NESNDI(M,NBLK)-1
+      NBT=NBSRI(M,NBLK)
+      NMT=FMODBLK(NBT)
+
+      IF (NMT.EQ.$TMODEL) THEN
+
+C  IMPLICIT SINGLE PHASE MODEL TARGET
+
+         DO 61 II=II1,II2
+         K=KFESR(II)
+         IA=IJKS(1,K)
+         JA=IJKS(2,K)
+         KA=IJKS(3,K)
+         BUFIF8(II,1)=PRES(IA,JA,KA)
+         BUFIF8(II,2)=FLDEN(IA,JA,KA)
+   61    BUFIF8(II,3)=DEPTH(IA,JA,KA)
+
+      ELSE
+
+         IF (NMT.EQ.$HMODEL) THEN
+
+C  IMPLICIT HYDROLOGY MODEL TARGET
+
+            DO 55 II=II1,II2
+            K=KFESR(II)
+            IA=IJKS(1,K)
+            JA=IJKS(2,K)
+            KA=IJKS(3,K)
+            BUFIF8(II,1)=PRES(IA,JA,KA)+1000.D0
+            BUFIF8(II,2)=PRES(IA,JA,KA)
+            BUFIF8(II,3)=0.D0
+            BUFIF8(II,4)=0.D0
+            BUFIF8(II,5)=1.D0
+            BUFIF8(II,6)=0.D0
+            BUFIF8(II,7)=FLDEN(IA,JA,KA)
+            BUFIF8(II,8)=FLDEN(IA,JA,KA)
+            BUFIF8(II,9)=DEPTH(IA,JA,KA)
+   55       BUFIF8(II,10)=0.D0
+
+         ENDIF
+
+         IF (NMT.EQ.$IMODEL) THEN
+
+C  IMPLICIT BLACK-OIL MODEL TARGET
+
+            DO 11 II=II1,II2
+            K=KFESR(II)
+            IA=IJKS(1,K)
+            JA=IJKS(2,K)
+            KA=IJKS(3,K)
+            DO 21 JJ=1,32
+   21       BUFIF8(II,JJ)=0.D0
+            BW=STDENW/FLDEN(IA,JA,KA)
+            TLW=1.D0/BW
+            DENW=FLDEN(IA,JA,KA)*5.614584D0
+            DRBW=FLCMP*TLW
+            BUFIF8(II,1)=PRES(IA,JA,KA)+1000.D0
+            BUFIF8(II,2)=PRES(IA,JA,KA)
+            BUFIF8(II,3)=PRES(IA,JA,KA)+1000.D0
+            BUFIF8(II,5)=TLW
+            BUFIF8(II,7)=DENW
+            BUFIF8(II,8)=DENW
+            BUFIF8(II,9)=1.D0
+            BUFIF8(II,11)=DEPTH(IA,JA,KA)
+            BUFIF8(II,18)=DRBW
+   11       BUFIF8(II,23)=STDENW*DRBW*5.614584D0
+
+         ENDIF
+
+      ENDIF
+
+   90 CONTINUE
+
+      END
+
+C*********************************************************************
+      SUBROUTINE TJRCAL (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &       KEYOUT,NBLK,PRES,FLDEN,VEL,DEPTH,NBUFDIM,BUFIF8,COF,RESID)
+C*********************************************************************
+
+C  COMPUTE JACOBIAN AND RESIDUAL CONTRIBUTIONS FOR THE BALANCE AND ALSO 
+C  UPDATE GHOST LAYERS OF FAULT BLOCK
+
+C  PRES(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  FLDEN(I,J,K) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT DEPTHS, FT (INPUT, REAL*8)
+
+C  NBUFDIM = FIRST DIMENSION OF BUFIF8(,) (INPUT, INTEGER)
+
+C  BUFIF8(,1) = PRES(,,) = PRESSURE, BLOCKB
+C  BUFIF8(,2) = FLDEN(,,) = DENSITY, BLOCKB
+C  BUFIF8(,3) = DEPTH(,,) = ELEMENT DEPTH, BLOCKB
+
+C  COF(I,J,K,N) = JACOBIAN COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+
+C  RESID(I,J,K)= RESIDUALS (INPUT AND OUTPUT, REAL*8)
+
+C  OUTPUT:
+
+C  VEL(I,J,K,L) = WATER VELOCITY, LB/SFT-DAY (OUTPUT, REAL*8)
+
+C  COFINF(,1,1) = DERIVATIVE OF Q     WRT P
+C                                AiBl      Bl
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'sblkc.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'tfluidsc.h'
+      INCLUDE 'tbaldat.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER NBG,NMS,J,K,L,IA,JA,KA,J1,J2,K1,K2
+      REAL*8  PRES(IDIM,JDIM,KDIM),     FLDEN(IDIM,JDIM,KDIM),
+     &        VEL(IDIM,JDIM,KDIM,3),    DEPTH(IDIM,JDIM,KDIM), 
+     &        RESID(IDIM,JDIM,KDIM),    BUFIF8(NBUFDIM,*)
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF)
+      REAL*8  TV,PA,PEA,DEA,EADR,DENA,DEPA,SQ,SDQDPA,TC,DENB,
+     &        DP,FSW,G2,Q,AFI
+
+      IF (NIEBS(NBLK).EQ.0) RETURN
+
+      NBG=0
+      FSW=0.D0
+      TV=DELTIM/FLVIS
+      G2=.5D0*GRAV
+
+C  LOOP OVER A BLOCK INTERFACE ELEMENTS
+
+      K1=IIEBS(NBLK)
+      K2=K1+NIEBS(NBLK)-1
+      DO 1 K=K1,K2
+      J1=ICGES(K)
+      J2=J1+NCGES(K)-1
+
+      IA=IJKS(1,K)
+      JA=IJKS(2,K)
+      KA=IJKS(3,K)
+      PA=PRES(IA,JA,KA)
+      DENA=FLDEN(IA,JA,KA)
+      DEPA=DEPTH(IA,JA,KA)
+
+C  SUM OVER THE B BLOCK INTERFACE ELEMENTS
+
+      AFI=0.D0
+      SQ=0.D0
+      SDQDPA=0.D0
+      DO 2 J=J1,J2
+      NMS=FMODBLK(JBLOCK(J))
+
+C  COMPUTE COUPLING
+
+      L= LIBUF(J)
+      DENB=BUFIF8(L,2)
+      DP=PA-BUFIF8(L,1)-G2*(DENA+DENB)*(DEPA-BUFIF8(L,3))
+      IF(DP.LT.0.D0) THEN
+         TC=TV*DENB*TFINS(J)
+      ELSE
+         TC=TV*DENA*TFINS(J)
+      ENDIF
+      AFI=AFI+AREAI(J)
+      Q=TC*DP
+      SQ=SQ+Q
+      SDQDPA=SDQDPA+TC
+      COFINF(J,1,1)=-TC
+
+      IF (NMS.NE.MODACT) FLUXOM=FLUXOM+Q
+
+    2 CONTINUE
+
+C  STORE WATER JACOBIAN COEFFICIENTS AND RESIDUALS
+C  NOTE THAT ALL INTERFACE OFF-DIAGANOL COEFFICIENTS 
+C  ARE CONSOLIDATED IN ONE COEFFICIENT PER EQUATION
+
+      GO TO (11,12,13,14,15,16),KDIRS(J1)
+
+   11 COF(IA,JA,KA,3)=-SDQDPA
+      VEL(IA+1,JA,KA,1)=SQ/AFI/DELTIM
+      GO TO 17
+
+   12 COF(IA,JA,KA,5)=-SDQDPA
+      VEL(IA,JA+1,KA,2)=SQ/AFI/DELTIM
+      GO TO 17
+
+   13 COF(IA,JA,KA,7)=-SDQDPA
+      VEL(IA,JA,KA+1,3)=SQ/AFI/DELTIM
+      GO TO 17
+
+   14 COF(IA,JA,KA,2)=-SDQDPA
+      VEL(IA,JA,KA,1)=-SQ/AFI/DELTIM
+      GO TO 17
+
+   15 COF(IA,JA,KA,4)=-SDQDPA
+      VEL(IA,JA,KA,2)=-SQ/AFI/DELTIM
+      GO TO 17
+
+   16 COF(IA,JA,KA,6)=-SDQDPA
+      VEL(IA,JA,KA,3)=-SQ/AFI/DELTIM
+
+   17 COF(IA,JA,KA,1)=COF(IA,JA,KA,1)+SDQDPA
+
+      IF (BUGKEY(4)) THEN
+         FSW=FSW+SQ
+         IF (NBG.LT.15) THEN
+            WRITE (NFBUG,18) NBLK,IA,JA,KA,SQ
+            NBG=NBG+1
+         ENDIF
+      ENDIF
+   18 FORMAT(' FACE: BLOCK,I,J,K =',4I4,' RW =',G14.7)
+
+    1 RESID(IA,JA,KA)=RESID(IA,JA,KA)-SQ
+
+      IF (BUGKEY(4)) WRITE (NFBUG,19) NBLK,FSW
+   19 FORMAT(' FACE FLUX SUM: BLOCK =',I4,' QW =',G14.7)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE T2TRVELD (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &           KL2,KEYOUT,NBLK,PRES,FLDEN,DEPTH,NBUFDIM,BUFIF8,VEL)
+C*********************************************************************
+C  COMPUTE VELOCITY ON FAULT BLOCK INTERFACES
+
+C  PRES(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  FLDEN(I,J,K) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT DEPTHS, FT (INPUT, REAL*8)
+
+C  NBUFDIM = FIRST DIMENSION OF BUFIF8(,) (INPUT, INTEGER)
+
+C  BUFIF8(,1) = PRES(,,) = PRESSURE, BLOCKB
+C  BUFIF8(,2) = FLDEN(,,) = DENSITY, BLOCKB
+C  BUFIF8(,3) = DEPTH(,,) = ELEMENT DEPTH, BLOCKB
+
+C  OUTPUT:
+
+C  VEL(I,J,K,L) = VELOCITY COMPONENT L AT LOCATION I,J,K 
+C                 (OUTPUT,REAL*8)
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'sblkc.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'tfluidsc.h'
+      INCLUDE 'tbaldat.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER NBG,J,K,L,IA,JA,KA,J1,J2,K1,K2
+      REAL*8  PRES(IDIM,JDIM,KDIM),     FLDEN(IDIM,JDIM,KDIM),
+     &        DEPTH(IDIM,JDIM,KDIM),    VEL(IDIM,JDIM,KDIM,3),
+     &        BUFIF8(NBUFDIM,*)
+      REAL*8  TV,PA,DENA,DEPA,SQ,TC,DENB,DP,FSW,G2,Q
+
+      IF (NIEBS(NBLK).EQ.0) RETURN
+
+      NBG=0
+      FSW=0.D0
+      TV=1.0D0/FLVIS
+      G2=.5D0*GRAV
+
+C  LOOP OVER A BLOCK INTERFACE ELEMENTS
+
+      K1=IIEBS(NBLK)
+      K2=K1+NIEBS(NBLK)-1
+      DO 1 K=K1,K2
+      J1=ICGES(K)
+      J2=J1+NCGES(K)-1
+
+      IA=IJKS(1,K)
+      JA=IJKS(2,K)
+      KA=IJKS(3,K)
+      PA=PRES(IA,JA,KA)
+      DENA=FLDEN(IA,JA,KA)
+      DEPA=DEPTH(IA,JA,KA)
+
+C  SUM OVER THE B BLOCK INTERFACE ELEMENTS
+
+      SQ=0.D0
+      DO 2 J=J1,J2
+
+C  COMPUTE COUPLING
+
+      L= LIBUF(J)
+      DENB=BUFIF8(L,2)
+      DP=PA-BUFIF8(L,1)-G2*(DENA+DENB)*(DEPA-BUFIF8(L,3))
+      IF(DP.LT.0.D0) THEN
+         TC=TV*TFINS(J)
+      ELSE
+         TC=TV*TFINS(J)
+      ENDIF
+      Q=TC*DP
+      SQ=SQ+Q
+
+    2 CONTINUE
+
+C  STORE FAULT BLOCK INTERFACIAL VELOCITY INTO TRCHEM VEL ARRAY 
+
+      GO TO (11,12,13,14,15,16),KDIRS(J1)
+
+   11 VEL(IA+1,JA,KA,1)=SQ
+      GO TO 17
+
+   12 VEL(IA,JA+1,KA,2)=SQ
+      GO TO 17
+
+   13 VEL(IA,JA,KA+1,3)=SQ
+      GO TO 17
+
+   14 VEL(IA,JA,KA,1)=-SQ
+      GO TO 17
+
+   15 VEL(IA,JA,KA,2)=-SQ
+      GO TO 17
+
+   16 VEL(IA,JA,KA,3)=-SQ
+
+   17 CONTINUE
+
+      IF (BUGKEY(4)) THEN
+         FSW=FSW+SQ
+         IF (NBG.LT.15) THEN
+            WRITE (NFBUG,18) NBLK,IA,JA,KA,SQ
+            NBG=NBG+1
+         ENDIF
+      ENDIF
+   18 FORMAT(' FACE: BLOCK,I,J,K =',4I4,' VW =',G14.7)
+
+    1 CONTINUE
+
+      IF (BUGKEY(4)) WRITE (NFBUG,19) NBLK,FSW
+   19 FORMAT(' FACE FLUX SUM: BLOCK =',I4,' QW =',G14.7)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE TUPSCALE
+C*********************************************************************
+      USE adaptmod
+      IMPLICIT NONE
+      INCLUDE 'tarydat.h'
+      INTEGER IERR
+      EXTERNAL SAVE_ARRAY,UPSCALE_ARRAY
+      INTEGER :: N_LIST(1),I
+
+      N_LIST = [N_PRES]
+      DO I=1,SIZE(N_LIST)
+        FINEARR(:,:,:)=0.D0
+        CALL CALLWORK(SAVE_ARRAY,[1,N_LIST(I)])
+        CALL CALLWORK(UPSCALE_ARRAY,[1,N_LIST(I)])
+        CALL UPDATE(N_LIST(I),1)
+      ENDDO
+
+      END SUBROUTINE TUPSCALE

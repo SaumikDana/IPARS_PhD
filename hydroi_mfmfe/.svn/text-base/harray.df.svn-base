@@ -1,0 +1,137 @@
+C  HARRAY.F - CREATE HYDROLOGY MODEL GRID-ELEMENT ARRAYS
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE HARRAY (KERR)
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     4/29/97    ALPHA CODE
+C  QIN LU           4/08/98    ALLOCATE BOUNDARY ELEMENT ARRAYS FOR MULTI-BLOCK
+C  B MOMKEN        12/01/98    ADDED VISUALIZATION TIMER 12
+C  JOHN WHEELER     6/18/99    ADDED CODE FOR MULTIMODEL
+C  GURPREET SINGH   11/11/15   TWO PHASE IMPLICIT MFMFE
+C    TAMEEM ALMANI   07/27/2016 INCLUDE NECESSARY CHANGES FOR
+C                               COUPLING WITH MECHANICS
+C*********************************************************************
+      SUBROUTINE HARRAY (KERR)
+C*********************************************************************
+
+C  Creates hydrology model grid-element arrays
+
+C  KERR = ERROR NUMBER (OUTPUT, INTEGER)
+
+C  NOTE: See harydat.h for array descriptions
+
+C*********************************************************************
+
+      IMPLICIT NONE
+      INTEGER KERR
+$POWER        INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'harydat.h'
+
+ctm
+$POROE      INCLUDE 'earydat.h'
+ctm
+
+C  ALLOCATE GRID-ELEMENT ARRAY SPACE
+
+      KERR=0
+
+      CALL ALCGEA ('OILPRES ',2,0,N_POIL,KERR)
+      IF (KERR.GT.0) GO TO 99
+      CALL ALCGEA ('WATPRES ',2,0,N_PWAT,KERR)
+      IF (KERR.GT.0) GO TO 99
+      CALL ALCGEA ('OILCONC ',2,0,N_COIL,KERR)
+      IF (KERR.GT.0) GO TO 99
+      CALL ALCGEA ('WATCONC ',2,0,N_CWAT,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL TIMON(12)
+      CALL ALCGEA ('VEL ',2,6,N_HVEL,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCGEA ('DENSITY ',2,2,N_DDENS,KERR)
+      IF (KERR.GT.0) GO TO 99
+      CALL TIMOFF(12)
+
+      CALL ALCGEA ('RELPERM ',2,4,N_RELPRM,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCGEA ('DPCSW ',2,0,N_DPCSW,KERR)
+      IF (KERR.GT.0) GO TO 99
+      CALL ALCGEA ('COILN ',2,0,N_COILN,KERR)
+      IF (KERR.GT.0) GO TO 99
+      CALL ALCGEA ('POILN ',2,0,N_POILN,KERR)
+      IF (KERR.GT.0) GO TO 99
+      CALL ALCGEA ('CWATN ',2,0,N_CWATN,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+C  NOTE THAT THE FRAMEWORK ALSO NEEDS POINTERS TO THE NEXT 3 ARRAYS
+
+C ---- temporary arrays
+
+      CALL ALCGEA('COEF ',2,$HNUMEQ*$NUMCOF,N_COF,KERR)
+      IF (KERR.GT.0) GO TO 99
+      CALL ALCGEA ('RESID ',2,$HNUMEQ,N_RESID,KERR)
+      IF (KERR.GT.0) GO TO 99
+      CALL ALCGEA ('DELUNK ',2,$HNUMEQ,N_DUNK,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+C ---- permanent arrays
+
+      CALL ALCGEA ('COEFS ',2,$NUMCOF,N_HCOF,KERR)
+      N_COFV(MODACT)=N_HCOF
+      IF (KERR.GT.0) GO TO 99
+      CALL ALCGEA ('RESIDS ',2,1,N_HRESID,KERR)
+      N_RESIDV(MODACT)=N_HRESID
+      IF (KERR.GT.0) GO TO 99
+      CALL ALCGEA ('DUNKS ',2,1,N_HDUNK,KERR)
+      N_DUNKV(MODACT)=N_HDUNK
+      IF (KERR.GT.0) GO TO 99
+
+C     ROCK COMPRESSIBILITY (real*8)
+      CALL ALCGEA('CR ',2,0,N_CR,KERR)
+      IF (KERR.GT.0) GO TO 99
+      
+C     PORE VOLUME (real*8)
+      CALL ALCGEA('PV ',2,0,N_PV,KERR)
+      IF (KERR.GT.0) GO TO 99
+      
+      CALL ALCGEA('PVN ',2,0,N_PVN,KERR)
+      IF (KERR.GT.0) GO TO 99
+      
+      CALL ALCGEA('PORPRES ',2,0,N_REFPRES,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCGEA('UPMOBPROD ',2,3*$HNUMEQ,N_UPMOBPROD,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCGEA('UPMOB ',2,3*$HNUMEQ,N_UPMOB,KERR)
+      IF (KERR.GT.0) GO TO 99
+
+      CALL ALCGEA ('DELC ',2,2,N_DELC,KERR)
+      IF (KERR.GT.0) GO TO 99
+      
+C---- MPFA RELATED ARRAYS. ONE DIMENSION HIGHER 
+
+      CALL ALCMPFAGEA('AINVF ',2,12*$HNUMEQ,N_AINVF,KERR)
+
+ctm
+$POROE      IF(MODELON($PEMODEL)) THEN
+$POROE         N_PRESS = N_POIL
+$POROE         N_PRESSN = N_POILN
+$POROE         N_EPV_FLOW = N_PV
+$POROE         N_EPVN = N_PVN
+$POROE         N_ECR = N_CR
+$POROE         N_PREF = N_REFPRES
+$POROE         N_ECON(1) = N_COIL
+$POROE         N_ECON(2) = N_CWAT
+$POROE      ENDIF  
+ctm
+
+   99 RETURN
+      END

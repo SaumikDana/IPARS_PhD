@@ -1,0 +1,71 @@
+C*********************************************************************
+      SUBROUTINE TRILINOS_INITIALIZE(NERR)
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'trilinos.h'
+      INTEGER NERR,KERR,N
+
+      CALL ALCGEA ('COLGIDS ',4,MXNUMEQ,N_COLGIDS,KERR)  ! int
+      IF (KERR.GT.0) STOP 'Could not allocate COLGIDS'
+      DO N=1,NUMBLK
+        I4UTIL = N
+        I4UTIL2 = NUMEQS(N)
+        CALL trilinos_ipars_init1_ex(N_I4U,N_I4U2,N_COLGIDS)
+      ENDDO
+      IF (KNDGRD.EQ.1) THEN
+        CALL UPDATE(N_COLGIDS,1)
+      ELSEIF (KNDGRD.EQ.3) THEN
+        CALL UPDATE(N_COLGIDS,2)
+      ENDIF
+c      CALL COLGIDS_OUT_EX()
+      DO N=1,NUMBLK
+        I4UTIL = N
+        I4UTIL2 = NUMEQS(N)
+        CALL trilinos_ipars_init2_ex(N_I4U,N_I4U2,N_COLGIDS)
+      ENDDO
+
+      END
+C*********************************************************************
+
+      SUBROUTINE TRILINOS_SOLVE(ITLIN,NERR)
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'blkary.h'
+      INTEGER ITLIN,NERR,MODACT_OLD
+
+      IF (KNDGRD.EQ.1) THEN
+        I4UTIL2=1
+      ELSEIF (KNDGRD.EQ.3) THEN
+        I4UTIL2=2
+      ENDIF
+
+      MODACT_OLD=MODACT
+
+$COMP      MODACT=$XMODEL;  I4UTIL=1
+$SINGLEI      MODACT=$TMODEL;  I4UTIL=1
+$HYDROI      MODACT=$HMODEL;  I4UTIL=2
+$AHYDROI      MODACT=$HAMODEL;  I4UTIL=2
+
+! bag8 - trilinos_ipars_fill_ex is only coded with 7-point
+!        stencil at this time...
+
+!$SIMFMFE      MODACT=$TMMODEL;  I4UTIL=1
+!$HIMFMFE      MODACT=$HMMODEL;  I4UTIL=2
+!$CMFMFE      MODACT=$XMMODEL;  I4UTIL=1
+
+      IF (MODACT.EQ.0) STOP 'MODACT NOT DEFINED'
+
+      CALL trilinos_copy_vars(NSTEP,NEWT)
+      CALL trilinos_ipars_fill_ex(N_I4U,N_I4U2,
+     &  N_COFV(MODACT),N_RESIDV(MODACT))
+      CALL trilinos_setup_solver()
+      CALL trilinos_ipars_solve_ex(N_I4U2,N_DUNKV(MODACT),N_I4U)
+      ITLIN = I4UTIL   ! Return number of linear iterations
+
+      MODACT=MODACT_OLD
+
+      END

@@ -1,0 +1,14 @@
+$ ############ Line SOR Linear Solver Include File ############
+
+Replace_Symbols
+
+MSOLL   C            $ Model solver as LSOR
+LSOR   ""            $ Include LSOR linear solver
+
+Source_Directory
+../solve/lsor/
+Source_Files
+
+lsor.df        .f
+lsorc.dh       .h
+ldual.df       .f

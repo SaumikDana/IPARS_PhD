@@ -1,0 +1,194 @@
+TITLE(1)="TWO BLOCK TWO PHASE GAS-WATER SIMULATION"
+
+BLOCKMODEL(1 TO 2)="COMPOSITIONAL_MODEL"
+
+TIMEEND = 7301.1
+$TIMEEND = 3651.1
+$TIMEEND = 101.1
+
+$ TOLERANCES
+
+LINTOL = 1.0E-05
+$TOL_SAT = 1.0E-04
+
+$ FAULT BLOCK AND MESH DATA
+
+FACEBLOCKS(,1) = 1 2  
+FACEXYZ(,1) = 0. 0. 0., 0. 0. 0.
+
+BLOCKNAME(1) = "BLOCK1"
+DOWN(,1) = 1. 0. 0.
+$NX(1) = 3   NY(1) = 7     NZ(1) = 7
+$DX(,1) = 20.0 30.0 50.0
+$DY(,1) = 500.0  DZ(,1) = 500.0 
+NX(1) = 6   NY(1) = 14     NZ(1) = 14
+DX(,1) = 10.0 10.0 15.0 15.0 25.0 25.0
+DY(,1) = 250.0  DZ(,1) = 250.0 
+XYZ111(,1) = 8325. 0. 0.
+
+BLOCKNAME(2) = "BLOCK2"
+DOWN(,2) = 1. 0. 0.
+NX(2) = 3   NY(2) = 7     NZ(2) = 7
+DX(,2) = 20.0 30.0 50.0
+DY(,2) = 500.0  DZ(,2) = 500.0 
+$NX(2) = 6   NY(2) = 14     NZ(2) = 14
+$DX(,2) = 10.0 10.0 15.0 15.0 25.0 25.0
+$DY(,2) = 250.0  DZ(,2) = 250.0 
+XYZ111(,2) = 8325. 3500. 0.
+
+$ WATER PROPERTIES
+WATERP = 0.0
+WATFVF = 1.0
+WATVIS = .7
+WATCMP = 3.3E-6
+STDENW = 62.4
+NPHASE = 2
+PHASE(2) = "GAS"
+
+$ COMP NAMES
+NHCOMP = 2
+COMP(1) = "C1"  COMP(2) = "N2"  
+
+$ SURFACE CONDITIONS 
+TSURF = 60. PSURF = 14.7
+
+$ INITIAL CONDITIONS (PRESSURES, SATURATIONS, 
+$ CONCENTRATIONS AND TEMPERATURES)
+$Include init3x7x7m.dat
+$Include init6x14x14m.dat
+Include init6x14x14_3x7x7nm.dat
+
+$ SEPARATOR ASSIGNMENT FOR IN-PLACE CALCULATIONS
+SEPSURF = 1
+
+$ ROCK COMPRESSIBILITY
+CR1() = 5.E-6
+CR2() = 5.E-6
+
+$ POROSITY AND PERMEABILITY
+$Include prop3x7x7m.dat
+$Include prop6x14x14m.dat
+Include prop6x14x14_3x7x7nm.dat
+
+KOSW(1) Block      $ GAS RELATIVE PERMEABILITY VS Sw - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation Constant
+
+Data    0.2       1.0       
+        0.2889    0.5600   
+        0.3500    0.3900   
+        0.3778    0.3500  
+        0.4667    0.2000   
+        0.5556    0.1000   
+        0.6444    0.0500   
+        0.7333    0.0300   
+        0.8222    0.0100   
+        0.9111    0.0010   
+        0.9500    0.0  
+        1.0       0.0   
+EndBlock
+
+KWSW(1) Block     $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    0.2       0.0       
+        0.2899    0.0022   
+        0.3778    0.0180  
+        0.4667    0.0607   
+        0.5556    0.1438   
+        0.6444    0.2809   
+        0.7000    0.4089   
+        0.7333    0.4855   
+        0.8222    0.7709   
+        0.9111    1.0   
+        1.0       1.0   
+EndBlock
+
+PCOW(1) Block        $ WATER-GAS CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    0.2       45.0       
+        0.2899    19.03   
+        0.3778    10.07   
+        0.4667     4.90   
+        0.5556     1.80   
+        0.6444     0.50  
+        0.7000     0.05   
+        0.7333     0.01   
+        0.8222     0.0   
+        0.9111     0.0   
+        1.0        0.0   
+EndBlock
+
+$ WELLS
+
+NUMWELL=2
+
+WELLNAME(1) = "INJECTION WELL"
+KINDWELL(1) = 2
+WELLBLOCK(1,1) = 1
+PLIMIT(1) = 500.
+WDEPTH(1) = 8335.
+WELLTOP(1 TO 3,1,1) =     8325.  5.  5.
+WELLBOTTOM(1 TO 3,1,1) =  8345.  5.  5.
+WELLPQ(1) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data    0.    10000.
+EndBlock
+
+WELLNAME(2) = "PRODUCTION WELL"
+KINDWELL(2) = 34
+WELLBLOCK(1,2) = 2
+PLIMIT(2) = 500.
+WDEPTH(2) = 8335.
+WELLTOP(1 TO 3,1,2) =     8325.  6995.  3495.
+WELLBOTTOM(1 TO 3,1,2) =  8345.  6995.  3495.
+WELLPQ(2) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data    0.    10000.
+EndBlock
+
+ISTEP() = 1
+JSTEP() = 1
+KSTEP() = 1
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.0
+   $DELTIM = 1.0  DTIMMUL = 2.0 
+   DELTIM = 0.1  DTIMMUL = 1.01 
+   DTIMMIN = 1.0E-05
+   $DTIMMAX = 10.
+   DTIMMAX = 1.
+   TIMOUT = 3650.
+   DSMAX = 0.1
+   $DSMAX = 0.01
+   $VISOUT = 0.1  DVISOUT = 2.0
+   VISOUT = 0.1  DVISOUT = 5.0
+   VIS_SCL = 4
+   VISFLAG = 2
+   VIS_SCL_NAMES(1) = "PRES"
+   VIS_SCL_NAMES(2) = "SWAT"
+   VIS_SCL_NAMES(3) = "C1"
+   VIS_SCL_NAMES(4) = "N2"
+   VIS_FNAME = "TWOPHASE_"
+EndTime
+
+BeginTime    365.0
+   DVISOUT = 10.0
+EndTime
+
+BeginTime    1825.0
+   DVISOUT = 50.0
+EndTime
+
+BeginTime    3651.1
+   DVISOUT = 100.0
+EndTime
+

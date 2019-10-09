@@ -1,0 +1,604 @@
+TITLE(1)="TEST CASE CO2 sequestration Xianhui Kong"
+TITLE(2)="Scenario 1 1blk"
+
+DESCRIPTION()=
+"GRID BLOCKS : 4x25x25 (down, lateral, lateral) =  2500 GRID ELEMENTS"
+
+BLOCKMODEL(1 )="COMPOSITIONAL_MODEL"
+
+$TIMEEND = 1050.0
+TIMEEND = 200.0
+$TIMEEND = 100.1
+$TIMEEND = 9.11
+
+$ I/O OPTIONS
+$ DEBUGS  
+$ DEBUGM
+$ OUTLEVEL = 2
+$ BUGKEY(6)
+$ BUGKEY(10)
+
+$ NEWTON OPTIONS
+MAXNEWT = 100
+MAXFLITS = 100
+
+$ BCGS LINEAR SOLVER OPTIONS
+$PRECOND = 3
+$MGLEV = 0
+$MAXMGIT = 1
+$LINTOL = 1.0E-05
+$MISCLINTOL = 1.0E-16
+
+$ GMRES LINEAR SOLVER OPTIONS
+$LSOL_TOL = 1.0E-06
+$LSOL_ITMAX = 5000
+$GMRES_PREC = 16  $ AMG with LSOR.
+$N_GS_STEP = 5
+
+$ FAULT BLOCK AND MESH DATA
+$FACEBLOCKS(,1) = 1 2
+$FACEXYZ(,1) = 0. 0. 0., 0. 0. 0.
+
+BLOCKNAME(1) = "BLOCK1"
+DOWN(,1) = 1 0 0
+NX(1) = 4   NY(1) = 25   NZ(1) = 25
+DX(,1) = 5.0 5.0 5.0 5.0
+DY(,1) = 10  DZ(,1) = 10 
+XYZ111(,1) = 4091. 0. 0.
+
+
+$ WATER PROPERTIES
+WATERP = 0.0
+WATFVF = 1.0
+WATVIS = .7
+WATCMP = 3.3E-6
+STDENW = 62.4
+
+$ COMP NAMES
+NHCOMP = 2
+COMP(1) = "CO2"  COMP(2) = "BRINE"
+LTCOMP = 1
+ICINPH(,1) = 1 0 0
+ICINPH(,2) = 0 1 1
+ICINPH(,3) = 0 1 0
+XMOL_DIFF(,,) = 0.0
+XMOL_DIFF(,2,2 TO 3) = 0.5580
+
+$$ COMPNT. CRIT. PROPERTIES
+
+$ CRITICAL TEMPERATURES
+TCRIT(1 TO 2) = 547.5600  1120.2300
+
+$ CRITICAL PRESSURES
+PCRIT(1 TO 2) = 1070.3785  3540.8836
+
+$ CRITICAL VOLUMES
+ZCRIT(1 TO 2) = 0.30234  0.22983
+
+$ ACENTRIC FACTORS
+ACENT(1 TO 2) = 0.2240   0.2440
+
+$ MOL WEIGHTS
+MOLWT(1 TO 2) = 44.0100  18.0125
+
+$ PARACHOR
+PARACHOR(1 TO 2) = 49.00  52.00
+
+$ VOLUMETRIC SHIFT
+VSHIFT(1 TO 2) = -0.19   0.0950
+$VSHIFT(1 TO 2) = 0.0247   0.0950
+
+$ ISOBARIC SPECIFIC HEATS
+HCCP(1 TO 2) = 14.8915  17.8176  $ for CO2, take mean of liq. & gas sp. heats.
+
+$ BINARY INTERACTION COEFFICIENTS
+$BINACT(1,2) = -0.0602
+$BINACT(2,1) = -0.0602
+BINACT(1,2) = -0.0952
+BINACT(2,1) = -0.0952
+
+
+$ SURFACE CONDITIONS 
+TSURF = 60.0  PSURF = 14.7
+
+$ Set the top corner of the reservoir
+$XYZ111(,1) = 8300. 0. 0.
+
+$ INITIAL CONDITIONS
+
+PORPRES1() = 14.7
+SWINIT1() = 0.00
+PRES1(,,) = 1800
+CONC1(,,,1) = 0.
+CONC1(,,,2) = 1.
+REFPRES = 2   $ DEFAULT 2 
+
+$ INITIAL TEMPERATURES
+TEMPR1() = 110.
+
+$ SEPARATORS
+PSEP(,1) = 14.7
+TSEP(,1) = 60.
+
+$ SEPARATOR ASSIGNMENT FOR IN-PLACE CALCULATIONS
+SEPSURF = 1
+
+$ ROCK PROP
+NXROCKS = 1
+ROCK1(1 TO 4,,) = 1
+
+$ POROSITY
+CR1() = 5.E-6
+POROSITY1(,,) = .20
+
+$ PERMEABILITIES
+
+XPERM1(,,) = 10. 
+
+YPERM1(,,) = 100. 
+
+ZPERM1(,,) = 100. 
+$ PERMOUT
+
+MODREL(1) = 2
+
+$ FOAM OPTIONS
+OUT_TRACER = TRUE
+FOAMMOD = TRUE
+CSTAR = 0.01
+SWSTAR = 0.3
+SOSTAR = 0.8
+EPXLO = 1.0E-2
+RREF = 18500.0
+VELGR = 1.0     $ reference gas velocity in ft/day
+SHRTN = 1.0     $1: newton fluid, no shearthinning
+
+KOSW(1) Block      $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation Constant
+
+Data    0.2       1.0       
+        0.2899    0.6769   
+        0.3778    0.4153   
+        0.4667    0.2178   
+        0.5556    0.0835   
+        0.6444    0.0123   
+        0.7000    0.0   
+        0.7333    0.0   
+        0.8222    0.0   
+        0.9111    0.0   
+        1.0       0.0   
+EndBlock
+
+KWSW(1) Block     $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    0.2       0.0
+        0.2899    0.0022
+        0.3778    0.0180
+        0.4667    0.0607
+        0.5556    0.1438
+        0.6444    0.2809
+        0.7000    0.4089
+        0.7333    0.4855
+        0.8222    0.7709
+        0.9111    1.0
+        1.0       1.0
+EndBlock
+
+KOSG(1) Block     $ OIL RELATIVE PERMEABILITY VS Sg - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    
+0.000   1.0000
+0.05   0.9198208722
+0.1    0.8412241145
+0.15   0.7642877993
+0.2    0.6891000746
+0.25   0.6157614012
+0.3    0.544387534
+0.35   0.4751135908
+0.4    0.408099771
+0.5    0.2816729928
+0.6    0.167345732
+0.7     0.0692720728
+0.8     0.0006984373
+0.803   0
+0.9    0
+1.000   0.000
+EndBlock
+
+KGSG(1) Block      $ GAS RELATIVE PERMEABILITY VS Sg - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data  
+0.000   0.0000
+0.001   0.0001904912
+0.05   0.0046904912
+0.1    0.0152394508
+0.15    0.0303615862
+0.2    0.0495131218
+0.25   0.0723547974
+0.3    0.0986450847
+0.35   0.1281991048
+0.4   0.1608686075
+0.5   0.2350814304
+0.6   0.3204988259
+0.7    0.4165201203
+0.8    0.5226636477
+0.803   0.526
+0.9   0.526
+1.000   0.526
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    0.2       45.0       
+        0.2899    19.03   
+        0.3778    10.07   
+        0.4667     4.90   
+        0.5556     1.80   
+        0.6444     0.50  
+        0.7000     0.05   
+        0.7333     0.01   
+        0.8222     0.0   
+        0.9111     0.0   
+        1.0        0.0   
+EndBlock
+
+PCGO(1) Block        $ GAS-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data  
+0.197   69.2880208251
+0.2     68.145629807
+0.3     43.6252194585
+0.4     31.7910604195
+0.5    24.8716157848
+0.6    20.3518845089
+0.65    18.6365840626
+0.7    17.1776267142
+0.75    15.9222198103
+0.8     14.8310541037
+0.85    13.8742714309
+0.9     13.0287948121
+0.95    12.2765133119
+1       11.60301904
+EndBlock
+
+
+$ WELLS
+
+NUMWELL=2
+
+WELLNAME(1) = "INJECTION WELL rate CONST"
+KINDWELL(1) = 4 
+WELLBLOCK(,1) = 1
+PLIMITC(1) = 4500.
+$WDEPTH(1) = 8425.
+WELLTOP(1 TO 3,1,1) =     4091. 125. 125. 
+WELLBOTTOM(1 TO 3,1,1) =  4111. 125. 125. 
+WELLPQ(1) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data  0.    200.
+EndBlock
+
+WELLNAME(2) = "PRODCTION WELL pres CONST"
+KINDWELL(2) = 31
+WELLBLOCK(,2) = 1
+PLIMITC(2) = 4500.
+$WDEPTH(2) = 8425.
+WELLTOP(1 TO 3,1,2) =     4091.   05.   05. 
+WELLBOTTOM(1 TO 3,1,2) =  4111.   05.   05. 
+WELLPQ(2) Block
+  Interpolation Step
+  Extrapolation Constant
+  Data  0.    1800.
+EndBlock
+
+
+   $ INJECTION COMPOSITION
+   COMPINJ(,1) = 0.0 1.0,0.0
+   INJCOMP() = 1
+
+   $ SEPARATOR ASSIGNMENT FOR WELLS
+   IWSEP() = 1
+
+$ PRINTOUTS
+ $OUT_MOLDW = TRUE
+ $OUT_MOLD = TRUE
+ $OUT_VISCW = TRUE
+ $OUT_VISC = TRUE
+ $OUT_CO2LEAK = TRUE
+ $OUT_CO2MOL = TRUE
+ OUT_CO2DIST = TRUE
+ OUT_TEMPR= TRUE
+ XDARCYFLUX = TRUE
+ OUT_MASSD = TRUE
+ OUT_OMOLF = TRUE
+ OUT_VISC  = TRUE
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.0
+   DELTIM = 1.0
+   DTIMMUL = 1.1 
+   TIMOUT = 0.1
+   DTIMMIN = .005
+   DTIMMAX = 5.0
+   DTIMOUT = 5.
+   DSMAX =  .1
+
+EndTime
+
+
+BeginTime  100.0
+   DTIMMAX = 2.0
+$  Gas Injection
+   KINDWELL(1) = 0
+EndTime
+
+BeginTime    821.25
+EndTime
+
+BeginTime    912.5
+   KINDWELL(1) = 0
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    1003.75
+$  Gas Injection
+   KINDWELL(1) = 0
+   WELLPQ(1) Block
+      Data  0.  3000.
+EndBlock
+EndTime
+
+$ 3 years
+
+BeginTime    1095.
+$  WaterInjection
+$   KINDWELL(1) = 2
+$   WELLPQ(1) Block
+$      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    1186.25
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+BeginTime    1277.5
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    1368.75
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+$ 4 years
+
+BeginTime    1460. 
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    1551.25
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+BeginTime    1642.5 
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    1733.75
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+$ 5 years
+
+BeginTime    1825. 
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    1916.25
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+BeginTime    2007.5
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    2098.75
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+$ 6 years
+
+BeginTime    2190. 
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    2281.25
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+BeginTime    2372.5
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    2463.75
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+$ 7 years
+
+BeginTime    2555. 
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    2646.25
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+BeginTime    2737.5
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    2828.75
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+$ 8 years
+
+BeginTime    2920. 
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    3011.25
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+BeginTime    3102.5
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    3193.75
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+$ 9 years
+
+BeginTime    3285. 
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    3376.25
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime
+
+BeginTime    3467.5
+$  WaterInjection
+   KINDWELL(1) = 2
+   WELLPQ(1) Block
+      Data  0.  45000.
+EndBlock
+EndTime
+
+BeginTime    3558.75
+$  Gas Injection
+   KINDWELL(1) = 4
+   WELLPQ(1) Block
+      Data  0.  30000.
+EndBlock
+EndTime

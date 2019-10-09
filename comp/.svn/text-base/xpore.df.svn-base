@@ -1,0 +1,97 @@
+C  XPORE.F - INITIALIZATION & CALCULATION OF BLOCK PORE VOLUMES
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE XPORE_IN
+C  SUBROUTINE XPORE
+
+C  CODE HISTORY:
+
+C  RICK DEAN   6/26/01   INITIAL VERSION
+
+C*********************************************************************
+      SUBROUTINE XPORE_IN (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                     KL1,KL2,KEYOUT,NBLK,POR,CR)
+C*********************************************************************
+ 
+C  SETS UP INITIAL PORE VOLUME. REPLACES POROSITY BY PORE VOLUME.
+C  SETS UP COMPRESSIBILITY TO BE D(PV)/DP
+C  THIS IS A WORK ROUTINE.
+
+C  POR(I,J,K)= REFERENCE POROSITY/PORE VOLUME ARRAY (INPUT/OUTPUT, REAL*4)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+$POWER      INCLUDE 'msjunk.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*4 POR(IDIM,JDIM,KDIM),CR(IDIM,JDIM,KDIM)
+      REAL*4 DX,DY,DZ
+      INTEGER I,J,K,MERR,IOFF,JOFF,KOFF
+
+C-------compute the offset of the local to the global directions
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C-------compute initial pore volume from porosity
+      DO K=KL1,KL2
+         DZ=DZREC(K+KOFF,NBLK)
+         DO J=JL1V(K),JL2V(K)
+            DY=DYREC(J+JOFF,NBLK)
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K) == 1) THEN
+                  DX=DXREC(I+IOFF,NBLK)
+                  POR(I,J,K)=POR(I,J,K)*DX*DY*DZ
+                  CR(I,J,K)=POR(I,J,K)*CR(I,J,K)
+               ENDIF
+            END DO
+         END DO
+      END DO
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE XPORE (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &     KL1,KL2,KEYOUT,NBLK,POR,PV,P,CR,P_REF)
+C*********************************************************************
+ 
+C  COMPUTES CURRENT PORE VOLUME.
+C  THIS IS A WORK ROUTINE.
+
+C  POR(I,J,K)= PORE VOLUME ARRAY AT PRESSURE RK_REFP (INPUT, REAL*4)
+C  CR(I,J,K)= ROCK COMPRESSIBILITY X PV0 (INPUT, REAL*8)
+C  P(I,J,K)= PRESSURE P (INPUT, REAL*8)
+C  P_REF(I,J,K) = REFERENCE PRESSURE (INPUT, REAL*8)
+
+C  PV(I,J,K)= PORE VOLUME ARRAY AT PRESSURE P (OUTPUT, REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM), KEYOUT(IDIM,JDIM,KDIM)
+      REAL*4 POR(IDIM,JDIM,KDIM),CR(IDIM,JDIM,KDIM)
+      REAL*8 PV(IDIM,JDIM,KDIM),P(IDIM,JDIM,KDIM),
+     &       P_REF(IDIM,JDIM,KDIM)
+      INTEGER I,J,K
+
+      DO K=KL1,KL2
+         DO J=JL1V(K),JL2V(K)
+            DO I=IL1,IL2
+               IF (KEYOUT(I,J,K) == 1) THEN
+
+! bag8 - this PV update will need to be changed to an incremental version
+!        if mechanics is used with the brick flow model
+
+                  PV(I,J,K)= POR(I,J,K) 
+     &                     + CR(I,J,K)*(P(I,J,K)-P_REF(I,J,K))
+
+               ENDIF
+            END DO
+         END DO
+      END DO
+
+      RETURN
+      END
+

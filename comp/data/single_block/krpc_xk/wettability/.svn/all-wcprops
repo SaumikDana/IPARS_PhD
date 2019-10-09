@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/repos/csm/!svn/ver/332/IPARSv3.1/comp/data/single_block/krpc_xk/wettability
+END
+test_base.dat
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/332/IPARSv3.1/comp/data/single_block/krpc_xk/wettability/test_base.dat
+END
+test_base_out
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/repos/csm/!svn/ver/332/IPARSv3.1/comp/data/single_block/krpc_xk/wettability/test_base_out
+END
+IPARS.IN
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/repos/csm/!svn/ver/332/IPARSv3.1/comp/data/single_block/krpc_xk/wettability/IPARS.IN
+END
+test_base_out_base
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/repos/csm/!svn/ver/332/IPARSv3.1/comp/data/single_block/krpc_xk/wettability/test_base_out_base
+END

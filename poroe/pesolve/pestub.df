@@ -1,0 +1,546 @@
+C PCG_STUB.F -- PCG SOLVER EXECUTIVE ROUTINE
+C
+C ROUTINES IN THIS FILE:
+C
+C      SUBROUTINE PE_CVG(ICONVG,R)
+C      REAL*8 FUNCTION PE_DDOT(X,Y)
+C      SUBROUTINE PE_DSCALE(ALFA,X,Y)
+C      SUBROUTINE PE_DAXPY (ALFA,X,Y)
+C      SUBROUTINE PE_DCOPY(X,Y)
+C      SUBROUTINE PE_MATVEC(X,Y,AB,AD)
+C      SUBROUTINE PE_FACTOR(KERR)
+C      SUBROUTINE PE_MATRIX2D(KERR)
+C      SUBROUTINE PE_BJAC(R,Z,AB,AD)
+C      SUBROUTINE PE_BJLINE(AB,AD,R,Z)
+C      SUBROUTINE PE_SOLVE2D(AB,AD,B,X)
+C      SUBROUTINE PE_LSOR(AB,AD,B,X)
+C      SUBROUTINE PE_ZERO(X)
+C      SUBROUTINE PE_GS_UX(AB,AD,B,X)
+C
+C CORRESPONDING WORK ROUIINES ARE IN PESOLVEW.DF
+
+C CODE HISTORY:
+
+C     MALGO PESZYNSKA  ORIGINAL CODE
+C     XIULI GAI        08/09/2001
+C************************************************************************
+      SUBROUTINE PE_CVG(ICONVG,R)
+C***********************************************************************
+C Check pcg convergence
+C************************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+  
+      INTEGER CONVG,R
+
+      REAL*8  DUB1,DUB2
+      INTEGER JCVG(3)
+      EXTERNAL PEW_CVG
+
+      JCVG(1)=2
+      JCVG(2)=N_KEYOUT_CR
+      JCVG(3)=R
+      CALL CALLWORK(PEW_CVG,JCVG)
+
+$MANY      CALL TIMON(28)
+$MANY      CALL MAXIT(3,PE_RMAX)
+$MANY      CALL SUMIT(3,PE_RTOT)
+$MANY      CALL TIMOFF(28)
+
+      ICONVG=0
+      IF(MYPRC.EQ.0.AND.PE_ITER.GT.0) THEN
+         REDM=0.D0
+         REDT=0.D0
+         DO I=1,PE_MEQ
+            DUB1=0.D0
+            IF(PE_RMAX0(I).NE.0.D0) DUB1=PE_RMAX(I)/PE_RMAX0(I)
+            IF(REDM.EQ.0.D0.OR.DUB1.LT.REDM) REDM=DUB1
+            DUB2=0.D0
+            IF(PE_RTOT0(I).NE.0.D0) THEN
+               DUB2=ABS(PE_RTOT(I)/PE_RTOT0(I))
+               IF(REDT.EQ.0.D0.OR.DUB2.LT.REDT) REDT=DUB2
+            ENDIF
+         ENDDO
+         IF(REDM.LT.PE_TOL.AND.REDT.LT.2D0*PE_TOL) THEN
+            ICONVG=1
+            write(*,*) '# of POROE itns = ',pe_iter,' res.err= ',
+     &                 redm,redt
+         ENDIF
+      ENDIF
+$MANY      CALL TIMON(28)
+$MANY      IF(NUMPRC.GT.1) CALL SPREAD(1,ICONVG)
+$MANY      CALL TIMOFF(28)
+      END
+C***********************************************************************
+      REAL*8 FUNCTION PE_DDOT(X,Y)
+C***********************************************************************
+C Call a work routine to compute inner product of vector x and y
+C
+C X = ARRAY NUMBER OF ONE GRID ELEMENT ARRAY       (INPUT,INTEGER)
+C Y = ARRAY NUMBER OF THE OTHER GRID ELEMENT ARRAY (INPUT,INTEGER)
+C***********************************************************************   
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER X,Y
+
+      INTEGER IDDOT(4),I
+      EXTERNAL PEW_DDOT
+
+      DINRM=0.D0
+      IDDOT(1)=3
+      IDDOT(2)=N_KEYOUT_CR
+      IDDOT(3)=X
+      IDDOT(4)=Y
+      CALL CALLWORK(PEW_DDOT,IDDOT)
+$MANY      CALL TIMON(28)
+$MANY      CALL SUMIT(1,DINRM)
+$MANY      CALL SPREAD8(1,DINRM)
+$MANY      CALL TIMOFF(28)
+      PE_DDOT=DINRM
+      RETURN
+
+      END
+C***********************************************************************
+      SUBROUTINE PE_DSCALE(ALFA,X,Y)
+C***********************************************************************
+C Call work a routine to perform x=y+x*alfa
+C 
+C X = ARRAY NUMBER OF ONE GRID ELEMENT ARRAY       (INPUT,INTEGER)
+C Y = ARRAY NUMBER OF THE OTHER GRID ELEMENT ARRAY (INPUT,INTEGER)
+C ALFA = SCALAR                                    (INPUT,REAL*8)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER X,Y
+      REAL*8 ALFA
+
+      INTEGER IDSCALE(4)
+      EXTERNAL PEW_DSCALE
+
+      ALPHA=ALFA
+      IDSCALE(1)=3
+      IDSCALE(2)=N_KEYOUT_CR
+      IDSCALE(3)=X
+      IDSCALE(4)=Y
+      CALL CALLWORK(PEW_DSCALE,IDSCALE)
+$MANY       CALL UPDATE(X,2)
+      END
+
+C***********************************************************************
+      SUBROUTINE PE_DAXPY (ALFA,X,Y)
+C***********************************************************************
+C Call work a routine to performs y=y+alfa*x
+
+C X = ARRAY NUMBER OF ONE GRID ELEMENT ARRAY        (INPUT,INTEGER)
+C Y = ARRAY NUMBER OF THE OTHER GRID ELEMENT ARRRAY (INPUT,INTEGER)
+C ALFA = SCALAR                                     (INPUT,REAL*8)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+   
+      INTEGER X,Y
+      REAL*8 ALFA
+
+      INTEGER IDAXPY(4)
+      EXTERNAL PEW_DAXPY
+
+      ALPHA=ALFA
+      IDAXPY(1)=3
+      IDAXPY(2)=N_KEYOUT_CR
+      IDAXPY(3)=X
+      IDAXPY(4)=Y
+      CALL CALLWORK(PEW_DAXPY,IDAXPY)
+$MANY       CALL UPDATE(Y,2)
+      END 
+  
+C***********************************************************************
+      SUBROUTINE PE_DCOPY(X,Y)
+C***********************************************************************
+C Call a work routine to copy x to y
+C
+C X = ARRAY NUMBER FOR x (INPUT, INTEGER)
+C Y = ARRAY NUMBER FOR y (INPUT, INTEGER)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+
+      INTEGER X,Y
+      
+      INTEGER IDCOPY(3)
+      EXTERNAL PEW_DCOPY
+
+      IDCOPY(1)=2
+      IDCOPY(2)=X
+      IDCOPY(3)=Y
+      CALL CALLWORK(PEW_DCOPY,IDCOPY)
+$MANY       CALL UPDATE(Y,2)
+      END
+C***********************************************************************
+      SUBROUTINE PE_MATVEC(X,Y,AB,AD)
+C***********************************************************************
+C Call a work routine to compute y=Ax 
+C
+C X  = ARRAY NUMBER FOR x ARRAY                     (INPUT, INTEGER)
+C Y  = ARRAY NUMBER FOR y ARRAY                     (INPUT, INTEGER)
+C AB = ARRAY NUMBER FOR MATRIX LOWER TRIANG. COEFFS (INPUT, INTEGER)
+C AD = ARRAY NUMBER FOR MATRIX DIAGONAL COEFFS      (INPUT, INTEGER)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h' 
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER X,Y,AB,AD
+      
+      INTEGER IMATVEC(7)
+      EXTERNAL PEW_MATVEC
+
+c$MANY      CALL TIMON(28)
+c$MANY      CALL UPDATE(X,2)
+c$MANY      CALL TIMOFF(28)
+      IMATVEC(1)=6
+      IMATVEC(2)=N_KEYOUT_CR
+      IMATVEC(3)=X
+      IMATVEC(4)=Y
+      IMATVEC(5)=AB
+      IMATVEC(6)=AD
+      IMATVEC(7)=N_ZERO_NODE
+      CALL CALLWORK(PEW_MATVEC,IMATVEC)
+      END 
+
+C***********************************************************************
+      SUBROUTINE PE_FACTOR(KERR)
+C***********************************************************************
+C Call work routines to factor a 3D or aggregated 2D stiffness matrix
+C
+C KERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+C***********************************************************************
+$POWER      'msjunk.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'pemodel.h'
+
+      INTEGER IWORK(7)
+      EXTERNAL PEW_BJAC_FACTOR,PEW_BJAC_ZNODE,ELASTIC3D_BANDED
+
+
+C SPLIT COEFFICIENTS MATRIX AND FACTOR IT FOR SUBDOMAIN DIRECT SOLVER
+       
+      IF(PESOLV2D.GT.0) CALL PE_MATRIX2D(KERR)
+ 
+      IF(IESOLVE.EQ.0) THEN
+         IWORK(1)=6
+         IWORK(2)=N_KEYOUT_CR
+         IWORK(3)=N_EBEFORE
+         IWORK(4)=N_EDIAG
+         IWORK(5)=N_DINV
+         IWORK(6)=N_FACTOR
+         IWORK(7)=N_I4U        
+         I4UTIL=MXBAND
+         CALL CALLWORK(ELASTIC3D_BANDED,IWORK)
+      ELSE IF(IESOLVE.EQ.1.OR.IESOLVE.EQ.2) THEN
+         IF(PE_PREC.EQ.1) THEN
+            IF(NDDY.GT.1.OR.NDDZ.GT.1) THEN
+              IWORK(1)=1
+              IWORK(2)=N_ZERO_NODE
+              CALL DDWORK(PEW_BJAC_ZNODE,IWORK)
+              IWORK(1)=4
+              IWORK(2)=N_KEYOUT_CR
+              IWORK(3)=N_SID
+              IWORK(4)=N_EBEFORE
+              IWORK(5)=N_EDIAG
+              CALL DDWORK(PEW_BJAC_FACTOR,IWORK)
+            ELSE
+              IWORK(1)=6
+              IWORK(2)=N_KEYOUT_CR
+              IWORK(3)=N_EBEFORE
+              IWORK(4)=N_EDIAG
+              IWORK(5)=N_DINV
+              IWORK(6)=N_FACTOR
+              IWORK(7)=N_I4U          
+              I4UTIL = MXBAND
+              CALL CALLWORK(ELASTIC3D_BANDED,IWORK)
+            ENDIF
+         ELSE IF(PE_PREC.EQ.3) THEN
+              CALL PE_ILU_FACTOR(KERR)
+         ELSE
+            RETURN
+         ENDIF
+      ELSE
+         RETURN
+      ENDIF
+      
+      END
+
+C***********************************************************************
+      SUBROUTINE PE_MATRIX2D(KERR)
+C***********************************************************************
+C Call work routine to compute 2D stiffness matrix for 2D preconditioners. 
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pearydat.h'
+      
+      INTEGER KERR
+      INTEGER IWORK(5)
+      EXTERNAL PEW_AGGREG2D
+ 
+      IF(PESOLV2D.EQ.1) THEN
+         IWORK(1)=4
+         IWORK(2)=N_KEYOUT_CR
+         IWORK(3)=N_EBEFORE
+         IWORK(4)=N_EDIAG
+         IWORK(5)=N_ZERO_NODE
+         CALL DDWORK2D(PEW_AGGREG2D,IWORK)
+      ELSE IF(PESOLV2D.EQ.2) THEN
+         CALL PEMG_MATRIX2D(KERR)
+      ELSE IF(PESOLV2D.EQ.0) THEN
+         RETURN
+      ENDIF
+
+      END
+C***********************************************************************
+      SUBROUTINE PE_BJAC(R,Z,AB,AD)
+C***********************************************************************
+C Call a work routine to perform one block Jacobi iteration           
+ 
+C R = ARRAY NUMBER FOR RESIDUAL                  (INPUT,INTEGER)
+C Z = ARRAY NUMBER FOR DISPLACEMENT UNKNOWN      (INPUT,INTEGER)
+C AB = ARRAY NUMBER FOR DIAGONAL COEF. OF STIFFNESS MATRIX 
+C      (INPUT, INTEGER)
+C AD = ARRRY NUMBER FOR OFF DIAGONAL COEF. OF STIFFNESS MATRIX
+C      (INPUT, INTEGER)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'pesolve.h'
+      INCLUDE 'pemodel.h'
+
+      INTEGER R,Z,AB,AD
+      INTEGER I,ISOL(8)
+      EXTERNAL PEW_BJAC_SOLVE,ELASTIC3D_BACK_BANDED
+
+      IF(NDDY.GT.1.OR.NDDZ.GT.1) THEN
+          ISOL(1)=2
+          ISOL(2)=R
+          ISOL(3)=Z
+          CALL DDWORK(PEW_BJAC_SOLVE,ISOL)
+      ELSE
+          ISOL(1)=7
+          ISOL(2)=N_KEYOUT_CR
+          ISOL(3)=N_ZERO_NODE
+          ISOL(4)=N_DINV
+          ISOL(5)=N_FACTOR
+          ISOL(6)=R
+          ISOL(7)=Z
+          ISOL(8)=N_I4U
+          I4UTIL = MXBAND
+          CALL CALLWORK(ELASTIC3D_BACK_BANDED,ISOL)
+      ENDIF
+$MANY      CALL UPDATE(Z,2)
+      END
+
+C***********************************************************************
+      SUBROUTINE PE_SOLVE2D(AB,AD,B,X)
+C***********************************************************************
+C Call a work routine to solve 2D corrections
+
+C AB = ARRAY NUMBER FOR DIAGONAL COEF. OF STIFFNESS MATRIX
+C      (INPUT, INTEGER)
+C AD = ARRRY NUMBER FOR OFF DIAGONAL COEF. OF STIFFNESS MATRIX
+C      (INPUT, INTEGER)
+C R = ARRAY NUMBER FOR RESIDUAL                (INPUT,INTEGER)
+C X = ARRAY NUMBER FOR DISPLACEMENT UNKNOWN    (INPUT,INTEGER)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER AB,AD,B,X
+      INTEGER I,ISOL(7)
+      EXTERNAL PEW_SOLVE2D,DISPLACEMENT_ZERO
+
+      IF(PESOLV2D.EQ.1) THEN
+         ISOL(1)=6
+         ISOL(2)=N_KEYOUT_CR
+         ISOL(3)=B
+         ISOL(4)=X
+         ISOL(5)=AB
+         ISOL(6)=AD
+         ISOL(7)=N_ZERO_NODE
+         CALL DDWORK2D(PEW_SOLVE2D,ISOL)
+      ELSE IF(PESOLV2D.EQ.2) THEN
+         CALL PE_MULGRD2D(B,X)
+      ELSE IF(PESOLV2D.EQ.0) THEN
+         RETURN
+      ENDIF
+      ISOL(1)=3
+      ISOL(2)=N_KEYOUT_CR
+      ISOL(3)=X
+      ISOL(4)=N_ZERO_NODE
+      CALL CALLWORK(DISPLACEMENT_ZERO,ISOL)
+$MANY       CALL UPDATE(X,2)
+
+      END
+
+C***********************************************************************
+      SUBROUTINE PE_BJLINE(AB,AD,R,Z)
+C***********************************************************************
+C Call a work routine to perform one line Jacobi iteration
+
+C AB = ARRAY NUMBER FOR DIAGONAL COEF. OF STIFFNESS MATRIX
+C      (INPUT, INTEGER)
+C AD = ARRRY NUMBER FOR OFF DIAGONAL COEF. OF STIFFNESS MATRIX
+C      (INPUT, INTEGER)
+C R = ARRAY NUMBER FOR RESIDUAL                (INPUT,INTEGER)
+C Z = ARRAY NUMBER FOR DISPLACEMENT UNKNOWN    (INPUT,INTEGER)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER R,Z,AB,AD
+      INTEGER ITLL,ITL,JARG(7)
+      EXTERNAL PEW_BJLINE
+
+      ITLL = 1
+      JARG(1)=6
+      JARG(2)=N_KEYOUT_CR
+      JARG(3)=AB
+      JARG(4)=AD
+      JARG(5)=R
+      JARG(6)=Z
+      JARG(7)=N_ZERO_NODE
+
+      DO ITL=1,ITLL
+         CALL CALLWORK(PEW_BJLINE,JARG)
+$MANY      CALL UPDATE(Z,2)
+      ENDDO
+      END
+C***********************************************************************
+      SUBROUTINE PE_LSOR(AB,AD,B,X)
+C***********************************************************************
+C Call a work routine to perform one line SOR iteration
+
+C AB = ARRAY NUMBER FOR DIAGONAL COEF. OF STIFFNESS MATRIX
+C      (INPUT, INTEGER)
+C AD = ARRRY NUMBER FOR OFF DIAGONAL COEF. OF STIFFNESS MATRIX
+C      (INPUT, INTEGER)
+C R = ARRAY NUMBER FOR RESIDUAL                (INPUT,INTEGER)
+C X = ARRAY NUMBER FOR DISPLACEMENT UNKNOWN    (INPUT,INTEGER)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER B,X,AB,AD
+      INTEGER ITLL,ITL,JLSOR(7),J,K
+      EXTERNAL PEW_LSOR
+
+      ITLL = 1
+      JLSOR(1)=6
+      JLSOR(2)=N_KEYOUT_CR
+      JLSOR(3)=AB
+      JLSOR(4)=AD
+      JLSOR(5)=B
+      JLSOR(6)=X
+      JLSOR(7)=N_ZERO_NODE
+
+      DO ITL=1,ITLL
+         DO K=1,0,-1
+            DO J=1,0,-1
+               KRBK=K
+               KRBJ=J
+               CALL CALLWORK(PEW_LSOR,JLSOR)
+$MANY          CALL TIMON(28)
+$MANY          CALL UPDATE(X,2)
+$MANY          CALL TIMOFF(28)
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+C***********************************************************************
+      SUBROUTINE PE_GS_UX(AB,AD,B,X)
+C***********************************************************************
+C Call work routine to perform one RB Gauss-Seidel iteration for 
+C the vertical displacement unknowns
+C
+C AB = ARRAY NUMBER FOR DIAGONAL COEF. OF STIFFNESS MATRIX
+C      (INPUT, INTEGER)
+C AD = ARRRY NUMBER FOR OFF DIAGONAL COEF. OF STIFFNESS MATRIX
+C      (INPUT, INTEGER)
+C R = ARRAY NUMBER FOR RESIDUAL                (INPUT,INTEGER)
+C X = ARRAY NUMBER FOR DISPLACEMENT UNKNOWN    (INPUT,INTEGER)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER B,X,AB,AD
+      INTEGER ITLL,ITL,JLSOR(7),J,K
+      EXTERNAL PEW_GS_UX
+
+      ITLL = 2
+      JLSOR(1)=6
+      JLSOR(2)=N_KEYOUT_CR
+      JLSOR(3)=AB
+      JLSOR(4)=AD
+      JLSOR(5)=B
+      JLSOR(6)=X
+      JLSOR(7)=N_ZERO_NODE
+      DO ITL=1,ITLL
+         DO K=1,0,-1
+            DO J=1,0,-1
+               KRBK=K
+               KRBJ=J
+               CALL CALLWORK(PEW_GS_UX,JLSOR)
+$MANY          CALL TIMON(28)
+$MANY          CALL UPDATE(X,2)
+$MANY          CALL TIMOFF(28)
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+
+C***********************************************************************
+      SUBROUTINE PE_ZERO(X)
+C***********************************************************************
+C Call work routine to initialize an grid element array to zero.
+C
+C X = ARRAY NUMBER TO BE INITIALIZED (INPUT, INTEGER)
+C***********************************************************************
+
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'blkary.h'
+
+      INTEGER X,IZERO(4)
+      EXTERNAL SETARYR8N               
+
+      IZERO(1)=3
+      IZERO(2)=X
+      IZERO(3)=N_R8U
+      IZERO(4)=N_I4U
+      I4UTIL = 3
+      R8UTIL = 0.D0
+      CALL CALLWORK(SETARYR8N,IZERO)
+
+      END
+      
+C***********************************************************************
+C                           END OF PCG_STUB.DF
+C***********************************************************************

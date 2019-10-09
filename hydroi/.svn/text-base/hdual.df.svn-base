@@ -1,0 +1,742 @@
+C  HDUAL.F - HYDROLOGY MODEL DUAL APPROXIMATION MULTIBLOCK ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE HDUALS  ()
+C  SUBROUTINE HDUALR  ()
+C  SUBROUTINE HDUALV  ()
+C  SUBROUTINE HLODBUF (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C        KL2,KEYOUT,NBLK,POIL,PWAT,DUNK,RELPRM,DEPTH,DPCSW,
+C        NBUFDIM,BUFIF8)
+C  SUBROUTINE HLODBUF (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C        KL2,KEYOUT,NBLK,POIL,PWAT,DUNK,RELPRM,DEPTH,COIL,
+C        DPCSW,NBUFDIM,BUFIF8)
+C  SUBROUTINE HJRCAL (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C        KEYOUT,NBLK,POIL,PWAT,DUNK,RELPRM,DEPTH,DPCSW,NBUFDIM,BUFIF8,
+C        COF,RESID)
+C  SUBROUTINE H2TRVELD (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C        KEYOUT,NBLK,POIL,PWAT,DUNK,RELPRM,DEPTH,NBUFDIM,BUFIF8,VEL)
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     2/27/99     ALPHA CODE
+C  JOHN WHEELER     3/14/99     MEMORY MANAGEMENT FOR INTERFACE BUFFERS
+C  JOHN WHEELER     6/10/99     MULTIMODEL CAPABILITY (DUAL APPROXIMATION)
+C  SUNIL G. THOMAS  4/01/09     EVMFEM COUPLING TO TRANSPORT CODE
+C  SUNIL G. THOMAS  9/--/09     MODS TO COMPUTE VELOCITY (FOR VECTOR VIS) 
+C                               ON INTERFACES FOR EVMFEM
+
+C*********************************************************************
+      SUBROUTINE HDUALS ()
+C*********************************************************************
+
+C  Loads buffers for Jocabian and residual contributions for the dual
+C  approximation block interface
+
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'sblkc.h'
+      INCLUDE 'harydat.h'
+      INCLUDE 'hbaldat.h'
+
+      INTEGER IA(10)
+      DATA IA/10*0/
+
+      EXTERNAL HLODBUF
+
+      IF (NFACES.EQ.0) RETURN
+      CALL TIMON(12)
+
+      IF (HONCE(7)) THEN
+         HONCE(7)=.FALSE.
+
+         IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &    ' ENTERING SUBROUTINE HDUALS, OLD TAG =',MSGTAG($HMODEL+1)
+
+         IA(1)=9
+         IA(2)=N_POIL
+         IA(3)=N_PWAT
+         IA(4)=N_DDENS
+         IA(5)=N_RELPRM
+         IA(6)=N_DEPTH
+         IA(7)=N_COIL
+         IA(8)=N_DPCSW
+         IA(9)=N_BUFDIM
+         IA(10)=N_BUFIF
+      ENDIF
+
+C  PUT B BLOCK QUANTITIES IN INTERFACE BUFFERS
+
+      CALL CALLWORK(HLODBUF,IA)
+
+      CALL TIMOFF(12)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE HDUALR ()
+C*********************************************************************
+
+C  Computes Jocabian and residual contributions for the dual approximation
+C  block interface
+
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'sblkc.h'
+      INCLUDE 'harydat.h'
+      INCLUDE 'hbaldat.h'
+
+      INTEGER IA(12)
+      DATA IA/12*0/
+
+      EXTERNAL HJRCAL
+
+      IF (NFACES.EQ.0) RETURN
+      CALL TIMON(12)
+
+      IF (HONCE(8)) THEN
+         HONCE(8)=.FALSE.
+
+         IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &    ' ENTERING SUBROUTINE HDUALR, OLD TAG =',MSGTAG($HMODEL+1)
+
+         IA(1)=11
+         IA(2)=N_POIL
+         IA(3)=N_PWAT
+         IA(4)=N_DDENS
+         IA(5)=N_VEL
+         IA(6)=N_RELPRM
+         IA(7)=N_DEPTH
+         IA(8)=N_DPCSW
+         IA(9)=N_BUFDIM
+         IA(10)=N_BUFIF
+         IA(11)=N_COF
+         IA(12)=N_RESID
+
+      ENDIF
+
+C  COMPUTE JACOBIAN AND RESIDUAL CONTRIBUTIONS
+
+      CALL CALLWORK(HJRCAL,IA)
+
+      CALL TIMOFF(12)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE HDUALV (N_VELD)
+C*********************************************************************
+
+C  Computes Darcy velocities on block interface
+
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'sblkc.h'
+      INCLUDE 'harydat.h'
+      INCLUDE 'hbaldat.h'
+
+      INTEGER IV(9),N_VELD
+      LOGICAL ONCEONLY
+      DATA IV/9*0/,ONCEONLY/.TRUE./
+
+      EXTERNAL H2TRVELD
+
+      IF (NFACES.EQ.0) RETURN
+      CALL TIMON(12)
+
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+
+         IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     &    ' ENTERING SUBROUTINE HDUALV, OLD TAG =',MSGTAG($HMODEL+1)
+
+         IV(1)=8
+         IV(2)=N_POIL
+         IV(3)=N_PWAT
+         IV(4)=N_DDENS
+         IV(5)=N_RELPRM
+         IV(6)=N_DEPTH
+         IV(7)=N_BUFDIM
+         IV(8)=N_BUFIF
+
+      ENDIF
+
+C  COMPUTE DARCY VELOCITY ON BLOCK INTERFACES
+
+      IV(9)=N_VELD
+      CALL CALLWORK(H2TRVELD,IV)
+
+      CALL TIMOFF(12)
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE HLODBUF (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &           KL2,KEYOUT,NBLK,POIL,PWAT,DUNK,RELPRM,DEPTH,COIL,
+     &           DPCSW,NBUFDIM,BUFIF8)
+C*********************************************************************
+
+C  PUT B BLOCK QUANTITIES IN INTERFACE BUFFERS
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  RELPRM(I,J,K,N) = RELATIVE PERMEABILITY DATA (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT DEPTHS , FT (INPUT, REAL*8)
+
+C  COIL(I,J,K) = OIL CONCENTRATION, LB/CU-FT (INPUT AND OUTPUT, REAL*8)
+
+C  DPCSW(I,J,K) = DERIVATIVE OF Pc WRT Sw, PSI (INPUT, REAL*8)
+
+C  NBUFDIM = FIRST DIMENSION OF BUFIF8(,) (INPUT, INTEGER)
+
+C  BUFIF8(n,m) = INTERFACE BUFFERS (OUTPUT, REAL*8)
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'unitsex.h'
+      INCLUDE 'hfluids.h'
+      INCLUDE 'sblkc.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER M,II,II1,II2,NBT,NMT,IA,JA,KA,K
+      REAL*8  POIL(IDIM,JDIM,KDIM),     RELPRM(IDIM,JDIM,KDIM,4),
+     &        DUNK(IDIM,JDIM,KDIM,2),   DEPTH(IDIM,JDIM,KDIM),
+     &        DPCSW(IDIM,JDIM,KDIM),    PWAT(IDIM,JDIM,KDIM),
+     &        BUFIF8(NBUFDIM,*),        COIL(IDIM,JDIM,KDIM)
+      REAL*8  DENO,DENW,BO,BW,RBO,RBW,DBODP,DRBW,DSWDO,DSWDP,RELO,
+     &        RELW,DKOSW,DKWSW,TLO,TLW,DPCOW
+
+      IF (NPAI(NBLK).EQ.0) RETURN
+
+      DO 90 M=1,NPAI(NBLK)
+      II1=IESNDI(M,NBLK)
+      II2=II1+NESNDI(M,NBLK)-1
+      NBT=NBSRI(M,NBLK)
+C      NMT=MODBLK(NBT)
+      NMT=FMODBLK(NBT)
+
+      IF (NMT.EQ.$HMODEL) THEN
+
+C  IMPLICIT HYDROLOGY MODEL TARGET
+
+         DO 55 II=II1,II2
+         K=KFESR(II)
+         IA=IJKS(1,K)
+         JA=IJKS(2,K)
+         KA=IJKS(3,K)
+         BUFIF8(II,1)=POIL(IA,JA,KA)
+         BUFIF8(II,2)=PWAT(IA,JA,KA)
+         BUFIF8(II,3)=RELPRM(IA,JA,KA,1)
+         BUFIF8(II,4)=RELPRM(IA,JA,KA,2)
+         BUFIF8(II,5)=RELPRM(IA,JA,KA,3)
+         BUFIF8(II,6)=RELPRM(IA,JA,KA,4)
+         BUFIF8(II,7)=DUNK(IA,JA,KA,1)
+         BUFIF8(II,8)=DUNK(IA,JA,KA,2)
+         BUFIF8(II,9)=DEPTH(IA,JA,KA)
+   55    BUFIF8(II,10)=DPCSW(IA,JA,KA)
+
+      ELSE
+
+         IF (NMT.EQ.$TMODEL) THEN
+
+C  IMPLICIT SINGLE PHASE MODEL TARGET
+
+            DO 61 II=II1,II2
+            K=KFESR(II)
+            IA=IJKS(1,K)
+            JA=IJKS(2,K)
+            KA=IJKS(3,K)
+            BUFIF8(II,1)=PWAT(IA,JA,KA)
+            BUFIF8(II,2)=DUNK(IA,JA,KA,2)
+   61       BUFIF8(II,3)=DEPTH(IA,JA,KA)
+
+         ENDIF
+
+         IF (NMT.EQ.$IMODEL) THEN
+
+C  IMPLICIT BLACK-OIL MODEL TARGET
+
+            DO 11 II=II1,II2
+            K=KFESR(II)
+            IA=IJKS(1,K)
+            JA=IJKS(2,K)
+            KA=IJKS(3,K)
+            BO=STDENO/DUNK(IA,JA,KA,1)
+            BW=STDENW/DUNK(IA,JA,KA,2)
+            RBO=1.D0/BO
+            RBW=1.D0/BW
+            DENO=DUNK(IA,JA,KA,1)*5.614584D0
+            DENW=DUNK(IA,JA,KA,2)*5.614584D0
+            DBODP=-OILCMP*BO
+            DRBW=WATCMP*RBW
+            DSWDO=-BO
+            DSWDP=-COIL(IA,JA,KA)*DBODP
+            RELO=RELPRM(IA,JA,KA,1)
+            RELW=RELPRM(IA,JA,KA,3)
+            DKOSW=RELPRM(IA,JA,KA,2)
+            DKWSW=RELPRM(IA,JA,KA,4)
+            TLO=RBO*RELO
+            TLW=RBW*RELW
+            DPCOW=DPCSW(IA,JA,KA)
+            BUFIF8(II,1)=POIL(IA,JA,KA)
+            BUFIF8(II,2)=PWAT(IA,JA,KA)
+            BUFIF8(II,3)=POIL(IA,JA,KA)+1000.D0
+            BUFIF8(II,4)=TLO
+            BUFIF8(II,5)=TLW
+            BUFIF8(II,6)=0.D0
+            BUFIF8(II,7)=DENO
+            BUFIF8(II,8)=DENW
+            BUFIF8(II,9)=1.D0
+            BUFIF8(II,10)=0.D0
+            BUFIF8(II,11)=DEPTH(IA,JA,KA)
+
+C           RO < -1 ==> DISOLVED GAS INCLUDED IN OIL COMPONENT
+
+            BUFIF8(II,12)=-99.D0
+            BUFIF8(II,13)=COIL(IA,JA,KA)/STDENO
+            BUFIF8(II,14)=RBO*DKOSW*DSWDO
+            BUFIF8(II,15)=RBO*(DKOSW*DSWDP-TLO*DBODP)
+            BUFIF8(II,16)=0.D0
+            BUFIF8(II,17)=RBW*DKWSW*DSWDO
+            BUFIF8(II,18)=RBW*DKWSW*DSWDP+RELW*DRBW
+            BUFIF8(II,19)=0.D0
+            BUFIF8(II,20)=0.D0
+            BUFIF8(II,21)=0.D0
+            BUFIF8(II,22)=0.D0
+            BUFIF8(II,23)=STDENW*DRBW
+            BUFIF8(II,24)=-DENO*RBO*DBODP
+            BUFIF8(II,25)=0.D0
+            BUFIF8(II,26)=0.D0
+            BUFIF8(II,27)=1.-DPCOW*DSWDP
+            BUFIF8(II,28)=-DPCOW*DSWDO
+            BUFIF8(II,29)=0.D0
+            BUFIF8(II,30)=0.D0
+            BUFIF8(II,31)=0.D0
+   11       BUFIF8(II,32)=0.D0
+         ENDIF
+
+      ENDIF
+
+   90 CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE HJRCAL (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &       KEYOUT,NBLK,POIL,PWAT,DUNK,VEL,RELPRM,DEPTH,DPCSW,NBUFDIM,
+     &       BUFIF8,COF,RESID)
+C*********************************************************************
+
+C  COMPUTE JACOBIAN AND RESIDUAL CONTRIBUTIONS FOR THE HYDROLOGY MODEL
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  DUNK(I,J,K,2) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  RELPRM(I,J,K,N) = RELATIVE PERMEABILITY DATA (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT DEPTHS, FT (INPUT, REAL*8)
+
+C  DPCSW(I,J,K) = DERIVATIVE OF Pc WRT Sw, PSI (INPUT, REAL*8)
+
+C  NBUFDIM = FIRST DIMENSION OF BUFIF8(,) (INPUT, INTEGER)
+
+C  BUFIF8(n,m) = INTERFACE BUFFERS (OUTPUT, REAL*8)
+
+C  COF(I,J,K,N,M,L) = JACOBIAN COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+
+C  RESID(I,J,K,N)= RESIDUALS (INPUT AND OUTPUT, REAL*8)
+
+C  OUTPUT:
+
+C  VEL(I,J,K,1,L) = OIL VELOCITY, LB/SFT-DAY (INPUT, REAL*8)
+C  VEL(I,J,K,2,L) = WATER VELOCITY, LB/SFT-DAY (INPUT, REAL*8)
+
+C  COFINF(,1,1) = DERIVATIVE OF OIL Q     WRT OIL P
+C                                    AiBl          Bl
+
+C  COFINF(,1,2) = DERIVATIVE OF OIL Q     WRT OIL N
+C                                    AiBl          Bl
+
+C  COFINF(,2,1) = DERIVATIVE OF WATER Q     WRT OIL P
+C                                      AiBl          Bl
+
+C  COFINF(,2,2) = DERIVATIVE OF WATER Q     WRT OIL N
+C                                      AiBl          Bl
+
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'sblkc.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'hfluids.h'
+      INCLUDE 'hbaldat.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER J,K,L,J1,J2,K1,K2,NMS,NBG,IA,JA,KA
+      REAL*8  POIL(IDIM,JDIM,KDIM),     RELPRM(IDIM,JDIM,KDIM,4),
+     &        DUNK(IDIM,JDIM,KDIM,2),   VEL(IDIM,JDIM,KDIM,2,3), 
+     &        RESID(IDIM,JDIM,KDIM,2),  DPCSW(IDIM,JDIM,KDIM), 
+     &        PWAT(IDIM,JDIM,KDIM),     DEPTH(IDIM,JDIM,KDIM),
+     &        BUFIF8(NBUFDIM,*) 
+      REAL*4  COF(IDIM,JDIM,KDIM,$NUMCOF,2,2)
+      REAL*8  G2,DENAO,DENAW,DEPA,RELAO,RELAW,DRELAO,DRELAW,DPCA,
+     &        DENBO,DENBW,RELBO,RELBW,DRELBO,DRELBW,DPCB,Q,DP,
+     &        AFI,SQO,SQW,SDQDPAO,SDQDPAW,SDQDNAO,SDQDNAW,
+     &        SDQDNBO,SDQDNBW,TC,DUB1,DUB2,TVO,TVW,FSO,FSW
+
+      IF (NIEBS(NBLK).EQ.0) RETURN
+
+      G2=.5D0*GRAV
+      TVO=DELTIM/OILVIS
+      TVW=DELTIM/WATVIS
+      NBG=0
+      FSO=0.D0
+      FSW=0.D0
+
+C  LOOP OVER A BLOCK INTERFACE ELEMENTS
+
+      K1=IIEBS(NBLK)
+      K2=K1+NIEBS(NBLK)-1
+      DO 1 K=K1,K2
+      J1=ICGES(K)
+      J2=J1+NCGES(K)-1
+      IA=IJKS(1,K)
+      JA=IJKS(2,K)
+      KA=IJKS(3,K)
+      DEPA=DEPTH(IA,JA,KA)
+
+C  SUM OVER THE B BLOCK INTERFACE ELEMENTS
+
+      AFI=0.D0
+      SQO=0.D0
+      SDQDPAO=0.D0
+      SDQDNAO=0.D0
+      SDQDNBO=0.D0
+      SQW=0.D0
+      SDQDPAW=0.D0
+      SDQDNAW=0.D0
+      SDQDNBW=0.D0
+
+      DO 2 J=J1,J2
+      L= LIBUF(J)
+C      NMS=MODBLK(JBLOCK(J))
+      NMS=FMODBLK(JBLOCK(J))
+
+C  COMPUTE OIL COUPLING
+
+      TC=TVO*TFINS(J)
+      RELAO=RELPRM(IA,JA,KA,1)
+      DRELAO=RELPRM(IA,JA,KA,2)
+      RELBO=BUFIF8(L,3)
+      DRELBO=BUFIF8(L,4)
+      DENAO=DUNK(IA,JA,KA,1)
+      DENBO=BUFIF8(L,7)
+
+      DP=POIL(IA,JA,KA)-BUFIF8(L,1)-G2*(DENAO+DENBO)*(DEPA-BUFIF8(L,9))
+      IF (DP.LT.0.D0) THEN
+         DUB1=TC*DENBO*RELBO
+         SDQDPAO=SDQDPAO+DUB1
+         DUB2=-TC*DRELBO*DP
+         SDQDNBO=SDQDNBO+DUB2
+      ELSE
+         DUB1=TC*DENAO*RELAO
+         SDQDPAO=SDQDPAO+DUB1
+         SDQDNAO=SDQDNAO-TC*DRELAO*DP
+         DUB2=0.D0
+      ENDIF
+      Q=DUB1*DP
+
+      SQO=SQO+Q
+      COFINF(J,1,1)=-DUB1
+      COFINF(J,1,2)=DUB2
+      IF (NMS.NE.MODACT) FLUXOM(1)=FLUXOM(1)+Q
+
+C  COMPUTE WATER COUPLING
+
+      TC=TVW*TFINS(J)
+      RELAW=RELPRM(IA,JA,KA,3)
+      DRELAW=RELPRM(IA,JA,KA,4)
+      DPCA=DPCSW(IA,JA,KA)
+      RELBW=BUFIF8(L,5)
+      DRELBW=BUFIF8(L,6)
+      DPCB=BUFIF8(L,10)
+      DENAW=DUNK(IA,JA,KA,2)
+      DENBW=BUFIF8(L,8)
+      DP=PWAT(IA,JA,KA)-BUFIF8(L,2)-G2*(DENAW+DENBW)*(DEPA-BUFIF8(L,9))
+      IF (DP.LT.0.D0) THEN
+         DUB1=TC*DENBW*RELBW
+         SDQDPAW=SDQDPAW+DUB1
+         SDQDNAW=SDQDNAW+DUB1*RDENOR*DPCA
+         DUB2=-TC*DRELBW*DP*DRATIO-DUB1*RDENOR*DPCB
+         SDQDNBW=SDQDNBW+DUB2
+      ELSE
+         DUB1=TC*DENAW*RELAW
+         SDQDPAW=SDQDPAW+DUB1
+         SDQDNAW=SDQDNAW-TC*DRELAW*DP*DRATIO+DUB1*RDENOR*DPCA
+         DUB2=-DUB1*RDENOR*DPCB
+         SDQDNBW=SDQDNBW+DUB2
+      ENDIF
+      AFI=AFI+AREAI(J)
+      Q=DUB1*DP
+      SQW=SQW+Q
+      COFINF(J,2,1)=-DUB1
+      COFINF(J,2,2)=DUB2
+      IF (NMS.NE.MODACT) FLUXOM(2)=FLUXOM(2)+Q
+
+    2 CONTINUE
+
+C  STORE JACOBIAN COEFFICIENTS AND RESIDUALS
+C  NOTE THAT ALL INTERFACE OFF-DIAGANOL COEFFICIENTS ARE CONSOLIDATED
+C  IN ONE COEFFICIENT PER EQUATION 
+
+      GO TO (11,12,13,14,15,16),KDIRS(J1)
+
+   11 COF(IA,JA,KA,3,1,1)=-SDQDPAO
+      COF(IA,JA,KA,3,1,2)=SDQDNBO
+      COF(IA,JA,KA,3,2,1)=-SDQDPAW
+      COF(IA,JA,KA,3,2,2)=SDQDNBW
+      VEL(IA+1,JA,KA,1,1)=SQO/AFI/DELTIM
+      VEL(IA+1,JA,KA,2,1)=SQW/AFI/DELTIM
+      GO TO 17
+
+   12 COF(IA,JA,KA,5,1,1)=-SDQDPAO
+      COF(IA,JA,KA,5,1,2)=SDQDNBO
+      COF(IA,JA,KA,5,2,1)=-SDQDPAW
+      COF(IA,JA,KA,5,2,2)=SDQDNBW
+      VEL(IA,JA+1,KA,1,2)=SQO/AFI/DELTIM
+      VEL(IA,JA+1,KA,2,2)=SQW/AFI/DELTIM
+      GO TO 17
+
+   13 COF(IA,JA,KA,7,1,1)=-SDQDPAO
+      COF(IA,JA,KA,7,1,2)=SDQDNBO
+      COF(IA,JA,KA,7,2,1)=-SDQDPAW
+      COF(IA,JA,KA,7,2,2)=SDQDNBW
+      VEL(IA,JA,KA+1,1,3)=SQO/AFI/DELTIM
+      VEL(IA,JA,KA+1,2,3)=SQW/AFI/DELTIM
+      GO TO 17
+
+   14 COF(IA,JA,KA,2,1,1)=-SDQDPAO
+      COF(IA,JA,KA,2,1,2)=SDQDNBO
+      COF(IA,JA,KA,2,2,1)=-SDQDPAW
+      COF(IA,JA,KA,2,2,2)=SDQDNBW
+      VEL(IA,JA,KA,1,1)=-SQO/AFI/DELTIM
+      VEL(IA,JA,KA,2,1)=-SQW/AFI/DELTIM
+      GO TO 17
+
+   15 COF(IA,JA,KA,4,1,1)=-SDQDPAO
+      COF(IA,JA,KA,4,1,2)=SDQDNBO
+      COF(IA,JA,KA,4,2,1)=-SDQDPAW
+      COF(IA,JA,KA,4,2,2)=SDQDNBW
+      VEL(IA,JA,KA,1,2)=-SQO/AFI/DELTIM
+      VEL(IA,JA,KA,2,2)=-SQW/AFI/DELTIM
+      GO TO 17
+
+   16 COF(IA,JA,KA,6,1,1)=-SDQDPAO
+      COF(IA,JA,KA,6,1,2)=SDQDNBO
+      COF(IA,JA,KA,6,2,1)=-SDQDPAW
+      COF(IA,JA,KA,6,2,2)=SDQDNBW
+      VEL(IA,JA,KA,1,3)=-SQO/AFI/DELTIM
+      VEL(IA,JA,KA,2,3)=-SQW/AFI/DELTIM
+      GO TO 17
+
+   17 COF(IA,JA,KA,1,1,1)=COF(IA,JA,KA,1,1,1)+SDQDPAO
+      COF(IA,JA,KA,1,1,2)=COF(IA,JA,KA,1,1,2)+SDQDNAO
+      COF(IA,JA,KA,1,2,1)=COF(IA,JA,KA,1,2,1)+SDQDPAW
+      COF(IA,JA,KA,1,2,2)=COF(IA,JA,KA,1,2,2)+SDQDNAW
+
+      IF (BUGKEY(4)) THEN
+         FSO=FSO+SQO
+         FSW=FSW+SQW
+         IF (NBG.LT.50) THEN
+            WRITE (NFBUG,18) NBLK,IA,JA,KA,SQO,SQW
+            NBG=NBG+1
+         ENDIF
+      ENDIF
+   18 FORMAT(' FACE: BLOCK,I,J,K =',4I4,' RO =',G14.7,' RW =',G14.7)
+
+      RESID(IA,JA,KA,1)=RESID(IA,JA,KA,1)-SQO
+    1 RESID(IA,JA,KA,2)=RESID(IA,JA,KA,2)-SQW
+
+      IF (BUGKEY(4)) WRITE (NFBUG,19) NBLK,FSO,FSW
+   19 FORMAT(' FACE FLUX SUMS: BLOCK =',I3,' QO =',G16.9,' QW =',G16.9)
+
+      END
+
+C****************************************************************
+      SUBROUTINE H2TRVELD(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                    KL1,KL2,KEYOUT,NBLK,POIL,PWAT,DUNK,
+     &                    RELPRM,DEPTH,NBUFDIM,BUFIF8,VEL)
+C****************************************************************
+C  COMPUTE TRANSPORT VELOCITY ON FAULT BLOCK INTERFACES
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  PWAT(I,J,K) = WATER PRESSURE, PSI (INPUT, REAL*8)
+
+C  DUNK(I,J,K,1) = OIL DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  DUNK(I,J,K,2) = WATER DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  RELPRM(I,J,K,N) = RELATIVE PERMEABILITY DATA (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT DEPTHS, FT (INPUT, REAL*8)
+
+C  NBUFDIM = FIRST DIMENSION OF BUFIF8(,) (INPUT, INTEGER)
+
+C  BUFIF8(n,m) = INTERFACE BUFFERS (INPUT, REAL*8)
+
+C  OUTPUT:
+C  VEL(I,J,K,L,M) = VELOCITY COMPONENT M FOR PHASE L (OUTPUT, REAL*8)
+C****************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'sblkc.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'hfluids.h'
+      INCLUDE 'hbaldat.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,NBUFDIM
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER J,K,L,J1,J2,K1,K2,NMS,NBG,IA,JA,KA
+      REAL*8  POIL(IDIM,JDIM,KDIM),     RELPRM(IDIM,JDIM,KDIM,4),
+     &        DUNK(IDIM,JDIM,KDIM,2),   RESID(IDIM,JDIM,KDIM,2),
+     &        DPCSW(IDIM,JDIM,KDIM),    PWAT(IDIM,JDIM,KDIM),
+     &        DEPTH(IDIM,JDIM,KDIM),    BUFIF8(NBUFDIM,*),
+     &        VEL(IDIM,JDIM,KDIM,2,3)
+      REAL*8  G2,DENAO,DENAW,DEPA,RELAO,RELAW,DPCA,DENBO,DENBW,RELBO,
+     &        RELBW,Q,DP,DUB1,SQO,SQW,TC,TVO,TVW,FSO,FSW
+
+      IF (NIEBS(NBLK).EQ.0) RETURN
+
+      G2=.5D0*GRAV
+      TVO=1.D0/OILVIS
+      TVW=1.D0/WATVIS
+      NBG=0
+      FSO=0.D0
+      FSW=0.D0
+
+C  LOOP OVER A BLOCK INTERFACE ELEMENTS
+
+      K1=IIEBS(NBLK)
+      K2=K1+NIEBS(NBLK)-1
+      DO 1 K=K1,K2
+      J1=ICGES(K)
+      J2=J1+NCGES(K)-1
+      IA=IJKS(1,K)
+      JA=IJKS(2,K)
+      KA=IJKS(3,K)
+      DEPA=DEPTH(IA,JA,KA)
+
+C  SUM OVER THE B BLOCK INTERFACE ELEMENTS
+
+      SQO=0.D0
+      SQW=0.D0
+
+      DO 2 J=J1,J2
+      L= LIBUF(J)
+
+C  COMPUTE OIL VELOCITY
+
+      TC=TVO*TFINS(J)
+      RELAO=RELPRM(IA,JA,KA,1)
+      RELBO=BUFIF8(L,3)
+      DENAO=DUNK(IA,JA,KA,1)
+      DENBO=BUFIF8(L,7)
+
+      DP=POIL(IA,JA,KA)-BUFIF8(L,1)-G2*(DENAO+DENBO)*(DEPA-BUFIF8(L,9))
+      IF (DP.LT.0.D0) THEN
+         DUB1=TC*RELBO
+      ELSE
+         DUB1=TC*RELAO
+      ENDIF
+      Q=DUB1*DP
+      SQO=SQO+Q
+
+C  COMPUTE WATER VELOCITY
+
+      TC=TVW*TFINS(J)
+      RELAW=RELPRM(IA,JA,KA,3)
+      RELBW=BUFIF8(L,5)
+      DENAW=DUNK(IA,JA,KA,2)
+      DENBW=BUFIF8(L,8)
+      DP=PWAT(IA,JA,KA)-BUFIF8(L,2)-G2*(DENAW+DENBW)*(DEPA-BUFIF8(L,9))
+      IF (DP.LT.0.D0) THEN
+         DUB1=TC*RELBW
+      ELSE
+         DUB1=TC*RELAW
+      ENDIF
+      Q=DUB1*DP
+      SQW=SQW+Q
+
+    2 CONTINUE
+
+C  STORE FAULT BLOCK INTERFACIAL VELOCITY INTO TRCHEM VEL ARRAY
+
+      GO TO (11,12,13,14,15,16),KDIRS(J1)
+
+   11 VEL(IA+1,JA,KA,1,1)=SQO
+      VEL(IA+1,JA,KA,2,1)=SQW
+      GOTO 17
+
+   12 VEL(IA,JA+1,KA,1,2)=SQO
+      VEL(IA,JA+1,KA,2,2)=SQW
+      GOTO 17
+
+   13 VEL(IA,JA,KA+1,1,3)=SQO
+      VEL(IA,JA,KA+1,2,3)=SQW
+      GOTO 17
+
+   14 VEL(IA,JA,KA,1,1)=-SQO
+      VEL(IA,JA,KA,2,1)=-SQW
+      GOTO 17
+
+   15 VEL(IA,JA,KA,1,2)=-SQO
+      VEL(IA,JA,KA,2,2)=-SQW
+      GOTO 17
+
+   16 VEL(IA,JA,KA,1,3)=-SQO
+      VEL(IA,JA,KA,2,3)=-SQW
+      GOTO 17
+
+   17 CONTINUE
+
+      IF (BUGKEY(4)) THEN
+         FSO=FSO+SQO
+         FSW=FSW+SQW
+         IF (NBG.LT.50) THEN
+            WRITE (NFBUG,18) NBLK,IA,JA,KA,SQO,SQW
+            NBG=NBG+1
+         ENDIF
+      ENDIF
+   18 FORMAT(' FACE: BLOCK,I,J,K =',4I4,' VO =',G14.7,' VW =',G14.7)
+
+    1 CONTINUE
+
+      IF (BUGKEY(4)) WRITE (NFBUG,19) NBLK,FSO,FSW
+   19 FORMAT(' FACE FLUX SUMS: BLOCK =',I3,' QO =',G16.9,' QW =',G16.9)
+
+      RETURN
+      END
+

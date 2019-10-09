@@ -1,0 +1,89 @@
+K 25
+svn:wc:ra_dav:version-url
+V 44
+/repos/csm/!svn/ver/28/IPARSv3.1/solve/gmres
+END
+sl1dir.c
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/sl1dir.c
+END
+slgmres.f
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/slgmres.f
+END
+r8blas.h
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/r8blas.h
+END
+sol.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/sol.h
+END
+hsfc.c
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/hsfc.c
+END
+sol.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/sol.df
+END
+ticama.df
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/ticama.df
+END
+sljacdebug.f
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/sljacdebug.f
+END
+slblk.c
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/slblk.c
+END
+slupdate.df
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/slupdate.df
+END
+r8lapack.h
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/r8lapack.h
+END
+slblk.dc
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/slblk.dc
+END
+sljacnorm.f
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/sljacnorm.f
+END
+slblk.h
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/12/IPARSv3.1/solve/gmres/slblk.h
+END

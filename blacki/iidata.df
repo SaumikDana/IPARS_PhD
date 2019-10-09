@@ -1,0 +1,270 @@
+C  IIDATA.DF - INPUT BLACK OIL MODEL DATA
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE IISDAT (NERR)
+C  SUBROUTINE IIADAT (NERR)
+C  SUBROUTINE ITDATA (NERR)
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     7/14/97    INITIAL VERSION
+C  JOHN WHEELER     9/15/99    COMBINE IISDAT, IIADAT, ITDATA FILES
+
+C*********************************************************************
+      SUBROUTINE IISDAT (NERR)
+C*********************************************************************
+
+C  Inputs black oil model initial scalar data
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'unitsex.h'
+
+      INCLUDE 'ifluid.h'
+      INCLUDE 'ibaldat.h'
+
+      CHARACTER*1 BLKBUF($MXTBUF)
+      CHARACTER*50 TABTIT
+      INTEGER LOCTA(2),LENTA(2)
+
+      IF (LEVELC) WRITE(NFOUT,16)
+   16 FORMAT(/' ************ IMPLICIT BLACK-OIL MODEL ************'/)
+
+C  INPUT ROCK COMPRESSABILITY AND VISCOSITIES
+
+      ROKCMP=5.D-7
+      CALL DEFAULT(EXTCOMP)
+      CALL GETVAL('ROCKCMP[/psi] ',ROKCMP,'R8',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_ROCKCMP[/psi] ',ROKCMP,'R8',0,0,0,0,NDUM,NERR)
+
+      OILVIS=2.
+      CALL DEFAULT(EXTVISC)
+      CALL GETVAL('OILVIS[cp] ',OILVIS,'R8',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_OILVIS[cp] ',OILVIS,'R8',0,0,0,0,NDUM,NERR)
+
+      WATVIS=.5
+      CALL DEFAULT(EXTVISC)
+      CALL GETVAL('WATERVIS[cp] ',WATVIS,'R8',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_WATERVIS[cp] ',WATVIS,'R8',0,0,0,0,NDUM,NERR)
+
+      GASVIS=.012
+      CALL DEFAULT(EXTVISC)
+      CALL GETVAL('GASVIS[cp] ',GASVIS,'R8',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_GASVIS[cp] ',GASVIS,'R8',0,0,0,0,NDUM,NERR)
+
+      IF (LEVELC) WRITE (NFOUT,1)
+     & ROKCMP*CVMCOMP,EXTCOMP,
+     & OILVIS*CVMVISC,EXTVISC,
+     & WATVIS*CVMVISC,EXTVISC,
+     & GASVIS*CVMVISC,EXTVISC
+    1 FORMAT(' ROCK COMPRESSABILITY (ROCKCMP)',T49,G11.3,1X,A20/
+     &       ' OIL VISCOSITY (OILVIS)',T50,F10.4,1X,A20/
+     &       ' WATER VISCOSITY (WATERVIS)',T50,F10.4,1X,A20/
+     &       ' GAS VISCOSITY (GASVIS)',T50,F10.6,1X,A20)
+
+C  INPUT INITIAL CONDITIONS
+
+      PWINIT=100.
+      CALL DEFAULT(EXTPRES)
+      CALL GETVAL('PWINIT[psi] ',PWINIT,'R4',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_PWINIT[psi] ',PWINIT,'R4',0,0,0,0,NDUM,NERR)
+ 
+      SWINIT=.4
+      CALL GETVAL('SWINIT ',SWINIT,'R4',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_SWINIT ',SWINIT,'R4',0,0,0,0,NDUM,NERR)
+ 
+      SGINIT=.0
+      CALL GETVAL('SGINIT ',SGINIT,'R4',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_SGINIT ',SGINIT,'R4',0,0,0,0,NDUM,NERR)
+ 
+      DINIT=0.
+      CALL DEFAULT(EXTDIST)
+      CALL GETVAL('DINIT[ft] ',DINIT,'R4',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_DINIT[ft] ',DINIT,'R4',0,0,0,0,NDUM,NERR)
+
+      KRINIT=1
+      CALL GETVAL('ROCKINIT ',KRINIT,'I4',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_ROCKINIT ',KRINIT,'I4',0,0,0,0,NDUM,NERR)
+ 
+      FRSOI=.9
+      CALL GETVAL('FRSOINIT ',FRSOI,'R4',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_FRSOINIT ',FRSOI,'R4',0,0,0,0,NDUM,NERR)
+      IF (FRSOI.GT.1.) THEN
+         NERR=NERR+1
+         IF (LEVELC) WRITE (NFOUT,5) 
+    5    FORMAT (/' ERROR # 3007; FRSOINIT GREATER THAN 1.')
+      ENDIF
+ 
+      DFRSOI=-.0001
+      CALL GETVAL('DFRSOINIT ',DFRSOI,'R4',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_DFRSOINIT ',DFRSOI,'R4',0,0,0,0,NDUM,NERR)
+
+      IF (LEVELC) WRITE (NFOUT,2) PWINIT*CVMPRES,EXTPRES,
+     & SWINIT,SGINIT,
+     & DINIT*CVMDIST,EXTDIST,
+     & KRINIT,FRSOI,DFRSOI
+    2 FORMAT(' INITIAL WATER PRESSURE (PWINIT)',T50,F10.3,1X,A20/
+     &       ' INITIAL WATER SATURATION (SWINIT)',T50,F10.5/
+     &       ' INITIAL GAS SATURATION (SGINIT)',T50,F10.5/
+     &       ' INITIAL REFERENCE DEPTH (DINIT)',T50,F10.2,1X,A20/
+     &       ' INITIAL REFERENCE ROCK TYPE (KRINIT)',T50,I7/
+     &       ' INITIAL SUBSATURATED GAS FACTOR (FRSOI)',T50,F10.5/
+     &    ' INITIAL DERIVATIVE OF FRSOI WRT DEPTH (DFRSOI)',T50,F10.5)
+
+C  INPUT NEWTONIAN CONVERGENCE TOLERANCE
+
+      CVTOL=1.E-7
+      CALL GETVAL('CVTOL ',CVTOL,'R8',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_CVTOL ',CVTOL,'R8',0,0,0,0,NDUM,NERR)
+      IF (LEVELC) WRITE (NFOUT,3) CVTOL
+    3 FORMAT(' BLACK OIL CONVERGENCE TOLERANCE (CVTOL)',T49,G11.4)
+
+C  INPUT FORMATION VOLUME FACTORS
+
+      LENTA(1)=0
+      CALL GETBLK('BSO ',BLKBUF,$MXTBUF,0,LOCTA,LENTA,NERR)
+
+      IF (LENTA(1).EQ.0) THEN
+         NERR=NERR+1
+         IF (LEVELC) WRITE (NFOUT,10)
+   10    FORMAT (/' ERROR # 3001; BSO NOT SPECIFIED')
+      ELSE
+         TABTIT='SATURATED OIL FORMATION VOLUME FACTOR'
+         CALL TABUNT (EXTPRES,'[bbl/stbo]')
+         CALL TABLE(BLKBUF(1),LENTA,'P[psi] ','Bos[bbl/stbo] ',TABTIT,
+     &      NBSO,NERR)
+      ENDIF
+
+      LENTA(1)=0
+      CALL GETBLK('BOD ',BLKBUF,$MXTBUF,0,LOCTA,LENTA,NERR)
+      IF (LENTA(1).EQ.0) THEN
+         NERR=NERR+1
+         IF (LEVELC) WRITE (NFOUT,11)
+   11    FORMAT (/' ERROR # 3002; BOD NOT SPECIFIED')
+      ELSE
+         TABTIT='DEAD OIL FORMATION VOLUME FACTOR'
+         CALL TABUNT (EXTPRES,'[bbl/stbo]')
+         CALL TABLE(BLKBUF(1),LENTA,'P[psi] ','Bod[bbl/stbo] ',TABTIT,
+     &     NBOD,NERR)
+      ENDIF
+
+      LENTA(1)=0
+      CALL GETBLK('RBW ',BLKBUF,$MXTBUF,0,LOCTA,LENTA,NERR)
+      IF (LENTA(1).EQ.0) THEN
+         NERR=NERR+1
+         IF (LEVELC) WRITE (NFOUT,12)
+   12    FORMAT (/' ERROR # 3003; RBW NOT SPECIFIED')
+      ELSE
+         TABTIT='RECIPRICAL WATER FORMATION VOLUME FACTOR'
+         CALL TABUNT (EXTPRES,'[stbw/bbl]')
+         CALL TABLE(BLKBUF(1),LENTA,'P[psi] ','1/Bw[stbw/bbl] ',TABTIT,
+     &      NRBW,NERR)
+      ENDIF
+
+      LENTA(1)=0
+      CALL GETBLK('BG ',BLKBUF,$MXTBUF,0,LOCTA,LENTA,NERR)
+      IF (LENTA(1).EQ.0) THEN
+         NERR=NERR+1
+         IF (LEVELC) WRITE (NFOUT,13)
+   13    FORMAT (/' ERROR # 3004; BG NOT SPECIFIED')
+      ELSE
+         TABTIT='GAS FORMATION VOLUME FACTOR'
+         CALL TABUNT (EXTPRES,'[bbl/mscf]')
+         CALL TABLE(BLKBUF(1),LENTA,'P[psi] ','Bg[bbl/mscf] ',TABTIT,
+     &      NBG,NERR)
+      ENDIF
+
+      LENTA(1)=0
+      CALL GETBLK('RSO ',BLKBUF,$MXTBUF,0,LOCTA,LENTA,NERR)
+      IF (LENTA(1).EQ.0) THEN
+         NERR=NERR+1
+         IF (LEVELC) WRITE (NFOUT,14)
+   14    FORMAT (/' ERROR # 3005; RSO NOT SPECIFIED')
+      ELSE
+         TABTIT='GAS SOLUBILITY FACTOR'
+         CALL TABUNT (EXTPRES,'[mscf/stbo]')
+         CALL TABLE(BLKBUF(1),LENTA,'P[psi] ','Rso[mscf/stbo] ',TABTIT,
+     &      NRSO,NERR)
+      ENDIF
+
+      LENTA(1)=0
+      CALL GETBLK('PSAT ',BLKBUF,$MXTBUF,0,LOCTA,LENTA,NERR)
+      IF (LENTA(1).EQ.0) THEN
+         IF (MODBO.EQ.2) THEN
+            NERR=NERR+1
+            IF (LEVELC) WRITE (NFOUT,15)
+   15       FORMAT (/' ERROR # 3005; PSAT NOT SPECIFIED')
+         ENDIF
+      ELSE
+         TABTIT='SATURATION PRESSURE'
+         CALL TABUNT ('[mscf/stbo]',EXTPRES)
+         CALL TABLE(BLKBUF(1),LENTA,'Rso[mscf/stbo] ','Psat[psi] ',
+     &      TABTIT,NPSAT,NERR)
+      ENDIF
+
+      MODBO=1
+      CALL GETVAL('BOMODEL ',MODBO,'I4',0,0,0,0,NDUM,NERR)
+      BOCON=0.D0
+      CALL GETVAL('BOCONST ',BOCON,'R8',0,0,0,0,NBOC,NERR)
+      BOTP1=100.
+      CALL GETVAL('BOTESTP1 ',BOTP1,'R4',0,0,0,0,NDUM,NERR)
+      BOTP1=PWINIT+200.
+      CALL GETVAL('BOTESTP2 ',BOTP2,'R4',0,0,0,0,NDUM,NERR)
+      CPOMIN=1.E-6
+      CALL GETVAL('CPOMIN ',CPOMIN,'R4',0,0,0,0,NDUM,NERR)
+      IF (MODBO.EQ.1) CALL BOCONST(CPOMIN,BOTP1,BOTP2,COMIN)
+      IF (LEVELC) THEN
+         WRITE (NFOUT,6) MODBO
+    6    FORMAT(/' SUBSATURATED OIL Bo MODEL (BOMODEL)',T50,I10)
+         IF (MODBO.EQ.1) WRITE (NFOUT,7) BOCON,COMIN
+    7    FORMAT(' FREE PARAMETER FOR Bo MODEL (BOCONST)',T53,G11.4/
+     &      ' MINIMUM OIL COMPRESSIBILITY (WITH GAS)',T53,G11.4)
+      ENDIF
+
+      END
+C*********************************************************************
+      SUBROUTINE IIADAT (NERR)
+C*********************************************************************
+
+C  Inputs black oil model grid-element data
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+
+C*********************************************************************
+
+      INCLUDE 'control.h'
+      INCLUDE 'iarydat.h'
+
+      NERR=NERR
+
+      END
+C*********************************************************************
+      SUBROUTINE ITDATA (NERR)
+C*********************************************************************
+
+C  Input black oil model transient data
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+
+C*********************************************************************
+      INCLUDE 'control.h'
+
+      INCLUDE 'ibaldat.h'
+
+      REAL*8 CVTO
+
+C  INPUT NEWTONIAN CONVERGENCE TOLERANCE
+
+      CVTO=CVTOL
+      CALL GETVAL('CVTOL ',CVTOL,'R8',0,0,0,0,NDUM,NERR)
+      CALL GETVAL('B_CVTOL ',CVTOL,'R8',0,0,0,0,NDUM,NERR)
+      IF (LEVELC.AND.(CVTO.NE.CVTOL)) WRITE (NFOUT,1) CVTOL
+    1 FORMAT(' CONVERGENCE TOLERANCE (CVTOL)',T49,G11.4)
+
+      END

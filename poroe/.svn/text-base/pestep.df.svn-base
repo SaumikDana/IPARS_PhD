@@ -1,0 +1,743 @@
+C  PESTEP.F - MAKE ONE NEWTONIAN ITERTION WITH THE POROELASTIC MODEL
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE PESTEP   (NERR)
+
+C  CODE HISTORY:
+C     XIULI GAI    05/22/2001   ORIGINAL 
+C*********************************************************************
+      SUBROUTINE PESTEP1 (NERR)
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+      INTEGER NERR
+$COMP      MODACT = $XMODEL      
+$COMP      IF(PEFLOW.EQ.$XMODEL) CALL XSTEP1(NERR) 
+$COMP      MODACT = $PEMODEL      
+
+      END 
+C*********************************************************************
+      SUBROUTINE PESTEP2 (KONVG,NERR)
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+      INTEGER KONVG,NERR
+      
+$COMP      MODACT = $XMODEL      
+$COMP      IF(PEFLOW.EQ.$XMODEL) CALL XSTEP2(KONVG,NERR) 
+$COMP      MODACT = $PEMODEL      
+
+      END 
+C*********************************************************************
+      SUBROUTINE PESTEP3 (PEKONVG,KONVG,NERR)
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+      INTEGER PEKONVG,KONVG,NERR
+      
+$COMP      MODACT = $XMODEL      
+$COMP      IF(PEFLOW.EQ.$XMODEL) CALL XSTEP3(PEKONVG,KONVG,NERR) 
+$COMP      MODACT = $PEMODEL      
+
+      END 
+C*********************************************************************
+      SUBROUTINE PEITER (PEKONVG,NERR)
+C*********************************************************************
+C  Poroelastic model exective routine to start a iteration
+C  1.  Update linear eastic residuals for Newtonian iteration.
+C  2.  Solve for displacements 
+C  3.  Calculate new porosity and scale concentrations and densities     
+C  4.  Calculate new effective compressiblity
+C  
+C  PEKONVG = PORE VOLUME CONVERGENT FLAG (OUTPUT, INTEGER)
+C        = 1 ==> CONVERGED
+C        = 2 ==> CONTINUE ITERATION
+C
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER)
+C*********************************************************************
+$POWER      'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'times.h' 
+ 
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pebdary.h'
+
+      INTEGER PEKONVG,NERR
+      
+      INTEGER I,KERR,ITER
+      LOGICAL FACTOR,ONCEONLY
+      REAL*8  ZERO,PEDUMMY
+      PARAMETER (ZERO=0.D0)
+      INTEGER JPRES(11),JFINIT(4),JSUB_STRES(7),JSHOW(3),JDISP_BC(4),
+     &        JPV(14),JBODY(7),JSCAL(6),JCOPY(4),JADD_BODY(4),JUPSOL(4),
+     &        JMASS(8),JARG(7),JCR(4),
+cbw     &        
+     &        JPRTSYS(6),JPRTPRES(2),JPRTDISP(3),JRIGID(3),JSTRS(13)
+cbw
+      DATA    JPRES/11*0/,JFINIT/4*0/,JSUB_STRES/7*0/,JDISP_BC/4*0/,
+     &        JPV/14*0/,JADD_BODY/4*0/,JUPSOL/4*0/,JBODY/7*0/,JCR/4*0/,
+     &        ONCEONLY/.TRUE./
+
+      EXTERNAL ADD_PRESS_3D,BODY3D_3PH,SETARYR8,ADD_BODY3D,CPYARYR8,
+     &         SUBTRACT_FINIT3D,ELASTIC3D_SUBTRACT,DISPLACEMENT_ZERO,
+     &         PEPORE_VOL,SCALE_3NC,PEUPSOL,EMASS_3NC,PEPV_ERR,
+     &         PEFLOWCR,STRESS_3D,AVERAGE_STRAIN, AVERAGE_STRESS,
+cbw
+     &         PRTSYSTEM,PRTPRES,PRTDISP,RIGIDBODY_ZERO
+cbw
+
+!bw  count niter for coupled comp and geomechanics simulation
+      COUPLED_ITER = COUPLED_ITER + 1
+
+C DEFINE WORK ROUTINE ARGUMENTS 
+
+      CALL TIMON(27)
+      IF (ONCEONLY) THEN
+         ONCEONLY=.FALSE.
+          
+         JPRES(1) = 10
+         JPRES(2) = N_EPCONN
+         JPRES(3) = N_ERESID
+         JPRES(4) = N_PREF
+         JPRES(5) = N_PRESS
+         JPRES(6) = N_EROCKTHEXP
+         JPRES(7) = N_MODUL
+         JPRES(8) = N_POISS
+         JPRES(9) = N_ETEMPR
+         JPRES(10) = N_ETEMPREF
+         JPRES(11) = N_BIOTA
+
+
+         JADD_BODY(1) = 3
+         JADD_BODY(2) = N_BODY_FORCE
+         JADD_BODY(3) = N_DIR_COS
+         JADD_BODY(4) = N_ERESID
+       
+         JFINIT(1) = 3
+         JFINIT(2) = N_KEYOUT_CR
+         JFINIT(3) = N_ERESID
+         JFINIT(4) = N_FORCE_INIT
+
+         JBODY(2) = N_BODY_FORCE
+         JBODY(3) = N_ROCK_WEIGHT
+         JBODY(4) = N_EPV_FLOW
+         JBODY(5) = N_EPMD
+
+         JSUB_STRES(1) = 6
+         JSUB_STRES(2) = N_KEYOUT_CR
+         JSUB_STRES(3) = N_ZERO_NODE 
+         JSUB_STRES(4) = N_EDIAG2
+         JSUB_STRES(5) = N_ERESID
+         JSUB_STRES(6) = N_EAFTER
+         JSUB_STRES(7) = N_EDISP
+     
+         JDISP_BC(1) = 3
+         JDISP_BC(2) = N_KEYOUT_CR
+         JDISP_BC(3) = N_ERESID
+         JDISP_BC(4) = N_ZERO_NODE
+     
+         JUPSOL(1) = 3
+         JUPSOL(2) = N_KEYOUT_CR
+         JUPSOL(3) = N_EDISP
+         JUPSOL(4) = N_VARD
+
+         JPV(1) = 13
+         JPV(2) = N_EPCONN
+         JPV(3) = N_BIOTM
+         JPV(4) = N_STRAIN_INIT
+         JPV(5) = N_EDISP
+cbw         JPV(6) = N_POR
+         JPV(6) = N_PVREF
+         JPV(7) = N_EPV
+         JPV(8) = N_PREF
+         JPV(9) = N_PRESS
+         JPV(10) = N_EROCKTHEXP
+         JPV(11) = N_ETEMPR
+         JPV(12) = N_ETEMPREF
+         JPV(13) = N_BIOTA
+         JPV(14) = N_VISPOR
+        
+cbw         JCR(1) = 3
+cbw         JCR(2) = N_DISP_COMP
+cbw         JCR(3) = N_EPV_FLOW
+cbw         JCR(4) = N_ECR
+      ENDIF
+
+C CALCULATE MASS
+
+!BW NO NEED TO RESCALE CONCENTRATION ARRAY
+!BW CONVERGENCE WILL BE CHECKED USING RESIDUE OF PRESSURE EQUATION
+      JMASS(1) = 2
+      JMASS(2) = N_EPV_FLOW
+      IF(PEFLOW.EQ.$XMODEL) THEN
+         JMASS(3) = N_ECONC
+cbw         JMASS(4) = N_EMASS(2)
+cbw         JMASS(5) = N_ECON(1)
+cbw         JMASS(6) = N_ECON(2)
+!bw         CALL CALLWORK(EMASS_3NC,JMASS)
+      ELSE
+         IF(LEVELC) WRITE(NFOUT,50)
+         NERR = NERR + 1
+         RETURN
+      ENDIF
+
+C SETUP RESIDUALS FOR DISPLACEMENTS
+
+      IF(NDIM_ELASTIC.EQ.3) THEN
+
+         CALL PESETARYR8N(N_ERESID,ZERO,3)
+            
+C APPLY TRACTION BOUNDARY CONDITIONS        
+           
+         KERR = 0
+         CALL TRACTION_3D(KERR)
+ 
+C SETUP LOADING DUE TO FLUID PRESSURE
+
+cbw
+         JPRTPRES(1) = 1
+         JPRTPRES(2) = N_PRESS
+cbw         CALL CALLWORK(PRTPRES,JPRTPRES)
+cbw
+
+         IF(POROELASTIC_USED.NE.5) THEN
+$MANY            CALL TIMON(30)
+$MANY            CALL UPDATE(N_PRESS,2)
+cbw $MANY            CALL UPDATE(N_PREF,2)
+$MANY            CALL TIMOFF(30)
+            CALL CALLWORK(ADD_PRESS_3D,JPRES)
+         ELSE
+            IF(LEVELC) WRITE(NFOUT,51)
+            NERR = NERR + 1
+            CALL TIMOFF(27)
+            RETURN
+         ENDIF
+
+C ADD BODY FORCE
+
+cbw
+         CALL PESETARYR8N(N_BODY_FORCE,ZERO,1) 
+cbw
+         IF(PEFLOW.EQ.$XMODEL) THEN
+            JBODY(1) = 5
+            JBODY(6) = N_ESAT
+cbw            JBODY(7) = N_ESAT(2)
+            CALL CALLWORK(BODY3D_3PH,JBODY)
+         ELSE
+            IF(LEVELC) WRITE(NFOUT,50)
+            NERR = NERR + 1
+            RETURN
+         ENDIF
+$MANY         CALL TIMON(30)
+$MANY         CALL UPDATE(N_BODY_FORCE,2)
+$MANY         CALL TIMOFF(30)
+         CALL CALLWORK(ADD_BODY3D,JADD_BODY)
+
+C SUBTRACT INITIAL STRESSES
+
+         IF(INIT_STRESS.GT.0.AND.POROELASTIC_USED.NE.5)             
+     &      CALL CALLWORK(SUBTRACT_FINIT3D,JFINIT)  
+
+C SUBTRACT CURRENT STRESS FROM LOAD VECTOR
+
+         IF(POROELASTIC_USED.NE.5) THEN
+$MANY            CALL TIMON(30)
+cbw $MANY            CALL NODE_UPDATE(N_EDISP,'R8')
+$MANY            CALL UPDATE(N_EDISP,4)
+$MANY            CALL TIMOFF(30)
+            CALL CALLWORK(ELASTIC3D_SUBTRACT,JSUB_STRES)
+         ELSE
+            IF(LEVELC) WRITE(NFOUT,51)      
+            NERR = NERR + 1
+            CALL TIMOFF(27)
+            RETURN
+         ENDIF
+
+C APPLY ZERO DISPLACEMENT BOUNDARY CONDITIONS
+
+         IF(POROELASTIC_USED.NE.5) THEN
+            CALL CALLWORK(DISPLACEMENT_ZERO,JDISP_BC)
+            JRIGID(1) = 2
+            JRIGID(2) = N_KEYOUT_CR
+            JRIGID(3) = N_ERESID
+            CALL CALLWORK(RIGIDBODY_ZERO,JRIGID)
+         ELSE
+            IF(LEVELC) WRITE(NFOUT,51)
+            NERR = NERR + 1
+            CALL TIMOFF(27)
+            RETURN
+         ENDIF
+      ELSE
+         IF(LEVELC) WRITE(NFOUT,52)
+         NERR = NERR + 1
+         CALL TIMOFF(27)
+         RETURN
+      ENDIF
+cbw
+         JPRTSYS(1) = 5
+         JPRTSYS(2) = N_KEYOUT_CR
+         JPRTSYS(3) = N_EDIAG
+         JPRTSYS(4) = N_EBEFORE
+         JPRTSYS(5) = N_ERESID
+         JPRTSYS(6) = N_ZERO_NODE
+cbw         call callwork(prtsystem,jprtsys)
+cbw
+
+C SOLVE FOR DISPLACEMENTS AND UPDATE SOLUTION
+
+      CALL PESETARYR8N(N_VARD,ZERO,3)
+
+cbw SOLVE THE SYSTEM USING HYPRE AMG
+$HYPRE         CALL TIMON(29)
+$HYPRE         KERR = 0
+$HYPRE         CALL HYPRE_SOLVE(1,KERR) 
+$HYPRE         CALL TIMOFF(29)
+$HYPRE         GOTO 1000
+
+!BW       KERR=0
+!BW       IF(POROELASTIC_USED.LT.5) THEN
+!BW          FACTOR=.FALSE.
+!BW       ELSE 
+!BW          FACTOR=.TRUE.
+!BW       ENDIF
+!BW       CALL TIMON(29)
+!BW       ITER=0
+!BW       CALL PESOLVE(FACTOR,ITER,KERR)
+!BW       CALL TIMOFF(29)
+!BW       IF(KERR.GT.0) THEN
+!BW          IF(LEVELC) WRITE(NFOUT,53)
+!BW          NERR = NERR + 1
+!BW          CALL TIMOFF(27)
+!BW          RETURN
+!BW       ENDIF
+
+ 1000 CONTINUE
+      CALL CALLWORK(PEUPSOL,JUPSOL)
+cbw
+         JPRTDISP(1) = 2
+         JPRTDISP(2) = N_KEYOUT_CR
+         JPRTDISP(3) = N_EDISP
+cbw         CALL CALLWORK(PRTDISP,JPRTDISP)
+cbw
+         
+C     CALL PESTDOUTA()
+
+C CALCULATE PORE VOLUME USING VOLUMETRIC STRAINS 
+
+$MANY      CALL TIMON(30)
+cbw $MANY      CALL NODE_UPDATE(N_EDISP,'R8')
+$MANY      CALL UPDATE(N_EDISP,4)
+$MANY      CALL TIMOFF(30)
+      CALL CALLWORK(PEPORE_VOL,JPV)
+$MANY      CALL TIMON(30)
+$MANY      CALL UPDATE(N_EPV,2)
+$MANY      CALL TIMOFF(30)
+
+C RESCALE THE CONCENTRATIONS DUE TO PORE VOLUME CHANGE
+
+      JSCAL(1) = 3
+      JSCAL(2) = N_EPV
+      IF(PEFLOW.EQ.$XMODEL) THEN
+         JSCAL(3) = N_ECONC
+         JSCAL(4) = N_EPV_FLOW
+cbw         JSCAL(5) = N_ECON(1)
+cbw         JSCAL(6) = N_ECON(2)
+!BW NO NEED TO RESCALE CONCENTRATION ARRAY
+!BW CONVERGENCE WILL BE CHECKED USING RESIDUE OF PRESSURE EQUATION
+!bw         CALL CALLWORK(SCALE_3NC,JSCAL)
+!BW $MANY         CALL TIMON(30)
+!BW $MANY         CALL UPDATE(N_ECONC,2)
+!BW $MANY         CALL TIMOFF(30)
+      ELSE 
+         IF(LEVELC) WRITE(NFOUT,50)
+         NERR = NERR + 1
+         RETURN
+      ENDIF
+
+
+C CHECK UP PORE VOLUME CONVERGENCE
+
+cbw      IF(PEKONVG.NE.1) THEN
+         JARG(1) = 3
+         JARG(2) = N_EPV         
+         JARG(3) = N_EPV_FLOW
+         JARG(4) = N_R8U
+         CALL CALLWORK(PEPV_ERR,JARG)
+$MANY         CALL TIMON(30)
+$MANY         CALL MAXIT(1,R8UTIL)
+$MANY         CALL SPREAD8(1,R8UTIL)
+$MANY         CALL TIMOFF(30)
+         IF(R8UTIL.LE.PE_PVTOL) THEN
+            PEKONVG=1
+         ELSE
+            PEKONVG=2
+         ENDIF
+!bw $MANY          PEDUMMY=PEKONVG
+!bw $MANY          CALL MAXIT(1,PEDUMMY)
+!bw $MANY          PEKONVG=PEDUMMY+.1D0
+!bw $MANY          CALL SPREAD(1,PEKONVG)
+         write(*,'(A,F14.7,A,I5,A,I3,A,I3,A,I3)')
+     &        "PEPV_ERR",R8UTIL," MYPRC=",MYPRC," PEKONVG=",PEKONVG,
+     &        " NSTEP=",NSTEP," ITER=",COUPLED_ITER
+cbw      ENDIF
+
+C COPY PORE VOLUME FROM POROELASTIC MODEL TO FLOW MODEL
+ 
+      JARG(1) = 2
+      JARG(2) = N_EPV
+      JARG(3) = N_EPV_FLOW
+      CALL CALLWORK(CPYARYR8,JARG)
+cbw
+!bw $MANY      CALL UPDATE(N_EPV_FLOW,2)
+cbw
+C CALCULATE NEW ROCK COMPRESSIBILITY FOR FLOW ASSOCIATED WITH EPV_FLOW
+
+cbw      CALL CALLWORK(PEFLOWCR,JCR)
+cbw
+cbw  $MANY      CALL UPDATE(N_ECR,2)
+cbw
+
+!bw         JSTRS(1) = 12
+!bw         JSTRS(2) = N_KEYOUT_CR
+!bw         JSTRS(3) = N_MODUL
+!bw         JSTRS(4) = N_POISS
+!bw         JSTRS(5) = N_BIOTA
+!bw         JSTRS(6) = N_STRXX_INIT
+!bw         JSTRS(7) = N_STRYY_INIT
+!bw         JSTRS(8) = N_STRZZ_INIT
+!bw         JSTRS(9) = N_EDISP
+!bw         JSTRS(10 )= N_PREF
+!bw         JSTRS(11) = N_PRESS
+!bw         JSTRS(12) = N_STRESS
+!bw         JSTRS(13) = N_I4U
+!bw         I4UTIL = INTEGRATION_NODES
+!bw         CALL CALLWORK(STRESS_3D,JSTRS)
+
+CBW   UPDATE PERMEABILITY DEPENDING ON NEW DISPLACEMENTS
+      IF (SDPM) THEN
+         CALL PE_PERM()
+      ENDIF
+
+      JSTRS(1) = 2
+      JSTRS(2) = N_EDISP
+      JSTRS(3) = N_STRESS
+      CALL CALLWORK(AVERAGE_STRAIN,JSTRS)     
+
+      JSTRS(1) = 9
+      JSTRS(2) = N_MODUL
+      JSTRS(3) = N_POISS
+      JSTRS(4) = N_BIOTA
+      JSTRS(5) = N_STRXX_INIT
+      JSTRS(6) = N_STRYY_INIT
+      JSTRS(7) = N_STRZZ_INIT
+      JSTRS(8) = N_STRESS
+      JSTRS(9) = N_PREF
+      JSTRS(10) = N_PRESS
+
+      CALL CALLWORK(AVERAGE_STRESS,JSTRS)     
+      CALL TIMOFF(27)
+
+  50  FORMAT(/'ERROR: POROELASTIC OPTION ONLY SETUP FOR XCOMP MODEL')
+  51  FORMAT(/'ERROR #PESTEP: NOT SETUP POROPLASTIC OPTION')
+  52  FORMAT(/'ERROR #PESTEP: POROELASTIC NOT SETUP FOR 1D,2D CASE')
+  53  FORMAT(/'ERROR: ELASTIC LINEAR SOLVER')
+
+      END
+C*********************************************************************
+      SUBROUTINE PERATE(KERR)
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'pearydat.h'
+
+      INTEGER KERR,JARG(8)
+      EXTERNAL PERATEW
+
+      JARG(1) = 7
+      JARG(2) = N_KEYOUT_CR
+      JARG(3) = N_EDISP_RATE
+      JARG(4) = N_EDISP         
+      JARG(5) = N_EDISPN            
+      JARG(6) = N_EPV_RATE   
+      JARG(7) = N_EPV        
+      JARG(8) = N_EPVN
+      CALL CALLWORK(PERATEW,JARG)
+
+      END
+
+C*********************************************************************
+      SUBROUTINE PESAVE(FACTOR)
+C*********************************************************************
+C Routine save old time step values. 
+C Call work routine to perform linear extrapolation for displacements. 
+C Call work routine to perform linear extrapolation for pore volumes
+C
+C INPUT:
+C   FACTOR = LINEAR EXTRAPOLATION FACTOR
+C*********************************************************************
+      IMPLICIT NONE
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pemodel.h'
+                                                                               
+      REAL*4  FACTOR
+      LOGICAL ONCEONLY
+      INTEGER JSAVE(4),JEXTRP(7),JCP(3)
+      DATA    JSAVE/4*0/,JEXTRP/7*0/,ONCEONLY/.TRUE./
+      DATA    JCP/3*0/
+      EXTERNAL CPYARYR8N,PEEXTRAPW,COPY_PERM
+      
+      IF(ONCEONLY) THEN
+         JSAVE(1) = 3
+         JSAVE(2) = N_EDISP
+         JSAVE(3) = N_EDISPN
+         JSAVE(4) = N_I4U
+
+         JEXTRP(1) = 6
+         JEXTRP(2) = N_KEYOUT_CR
+         JEXTRP(3) = N_R4U
+         JEXTRP(4) = N_EDISP_RATE
+         JEXTRP(5) = N_EDISP
+         JEXTRP(6) = N_EPV_RATE
+         JEXTRP(7) = N_EPV_FLOW
+
+cbw         JCR(1) = 3
+cbw         JCR(2) = N_DISP_COMP
+cbw         JCR(3) = N_EPV_FLOW
+cbw         JCR(4) = N_ECR    
+         ONCEONLY = .FALSE.
+      ENDIF
+
+      I4UTIL = 3
+      CALL CALLWORK(CPYARYR8N,JSAVE)
+  
+CBW      SAVE OLD PERMEABILITY
+      IF (SDPM) THEN
+         JCP(1) = 2
+
+         JCP(2) = N_XPERMN
+         JCP(3) = N_XPERM
+         CALL CALLWORK(COPY_PERM,JCP)
+
+         JCP(2) = N_YPERMN
+         JCP(3) = N_YPERM
+         CALL CALLWORK(COPY_PERM,JCP)
+  
+         JCP(2) = N_ZPERMN
+         JCP(3) = N_ZPERM
+         CALL CALLWORK(COPY_PERM,JCP)
+      ENDIF
+
+!bw      IF(NSTEP.GT.2) THEN 
+!bw         R4UTIL = FACTOR
+!bw         CALL CALLWORK(PEEXTRAPW,JEXTRP)
+!bw         CALL CALLWORK(PEFLOWCR,JCR)
+!bw      ENDIF
+
+      END
+C*********************************************************************
+      SUBROUTINE PECUTTIME(NERR)
+C*********************************************************************
+C Routine save old time step values.
+C Call work routine to perform linear extrapolation for displacements.
+C Call work routine to perform linear extrapolation for pore volumes
+C
+C INPUT:
+C   FACTOR = LINEAR EXTRAPOLATION FACTOR
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pemodel.h'
+
+      LOGICAL ONCEONLY
+      INTEGER JSAVE(4),JCP(3),JUPPERM(7),NERR
+      EXTERNAL CPYARYR8N,COPY_PERM,TRANC1
+
+      JSAVE(1) = 3
+      JSAVE(2) = N_EDISPN
+      JSAVE(3) = N_EDISP
+      JSAVE(4) = N_I4U
+
+cbw
+cbw      JCR(1) = 3
+cbw      JCR(2) = N_DISP_COMP
+cbw      JCR(3) = N_EPV_FLOW
+cbw      JCR(4) = N_ECR
+cbw
+
+      I4UTIL = 3
+      CALL CALLWORK(CPYARYR8N,JSAVE)
+
+CBW   RETRIEVE OLD PERMEABILITY, RECALCULATE TRANSMISSIBILITY
+      IF (SDPM) THEN
+         JCP(1) = 2
+
+         JCP(2) = N_XPERM
+         JCP(3) = N_XPERMN
+         CALL CALLWORK(COPY_PERM,JCP)         
+
+         JCP(2) = N_YPERM
+         JCP(3) = N_YPERMN
+         CALL CALLWORK(COPY_PERM,JCP)         
+
+         JCP(2) = N_ZPERM
+         JCP(3) = N_ZPERMN
+         CALL CALLWORK(COPY_PERM,JCP)         
+      
+$MANY         CALL TIMON(28)
+$MANY         CALL UPDATE(N_XPERM,1)
+$MANY         CALL UPDATE(N_YPERM,1)
+$MANY         CALL UPDATE(N_ZPERM,1)
+$MANY         CALL TIMOFF(28)
+
+         JUPPERM(1) = 6
+         JUPPERM(2) = N_TCOFX
+         JUPPERM(3) = N_TCOFY
+         JUPPERM(4) = N_TCOFZ
+         JUPPERM(5) = N_XPERM
+         JUPPERM(6) = N_YPERM
+         JUPPERM(7) = N_ZPERM
+!bw         CALL CALLWORK(TRANC1,JUPPERM)
+!bw         CALL SDPWELL(NERR)
+      ENDIF
+
+cbw
+cbw      CALL CALLWORK(PEFLOWCR,JCR)
+cbw      CALL UPDATE(N_ECR,2)
+cbw
+      END
+C***********************************************************************
+      SUBROUTINE PE_SHOW(X)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'pearydat.h'
+
+      INTEGER X,ISHOW(3)
+      EXTERNAL I_SHOW
+
+      ISHOW(1)=2
+      ISHOW(2)=N_KEYOUT_CR
+      ISHOW(3)=X
+      CALL CALLWORK(I_SHOW,ISHOW)
+
+      END
+C***********************************************************************
+      SUBROUTINE I_SHOW(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK,KEYCR,X)
+C***********************************************************************
+      INCLUDE 'control.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER KEYCR(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM,3)
+
+      INTEGER I,J,K,NEQ,IOFF,JOFF,KOFF
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+      NEQ=PE_MEQ
+
+      n=0
+      DO K=KL1,KL2+1
+         DO J=JL1V(K),JL2V(K)+1
+            DO I=IL1,IL2+1
+               if(keycr(i,j,k).gt.0) n=n+1
+            enddo
+         enddo
+      enddo
+      if(myprc.eq.1) then
+       write(*,*) n
+      DO K=KL1,KL2+1
+         DO J=JL1V(K),JL2V(K)+1
+            DO I=IL1,IL2+1
+              write(*,*) i+ioff,j+joff,k+koff,(X(i,j,k,l),l=1,3)
+c             if(keycr(i,j,k).gt.0) write(*,*) i+IOFF,j+JOFF,k+KOFF,
+c    & (x(i,j,k,l), l=1,3)
+            enddo
+         enddo
+      enddo
+      endif
+
+      end
+C***********************************************************************
+      SUBROUTINE PE_SHOW2()
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'pearydat.h'
+
+      INTEGER X,ISHOW(3)
+      EXTERNAL I_SHOW2
+
+      ISHOW(1)=0
+      ISHOW(2)=X
+      CALL CALLWORK(I_SHOW2,ISHOW)
+
+      END
+C***********************************************************************
+      SUBROUTINE I_SHOW2(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                  KEYOUT,NBLK)
+C***********************************************************************
+      INCLUDE 'control.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  X(IDIM,JDIM,KDIM)
+
+      INTEGER I,J,K,NEQ,IOFF,JOFF,KOFF
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,KERR)
+      NEQ=PE_MEQ
+
+      n=0
+      DO K=KL1,KL2
+         DO J=JL1V(K),JL2V(K)
+            DO I=IL1,IL2
+               if(keyout(i,j,k).gt.0) n=n+1
+            enddo
+         enddo
+      enddo
+      if(myprc.eq.1) then
+      write(*,*) n
+      DO K=KL1,KL2+1
+         DO J=JL1V(K),JL2V(K)+1
+            DO I=IL1,IL2+1
+              write(*,*) i+IOFF,j+JOFF,k+KOFF,
+     & keyout(i,j,k)
+            enddo
+         enddo
+      enddo
+      endif
+
+
+      end
+
+C********************************************************************
+      SUBROUTINE PRINT_NITER()
+C********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+
+      INTEGER NITEROUT
+      NITEROUT = 66
+
+      OPEN(NITEROUT,FILE='niter.dat',ACCESS='append')
+      
+      WRITE(NITEROUT,100) NSTEP, COUPLED_ITER
+ 100  FORMAT (I7,I7)
+
+      CLOSE(NITEROUT)
+ 
+      END
+
+C*********************************************************************
+C                             END OF PESTEP.DF
+C**********************************************************************

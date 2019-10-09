@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/repos/csm/!svn/ver/618/IPARSv3.1/dealii
+END
+driver_ds.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/616/IPARSv3.1/dealii/driver_ds.cpp
+END
+IPACS-V3.0.cc
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/616/IPARSv3.1/dealii/IPACS-V3.0.cc
+END
+ipars_dealii.h
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/repos/csm/!svn/ver/616/IPARSv3.1/dealii/ipars_dealii.h
+END
+driver.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/616/IPARSv3.1/dealii/driver.cpp
+END
+ipars_ds.df
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/616/IPARSv3.1/dealii/ipars_ds.df
+END
+ipars_dealii.df
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/618/IPARSv3.1/dealii/ipars_dealii.df
+END

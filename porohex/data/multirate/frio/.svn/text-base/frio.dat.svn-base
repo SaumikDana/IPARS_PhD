@@ -1,0 +1,164 @@
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+TITLE(2)="SINGLE PHASE TEST SMALL"
+
+DESCRIPTION()=
+
+"BLOCK   LENGTH (FT)   WIDTH (FT)   HEIGHT (FT)    SIZE     CORNER"
+"  1        80            80          4           2x4x4      0,0,0"
+"DATE : 10/13/15"
+
+BLOCKMODEL(1) = "POROELASTIC"
+FLOW_MODEL = "SINGLE_PHASE_MFMFE"
+
+ TIMEEND = 32.0
+
+$$ Multirate Keywords
+Q_MULTIRATE = 2 $ two flow finer time steps with one mechanics time step
+COMPUTE_NORM = 0 $ flag to compute norms needed for contraction estimates
+GAMMA_C = 1.0 $ introduced parameter multiplying fixed stress reg. term
+F_TOLERANCE = 1.0E-10 $ tolerance for first coupling convergence check (not implemented yet in this version) 
+PEPVTOL = 1.0E-8 $ tolerance for second coupling convergence check
+$$
+
+MAXNEWT = 20    $ MAX PRES NEWT STEP (DEFAULT 20)
+PROCOUT
+OUTLEVEL = 2
+
+$ Convergence Tolerance for iterative coupling
+ CVTOL = 1.0E-4
+
+$$$ FAULT BLOCK AND MESH DATA
+
+BLOCKNAME(1) = "BLOCK1"
+DOWN(1 TO 3,1) =0. 0. 0.
+
+$corner point geometry
+Include mesh.dat
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+$ INITIAL CONDITIONS
+
+PINIT = 400.0
+
+$ Fluid viscosity
+FLVIS = 1.
+
+$ Fluid standard density
+STFLDEN = 62.34
+
+$ Fluid compressibility
+FLCOMP = 1.E-4
+$FLCOMP = 4.E-5
+$FLCOMP = 1.E-5
+$FLCOMP = 4.E-3
+
+$ Rock Compressibility
+CR1() = 1.E-6
+
+$ POROSITY
+POROSITY1() = .2
+$Include poro.dat
+
+$ PERMEABILITIES $$$$$$$$$$
+
+$PERM_FULL
+XYPERM1()=.0  YZPERM1() = .0 XZPERM1() = .0
+XPERM1() = 50.  YPERM1() = 400. ZPERM1() = 150.
+
+$Include perm.dat 
+$Include permzero.dat  $ Instead of keyout
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ WELLS
+
+Include wells.dat
+$Include twowells.dat
+
+$commented by Tameem
+
+$ Elastic Properties
+ 
+$GRAVITY_FLAG = 1
+$ 
+$MODULUS1() = 4559.753285E6[Pa] $1.45E6  $ Young's modulus
+$POISSON1() = 0.25    $ poisson's ratio
+$BIOTA1() = 1.0       $ flow mechanics coupling term
+$BIOTM1() = 1.E-20    $ PV change proportional to pressure change
+$ROCKD1() = 2.65      $ rock density
+$ 
+$EBCXXN1() = 2
+$XXDIN1() = 0.0
+$
+$EBCYY1() = 2
+$YYDI1() = 0.0
+$
+$EBCYYN1() = 2
+$YYDIN1() = 0.0
+$
+$EBCZZ1() = 2
+$ZZDI1() = 0.0
+$
+$EBCZZN1() = 2
+$ZZDIN1() = 0.0
+$
+$$$EBCXX1() = 1
+$$XXST1() = 0.0   $ put overburden pressure here
+$PRESX1() = 30.E6[Pa] $400.0
+
+
+$$$ Added by Tameem:
+
+$ Elastic Properties
+ 
+GRAVITY_FLAG = 0
+ 
+MODULUS1() = 5.E5  $ Young's modulus
+POISSON1() = 0.4 $ poisson's ratio
+BIOTA1() = 1.0   $ flow mechanics coupling term
+BIOTM1() = 1.E-8 $ PV change proportional to pressure change
+ROCKD1() = 2.65  $ rock density  (in Kg\Liter)
+ 
+EBCXX1() = 1
+XXST1() = 10000.0
+
+EBCXXN1() = 2
+XXDIN1() = 0.0
+
+EBCYY1() = 2
+YYDI1() = 0.0
+
+EBCYYN1() = 1
+YYSTN1() = 2000.0
+
+EBCZZ1() = 2
+ZZDI1() = 0.0
+
+EBCZZN1() = 1
+ZZSTN1() = 1000.0
+
+EndInitial
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+
+DELTIM = 1.0  
+DTIMMUL = 1.0  DTIMMIN = 1.0  DTIMMAX = 3.  TIMOUT = 10.  DTIMOUT = 40.
+
+VISOUT = 8.0
+DVISOUT = 8.0
+
+VIS_SCL = 4
+VIS_NVEC = 0
+VIS_SCL_NAMES(1) = "PRES"
+VIS_SCL_NAMES(2) = "DISPX"
+VIS_SCL_NAMES(3) = "DISPY"
+VIS_SCL_NAMES(4) = "DISPZ"
+VIS_FNAME = "multirate"
+VISFLAG = 8
+$ TIMRES = 40.
+EndTime
+

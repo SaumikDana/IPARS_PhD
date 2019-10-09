@@ -1,0 +1,94 @@
+C  HSTDOUT.F - PRINT HYDROLOGY MODEL STANDARD OUTPUT
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE HSTDOUTS ()
+C  SUBROUTINE HMAKSAT  (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                      KEYOUT,NBLK,POIL,COIL,COILN)
+C  SUBROUTINE HSTDOUTA ()
+
+C  CODE HISTORY:
+
+C  JOHN WHEELER     4/29/97    SKELETON ROUTINE
+C  JOHN WHEELER     9/15/97    PRINT Sw
+C  JOHN WHEELER     7/ 9/99    MULTIMODEL CAPABILITY
+
+C*********************************************************************
+      SUBROUTINE HSTDOUTS ()
+C*********************************************************************
+
+C  Prints hydrology model standard output - scalars
+
+C*********************************************************************
+      INCLUDE 'control.h'
+
+      END
+C*********************************************************************
+      SUBROUTINE HSTDOUTA ()
+C*********************************************************************
+
+C  Prints hydrology model standard output - arrays
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'harydat.h'
+
+      INTEGER MAKSW(4)
+
+      EXTERNAL HMAKSAT
+
+C  PRINT OIL PRESSURES
+
+      TITU='OIL PRESSURES FOR FAULT BLOCK'
+      CALL GEAOUT(N_POIL,1,1)
+
+C  PRINT Sw
+
+      MAKSW(1)=3
+      MAKSW(2)=N_POIL
+      MAKSW(3)=N_COIL
+      MAKSW(4)=N_COILN
+      CALL CALLWORK(HMAKSAT,MAKSW)
+
+      TITU='WATER SATURATION FOR FAULT BLOCK'
+      CALL GEAOUT(N_COILN,1,1)
+
+      END
+C*********************************************************************
+      SUBROUTINE HMAKSAT (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                 KEYOUT,NBLK,POIL,COIL,COILN)
+C*********************************************************************
+ 
+C  ROUTINE GENERATES Sw FOR OUTPUT.  THIS IS A WORK ROUTINE.
+
+C  POIL(I,J,K) = OIL PRESSURE, PSI (INPUT, REAL*8)
+
+C  COIL(I,J,K) = OIL CONCENTRATION, LB/CU-FT (INPUT, REAL*8)
+
+C  COILN(I,J,K) = WATER SATURATION (OUTPUT, REAL*8)
+
+C*********************************************************************
+      INCLUDE 'hfluids.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 POIL(IDIM,JDIM,KDIM),        COIL(IDIM,JDIM,KDIM),
+     &       COILN(IDIM,JDIM,KDIM)
+      REAL*8 DOP
+
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         DOP=OILCMP*POIL(I,J,K)
+         DOP=((((((1.38888889D-3*DOP+8.333333333D-3)*DOP+
+     &   4.1666666667D-2)*DOP+.166666666667D0)*DOP+.5D0)*DOP+1.D0)*DOP
+     &   +1.D0)*OILDEN
+         COILN(I,J,K)=1.D0-COIL(I,J,K)/DOP
+      ENDIF
+    1 CONTINUE
+      END

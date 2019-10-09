@@ -1,0 +1,6 @@
+$ ############ Tecplot binary ############
+
+Replace_Symbols
+
+TECBIN     ""      $ Enable tecplot binary
+

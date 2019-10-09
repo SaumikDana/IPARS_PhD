@@ -1,0 +1,275 @@
+TITLE(2)="EVFEM FOR TRANSPORT WITH HYDROLOGY_IMPLICIT FLOW"
+
+DESCRIPTION()=
+"LENGTH (FT) : 1000"
+"WIDTH (FT) : 1000"
+"THICKNESS (FT) : 20"
+"GRID BLOCKS : 12X16X16 2x8x10x10 6x8x8  5056 GRID ELEMENTS"
+"DATE : 6/9/98"
+
+BLOCKMODEL(1 TO 4)="TRANSPORT_CHEMISTRY"
+
+TIMEEND = 151.1
+$TIMEEND = 101.1
+$TIMEEND = 50.01
+$TIMEEND = 20.01
+$TIMEEND = 10.01
+$TIMEEND = 5.01
+$TIMEEND = 2.0
+$TIMEEND = 0.5
+$TIMEEND = 0.1
+$TIMEEND = 0.05
+$TIMEEND = 0.02
+$TIMEEND = 0.01
+
+$ I/O OPTIONS
+OUTLEVEL = 2
+WELLOUTKEY = 3   WELLFILE = "TRH_SPE6.WEL"
+
+$$$ FLOW MODEL SPECIFICATION AND DATA
+$ currently assumes all domains have similar flow model 
+
+FLOW_MODEL = "HYDROLOGY_IMPLICIT"
+
+$ NEWTON ITERATION OPTIONS (FOR FLOW)
+MAXNEWT = 100
+CVTOL = 1.0E-6
+$CVTOL = 1.0E-8
+$CVTOL = 1.0E-10
+$CVTOL = 1.0E-15
+
+$$$ LINEAR SOLVER OPTIONS
+$ MULTI-GRID
+$LINTOL = 1.0E-06
+$SOROPT = TRUE
+
+$ LINE SOR
+
+$SORTOL = 1.E-7
+$SOROPT = TRUE
+$MAXJK = 40
+
+$ GMRES
+
+$LSOL_TOL = 1.0E-06
+$TMP_LSOL_TOL = 1.E-10
+$LSOL_ITMAX = 5000
+$GMRES_PREC = 15
+$GMRES_PREC = 13
+$N_GS_STEP = 5
+
+$ GMRES-SAMG
+
+$SAMG
+$LSOL_TOL = 1.0E-06
+$GMRES_PREC = 18
+$N_GS_STEP = 5
+
+$ BCGS
+LINTOL = 1.0E-05
+$LINTOL = 1.0E-06
+$LINTOL = 1.0E-07
+$LINTOL = 1.0E-08
+$MISCLINTOL = 1.0E-08
+$MISCLINTOL = 1.0E-10
+MISCLINTOL = 1.0E-12
+
+$$$ FAULT BLOCK AND MESH DATA
+
+FACEBLOCKS(,1) = 1 2  
+FACEBLOCKS(,2) = 1 3 
+FACEBLOCKS(,3) = 2 4 
+FACEBLOCKS(,4) = 3 4 
+FACEXYZ(,1) = 0. 0. 0., 0. 0. 0.
+FACEXYZ(,2) = 0. 0. 0., 0. 0. 0.
+FACEXYZ(,3) = 0. 0. 0., 0. 0. 0.
+FACEXYZ(,4) = 0. 0. 0., 0. 0. 0.
+
+BLOCKNAME(1) = "BLOCK1"
+DOWN(,1) = 1. 0. 0.
+NX(1) = 12  NY(1) = 16  NZ(1) = 16
+DX(,1) = 2.   DY(,1) = 12.5  DZ(,1) = 12.5
+XYZ111(,1) = 0. 0. 0.
+
+BLOCKNAME(2) = "BLOCK2"
+DOWN(,2) = 1. 0. 0.
+NX(2) = 8  NY(2) = 10  NZ(2) = 10
+DX(,2) = 3.   DY(,2) = 20.  DZ(,2) = 20.
+XYZ111(,2) = 0. 200. 0.
+
+BLOCKNAME(3) = "BLOCK3"
+DOWN(,3) = 1. 0. 0.
+NX(3) = 8  NY(3) = 10  NZ(3) = 10
+DX(,3) = 3.   DY(,3) = 20.  DZ(,3) = 20.
+XYZ111(,3) = 0. 0. 200.
+
+BLOCKNAME(4) = "BLOCK4"
+DOWN(,4) = 1. 0. 0.
+NX(4) = 6  NY(4) = 8  NZ(4) = 8
+DX(,4) = 4.   DY(,4) = 25.  DZ(,4) = 25.
+XYZ111(,4) = 0. 200. 200.
+
+$$$ INITIAL CONDITIONS
+
+POINIT = 500.  SWINIT = .2
+
+$ FLOW MODEL SPECIFIC PARAMETERS
+
+STDENO = 53.         STDENW = 62.34
+OILCOMP = 4.0E-5     WATCOMP = 3.3E-6
+
+$ POROSITY
+
+POROSITY1() = .2   POROSITY2() = .2
+POROSITY3() = .2   POROSITY4() = .2
+
+$ PERMEABILITIES
+
+$ SPE6 case
+Include spe6mb4bKxx.dat 
+
+PERM_HTOV_RATIO = 5.
+
+$ VISUALIZE PERMEABILITY AT INITIAL TIME
+
+$PERMOUT
+$VIS_SCL = 3                  $ Set the number of vis. scalar variables
+$VISFLAG = 2                  $ Piece-wise constant visualization output
+$VIS_FNAME = "PERM2B_CASE1"     $ set the name of vis. output files
+$VIS_SCL_NAMES(1) = "TCOFX"   $ Specify the name of vis. scalar variables
+$VIS_SCL_NAMES(2) = "TCOFY"
+$VIS_SCL_NAMES(3) = "TCOFZ"
+
+$ RELATIVE PERMEABILITY AND CAPILLARY PRESSURE CURVES
+
+KOSW(1) Block        $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .8
+  Derivative  0 At .8
+  Constraint  1 At  0
+  Nodes  .2  .58
+  Data  0.  1. , .1  .67 , .2  .46 , .4  .2 , .6  .055 , .7  .015 , .8  0
+EndBlock
+
+KWSW(1) Block        $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .15
+  Derivative  0 At .15
+  Constraint  1 At   1
+  Nodes  .55  .7  .75
+  Data  .15  0 , .3  .035 , .4  .085 , .6  .28 , .8  .776 , 1  1
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Spline3
+  Extrapolation Same
+  Nodes  .24  .72  .919
+  Pole   .13
+  Data
+  .15 12.75 , .2  8.7  , .25  6.96 , .3  5.95 , .35  5.25 ,  .4  4.7
+  .5   3.74 , .6  2.94 ,  .7  2.21 , .8  1.54 ,  .9   .96 , .95  .69 , 1.  0.
+EndBlock
+
+$ TRANSPORT-CHEMISTRY 
+
+NSPECIES = 1
+N_CONC_STEPS = 2
+CONC1_1(,,) = 0. 
+CONC1_2(,,) = 0. 
+CONC1_3(,,) = 0. 
+CONC1_4(,,) = 0. 
+CONC1_1(1,1,1) = 100.
+
+EQ_PARTITIONING_COEFF () = 0.0
+EQ_PARTITIONING_COEFF (1,1)= 1.0
+EQ_PARTITIONING_COEFF (2,1)= 1.0
+
+$ DIFFUSION-DISPERSION PART
+
+$NO_DISPERSION
+$TRDDLINSOL = 1
+$TRDDLINSOL = 2
+$MOLECULAR_DIFFUSIVITY(,,) = 1.
+MOLECULAR_DIFFUSIVITY(,,) = 0.1
+$LONGITUDINAL_DISPERSIVITY(,1) = 1.0     
+$TRANSVERSE_DISPERSIVITY(,1) = 0.2 
+
+$ ADVECTION (H.O.G.) PART
+
+$TRNOFLXLMTR
+$TRFLXLMTRTYPE = 3
+$TRFLXLMTR = 1.0 
+
+$$$ WELLS
+
+NUMWELL=2
+
+WELLNAME(1) = "INJECTION WELL"
+KINDWELL(1) = 1
+WELLBLOCK(1,1) = 1
+WELLTOP(1 TO 3,1,1) = 0. 2*5.0
+WELLBOTTOM(1 TO 3,1,1) = 24. 2*5.0
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  505. 50. 1000.
+EndBlock
+
+WELLNAME(2) = "PRODUCTION WELL"
+KINDWELL(2) = 31
+WELLBLOCK(1,2) = 4
+WELLTOP(1 TO 3,1,2) = 0. 2*395.0
+WELLBOTTOM(1 TO 3,1,2) = 24. 2*395.0
+WELLPQ(2) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  480.  30.  350.
+EndBlock
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+DELTIM = 0.01
+DTIMMUL = 1.0005
+DTIMMAX = 0.5
+TIMOUT = 10.  
+DTIMOUT = 10.
+TIMRES = 9999.
+DTIMRES = 9999.
+$ visualization paramaters
+$VISOUT = 0.01
+$DVISOUT = 0.01
+VISOUT = 1.0
+DVISOUT = 1.0
+VIS_SCL = 3
+VIS_SCL_NAMES(1) = "POIL"
+VIS_SCL_NAMES(2) = "SWAT"
+VIS_SCL_NAMES(3) = "CONC1_"
+VIS_NVEC = 1
+VIS_VEC_NAMES(1) = "TRV"
+VIS_FNAME = "TRH_SPE6_MB4B_"
+VISFLAG = 2
+EndTime
+
+BeginTime    50.
+TIMOUT = 20.  
+DTIMMUL = 1.001
+DTIMOUT = 20.  
+DTIMMAX = 1.0
+FORMAT = TRUE  
+DVISOUT = 5.
+N_CONC_STEPS = 4
+EndTime
+
+BeginTime    100.
+DTIMMAX = 2.0  
+DTIMMUL = 1.005
+TIMOUT = 20.   
+DTIMOUT = 20.
+DVISOUT = 10.
+N_CONC_STEPS = 6
+EndTime

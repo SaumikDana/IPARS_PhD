@@ -1,0 +1,669 @@
+C Yuri Vassilevski, 4/10/2000, vasilevs@ticam.utexas.edu
+C Sunil G. Thomas   1/10/2008, sgthomas@ices.utexas.edu
+C                              mods to compile and run on new 64 bit 
+C                              platform at ICES
+C               4-6/1-31/2008, mods for coupled flow and transport and 
+C                              isolated scalar PDE solve. Note: for 
+C                              2-(or 3-) phase flow coupled to transport 
+C                              one needs to reset for example NUMEQS(..)
+C                              to NUMEQS(MODACT) in linwel and similar 
+C                              occurrences.
+C*********************************************************************
+      SUBROUTINE TICAMA (ITLIN,NERR)
+C*********************************************************************
+
+C  BCGS/Multigrid iteration executive routine solving
+C     COF * DUNK = RESID
+
+C  ITLIN  = NUMBER OF BCGS ITERATIONS USED (OUTPUT, INTEGER)
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER )
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'mulgrdc.h'
+
+      EXTERNAL  BCGS_DZERO,BCGS_CVG,SLBCGS
+      EXTERNAL  DIAGWEL,ELMNWEL,RCOVWEL
+      REAL*8    RESIDBCGS
+      INTEGER   IBCGFLAG,IARG(3),MCNT
+
+c     call MULGRD(ITLIN,NERR)
+c     return
+C  CLEAR 3D UNKNOWNS
+      CALL BCGS_DZERO(N_DUNKV)
+
+C  COMPUTE INITIAL RESIDUAL NORMS, IF U_0 = 0
+      MCNT=0
+      ITMG=0
+      TOLMG = TOLMGMDL
+      CALL  BCGS_CVG(IBCGFLAG,N_RESIDV)
+      DO 2 I=1,$MXMOD
+      IF(I.EQ.$TRMODEL) CYCLE
+      IF (I.EQ.$PEMODEL) CYCLE
+      IF (MODELON(I)) THEN
+         MCNT=MCNT+1
+         DO 3 L=1,MXNUMEQS
+         RMAX0(I,L)=RMAX(I,L)
+    3    RTOT0(I,L)=RTOT(I,L)
+      ENDIF
+    2 CONTINUE
+      ITMG = 1
+      IF(MCNT.EQ.0) THEN
+         WRITE(0,*) 'WARNING: NO MODELS ACTIVE IN TICAMA!'
+      ENDIF
+
+C  DIAGONALIZE AND NORMALIZE WELL EQUATIONS
+C  SAVE RESIDUALS FOR WELL ELEMENTS
+      MCNT=0
+      IARG(1)=1
+      DO 32 I=1,$MXMOD
+      IF(I.EQ.$TRMODEL) CYCLE
+      IF (I.EQ.$PEMODEL) CYCLE
+      IF (MODELON(I)) THEN
+         MCNT=MCNT+1
+         IARG(2)=N_RESIDV(I)
+         MODACT=I
+         CALL CALLWORK(DIAGWEL,IARG)
+      ENDIF
+   32 CONTINUE
+      MODACT=0 
+      IF(MCNT.EQ.0) THEN
+         WRITE(0,*) 'WARNING: NO MODELS ACTIVE IN TICAMA!'
+      ENDIF
+C  ELIMINATE WELL EQUATIONS,MODIFICATION OF GRID RHS 
+C  THAT IS, REDUCTION TO THE SCHUR COMPLEMENT SYSTEM
+      MCNT=0
+      IARG(1)=1
+      DO 33 I=1,$MXMOD
+      IF(I.EQ.$TRMODEL) CYCLE
+      IF (I.EQ.$PEMODEL) CYCLE
+      IF (MODELON(I)) THEN
+         MCNT=MCNT+1
+         IARG(2)=N_RESIDV(I)
+         MODACT=I
+         CALL CALLWORK(ELMNWEL,IARG)
+      ENDIF
+   33 CONTINUE
+      MODACT=0
+      IF(MCNT.EQ.0) THEN
+         WRITE(0,*) 'WARNING: NO MODELS ACTIVE IN TICAMA!'
+      ENDIF
+
+
+C  SET 2D INTERFACE COEFFICIENTS
+
+$DUAL      CALL MDUALC()
+
+c Recall that rhs is kept in RESID and solution will be kept in DUNK of
+c blkary.h !!!
+
+      INFOBCGS = 0
+      ITBCGS = MAXMGI
+      RESIDBCGS = TOLMG
+      CALL SLBCGS(
+     >  N_WKBCGS, $MXMOD,$NKRYLOV, 
+     >  N_COFV,N_DUNKV,N_RESIDV,
+     >  ITBCGS, RESIDBCGS, INFOBCGS )
+      IF (INFOBCGS.NE.0) NERR=NERR+1
+      ITLIN=ITBCGS
+
+C  RECOVER WELL UNKNOWNS AND GRID RHS
+C  THAT IS, EXPANSION FROM THE SCHUR COMPLEMENT SYSTEM
+      MCNT=0
+      IARG(1)=2
+      DO 34 I=1,$MXMOD
+      IF(I.EQ.$TRMODEL) CYCLE
+      IF (I.EQ.$PEMODEL) CYCLE
+      IF (MODELON(I)) THEN
+         MCNT=MCNT+1
+         IARG(2)=N_DUNKV(I)
+         IARG(3)=N_RESIDV(I)
+         MODACT=I
+         CALL CALLWORK(RCOVWEL,IARG)
+      ENDIF
+   34 CONTINUE
+      MODACT=0
+      IF(MCNT.EQ.0) THEN
+         WRITE(0,*) 'WARNING: NO MODELS ACTIVE IN TICAMA!'
+      ENDIF
+
+      RETURN
+      END
+
+C*********************************************************************
+      SUBROUTINE TICAMAT (NXTCOF,NXTDUNK,NXTRESID,NUMEQ,ITLIN,NERR)
+C*********************************************************************
+C  BCGS/Multigrid iteration executive routine for thermal conduction 
+C  or related isolated system solving COF * DUNK = RESID
+
+C  ITLIN  = NUMBER OF BCGS ITERATIONS USED (OUTPUT, INTEGER)
+
+C  NERR = ERROR KEY STEPPED BY ONE FOR EACH ERROR
+C         (INPUT AND OUTPUT, INTEGER )
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'mulgrdc.h'
+
+      EXTERNAL SLBCGS2,BCGS_CVG2
+      REAL*8    RESIDBCGS
+      INTEGER   NXTCOF,NXTDUNK,NXTRESID,NUMEQ,ITLIN,NERR 
+      INTEGER   IBCGFLAG,ITBCGS,INFOBCGS
+
+C  COMPUTE INITIAL RESIDUAL NORMS
+C      ITMG=0
+      TOLMG = TOLMGMSC
+C      CALL BCGS_CVG2(IBCGFLAG,NXTRESID)
+C      RMAX02=RMAX12
+C      RTOT02=RTOT12
+      ITMG = 1
+
+C  NOTE: IF DUAL METHOD IS ACTIVE, NEED TO CALL EQUIVALENT OF 
+C  MDUALC AS IN TICAMA. IN THIS CASE MDUALC SUFFICES.
+C  SET MODEL/NON-MODEL CONTROL FLAG 
+$DUAL      PHYMOD=.FALSE.
+$DUAL      CALL MDUALC()
+$DUAL      PHYMOD=.TRUE.
+
+      INFOBCGS = 0
+      ITBCGS = MAXMGI
+      RESIDBCGS = TOLMG
+      PHYMOD=.FALSE.
+      CALL SLBCGS2(N_WKBCGSA,$NKRYLOV,NXTCOF,NXTDUNK,NXTRESID,ITBCGS,
+     &             RESIDBCGS,INFOBCGS)
+      PHYMOD=.TRUE.
+
+      IF (INFOBCGS.NE.0) NERR=NERR+1
+      ITLIN=ITBCGS
+
+      RETURN
+      END
+
+
+c---->------------------------------------------------------------------<
+c  Preconditioned bi-conjugate gradient stabilized method
+c  Templates for the solution if linear Systems...
+c  http://www.netlib.org
+c---->------------------------------------------------------------------<
+C*********************************************************************
+      SUBROUTINE SLBCGS(N_WORK,MW,NW,N_MAT,N_SOL,N_RHS,ITER,RESID,INFO)
+C*********************************************************************
+c---->
+c     IMPLICIT NONE
+c---->------------------------------------------------------------------<
+c  Argument types:
+c
+      INTEGER   N, MW, NW, ITER, INFO
+      INTEGER   N_MAT(*),N_SOL(*),N_RHS(*),N_WORK(MW,NW)
+      REAL*8    RESID
+c---->
+c  Argument Descriptions:
+c 
+c  N_WORK   : work   : Workspace pointers (MW,NW)
+c  MW       : input  : leading  dimension of workspace >= N
+c  NW       : input  : trailing dimension of workspace >= 8
+c
+c  N_MAT    : input  : Pointer to the matrix
+c  N_RHS      : input  : Pointer to the RHS vector
+c  N_SOL      : in/out : Pointer to Initial guess / iterated solution
+c  ITER     : in/out : Maximum iterations / actual iterations
+c  RESID    : in/out : Convergence target (relat.reduction) / Norm of 
+c                      final residual
+c  INFO     : output : = 0, converged
+c                    : = 1, did not converge
+c                    : = 2, could not continue since OMEGA = ZERO
+c                    : = 3, could not continue since || S || is too small
+c                    : = 4, could not continue since RHO = ZERO
+c                    : < 0, error with input
+c---->
+c  External routine specifications:
+c  BCGS_DDOT    : extern : Global ddot calculation
+c  BCGS_PREVEC  : extern : Precondition-vector routine
+c  BCGS_MATVEC  : extern : Matrix-vector multiply routine
+c
+c    BCGS_MATVEC(  A, Mat, X,  Y )  <=>  Y = A * Mat * X 
+c    BCGS_PREVEC(  X, Y )  <=>  Y = (MatP)^{-1} * X
+c      where MatP is the approximation of Mat
+c    BCGS_DDOT( X , Y ) <=>  global (X,Y)
+C*********************************************************************
+c---->------------------------------------------------------------------<
+c  Local Parameters
+c
+      REAL*8    ZERO,ONE
+      PARAMETER ( ZERO = 0.0 , ONE = 1.0 )
+c---->------------------------------------------------------------------<
+c  Local Variables:
+c
+      INTEGER MAXIT, IFLAG
+      INTEGER JR, JP, JS, JR1, JP1, JS1, JV, JT
+      REAL*8  RHO, RHOPREV, OMEGA, ALPHA, BETA, TOL, TMP, TMP2
+c
+c---->------------------------------------------------------------------<
+c  External BLAS-like, etc.(bcgs_la.df):
+c
+      EXTERNAL  bcgs_matvec,bcgs_prevec
+      EXTERNAL  bcgs_ddot,bcgs_daxpy,bcgs_dcopy,bcgs_dscal,
+     &          bcgs_dzero,bcgs_dsweep,bcgs_dshow,bcgs_cvg
+      REAL*8    bcgs_ddot
+      INTRINSIC sqrt, min, abs
+c---->------------------------------------------------------------------<
+C INCLUDE IS NEEDED ONLY FOR  SWITCH FOR PRECONDITIONER!!!
+      INCLUDE 'mulgrdc.h'
+      NEW_COF = .TRUE.
+c  after the first preconditioning NEW_COF may be set to .FALSE.
+c---->------------------------------------------------------------------<
+
+c
+c    Test the input parameters.
+c
+      INFO = 0
+c
+      if ( NW .lt. 8 ) then
+         INFO = -30
+      else if ( ITER .le. 0 ) then
+         INFO = -40
+      endif
+c
+      if ( INFO .ne. 0 ) return
+c
+c---->------------------------------------------------------------------<
+c  Save input iteration limit and convergence tolerance
+c
+      MAXIT = ITER
+      TOL   = RESID
+c---->
+c  Alias workspace columns.
+c
+      JV  = 1
+      JT  = JV + 1
+      JR  = JT + 1
+      JP  = JR + 1
+      JS  = JP + 1
+      JR1 = JS + 1
+      JP1 = JR1+ 1
+      JS1 = JP1+ 1
+c---->
+c  Set initial residual
+c
+      call bcgs_dcopy( N_RHS, N_WORK(1,JR) )
+c
+      TMP2 = bcgs_ddot( N_SOL, N_SOL )
+c         write(*,*) 'INIT sqrt(TMP2)=', sqrt(TMP2)
+      if ( TMP2 .ne. ZERO ) then
+        call bcgs_matvec( -ONE, N_MAT, N_SOL, N_WORK(1,JR) )
+        call bcgs_daxpy( ONE, N_RHS, N_WORK(1,JR) )
+      endif
+c---->
+      TMP2 = bcgs_ddot( N_WORK(1,JR), N_WORK(1,JR) )
+      RESID = sqrt( TMP2 )
+c         write(*,*) 'INIT RES=', RESID
+c---->
+      ITER = 0
+      IFLAG = 0
+      call bcgs_cvg( IFLAG, N_WORK(1,JR) )
+      if ( IFLAG.eq.1 ) GOTO 20
+c     if ( RESID .lt. TOL ) GOTO 20
+
+      call bcgs_dcopy( N_WORK(1,JR), N_WORK(1,JR1) )
+c---->------------------------------------------------------------------<
+c  PBCGS  iteration point
+c---->--
+   10   continue
+c
+          ITER = ITER + 1
+c---->----
+          RHOPREV = RHO
+          RHO = bcgs_ddot( N_WORK(1,JR), N_WORK(1,JR1) )
+
+          if ( RHO .eq. ZERO ) then
+c            PBCGS: Bad rho_tilde: method fails
+             INFO = 4
+             goto 20
+          end if
+
+          IF (ITER.eq.1) THEN
+             call bcgs_dcopy( N_WORK(1,JR), N_WORK(1,JP) )
+          ELSE
+             BETA = ( RHO / RHOPREV ) * ( ALPHA / OMEGA )
+             call bcgs_daxpy( -OMEGA, N_WORK(1,JV), N_WORK(1,JP) )
+             call bcgs_dscal( BETA, N_WORK(1,JP) )
+             call bcgs_daxpy( ONE, N_WORK(1,JR), N_WORK(1,JP) )
+          END IF
+c---->----PREVEC: N_WORK(1,JP) -> N_WORK(1,JP1)
+c          call bcgs_dcopy(N_WORK(1,JP),N_WORK(1,JP1))
+c          goto 888
+          call bcgs_dsweep( N_WORK(1,JP), N_RHS )
+          call bcgs_dsweep( N_WORK(1,JP1), N_SOL )
+          call bcgs_prevec !  N_RHS -> N_SOL
+          call bcgs_dsweep( N_RHS, N_WORK(1,JP) )
+          call bcgs_dsweep( N_SOL, N_WORK(1,JP1) )
+888       continue
+c+++++++++switch for preconditioner
+          NEW_COF = .FALSE.
+          call bcgs_matvec( ONE, N_MAT, N_WORK(1,JP1), N_WORK(1,JV) )
+
+          TMP2 = bcgs_ddot( N_WORK(1,JV), N_WORK(1,JR1) )
+
+          ALPHA = RHO / TMP2
+
+          call bcgs_dcopy( N_WORK(1,JR), N_WORK(1,JS) )
+          call bcgs_daxpy( -ALPHA, N_WORK(1,JV), N_WORK(1,JS) )
+
+          TMP2 = bcgs_ddot( N_WORK(1,JS), N_WORK(1,JS) )
+
+          if ( sqrt( TMP2 ) .lt. 1.0d-32 ) then
+            call bcgs_daxpy( ALPHA, N_WORK(1,JP1), N_SOL )
+
+            call bcgs_matvec( -ONE, N_MAT, N_SOL, N_WORK(1,JR) )
+            call bcgs_daxpy( ONE, N_RHS, N_WORK(1,JR) )
+
+            TMP2 = bcgs_ddot( N_WORK(1,JR), N_WORK(1,JR) )
+            RESID = sqrt( TMP2 )
+c            write(*,*) 'INTERMEDIATE RES=', RESID
+            INFO = 3
+            goto 20
+          end if
+
+c---->----PREVEC: N_WORK(1,JS) -> N_WORK(1,JS1)
+c          call bcgs_dcopy(N_WORK(1,JS),N_WORK(1,JS1))
+c          goto 889
+          call bcgs_dsweep( N_WORK(1,JS), N_RHS )
+          call bcgs_dsweep( N_WORK(1,JS1), N_SOL )
+          call bcgs_prevec !  N_RHS -> N_SOL
+          call bcgs_dsweep( N_RHS, N_WORK(1,JS) )
+          call bcgs_dsweep( N_SOL, N_WORK(1,JS1) )
+889       continue
+          call bcgs_matvec( ONE, N_MAT, N_WORK(1,JS1), N_WORK(1,JT) )
+
+          OMEGA = bcgs_ddot( N_WORK(1,JT), N_WORK(1,JS) )
+          TMP2 = bcgs_ddot( N_WORK(1,JT), N_WORK(1,JT) )
+
+          OMEGA = OMEGA / TMP2
+
+          call bcgs_daxpy( ALPHA, N_WORK(1,JP1), N_SOL )
+          call bcgs_daxpy( OMEGA, N_WORK(1,JS1), N_SOL )
+
+          call bcgs_dcopy( N_WORK(1,JS), N_WORK(1,JR) )
+          call bcgs_daxpy( -OMEGA, N_WORK(1,JT), N_WORK(1,JR) )
+
+c---->----
+c  Check convergence
+c          TMP2 = bcgs_ddot( N_WORK(1,JR), N_WORK(1,JR) )
+c          RESID = sqrt( TMP2 )
+          call bcgs_cvg( IFLAG, N_WORK(1,JR) )
+c---->------------------------------------------------------------------<
+c  Continue BPCGS loop while:
+c    1)  Less than maximum iteration
+c    2)  Have not converged
+c         print*,'pbcgs: ',ITER, RESID
+c  For continuation it is necessary that OMEGA .ne. ZERO
+c
+c         if ( ITER .lt. MAXIT .and. RESID .ge. TOL
+          if ( ITER .lt. MAXIT .and. IFLAG .eq. 0
+     >         .and. OMEGA .ne. ZERO ) go to 10
+c---->--
+c
+c  Convergence failure?
+c
+c       if ( ITER .ge. MAXIT .and. RESID .ge. TOL ) INFO = 1
+        if ( ITER .ge. MAXIT .and. IFLAG .eq. 0   ) INFO = 1
+        if ( OMEGA .eq. ZERO )                      INFO = 2
+c---->------------------------------------------------------------------<
+  20    continue
+
+      RETURN
+      END
+
+
+c---->------------------------------------------------------------------<
+C*********************************************************************
+      SUBROUTINE SLBCGS2(N_WORK,NW,N_MAT,N_SOL,N_RHS,ITER,RESID,INFO)
+C*********************************************************************
+c---->
+c     IMPLICIT NONE
+c---->------------------------------------------------------------------<
+c  Argument types:
+c
+      INTEGER   N, NW, ITER, INFO
+      INTEGER   N_MAT,N_SOL,N_RHS,N_WORK(NW)
+      REAL*8    RESID
+c---->
+c  Argument Descriptions:
+c
+c  N_WORK   : work   : Workspace pointers (NW)
+c  NW       : input  : trailing dimension of workspace >= 8
+c
+c  N_MAT    : input  : Pointer to the matrix
+c  N_RHS      : input  : Pointer to the RHS vector
+c  N_SOL      : in/out : Pointer to Initial guess / iterated solution
+c  ITER     : in/out : Maximum iterations / actual iterations
+c  RESID    : in/out : Convergence target (relat.reduction) / Norm of
+c                      final residual
+c  INFO     : output : = 0, converged
+c                    : = 1, did not converge
+c                    : = 2, could not continue since OMEGA = ZERO
+c                    : = 3, could not continue since || S || is too small
+c                    : = 4, could not continue since RHO = ZERO
+c                    : < 0, error with input
+c---->
+c  External routine specifications:
+c  BCGS_DDOT2    : extern : Global ddot calculation
+c  BCGS_PREVEC2  : extern : Precondition-vector routine
+c  BCGS_MATVEC2  : extern : Matrix-vector multiply routine
+c
+c    BCGS_MATVEC2(  A, Mat, X,  Y )  <=>  Y = A * Mat * X
+c    BCGS_PREVEC2(  X, Y )  <=>  Y = (MatP)^{-1} * X
+c      where MatP is the approximation of Mat
+c    BCGS_DDOT2( X , Y ) <=>  global (X,Y)
+C*********************************************************************
+c---->------------------------------------------------------------------<
+c  Local Parameters
+c
+      REAL*8    ZERO,ONE
+      PARAMETER ( ZERO = 0.0 , ONE = 1.0 )
+c---->------------------------------------------------------------------<
+c  Local Variables:
+c
+      INTEGER MAXIT, IFLAG
+      INTEGER JR, JP, JS, JR1, JP1, JS1, JV, JT, IWORK(3)
+      REAL*8  RHO, RHOPREV, OMEGA, ALPHA, BETA, TOL, TMP, TMP2
+c
+c---->------------------------------------------------------------------<
+c  External BLAS-like, etc.(bcgs_la.df):
+c
+      EXTERNAL bcgs_matvec2,bcgs_prevec2,bcgs_daxpy2,bcgs_dscal2,
+     &         bcgs_dsweep2,bcgs_cvg2
+      EXTERNAL bcgs_ddot2,ig_dcopy2
+      REAL*8   bcgs_ddot2
+      INTRINSIC sqrt, min, abs
+c---->------------------------------------------------------------------<
+C INCLUDE IS NEEDED ONLY FOR  SWITCH FOR PRECONDITIONER!!!
+      INCLUDE 'mulgrdc.h'
+      NEW_COF = .TRUE.
+c  after the first preconditioning NEW_COF may be set to .FALSE.
+c---->------------------------------------------------------------------<
+
+c
+c    Test the input parameters.
+c
+      INFO = 0
+c
+c
+      if ( NW .lt. 8 ) then
+         INFO = -30
+      else if ( ITER .le. 0 ) then
+         INFO = -40
+      endif
+c
+      if ( INFO .ne. 0 ) return
+c
+c---->------------------------------------------------------------------<
+c  Save input iteration limit and convergence tolerance
+c
+      MAXIT = ITER
+      TOL   = RESID
+c---->
+c  Alias workspace columns.
+c
+      JV  = 1
+      JT  = JV + 1
+      JR  = JT + 1
+      JP  = JR + 1
+      JS  = JP + 1
+      JR1 = JS + 1
+      JP1 = JR1+ 1
+      JS1 = JP1+ 1
+c---->
+c  Set initial residual
+c
+      IWORK(1)=2
+      IWORK(2)=N_RHS
+      IWORK(3)=N_WORK(JR)
+      call callwork(ig_dcopy2, IWORK )
+c
+      TMP2 = bcgs_ddot2( N_SOL, N_SOL )
+      if ( TMP2 .ne. ZERO ) then
+        call bcgs_matvec2( -ONE, N_MAT, N_SOL, N_WORK(JR) )
+        call bcgs_daxpy2( ONE, N_RHS, N_WORK(JR) )
+      endif
+c---->
+      TMP2 = bcgs_ddot2( N_WORK(JR), N_WORK(JR) )
+      RESID = sqrt( TMP2 )
+c         write(*,*) 'INIT RES=', RESID
+c---->
+      ITER = 0
+      call bcgs_cvg2( IFLAG, N_WORK(JR) )
+      RMAX02=RMAX12
+      RTOT02=RTOT12
+      if ( IFLAG.eq.1 ) GOTO 20
+c     if ( RESID .lt. TOL ) GOTO 20
+
+      IWORK(2)=N_WORK(JR)
+      IWORK(3)=N_WORK(JR1)
+      call callwork(ig_dcopy2, IWORK )
+c---->------------------------------------------------------------------<
+c  PBCGS  iteration point
+c---->--
+   10   continue
+c
+          ITER = ITER + 1
+c---->----
+          RHOPREV = RHO
+          RHO = bcgs_ddot2( N_WORK(JR), N_WORK(JR1) )
+
+          if ( RHO .eq. ZERO ) then
+c            PBCGS: Bad rho_tilde: method fails
+             INFO = 4
+             goto 20
+          end if
+
+          IF (ITER.eq.1) THEN
+             IWORK(2)=N_WORK(JR)
+             IWORK(3)=N_WORK(JP)
+             call callwork(ig_dcopy2, IWORK )
+          ELSE
+             BETA = ( RHO / RHOPREV ) * ( ALPHA / OMEGA )
+             call bcgs_daxpy2( -OMEGA, N_WORK(JV), N_WORK(JP) )
+             call bcgs_dscal2( BETA, N_WORK(JP) )
+             call bcgs_daxpy2( ONE, N_WORK(JR), N_WORK(JP) )
+          END IF
+c---->----PREVEC: N_WORK(1,JP) -> N_WORK(1,JP1)
+          IWORK(2)=N_WORK(JP)
+          IWORK(3)=N_WORK(JP1)
+c          call callwork(ig_dcopy2,IWORK)
+c          goto 888
+
+          call bcgs_dsweep2( N_WORK(JP), N_RHS )
+          call bcgs_dsweep2( N_WORK(JP1), N_SOL )
+          call bcgs_prevec2( N_MAT,N_RHS,N_SOL ) !  N_RHS -> N_SOL
+          call bcgs_dsweep2( N_RHS, N_WORK(JP) )
+          call bcgs_dsweep2( N_SOL, N_WORK(JP1) )
+
+888       continue
+c+++++++++switch for preconditioner
+          NEW_COF = .FALSE.
+          call bcgs_matvec2( ONE, N_MAT, N_WORK(JP1), N_WORK(JV) )
+          TMP2 = bcgs_ddot2( N_WORK(JV), N_WORK(JR1) )
+
+          ALPHA = RHO / TMP2
+
+          IWORK(2)=N_WORK(JR)
+          IWORK(3)=N_WORK(JS)
+          call callwork(ig_dcopy2, IWORK )
+
+          call bcgs_daxpy2( -ALPHA, N_WORK(JV), N_WORK(JS) )
+          TMP2 = bcgs_ddot2( N_WORK(JS), N_WORK(JS) )
+
+          if ( sqrt( TMP2 ) .lt. 1.0d-32 ) then
+            call bcgs_daxpy2( ALPHA, N_WORK(JP1), N_SOL )
+            call bcgs_matvec2( -ONE, N_MAT, N_SOL, N_WORK(JR) )
+            call bcgs_daxpy2( ONE, N_RHS, N_WORK(JR) )
+
+            TMP2 = bcgs_ddot2( N_WORK(JR), N_WORK(JR) )
+            RESID = sqrt( TMP2 )
+            INFO = 3
+            goto 20
+          end if
+
+c---->----PREVEC: N_WORK(1,JS) -> N_WORK(1,JS1)
+          IWORK(2)=N_WORK(JS)
+          IWORK(3)=N_WORK(JS1)
+c          call callwork(ig_dcopy2,IWORK)
+c          goto 889
+
+          call bcgs_dsweep2( N_WORK(JS), N_RHS )
+          call bcgs_dsweep2( N_WORK(JS1), N_SOL )
+          call bcgs_prevec2( N_MAT,N_RHS,N_SOL ) !  N_RHS -> N_SOL
+          call bcgs_dsweep2( N_RHS, N_WORK(JS) )
+          call bcgs_dsweep2( N_SOL, N_WORK(JS1) )
+
+889       continue
+
+          call bcgs_matvec2( ONE, N_MAT, N_WORK(JS1), N_WORK(JT) )
+          OMEGA = bcgs_ddot2( N_WORK(JT), N_WORK(JS) )
+          TMP2 = bcgs_ddot2( N_WORK(JT), N_WORK(JT) )
+
+          OMEGA = OMEGA / TMP2
+
+          call bcgs_daxpy2( ALPHA, N_WORK(JP1), N_SOL )
+          call bcgs_daxpy2( OMEGA, N_WORK(JS1), N_SOL )
+
+          IWORK(2)=N_WORK(JS)
+          IWORK(3)=N_WORK(JR)
+          call callwork(ig_dcopy2, IWORK )
+
+          call bcgs_daxpy2( -OMEGA, N_WORK(JT), N_WORK(JR) )
+
+c---->----
+c  Check convergence
+          TMP2 = bcgs_ddot2( N_WORK(JR), N_WORK(JR) )
+          RESID = sqrt( TMP2 )
+          call bcgs_cvg2( IFLAG, N_WORK(JR) )
+c---->------------------------------------------------------------------<
+c  Continue BPCGS loop while:
+c    1)  Less than maximum iteration
+c    2)  Have not converged
+c         print*,'pbcgs: ',ITER, RESID
+c  For continuation it is necessary that OMEGA .ne. ZERO
+c
+c         if ( ITER .lt. MAXIT .and. RESID .ge. TOL
+          if ( ITER .lt. MAXIT .and. IFLAG .eq. 0
+     >         .and. OMEGA .ne. ZERO ) go to 10
+c---->--
+c
+c  Convergence failure?
+
+c       if ( ITER .ge. MAXIT .and. RESID .ge. TOL ) INFO = 1
+        if ( ITER .ge. MAXIT .and. IFLAG .eq. 0   ) INFO = 1
+        if ( OMEGA .eq. ZERO )                      INFO = 2
+c---->------------------------------------------------------------------<
+  20    continue
+
+      RETURN
+      END

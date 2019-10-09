@@ -1,0 +1,118 @@
+#! /bin/csh
+#
+# tecpc
+# 
+# C - shell utility to combine IPARS zone output for Tecplot in one
+# file
+# filename convention: 
+# INIT file= TEC_faultblock_processor.ini
+# ZONE files= TEC_faultblock_processor.ini
+#
+#
+set INITmark = 'ini'
+set TARGETmark = 'tec'
+set PLTmark = 'plt'
+set zonelist = ()
+set number = 0
+#
+foreach arg ($*)	
+	@ number ++
+#
+#	echo 'argument number '$number' is '$arg
+#
+	switch ($number) 
+	case 1:
+		set rootname = $arg
+		breaksw
+	case 2:
+		set faultblock = $arg
+		breaksw
+	case 3:
+		set processor = $arg
+		breaksw
+	default:
+		set zonelist = ($zonelist $arg)
+		breaksw
+	endsw
+end			
+#		
+# echo 'number of arguments is ' $number
+#
+if ( $number <= 3 ) then
+	echo 'Too few parameters to TECPC.'
+	echo "Usage: TECPC rootname faultblock procnum zonelist"
+	exit 1
+endif
+#
+##### process the files
+#
+set file = 	"${rootname}_${faultblock}_${processor}"
+set INITfile = "${file}.${INITmark}"
+set TARGETfile = "${file}.${TARGETmark}"
+set PLTfile = "${file}.${PLTmark}"
+#
+if ( -e "$TARGETfile" ) then
+	echo "file $TARGETfile exists. Overwrite ? (y/n)"
+	set reply = $<
+	if ( $reply != "y" ) then
+		goto endshell
+	endif
+	rm -f $TARGETfile	
+endif
+if ( ! (-e "$INITfile") ) then
+	echo "file $INITfile does not exist."
+	goto endshell
+else
+	echo "file $INITfile OK, appending to $TARGETfile..."
+	cat $INITfile  > $TARGETfile
+endif	
+#
+#### append all zone files  to target file. Create *.tec
+#
+set zonenum = 0
+foreach zone ($zonelist)
+	@ zonenum ++
+#	echo 'zone is '$zone
+	set filename = "${rootname}_${faultblock}_${processor}"
+	set filename = "${filename}.${zone}"
+#	echo $filename
+	if ( -f "$filename" ) then
+		echo "file $filename OK, appending to $TARGETfile..."
+	else
+		echo "file $filename does not exist."
+		goto endshell
+	endif
+	cat $filename >> $TARGETfile
+#	ls -l  $TARGETfile $filename			
+end
+#
+# invoke preplot ? Create *.plt
+#
+#echo "File $TARGETfile has been created. Call preplot ? (y/n)"
+#set reply = $<	
+echo "File $TARGETfile has been created. Calling preplot..."
+set reply = "y"
+if ( $reply != "y" ) then
+	echo "TECPC terminated. File $TARGETfile created."
+	exit 0
+else 
+	preplot $TARGETfile
+#	set preplotcode = $?
+#	if ( $preplotcode == 0) then
+		echo "TECPC terminated OK. File $PLTfile created."	
+		rm -f $TARGETfile	
+		exit 0
+#	else
+#		echo "Preplot detected an error. TECPC ended in error"
+#		exit 1
+#	endif	
+endif
+
+exit 0
+#
+endshell: 
+echo "TECPC ended in error. End."
+exit 1
+
+
+

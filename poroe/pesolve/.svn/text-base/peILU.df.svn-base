@@ -1,0 +1,831 @@
+C PEILUW.F - ILU PRECONDITIONER WORK ROUTINES
+C
+C ROUTINES IN THIS FILE:
+C      SUBROUTINE PE_ILU(R,X)
+C      SUBROUTINE PE_ILU_SETUP(KERR)
+C      SUBROUTINE PE_ILU_FACTOR(KERR)         
+C      SUBROUTINE PE_DILU_FACTOR(KERR)
+C      SUBROUTINE PEW_ILU_SETUP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                     KL1,KL2,KEYOUT,NBLK,MXBND)
+C      SUBROUTINE PE_ILU_COUNT(NBLK,NDIM,IOFF,NCOUNT,FILLIN)
+C      SUBROUTINE PE_ILU_MERGE_FACTOR(NBLK,NDIM,NCOUNT,IOFF,JOFF,FILLIN)
+C      SUBROUTINE PEW_ILU_FACTOR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+C                     KL1,KL2,KEYOUT,NBLK,MXDIM,NJOFFSET,KEYCR,EBEFORE,
+C                     EDIAG,EFACTOR,DILU,ZERO_NODE)
+C      SUBROUTINE PEW_ILU_BACK_SOLVE(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+C                     JL2V,KL1,KL2,KEYOUT,NBLK,NJOFFSET,KEYCR,EFACTOR,
+C                     DILU,ZERO_NODE,RHS,X)
+C
+C CODE HISTORY:
+C
+C      ORIGINAL CODE: ACRES
+C      XIULI GAI:     12/05/02
+C***********************************************************************
+      SUBROUTINE PE_ILU(R,X)
+C***********************************************************************
+C ICCG preconditioner driver routine. Calls a ILU black solve routine
+C to perform one step of Incomplete Cholesky preconditioning
+C
+C INPUT: 
+C    R = ARRAY NUMBER FOR LINEAR SYSTEM RESIDUALS
+C    X = ARRAY NUMBER FOR UNKNOWN SOLUTIONS
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER R,X
+      INTEGER JILU(8)
+      EXTERNAL PEW_ILU_BACK_SOLVE
+
+      JILU(1)=7
+      JILU(2)=N_NJOFFSET
+      JILU(3)=N_KEYOUT_CR
+      JILU(4)=N_FACTOR
+      JILU(5)=N_DINV
+      JILU(6)=N_ZERO_NODE
+      JILU(7)=R
+      JILU(8)=X
+      CALL CALLWORK(PEW_ILU_BACK_SOLVE,JILU)
+
+      END
+C***********************************************************************
+      SUBROUTINE PE_ILU_SETUP(KERR)
+C***********************************************************************
+C Incomplete Cholesky factorization setup routine
+C 
+C KERR = ERROR NUMBER STEPED BY ONE (INPUT & OUTPUT)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER KERR
+      INTEGER JILU(3)
+      EXTERNAL PEW_ILU_SETUP
+
+      JILU(1)=1
+      JILU(2)=N_I4U
+      I4UTIL = MXBAND
+      CALL CALLWORK(PEW_ILU_SETUP,JILU)
+
+      END
+
+C***********************************************************************
+      SUBROUTINE PE_ILU_FACTOR(KERR)
+C***********************************************************************
+C Call a work routine to perform Incomplete Cholesky factorization
+C 
+C KERR = ERROR NUMBER STEPED BY ONE (INPUT & OUTPUT)
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'blkary.h'
+
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pearydat.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER KERR
+      INTEGER JILU(9)
+      EXTERNAL PEW_ILU_FACTOR
+
+      JILU(1)=8
+      JILU(2)=N_I4U
+      JILU(3)=N_NJOFFSET     
+      JILU(4)=N_KEYOUT_CR
+      JILU(5)=N_EBEFORE
+      JILU(6)=N_EDIAG
+      JILU(7)=N_FACTOR
+      JILU(8)=N_DINV
+      JILU(9)=N_ZERO_NODE
+      I4UTIL = MXBAND
+      CALL CALLWORK(PEW_ILU_FACTOR,JILU)
+
+      END
+
+C***********************************************************************
+      SUBROUTINE PEW_ILU_SETUP(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                  KL1,KL2,KEYOUT,NBLK,MXBND)
+C***********************************************************************
+C Incomplete Cholesky factorization setup routine
+C  1. Calculate number of fillin bands and generate fillin
+C  2. Setup local to global index offset vector ILU_JOFFSET
+C
+C MXBND = MAXIMUM BANDWIDTH OF A FACTORIZED ELASTIC MATRIX
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM),JL2V(KDIM),KL1,KL2,
+     &        NBLK,KEYOUT(IDIM,JDIM,KDIM)
+
+      INTEGER IFILL,NCOUNT,FILLIN(MXBND),KOFFSET(MXBND) 
+
+C INITIALIZE ILU_JOFFSET TO ZERO
+
+      N123P=IDIM*JDIM*KDIM
+
+c     DO J=1,$MXBLKS
+c        DO I=1,$MXBANDF
+c           ILU_JOFFSET(I,J)=0
+c        ENDDO
+c     ENDDO
+
+      IFILL=ILU_IFILL
+      NCOUNT=0 
+
+C FIRST LEVEL FILL IS CALCULATED
+
+      IF(IFILL.GE.1) CALL PE_ILU_COUNT1(NBLK,NDIM_BEFORE,IOFFSET,NCOUNT,
+     &     FILLIN)
+      IF(NCOUNT.GT.MXBND) THEN
+         WRITE(*,*) "ILU SETUP ERROR111"
+         RETURN
+      ENDIF
+      ILU_NJOFFSET=NDIM_BEFORE+NCOUNT
+
+      CALL PE_ILU_MERGE_FACTOR1(NBLK,NDIM_BEFORE,NCOUNT,IOFFSET,
+     &     ILU_JOFFSET,FILLIN)     
+      
+C ADDITIONAL LEVELS OF FILL ARE CALCULATED
+
+      IF(IFILL.GE.2) THEN
+         DO I1 = 2,IFILL
+            CALL PE_ILU_COUNT2(NBLK,ILU_NJOFFSET,ILU_JOFFSET,
+     &           NCOUNT,FILLIN)
+            IF(NCOUNT.GT.0) THEN
+               DO I2=1,ILU_NJOFFSET
+                  KOFFSET(I2) = ILU_JOFFSET(I2,NBLK)
+               ENDDO
+               CALL PE_ILU_MERGE_FACTOR2(NBLK,ILU_NJOFFSET,NCOUNT,
+     &              KOFFSET,ILU_JOFFSET,FILLIN)
+               ILU_NJOFFSET = ILU_NJOFFSET + NCOUNT
+            ELSE
+               GO TO 3
+            ENDIF
+         ENDDO
+   3     CONTINUE 
+      ENDIF
+     
+      END
+
+C***********************************************************************
+      SUBROUTINE PE_ILU_COUNT1(NBLK,NDIM,IOFF,NCOUNT,FILLIN)
+C***********************************************************************
+C Counts number of additional bands created by fillin
+C Generates FILLIN vector for ILU_FILL = 1
+C
+C INPUT:
+C   NBLK = GRID BLOCK NUMBER
+C   NDIM = NUMBER OF STENCIAL POINTS FOR 3D LINEAR ELASTICITY (13)
+C   IOFF = LOCAL TO GLOBAL STIFFNESS MATRIX OFFSET VECTOR
+C
+C OUTPUT:
+C   NCOUNT = NUMBER OF BANDS COUNTED
+C   FILLIN = FILLIN VECTOR
+C***********************************************************************
+      INTEGER NBLK,NDIM,NCOUNT,IOFF(20,*),FILLIN(*)
+
+      INTEGER ICOUNT, JCOUNT,M1,M2,M3,I1,I2,I3,IDIF
+ 
+      ICOUNT = 0
+      DO M1 = 1,NDIM
+         I1 = IOFF(M1,NBLK)
+         DO M2 = M1+1,NDIM
+            I2 = IOFF(M2,NBLK)
+            JCOUNT = 0
+            IDIF = I1 - I2
+            DO M3 = M1+1,NDIM
+               I3 = IOFF(M3,NBLK)
+               IF(I3.EQ.IDIF) THEN
+                  JCOUNT = 1
+                  EXIT
+               ENDIF
+            END DO
+            IF(JCOUNT.EQ.0) THEN
+               DO I3 = 1,ICOUNT
+                  IF(IDIF.EQ.FILLIN(I3)) THEN
+                     JCOUNT = 1
+                     EXIT
+                  ENDIF
+               END DO
+               IF(JCOUNT.EQ.0) THEN
+                  ICOUNT=ICOUNT + 1
+                  FILLIN(ICOUNT) = IDIF
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDDO
+      NCOUNT = ICOUNT
+
+      END
+C***********************************************************************
+      SUBROUTINE PE_ILU_COUNT2(NBLK,NDIM,IOFF,NCOUNT,FILLIN)
+C***********************************************************************
+C Counts number of additional bands created by fillin
+C Generates FILLIN vector for ILU_FILL >= 2
+C
+C INPUT:
+C   NBLK = GRID BLOCK NUMBER
+C   NDIM = NUMBER OF STENCIAL POINTS FOR 3D LINEAR ELASTICITY (13)
+C   IOFF = LOCAL TO GLOBAL STIFFNESS MATRIX OFFSET VECTOR
+C
+C OUTPUT:
+C   NCOUNT = NUMBER OF BANDS COUNTED
+C   FILLIN = FILLIN VECTOR
+C***********************************************************************
+      INTEGER NBLK,NDIM,NCOUNT,IOFF($MXBANDF,*),FILLIN(*)
+
+      INTEGER ICOUNT, JCOUNT,M1,M2,M3,I1,I2,I3,IDIF
+
+C CALCULATE NUMBER OF FILLIN BANDS AND GENERATE FILLIN
+
+      ICOUNT = 0
+      DO M1 = 1,NDIM
+         I1 = IOFF(M1,NBLK)
+         DO M2 = M1+1,NDIM
+            I2 = IOFF(M2,NBLK)
+            JCOUNT = 0
+            IDIF = I1 - I2
+            DO M3 = M1+1,NDIM
+               I3 = IOFF(M3,NBLK)
+               IF(I3.EQ.IDIF) THEN
+                  JCOUNT = 1
+                  EXIT
+               ENDIF
+            END DO
+            IF(JCOUNT.EQ.0) THEN
+               DO I3 = 1,ICOUNT
+                  IF(IDIF.EQ.FILLIN(I3)) THEN
+                     JCOUNT = 1
+                     EXIT
+                  ENDIF
+               END DO
+               IF(JCOUNT.EQ.0) THEN
+                  ICOUNT=ICOUNT + 1
+                  FILLIN(ICOUNT) = IDIF
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDDO
+      NCOUNT = ICOUNT
+
+      END
+
+C***********************************************************************
+      SUBROUTINE PE_ILU_MERGE_FACTOR1(NBLK,NDIM,NCOUNT,IOFF,JOFF,FILLIN)
+C***********************************************************************
+C Reorders FILLIN. Merges IOFF and FILLIN to produce JOFF. 
+C For ILU_FILL = 1
+C
+C INPUT: 
+C   NBLK = GRID BLOCK NUMBER
+C   NDIM = NUMBER OF FILLIN BANDS
+C   NCOUNT = NUMBER OF NEW COUNT
+C   IOFF = ORIGINAL LOCAL TO GLOBAL STIFFNESS MATRIX OFFSET VECTOR
+C   FILLIN = ORIGINAL FILLIN VECTOR
+C
+C OUTPUT:
+C   JOFF = MERGED LOCAL TO GLOBAL MATRIX OFFSET VECTOR
+C   FILLIN = REORDERED FILLIN VECTOR
+C**********************************************************************
+      INTEGER NBLK,NDIM,NCOUNT,IOFF(20,*),JOFF($MXBANDF,*),FILLIN(*)
+     
+      INTEGER ICOUNT, JCOUNT,M1,M2,M3,I1,I2,I3,IDIF
+
+C  REORDER FILLIN VECTOR
+C  AFTER REORDERING, FILLIN(I) > FILLIN(I+1)
+
+      DO I1 = 1,NCOUNT
+         DO I2 = I1,NCOUNT
+            IF(FILLIN(I1).LT.FILLIN(I2)) THEN
+               I3 = FILLIN(I1)
+               FILLIN(I1) = FILLIN(I2)
+               FILLIN(I2) = I3
+            ENDIF
+         END DO
+      END DO
+ 
+C MERGE IOFFSET INTO JOFFSET
+
+      DO I=1,$MXBANDF
+         JOFF(I,NBLK)=0
+      ENDDO
+
+      IF(NCOUNT.GT.0) THEN
+         M1 = 1
+         M2 = 1
+         DO I3 = 1,NCOUNT+NDIM
+            IF(M1.LE.NCOUNT) THEN
+               I1 = FILLIN(M1)
+            ELSE
+               I1 = 0
+            ENDIF
+            IF(M2.LE.NDIM) THEN
+               I2 = IOFF(M2,NBLK)
+            ELSE
+               I2 = 0
+            ENDIF
+            IF(I1.GT.I2) THEN
+               JOFF(I3,NBLK) = FILLIN(M1)
+               M1 = M1 + 1
+            ELSE
+               JOFF(I3,NBLK) = IOFF(M2,NBLK)
+               M2 = M2 + 1
+            ENDIF
+         ENDDO
+      ELSE
+         DO I3=1,NDIM
+            JOFF(I3,NBLK) = IOFF(I3,NBLK)
+         ENDDO
+      ENDIF
+
+      END 
+C***********************************************************************
+      SUBROUTINE PE_ILU_MERGE_FACTOR2(NBLK,NDIM,NCOUNT,IOFF,JOFF,FILLIN)
+C***********************************************************************
+C Reorders FILLIN. Merges IOFF and FILLIN to produce JOFF.
+C For ILU_FILL >= 2
+C
+C INPUT:
+C   NBLK = GRID BLOCK NUMBER
+C   NDIM = NUMBER OF FILLIN BANDS
+C   NCOUNT = NUMBER OF NEW COUNT
+C   IOFF = ORIGINAL LOCAL TO GLOBAL STIFFNESS MATRIX OFFSET VECTOR
+C   FILLIN = ORIGINAL FILLIN VECTOR
+C
+C OUTPUT:
+C   JOFF = MERGED LOCAL TO GLOBAL MATRIX OFFSET VECTOR
+C   FILLIN = REORDERED FILLIN VECTOR
+C***********************************************************************
+      INTEGER NBLK,NDIM,NCOUNT,IOFF(*),JOFF($MXBANDF,*),
+     &        FILLIN(*)
+      INTEGER ICOUNT, JCOUNT,M1,M2,M3,I1,I2,I3,IDIF
+
+C  REORDER FILLIN VECTOR
+C  AFTER REORDERING, FILLIN(I) > FILLIN(I+1)
+
+      DO I1 = 1,NCOUNT
+         DO I2 = I1,NCOUNT
+            IF(FILLIN(I1).LT.FILLIN(I2)) THEN
+               I3 = FILLIN(I1)
+               FILLIN(I1) = FILLIN(I2)
+               FILLIN(I2) = I3
+            ENDIF
+         END DO
+      END DO
+
+C MERGE IOFFSET INTO JOFFSET
+
+      DO I=1,$MXBANDF
+         JOFF(I,NBLK)=0
+      ENDDO
+ 
+      IF(NCOUNT.GT.0) THEN
+         M1 = 1
+         M2 = 1
+         DO I3 = 1,NCOUNT+NDIM
+            IF(M1.LE.NCOUNT) THEN
+               I1 = FILLIN(M1)
+            ELSE
+               I1 = 0
+            ENDIF
+            IF(M2.LE.NDIM) THEN
+               I2 = IOFF(M2)
+            ELSE
+               I2 = 0
+            ENDIF
+            IF(I1.GT.I2) THEN
+               JOFF(I3,NBLK) = FILLIN(M1)
+               M1 = M1 + 1
+            ELSE
+               JOFF(I3,NBLK) = IOFF(M2)
+               M2 = M2 + 1
+            ENDIF
+         ENDDO
+      ELSE
+         DO I3=1,NDIM
+            JOFF(I3,NBLK) = IOFF(I3)
+         ENDDO
+      ENDIF
+      END
+C***********************************************************************
+      SUBROUTINE PEW_ILU_FACTOR(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &                KL1,KL2,KEYOUT,NBLK,MXDIM,NJOFFSET,KEYCR,EBEFORE,
+     &                EDIAG,EFACTOR,DILU,ZERO_NODE)
+C***********************************************************************
+C Generates banded factored matrix for elastic equations. EDILU is
+C inverted during the setup process
+C
+C INPUT:
+C   NJOFFSET = NUMBER OF FILLIN BANDS
+C   KEYCR(GJ) = KEYOUT VALUES FOR CORNER POINTS
+C   EBEFORE(L,M,GJ) = OFF DIAGONAL COEFFICIENTS OF A STIFFNESS MATRIX
+C   EDIAG(L,GJ) = DIAGONAL COEFFICIENTS OF A STIFFNESS MATRIX
+C   ZERO_NODE(GJ) = INDICATOR OF NO ELASTIC CALCULATION ON A NODE
+C
+C OUTPUT:
+C   EFACTOR(L,M,GJ) = OFF DIAGONAL COEFFICIENTS OF THE FACTORIZED MATRIX
+C   DILU(L,GJ) = DIAGONAL COEFFICIENTS OF THE FACTORIZED MATRIX
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,MXDIM,NJOFFSET
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(*),KEYCR(*)
+      LOGICAL ZERO_NODE(*)
+      REAL*8  EFACTOR(9,NJOFFSET,*),   EBEFORE(9,13,*)
+      REAL*8  EDIAG(6,*),              DILU(6,*)
+
+      INTEGER I,J,K,JROW,L,KBAND,L2,L3,JBAND,LCOL,IFILL,N
+      INTEGER NCOUNT,FILLIN(MXDIM),    KOFFSET(MXDIM),
+     &        IBAND(2,MXDIM),          NIBAND(MXDIM)
+      REAL*8  D11,D21,D31,D22,D32,D33,U1,U2,U3,L11,L21,L31,L12,L22,
+     &        L32,L13,L23,L33,DET,DILU11,DILU21,DILU31,DILU22,DILU32,
+     &        DILU33,DL_PROD11,DL_PROD21,DL_PROD31,DL_PROD12,DL_PROD22,
+     &        DL_PROD32, DL_PROD13, DL_PROD23, DL_PROD33
+
+      REAL*8  ZERO,ONE
+      PARAMETER(ZERO = 0.0D0, ONE = 1.0D0)
+
+C COUNT FILLINS SETUP UP ILU_JOFFSET,IBAND,NIBAND
+
+      IFILL=ILU_IFILL
+      N=IDIM*JDIM*KDIM
+
+      DO J=1,MXDIM   
+         NIBAND(J)=0
+      ENDDO
+      DO J=1,MXDIM
+         IBAND(1,J)=0
+         IBAND(2,J)=0
+      ENDDO
+
+      NCOUNT=0
+
+      IF(IFILL.GE.1) CALL PE_ILU_COUNT1(NBLK,NDIM_BEFORE,IOFFSET,NCOUNT,
+     &     FILLIN)
+      IF(NCOUNT.GT.MXDIM) THEN
+         WRITE(*,*) "ILU SETUP ERROR"
+         RETURN
+      ENDIF
+      ILU_NJOFFSET=NDIM_BEFORE+NCOUNT
+
+      CALL PE_ILU_MERGE_FACTOR1(NBLK,NDIM_BEFORE,NCOUNT,IOFFSET,
+     &     ILU_JOFFSET,FILLIN)
+
+      IF(IFILL.GE.2) THEN
+         DO I1 = 2,IFILL
+            CALL PE_ILU_COUNT2(NBLK,ILU_NJOFFSET,ILU_JOFFSET,
+     &           NCOUNT,FILLIN)
+            IF(NCOUNT.GT.0) THEN
+               DO I2=1,NJOFFSET
+                  KOFFSET(I2) = ILU_JOFFSET(I2,NBLK)
+               ENDDO
+               CALL PE_ILU_MERGE_FACTOR2(NBLK,ILU_NJOFFSET,NCOUNT,
+     &              KOFFSET,ILU_JOFFSET,FILLIN)
+               ILU_NJOFFSET = ILU_NJOFFSET + NCOUNT
+            ELSE
+               GO TO 3
+            ENDIF
+         ENDDO
+   3     CONTINUE
+      ENDIF
+
+      ICOUNT = 0
+      DO M1 = ILU_NJOFFSET,1,-1
+         I1 = ILU_JOFFSET(M1,NBLK)
+         JCOUNT = 0
+         DO M3 = M1+1,ILU_NJOFFSET
+            I3 = ILU_JOFFSET(M3,NBLK)
+            DO M2 = M1+1,ILU_NJOFFSET
+               I2 = ILU_JOFFSET(M2,NBLK)
+               IF(I1.EQ.(I2 + I3) ) THEN
+                  ICOUNT = ICOUNT + 1
+                  JCOUNT = JCOUNT + 1
+                  IBAND(1,ICOUNT) = M2
+                  IBAND(2,ICOUNT) = M3
+               ENDIF
+            ENDDO
+         END DO
+         FILLIN(M1) = JCOUNT
+      ENDDO
+      write(*,*) "icount,jcount=",ICOUNT,JCOUNT,NJOFFSET
+      DO I1=1,ILU_NJOFFSET
+         NIBAND(I1)=FILLIN(I1)
+      ENDDO
+      IF(ILU_NJOFFSET.EQ.0) ILU_NJOFFSET=NDIM_BEFORE
+
+C ILU FACTOR
+ 
+      NOFFSET=NDIM_BEFORE
+      DO J = 1,N
+         DO K = 1,6
+            DILU(K,J) = ZERO
+         ENDDO
+         DO I = 1,NJOFFSET
+            DO K = 1,9
+               EFACTOR(K,I,J) = ZERO
+            ENDDO 
+         ENDDO
+      ENDDO
+
+      IF(IFILL.EQ.0) THEN
+         DO I = 1,N
+            IF(KEYCR(I).LE.0) CYCLE
+            DO J = 1,NOFFSET
+               L = I - IOFFSET(J,NBLK)
+               IF(L.GT.0) THEN
+                  DO M=1,9
+                     EFACTOR(M,J,L) = EBEFORE(M,J,I)
+                  ENDDO
+               ENDIF
+            END DO
+         END DO
+      ELSE
+         DO J = 1,NOFFSET
+            L2 = IOFFSET(J,NBLK)
+            DO K = 1,NJOFFSET
+               IF(ILU_JOFFSET(K,NBLK).NE.L2) CYCLE
+               L = 1
+               DO I = L2+1,N
+                  IF(KEYCR(I).GT.0) THEN
+                     DO M=1,9
+                        EFACTOR(M,K,L) = EBEFORE(M,J,I)
+                     ENDDO
+                  ENDIF
+                  L = L + 1
+               END DO
+            END DO
+         END DO
+      ENDIF
+
+      DO J = 1,N
+         IF(KEYCR(J).GT.0) THEN
+            IF(ZERO_NODE(J)) THEN
+                DO M=1,6
+                   DILU(M,J) = ZERO
+                ENDDO
+            ELSE
+                DO M=1,6
+                   DILU(M,J) = EDIAG(M,J)
+                ENDDO
+            ENDIF
+         ENDIF
+      ENDDO
+
+C PRFORM FACTORIZATION BY COLUMN
+      DO J = 1,N     
+         IF(KEYCR(J).LE.0.OR.ZERO_NODE(J)) CYCLE
+         D11 = DILU(1,J)
+         D21 = DILU(2,J)
+         D31 = DILU(3,J)
+         D22 = DILU(4,J)
+         D32 = DILU(5,J)
+         D33 = DILU(6,J)
+         U1 = D22 * D33 - D32 * D32
+         U2 = D32 * D31 - D21 * D33
+         U3 = D21 * D32 - D22 * D31
+         DET = ONE / (D11 * U1 + D21 * U2 + D31 * U3)
+         DILU(1,J) = U1 * DET                                                     
+         DILU11 = DILU(1,J)
+         DILU(2,J) = U2 * DET                                                     
+         DILU21 = DILU(2,J)
+         DILU(3,J) = U3 * DET                                                     
+         DILU31 = DILU(3,J)
+         DILU(4,J) = (D11 * D33 - D31 * D31) * DET
+         DILU22 = DILU(4,J)
+         DILU(5,J) = (D21 * D31 - D11 * D32) * DET
+         DILU32 = DILU(5,J)
+         DILU(6,J) = (D11 * D22 - D21 * D21) * DET
+         DILU33 = DILU(6,J)
+
+         JBAND = 0 
+         DO KBAND = NJOFFSET,1,-1
+            JROW = ILU_JOFFSET(KBAND,NBLK) + J 
+            IF(JROW.GT.N.OR.KEYCR(J).LE.0) CYCLE
+C           SETUP FINAL VALUE OF EFACTOR(:,KBAND,J)
+            L11 = EFACTOR(1,KBAND,J)*DILU11 + EFACTOR(4,KBAND,J)*DILU21
+     &          + EFACTOR(7,KBAND,J)*DILU31
+            L21 = EFACTOR(2,KBAND,J)*DILU11 + EFACTOR(5,KBAND,J)*DILU21 
+     &          + EFACTOR(8,KBAND,J)*DILU31
+            L31 = EFACTOR(3,KBAND,J)*DILU11 + EFACTOR(6,KBAND,J)*DILU21 
+     &          + EFACTOR(9,KBAND,J)*DILU31
+            L12 = EFACTOR(1,KBAND,J)*DILU21 + EFACTOR(4,KBAND,J)*DILU22 
+     &          + EFACTOR(7,KBAND,J)*DILU32
+            L22 = EFACTOR(2,KBAND,J)*DILU21 + EFACTOR(5,KBAND,J)*DILU22 
+     &          + EFACTOR(8,KBAND,J)*DILU32
+            L32 = EFACTOR(3,KBAND,J)*DILU21 + EFACTOR(6,KBAND,J)*DILU22 
+     &          + EFACTOR(9,KBAND,J)*DILU32
+            L13 = EFACTOR(1,KBAND,J)*DILU31 + EFACTOR(4,KBAND,J)*DILU32 
+     &          + EFACTOR(7,KBAND,J)*DILU33
+            L23 = EFACTOR(2,KBAND,J)*DILU31 + EFACTOR(5,KBAND,J)*DILU32
+     &          + EFACTOR(8,KBAND,J)*DILU33
+            L33 = EFACTOR(3,KBAND,J)*DILU31 + EFACTOR(6,KBAND,J)*DILU32 
+     &          + EFACTOR(9,KBAND,J)*DILU33
+
+            EFACTOR(1,KBAND,J) = L11
+            EFACTOR(2,KBAND,J) = L21
+            EFACTOR(3,KBAND,J) = L31
+            EFACTOR(4,KBAND,J) = L12
+            EFACTOR(5,KBAND,J) = L22
+            EFACTOR(6,KBAND,J) = L32
+            EFACTOR(7,KBAND,J) = L13
+            EFACTOR(8,KBAND,J) = L23
+            EFACTOR(9,KBAND,J) = L33
+
+C           SETUP D*LT PRODUCT
+            DL_PROD11 =  L11 * D11 + L12 * D21 + L13 * D31
+            DL_PROD21 =  L21 * D11 + L22 * D21 + L23 * D31
+            DL_PROD31 =  L31 * D11 + L32 * D21 + L33 * D31
+            DL_PROD12 =  L11 * D21 + L12 * D22 + L13 * D32
+            DL_PROD22 =  L21 * D21 + L22 * D22 + L23 * D32
+            DL_PROD32 =  L31 * D21 + L32 * D22 + L33 * D32
+            DL_PROD13 =  L11 * D31 + L12 * D32 + L13 * D33
+            DL_PROD23 =  L21 * D31 + L22 * D32 + L23 * D33
+            DL_PROD33 =  L31 * D31 + L32 * D32 + L33 * D33
+
+C           CALCULATE MODIFICATION TO DIAGONAL ENTRY
+            IF(KEYCR(JROW).LE.0) GO TO 1 
+            DILU(1,JROW) = DILU(1,JROW) - DL_PROD11*L11 - DL_PROD12*L12
+     &                   - DL_PROD13*L13
+            DILU(2,JROW) = DILU(2,JROW) - DL_PROD21*L11 - DL_PROD22*L12 
+     &                   - DL_PROD23*L13
+            DILU(3,JROW) = DILU(3,JROW) - DL_PROD31*L11 - DL_PROD32*L12 
+     &                   - DL_PROD33*L13
+            DILU(4,JROW) = DILU(4,JROW) - DL_PROD21*L21 - DL_PROD22*L22 
+     &                   - DL_PROD23*L23
+            DILU(5,JROW) = DILU(5,JROW) - DL_PROD31*L21 - DL_PROD32*L22 
+     &                   - DL_PROD33*L23
+            DILU(6,JROW) = DILU(6,JROW) - DL_PROD31*L31 - DL_PROD32*L32 
+     &                   - DL_PROD33*L33
+   1         CONTINUE
+
+C           PROCESS ALONG CURRENT ROW TOWARDS DIAGONAL
+            DO L = 1,NIBAND(KBAND)
+               JBAND = JBAND + 1
+               L2 = IBAND(1,JBAND)
+               L3 = IBAND(2,JBAND)
+               LCOL = JROW - ILU_JOFFSET(L3,NBLK)
+               IF(LCOL.LE.0.OR.KEYCR(LCOL).LE.0) GO TO 2
+               EFACTOR(1,L3,LCOL) = EFACTOR(1,L3,LCOL) 
+     &                            - DL_PROD11 * EFACTOR(1,L2,J)   
+     &                            - DL_PROD12 * EFACTOR(4,L2,J) 
+     &                            - DL_PROD13 * EFACTOR(7,L2,J)
+               EFACTOR(2,L3,LCOL) = EFACTOR(2,L3,LCOL) 
+     &                            - DL_PROD21 * EFACTOR(1,L2,J)   
+     &                            - DL_PROD22 * EFACTOR(4,L2,J) 
+     &                            - DL_PROD23 * EFACTOR(7,L2,J)
+               EFACTOR(3,L3,LCOL) = EFACTOR(3,L3,LCOL) 
+     &                            - DL_PROD31 * EFACTOR(1,L2,J)   
+     &                            - DL_PROD32 * EFACTOR(4,L2,J) 
+     &                            - DL_PROD33 * EFACTOR(7,L2,J)
+               EFACTOR(4,L3,LCOL) = EFACTOR(4,L3,LCOL) 
+     &                            - DL_PROD11 * EFACTOR(2,L2,J)   
+     &                            - DL_PROD12 * EFACTOR(5,L2,J) 
+     &                            - DL_PROD13 * EFACTOR(8,L2,J)
+               EFACTOR(5,L3,LCOL) = EFACTOR(5,L3,LCOL) 
+     &                            - DL_PROD21 * EFACTOR(2,L2,J)   
+     &                            - DL_PROD22 * EFACTOR(5,L2,J) 
+     &                            - DL_PROD23 * EFACTOR(8,L2,J)
+               EFACTOR(6,L3,LCOL) = EFACTOR(6,L3,LCOL) 
+     &                            - DL_PROD31 * EFACTOR(2,L2,J)   
+     &                            - DL_PROD32 * EFACTOR(5,L2,J) 
+     &                            - DL_PROD33 * EFACTOR(8,L2,J)
+               EFACTOR(7,L3,LCOL) = EFACTOR(7,L3,LCOL) 
+     &                            - DL_PROD11 * EFACTOR(3,L2,J)   
+     &                            - DL_PROD12 * EFACTOR(6,L2,J) 
+     &                            - DL_PROD13 * EFACTOR(9,L2,J)
+               EFACTOR(8,L3,LCOL) = EFACTOR(8,L3,LCOL) 
+     &                            - DL_PROD21 * EFACTOR(3,L2,J)   
+     &                            - DL_PROD22 * EFACTOR(6,L2,J) 
+     &                            - DL_PROD23 * EFACTOR(9,L2,J)
+               EFACTOR(9,L3,LCOL) = EFACTOR(9,L3,LCOL) 
+     &                            - DL_PROD31 * EFACTOR(3,L2,J)   
+     &                            - DL_PROD32 * EFACTOR(6,L2,J) 
+     &                            - DL_PROD33 * EFACTOR(9,L2,J)
+  2            CONTINUE
+            ENDDO
+          ENDDO
+      ENDDO
+
+      END
+C***********************************************************************
+      SUBROUTINE PEW_ILU_BACK_SOLVE(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,
+     &                JL2V,KL1,KL2,KEYOUT,NBLK,NJOFFSET,KEYCR,EFACTOR,
+     &                DILU,ZERO_NODE,RHS,X)
+C***********************************************************************
+C Generates banded factored matrix for elastic equations. EDILU is
+C inverted during the setup process
+C
+C INPUT:
+C   NJOFFSET = NUMBER OF FILLIN BANDS 
+C   KEYCR(GJ) = KEYOUT VALUES FOR CORNER POINTS ON A 3D GRID
+C   EFACTOR(L,M,GJ) = OFF DIAGONAL COEFFICIENTS OF THE FACTORIZED MATRIX 
+C   DILU(L,GJ) = DIAGONAL COEFFICIENTS OF THE FACTORIZED MATRIX
+C   ZERO_NODE(GJ) = INDICATOR OF NO ELASTIC CALCULATION ON A NODE
+C   RHS(GJ,L) = RHS OF THE LINEAR SYSTEM
+C
+C OUTPUT:
+C   X(GJ,L) = UNKNOWN VECTOR
+C***********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'pemodel.h'
+      INCLUDE 'pesolve.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK,MXDIM,NJOFFSET
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(*),KEYCR(*)
+      LOGICAL ZERO_NODE(IDIM*JDIM*KDIM)
+      REAL*8  EFACTOR(9,NJOFFSET,*),     DILU(6,*),
+     &        RHS(IDIM*JDIM*KDIM,3),     X(IDIM*JDIM*KDIM,3)
+
+      INTEGER I, J, L,N,NOFFSET
+      REAL*8  X1,X2,X3,ZERO
+      PARAMETER(ZERO = 0.0D0)
+
+      N=IDIM*JDIM*KDIM
+
+      DO J = 1,N
+         IF(KEYCR(J).LE.0.OR.ZERO_NODE(J)) THEN
+            X(J,1) = ZERO
+            X(J,2) = ZERO
+            X(J,3) = ZERO 
+         ELSE
+            X(J,1) = RHS(J,1)
+            X(J,2) = RHS(J,2)
+            X(J,3) = RHS(J,3)
+         ENDIF
+      ENDDO
+
+C PERFORM BACKSOLVE FOR LOWER TRIANGULAR MATRIX
+
+      DO J = 1,N
+         IF(KEYCR(J).LE.0.OR.ZERO_NODE(J)) CYCLE
+c        IF(ZERO_NODE(J)) CYCLE
+         X1 = X(J,1)
+         X2 = X(J,2)
+         X3 = X(J,3)
+ 
+         DO I = 1,NJOFFSET
+            L = J + ILU_JOFFSET(I,NBLK)
+            IF(L.GT.N.OR.KEYCR(L).LE.0) CYCLE
+            X(L,1) = X(L,1) - EFACTOR(1,I,J) * X1   
+     &                      - EFACTOR(4,I,J) * X2
+     &                      - EFACTOR(7,I,J) * X3
+            X(L,2) = X(L,2) - EFACTOR(2,I,J) * X1    
+     &                      - EFACTOR(5,I,J) * X2    
+     &                      - EFACTOR(8,I,J) * X3
+            X(L,3) = X(L,3) - EFACTOR(3,I,J) * X1    
+     &                      - EFACTOR(6,I,J) * X2    
+     &                      - EFACTOR(9,I,J) * X3
+         ENDDO
+      ENDDO
+ 
+C MULTIPLY BY INVERSE DIAGONAL
+ 
+      DO J = 1,N
+         IF(KEYCR(J).LE.0.OR.ZERO_NODE(J)) CYCLE
+         X1 = X(J,1)
+         X2 = X(J,2)
+         X3 = X(J,3)
+         X(J,1) = DILU(1,J) * X1 + DILU(2,J) * X2 + DILU(3,J) * X3
+         X(J,2) = DILU(2,J) * X1 + DILU(4,J) * X2 + DILU(5,J) * X3
+         X(J,3) = DILU(3,J) * X1 + DILU(5,J) * X2 + DILU(6,J) * X3
+      ENDDO
+     
+C PERFORM BACKSOLVE FOR UPPER TRIANGULAR MATRIX (L-TRANSPOSE)
+ 
+      DO J = N,1,-1
+         IF(KEYCR(J).LE.0.OR.ZERO_NODE(J)) CYCLE
+         X1 = X(J,1)
+         X2 = X(J,2)
+         X3 = X(J,3)
+         DO I = 1,NJOFFSET
+            L = J - ILU_JOFFSET(I,NBLK)
+            IF(L.LE.0.OR.KEYCR(L).LE.0) CYCLE 
+            X(L,1) = X(L,1) - EFACTOR(1,I,L) * X1   
+     &                      - EFACTOR(2,I,L) * X2   
+     &                      - EFACTOR(3,I,L) * X3   
+            X(L,2) = X(L,2) - EFACTOR(4,I,L) * X1   
+     &                      - EFACTOR(5,I,L) * X2   
+     &                      - EFACTOR(6,I,L) * X3   
+            X(L,3) = X(L,3) - EFACTOR(7,I,L) * X1   
+     &                      - EFACTOR(8,I,L) * X2   
+     &                      - EFACTOR(9,I,L) * X3
+         ENDDO
+      ENDDO
+ 
+      END
+C***********************************************************************
+C                 END OF PEILUW.DF
+C***********************************************************************
+   

@@ -1,0 +1,200 @@
+ 1 FRAMES/PAGE - TECPLOT LAYOUT SOURCE FILE
+$!SETSTYLEBASE FACTORY
+$!PAPER 
+  BACKGROUNDCOLOR = WHITE
+  ISTRANSPARENT = YES
+  ORIENTPORTRAIT = NO
+  SHOWPAPER = YES
+  PAPERSIZE = LETTER
+  PAPERSIZEINFO
+    {
+    LETTER
+      {
+      WIDTH = 8.5
+      HEIGHT = 11
+      LEFTHARDCLIPOFFSET = 0.125
+      RIGHTHARDCLIPOFFSET = 0.125
+      TOPHARDCLIPOFFSET = 0.125
+      BOTTOMHARDCLIPOFFSET = 0.125
+      }
+    }
+  REGIONINWORKAREA
+    {
+    X1 = 0.125
+    Y1 = 0.348
+    X2 = 10.88
+    Y2 = 8.152
+    }
+$!COLORSPECTRUM 
+  CONTOURCOLORMAP = SMRAINBOW
+  SURFACERGBMIN
+    {
+    R = 0
+    G = 0
+    B = 0
+    }
+  SURFACERGBMAX
+    {
+    R = 255
+    G = 255
+    B = 255
+    }
+$!COLORMAPCONTROL RESETTOFACTORY
+### END FRAME 0  (TERMINATES LAYOUT HEADER)
+$!CREATENEWFRAME 
+$!READDATASET  '|DATFIL|' 
+  INCLUDETEXT = NO
+  INCLUDEGEOM = NO
+  ZONELIST =  [|PLTZONE1|-|PLTZONE2|]
+$!FRAMELAYOUT 
+  SHOWBORDER = NO
+  HEADERCOLOR = BLUE
+  XYPOS
+    {
+    X = 0.65
+    Y = 0.6
+    }
+  WIDTH = 9.8
+  HEIGHT = 7.2
+$!FRAMEMODE  = XY
+$!DELETEXYMAPS 
+$!ACTIVEXYMAPS  =  [1-2]
+$!GLOBALXY 
+  DATALABELS
+    {
+    DISTANCESKIP = 5
+    }
+$!XYMAP  [1]
+  NAME = '&ZN&' 
+  ASSIGN
+    {
+    ZONE = |PLTZONE1|
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    SHOW = NO
+    COLOR = BLACK
+    LINETHICKNESS = 0.15
+    }
+  SYMBOLS
+    {
+    SYMBOLSHAPE
+      {
+      GEOMSHAPE = CIRCLE
+      }
+    COLOR = BLACK
+    ISFILLED = YES
+    FILLCOLOR = BLACK
+    SIZE = 1.5
+    }
+  BARCHARTS
+    {
+    SHOW = NO
+    COLOR = RED
+    FILLCOLOR = RED
+    }
+  ERRORBARS
+    {
+    COLOR = RED
+    }
+$!XYMAP  [2]
+  NAME = '&ZN&' 
+  ASSIGN
+    {
+    ZONE = |PLTZONE2|
+    XAXISVAR = 1
+    YAXISVAR = 2
+    }
+  LINES
+    {
+    COLOR = BLACK
+    LINETHICKNESS = 0.15
+    }
+  SYMBOLS
+    {
+    SHOW = NO
+    SYMBOLSHAPE
+      {
+      GEOMSHAPE = CIRCLE
+      }
+    COLOR = BLACK
+    ISFILLED = YES
+    FILLCOLOR = BLACK
+    SIZE = 1.5
+    }
+  BARCHARTS
+    {
+    SHOW = NO
+    COLOR = GREEN
+    FILLCOLOR = GREEN
+    }
+  ERRORBARS
+    {
+    COLOR = GREEN
+    }
+$!XYAXIS 
+  XDETAIL 1
+    {
+    TITLE
+      {
+      TITLEMODE = NONE
+      }
+    }
+  YDETAIL 1
+    {
+    TITLE
+      {
+      TITLEMODE = NONE
+      }
+    }
+  GRIDAREA
+    {
+    DRAWBORDER = YES
+    }
+  DEPXTOYRATIO = 1
+$!XYLAYERS 
+  SHOWSYMBOLS = YES
+$!ATTACHTEXT 
+  XYPOS
+    {
+    X = 50
+    Y = 90.
+    }
+  TEXTSHAPE
+    {
+    SIZEUNITS = FRAME
+    HEIGHT = 4
+    }
+  ANCHOR = CENTER
+  TEXT = '|PLTTITLE|'
+$!ATTACHTEXT 
+  XYPOS
+    {
+    X = 50
+    Y = 2.4
+    }
+  TEXTSHAPE
+    {
+    SIZEUNITS = FRAME
+    HEIGHT = 4
+    }
+  ANCHOR = CENTER
+  TEXT = '|XAXTITLE|' 
+$!ATTACHTEXT 
+  XYPOS
+    {
+    X = 4.4
+    Y = 50
+    }
+  TEXTSHAPE
+    {
+    SIZEUNITS = FRAME
+    HEIGHT = 4
+    }
+  ANGLE = 90
+  ANCHOR = CENTER
+  TEXT = '|YAXTITLE|' 
+$!SETSTYLEBASE CONFIG
+### END FRAME 1

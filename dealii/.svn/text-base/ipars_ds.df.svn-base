@@ -1,0 +1,389 @@
+C*********************************************************************
+      MODULE iparsdsmod
+C*********************************************************************
+      IMPLICIT NONE
+      SAVE
+      LOGICAL :: MINIT=.FALSE.
+      LOGICAL :: DINIT=.FALSE.
+      LOGICAL :: IINIT=.FALSE.
+      END MODULE
+
+C*********************************************************************
+C bag8 - This is the program for the IPARS dataspaces driver which
+C        contains the main event loop.
+C*********************************************************************
+      PROGRAM ipars_ds
+C*********************************************************************
+      USE iparsdsmod
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'mpif.h'
+      INTEGER :: NERR = 0;
+      INTEGER :: SIZE,RANK
+      INTEGER :: APPID=2;      ! 1=dealii, 2=ipars
+      INTEGER*8 :: GCOMM
+      INTEGER :: DONE = 0;
+      INTEGER :: IERR
+      LOGICAL :: GO_FILE_EXISTS = .FALSE.
+      LOGICAL :: ONCEONLY = .TRUE.
+      INTEGER*8 :: ORIGIN(3) = [0,0,0]
+      INTEGER NSTEP1
+      REAL*8 TIM1,DELTIM1
+      EXTERNAL DS_SIGNAL_HANDLER,D2TOKEYOUT_DS
+
+      WRITE(*,*)'ipars_ds: starting up'
+      DATASPACES = .TRUE.
+      CALL SIGNAL(2,DS_SIGNAL_HANDLER,-1)    ! SIGINT
+      CALL SIGNAL(15,DS_SIGNAL_HANDLER,-1)   ! SIGTERM
+      CALL MPI_INIT(IERR)
+      IF (IERR.NE.0) THEN
+        WRITE(*,*)'Error: MPI_INIT returned IERR=',IERR
+        CALL DS_SIGNAL_HANDLER()
+      ENDIF
+      MINIT=.TRUE.
+      CALL MPI_COMM_RANK(MPI_COMM_WORLD, RANK, IERR)
+      CALL MPI_COMM_SIZE(MPI_COMM_WORLD, SIZE, IERR)
+      GCOMM = MPI_COMM_WORLD
+      CALL dspaces_init(SIZE,APPID,GCOMM,IERR)
+      IF (IERR.NE.0) THEN
+        WRITE(*,*)'Error: DSPACES_INIT returned IERR=',IERR
+        CALL DS_SIGNAL_HANDLER()
+      ENDIF
+      DINIT=.TRUE.
+      CALL dspaces_rank(MYPRC)
+      CALL dspaces_peers(NUMPRC)
+      IF (RANK.EQ.0) THEN
+        DO WHILE(GO_FILE_EXISTS.EQ..FALSE.)
+          CALL SLEEP(1)
+          INQUIRE(FILE='iparsgo', EXIST=GO_FILE_EXISTS)
+        END DO
+        OPEN(2, FILE='iparsgo', STATUS='OLD')
+        CLOSE(2, STATUS='DELETE')
+      END IF
+      CALL IPARS_START(NERR)
+      IINIT=.TRUE.
+      CALL MPI_BARRIER(GCOMM, IERR)
+      DO WHILE (.TRUE.)
+        !-----------------------------------------------------
+        ! Obtain status lock for performing ipars computations
+        !-----------------------------------------------------
+        CALL dspaces_lock_on_write("status", GCOMM)
+
+        !-------------------------------------------------
+        ! Receive data from dealii through dataspaces here
+        !-------------------------------------------------
+        CALL dspaces_get("done",0,4,3,ORIGIN,ORIGIN,DONE,IERR)
+        IF (DONE.EQ.1) GOTO 100
+
+        CALL dspaces_get("nstep",0,4,3,ORIGIN,ORIGIN,NSTEP1,IERR)
+        CALL dspaces_get("tim",0,8,3,ORIGIN,ORIGIN,TIM1,IERR)
+        CALL dspaces_get("deltim",0,8,3,ORIGIN,ORIGIN,DELTIM1,IERR)
+
+        !--------------------------------------------------
+        ! Initialize IPARS when running the first time step
+        !--------------------------------------------------
+        IF (ONCEONLY) THEN
+          CALL DS_RECVGRID(IERR)
+          CALL IPARS_INIT(IERR)
+          CALL DS_RECVPERM(IERR)
+          CALL DS_RECVPRES(IERR)
+          ONCEONLY = .FALSE.
+        ELSEIF (ADAPTIVITY) THEN
+          CALL ADAPTIVITY_SAVE_LEVEL(IERR)
+          CALL CALLWORK(D2TOKEYOUT_DS,0)
+          CALL GET_GELEI_LSIZE(NERR)
+$SINGLEI          CALL TUPSCALE(IERR)
+          CALL SBLKIN(IERR)
+          CALL DUALINIT(IERR)
+          CALL HYPRE_EVFEM_INIT()
+          CALL DS_RECVPERM(IERR)
+        ENDIF
+
+        !--------------------------------------------------
+        ! Perform IPARS computations
+        !--------------------------------------------------
+        CALL IPARS_SOLVE(NSTEP1,TIM1,DELTIM1,IERR)
+        CALL IPARS_VISUALIZE(IERR)
+
+        !--------------------------------------------------
+        ! Send data to dealii through dataspaces here
+        !--------------------------------------------------
+        CALL DS_SENDPRES(IERR)
+
+        !--------------------------------------------------
+        ! Free status lock to return control to dealii
+        !--------------------------------------------------
+        CALL MPI_BARRIER(GCOMM, IERR)
+        CALL dspaces_unlock_on_write("status", GCOMM)
+      END DO
+      NERR=13
+ 100  CONTINUE
+      CALL dspaces_unlock_on_write("status", GCOMM)
+      CALL DS_SIGNAL_HANDLER()
+      END
+
+C*********************************************************************
+C bag8 - This routine will get called if kill signal is sent to ipars
+C        process.
+C*********************************************************************
+      SUBROUTINE DS_SIGNAL_HANDLER()
+C*********************************************************************
+      USE iparsdsmod
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'mpif.h'
+      INTEGER :: NERR = 0
+      IF (MYPRC.EQ.0) WRITE(*,*)'ipars_ds: shutting down'
+      IF (MINIT) CALL MPI_FINALIZE(NERR)
+      IF (DINIT) CALL dspaces_finalize()
+      IF (IINIT) CALL IPARS_FINISH(NERR)
+      END SUBROUTINE DS_SIGNAL_HANDLER
+
+C*********************************************************************
+      SUBROUTINE DS_RECVGRID(NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INTEGER NERR,IERR
+      INTEGER ADAPT1
+      INTEGER*8 :: ORIGIN(3) = [0,0,0]
+
+      CALL dspaces_get("xlow",0,3*8,3,ORIGIN,ORIGIN,XLOW,IERR)
+      CALL dspaces_get("xhigh",0,3*8,3,ORIGIN,ORIGIN,XHIGH,IERR)
+      CALL dspaces_get("ndim",0,4,3,ORIGIN,ORIGIN,NDIM,IERR)
+      CALL dspaces_get("ncoarse",0,3*4,3,ORIGIN,ORIGIN,NCOARSE,IERR)
+      CALL dspaces_get("nlev",0,3*4,3,ORIGIN,ORIGIN,NLEV,IERR)
+      CALL dspaces_get("adaptivity",0,3*4,3,ORIGIN,ORIGIN,ADAPT1,IERR)
+      IF (ADAPT1.EQ.0) THEN
+        ADAPTIVITY = .FALSE.
+      ELSE
+        ADAPTIVITY = .TRUE.
+      ENDIF
+!      WRITE(*,*)'In DS_RECVGRID'
+!      WRITE(*,*)'XLOW=',XLOW
+!      WRITE(*,*)'XHIGH=',XHIGH
+!      WRITE(*,*)'NDIM=',NDIM
+!      WRITE(*,*)'NCOARSE=',NCOARSE
+!      WRITE(*,*)'NLEV=',NLEV
+      NELE=-1
+
+      END SUBROUTINE DS_RECVGRID
+
+C*********************************************************************
+      SUBROUTINE D2TOKEYOUT_DS(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &     KL1,KL2,KEYOUT,NBLK)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      INTEGER I,J,K,LEV,IOFF,JOFF,KOFF,IERR,STRIDE
+      INTEGER*8 COORD(3)
+
+      KEYOUT(:,:,:)=0
+
+!      WRITE(*,*)'In d2tokeyout_ds, NBLK=',NBLK
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      STRIDE=2**(NLEV-NBLK)
+      DO K = KL1,KL2
+      COORD(3)=(K+KOFF-1)*STRIDE + 1
+      DO J = JL1V(K),JL2V(K)
+      COORD(2)=(J+JOFF-1)*STRIDE + 1
+      DO I = IL1,IL2
+      COORD(1)=(I+IOFF-1)*STRIDE + 1
+      LEV=-1; IERR=0
+      CALL dspaces_get("level",0,4,3,COORD,COORD,LEV,IERR)
+      IF ((LEV.EQ.NBLK).AND.(IERR.EQ.0)) THEN
+!        WRITE(*,'(a,5i4,a)')'d2tokeyout_ds: coord,lev,ierr=',
+!     &    coord,lev,ierr,' (keyout set)'
+        KEYOUT(I,J,K)=1
+!      ELSE
+!        WRITE(*,'(a,5i4)')'d2tokeyout_ds: coord,lev,ierr=',
+!     &    coord,lev,ierr
+      ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+
+      END SUBROUTINE D2TOKEYOUT_DS
+
+C*********************************************************************
+      SUBROUTINE DS_RECVPRES(NERR)
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'tarydat.h'
+      INTEGER NERR
+      EXTERNAL D2TOPRES_DS
+
+      CALL CALLWORK(D2TOPRES_DS,[1,N_PRES])
+      CALL UPDATE(N_PRES,1)
+
+      END SUBROUTINE DS_RECVPRES
+
+C*********************************************************************
+      SUBROUTINE D2TOPRES_DS(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &     KL1,KL2,KEYOUT,NBLK,PRES)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  PRES(IDIM,JDIM,KDIM)
+      INTEGER I,J,K,LEV,IOFF,JOFF,KOFF,IERR,STRIDE
+      INTEGER*8 COORD(3)
+      REAL*8  P,CV
+
+      IF (CONV_FACTOR.EQ.1.D0) THEN
+        CV = 1.D0
+      ELSE
+        CV = 1.D0/6894.75729D0  ! Pa to psi
+      ENDIF
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      STRIDE=2**(NLEV-NBLK)
+      DO K = KL1,KL2
+      COORD(3)=(K+KOFF-1)*STRIDE + 1
+      DO J = JL1V(K),JL2V(K)
+      COORD(2)=(J+JOFF-1)*STRIDE + 1
+      DO I = IL1,IL2
+      COORD(1)=(I+IOFF-1)*STRIDE + 1
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+        CALL dspaces_get("pres",0,8,3,COORD,COORD,P,IERR)
+!        write(*,'(a,4i4,e11.4)')'dstopres_ds: i,j,k,nblk,p=',
+!     &    i,j,k,nblk,p
+        PRES(I,J,K)=P*CV
+      ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+
+      END SUBROUTINE D2TOPRES_DS
+
+C*********************************************************************
+      SUBROUTINE DS_SENDPRES(NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'tarydat.h'
+      INTEGER NERR
+      EXTERNAL PRESTOD2_DS
+
+      CALL CALLWORK(PRESTOD2_DS,[1,N_PRES])
+
+      END SUBROUTINE DS_SENDPRES
+
+C*********************************************************************
+      SUBROUTINE PRESTOD2_DS(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &     KL1,KL2,KEYOUT,NBLK,PRES)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  PRES(IDIM,JDIM,KDIM)
+      INTEGER I,J,K,LEV,IOFF,JOFF,KOFF,IERR,STRIDE
+      INTEGER*8 COORD(3)
+      REAL*8  P,CV
+
+      IF (CONV_FACTOR.EQ.1.D0) THEN
+        CV = 1.D0
+      ELSE
+        CV = 6894.75729D0  ! psi to Pa
+      ENDIF
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      STRIDE=2**(NLEV-NBLK)
+      DO K = KL1,KL2
+      COORD(3)=(K+KOFF-1)*STRIDE + 1
+      DO J = JL1V(K),JL2V(K)
+      COORD(2)=(J+JOFF-1)*STRIDE + 1
+      DO I = IL1,IL2
+      COORD(1)=(I+IOFF-1)*STRIDE + 1
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+        P=PRES(I,J,K)*CV
+        CALL dspaces_put("pres",0,8,3,COORD,COORD,P,IERR)
+      ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+
+      END SUBROUTINE PRESTOD2_DS
+
+C*********************************************************************
+      SUBROUTINE DS_RECVPERM(NERR)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'blkary.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'tarydat.h'
+      INTEGER NERR
+      EXTERNAL D2TOPERM_DS,TRANC1
+C      EXTERNAL TRANC2
+
+      CALL CALLWORK(D2TOPERM_DS,[3,N_XPERM,N_YPERM,N_ZPERM])
+
+      CALL UPDATE(N_XPERM,1)
+      CALL UPDATE(N_YPERM,1)
+      CALL UPDATE(N_ZPERM,1)
+
+      IF (KNDGRD.EQ.1) THEN
+        CALL CALLWORK(TRANC1,[6,N_TCOFX,N_TCOFY,N_TCOFZ,N_XPERM,
+     &    N_YPERM,N_ZPERM])
+      ELSEIF (KNDGRD.EQ.3) THEN
+C        CALL CALLWORK(TRANC2,[9,N_TCOFX,N_TCOFY,N_TCOFZ,N_XPERM,
+C     &    N_YPERM,N_ZPERM,N_XC,N_YC,N_ZC])
+      ENDIF
+      CALL IFTRAN()
+
+      END SUBROUTINE DS_RECVPERM
+
+C*********************************************************************
+      SUBROUTINE D2TOPERM_DS(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &     KL1,KL2,KEYOUT,NBLK,XPERM,YPERM,ZPERM)
+C*********************************************************************
+      USE dealiimod
+      IMPLICIT NONE
+      INCLUDE 'layout.h'
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),KEYOUT(IDIM,JDIM,KDIM)
+      REAL*4  XPERM(IDIM,JDIM,KDIM),YPERM(IDIM,JDIM,KDIM),
+     &        ZPERM(IDIM,JDIM,KDIM)
+      INTEGER I,J,K,LEV,IOFF,JOFF,KOFF,IERR,STRIDE
+      INTEGER*8 COORD(3)
+      REAL*8  PERM,CV
+
+      IF (CONV_FACTOR.EQ.1.D0) THEN
+        CV = 1.D0
+      ELSE
+        CV = 1.0132499658281449D15  ! M2 to MD
+      ENDIF
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      STRIDE=2**(NLEV-NBLK)
+      DO K = KL1,KL2
+      COORD(3)=(K+KOFF-1)*STRIDE + 1
+      DO J = JL1V(K),JL2V(K)
+      COORD(2)=(J+JOFF-1)*STRIDE + 1
+      DO I = IL1,IL2
+      COORD(1)=(I+IOFF-1)*STRIDE + 1
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+        CALL dspaces_get("perm",0,8,3,COORD,COORD,PERM,IERR)
+!        write(*,'(a,4i4,e11.4)')'dstoperm_ds: i,j,k,nblk,perm=',
+!     &    i,j,k,nblk,perm
+        XPERM(I,J,K)=PERM*CV
+        YPERM(I,J,K)=XPERM(I,J,K)
+        ZPERM(I,J,K)=XPERM(I,J,K)
+      ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+
+      END SUBROUTINE D2TOPERM_DS

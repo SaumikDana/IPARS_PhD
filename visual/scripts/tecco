@@ -1,0 +1,119 @@
+#! /bin/csh
+#
+# tecco
+# 
+# C - shell utility to combine IPARS zone output for Tecplot in one
+# file
+# filename convention: 
+# INIT file= TEC.faultblock.processor.visflag.init
+# ZONE files= TEC.faultblock.processor.visflag.init
+#
+#
+set INITmark = 'init'
+set TARGETmark = 'tec'
+set PLTmark = 'plt'
+set zonelist = ()
+set number = 0
+#
+foreach arg ($*)	
+	@ number ++
+#
+#	echo 'argument number '$number' is '$arg
+#
+	switch ($number) 
+	case 1:
+		set rootname = $arg
+		breaksw
+	case 2:
+		set faultblock = $arg
+		breaksw
+	case 3:
+		set processor = $arg
+		breaksw
+	case 4:		
+		set visflag = $arg
+		breaksw 
+	default:
+		set zonelist = ($zonelist $arg)
+		breaksw
+	endsw
+end			
+#		
+# echo 'number of arguments is ' $number
+#
+if ( $number <= 4 ) then
+	echo 'Too few parameters to TECCO.'
+	echo "Usage: TECCO rootname faultblock procnum visflag zonelist"
+	exit 1
+endif
+#
+##### process the files
+#
+set file = 	"${rootname}.${faultblock}.${processor}.${visflag}"
+set INITfile = "${file}.${INITmark}"
+set TARGETfile = "${file}.${TARGETmark}"
+set PLTfile = "${file}.${PLTmark}"
+#
+if ( -e "$TARGETfile" ) then
+	echo "file $TARGETfile exists. Overwrite ? (y/n)"
+	set reply = $<
+	if ( $reply != "y" ) then
+		goto endshell
+	endif
+	rm -f $TARGETfile	
+endif
+if ( ! (-e "$INITfile") ) then
+	echo "file $INITfile does not exist."
+	goto endshell
+else
+	echo "file $INITfile OK, appending to $TARGETfile..."
+	cat $INITfile  > $TARGETfile
+endif	
+#
+#### append all zone files  to target file. Create *.tec
+#
+set zonenum = 0
+foreach zone ($zonelist)
+	@ zonenum ++
+#	echo 'zone is '$zone
+	set filename = "${rootname}.${faultblock}.${processor}"
+	set filename = "${filename}.${visflag}.${zone}"
+#	echo $filename
+	if ( -f "$filename" ) then
+		echo "file $filename OK, appending to $TARGETfile..."
+	else
+		echo "file $filename does not exist."
+		goto endshell
+	endif
+	cat $filename >> $TARGETfile
+#	ls -l  $TARGETfile $filename			
+end
+#
+# invoke preplot ? Create *.plt
+#
+#echo "File $TARGETfile has been created. Call preplot ? (y/n)"
+#set reply = $<	
+echo "File $TARGETfile has been created. Calling preplot..."
+set reply = "y"
+if ( $reply != "y" ) then
+	echo "TECCO terminated. File $TARGETfile created."
+	exit 0
+else 
+	preplot $TARGETfile
+	set preplotcode = $status
+	if ( $preplotcode == 0) then
+		echo "TECCO terminated OK. File $PLTfile created."	
+		rm -f $TARGETfile	
+		exit 0
+	else
+		echo "Preplot detected an error. TECCO ended in error"
+		goto endshell
+	endif	
+endif
+
+exit 0
+#
+endshell: 
+echo "TECCO ended in error. End."
+set status = 14
+

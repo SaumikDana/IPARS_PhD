@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data
+END
+porosity.dat
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/porosity.dat
+END
+readpp.f
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/readpp.f
+END
+perm2d.dat
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/perm2d.dat
+END
+poro2d.dat
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/poro2d.dat
+END
+permeability.dat
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/repos/csm/!svn/ver/12/IPARSv3.1/comp/data/single_block/tests/2dCase/2d_data/permeability.dat
+END

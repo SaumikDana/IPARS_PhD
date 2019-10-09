@@ -1,0 +1,275 @@
+                                   Appendix F
+                              Compiler Preprocessor
+
+                            John Wheeler     10/12/98
+
+  I.  General
+
+      A.  There are a great many size or dimension variables in a reservoir
+          simulator which have values that are environment dependent.  For
+          example, the maximum number of characters in the key-word input is 64K
+          on an IBMPC; this is more than enough for homework problems but is
+          inadequate for a full-field commercial simulation run on a T3D.
+
+      B.  Inevitably, some machine specific code (eg. compiler directives) will
+          be required in the simulator.  We need a single point at which machine
+          specific code can be switched on and off.
+
+      C.  We will probably need to support more than one message passing system
+          because of variations in availability and/or speed from platform to
+          platform.  We need a single point at which the message system can be
+          switched.
+
+      D.  We will need to support more than one thickness for the communication
+          layer around grid-block variables on parallel platforms.  A single
+          point from which this thickness can be controlled is needed.
+
+      E.  A compiler preprocessor, SIZE, has been written to satisfy the needs
+          listed above.  This program searches a set of source files for a
+          specific set of symbols, replaces those symbols, and writes the result
+          to a new set of files.  Symbols, directory, and file names are obtained
+          from a single data file.
+
+ II.  SIZE
+
+      A.  The program reads 5 types of instructions from a control file. Each
+          type of instruction is headed by one of the following control words:
+
+          Set_Symbols      ==> Define symbols for use only in defining other
+                               symbols
+          Replace_Symbols  ==> Search source code for these symbols and replace
+                               with other symbols or numbers
+          Target_Directory ==> Place modified source code in this directory
+          Source_Directory ==> Obtain original source code from this directory
+          Source_Files     ==> Original and modified source code file names
+          Include_File     ==> Include file.  Only one file name may follow an
+                               Include_File statement.  However, include files
+                               may be nested.
+
+          Control words may be read more than once but only the last values input
+          after a control word will be retained.  Order the Set_Symbols group
+          before the Replace_Symbols group since the former control word clears
+          all symbol definitions.
+
+      B.  In the source files, a word to be replaced must be preceded by a $.
+          Inside of quotes ("" or ''), $ will be processed as a normal character.
+
+      C.  In the control file, $ (outside of quotes) delimits comments; the $ and
+          any characters following it in the same record will be discarded.
+
+      D.  Set_Symbols and Replace_Symbols records have the same format. A symbol
+          is followed by its definition.  There are three types of definitions:
+
+          1.  Character definitions which may be either a series of characters
+              with no embedded blanks or a string of characters and blanks
+              enclosed in quotes (").  To simply remove a symbol, set the
+              replacement symbol to "".
+
+          2.  Numeric definitions which consist of numbers, numeric symbols
+              previously defined, and the operators +, -, *, /, (, and ). A
+              numeric definition must start with an equal sign (=), otherwise it
+              will be interperted as a character definition.
+
+          3.  Size control definitions which determine how the SIZE program
+              itself responds to certain conditions.  Currently, there are two
+              control definitions:
+
+              a.  PCSLASH YES which causes any / in the Target_Directory,
+                  Source_Directory, and Include_File records to be converted to
+                  \.  PCSLASH NO causes no change in the directory names. This
+                  command affects only directory names that follow it.
+
+              b.  UPPER YES which causes any lowercase characters in an
+                  alpha-numeric source word following $UPPER to be converted to
+                  uppercase.  UPPER NO leaves the source word unchanged.
+
+      E.  Target_Directory and Source_Directory records consist of a
+          string of characters terminated by either \ or /.
+
+      F.  Source_Files records consist of aa input file name optionally followed
+          by an output file name or an extension for an output file name.  The
+          input file name must have .dim as an extension otherwise the file is
+          simply copied without modification.  The output file name may consist
+          of only an extension in which case the primary part of the name will be
+          obtained from the input file name.  An output file can not have the
+          extension dim.
+
+      G.  The maximum source record length is 100 characters.  The maximum output
+          record length is 80 characters.  The maximum control record length is
+          100 characters.  The maximum symbol length is 20 characters.  The
+          maximum directory plus file name length is 60 characters.
+
+      H.  When SIZE is executed, it asks for the name of a control file that
+          contains all other data required by the program.
+
+      I.  Optionally, a single file may be updated.  When the control file is
+          requested, follow the name of the control file with a space and the
+          base name of the source file to be updated. (The base name may include
+          an extension which will be discarded before processing occurs.) This
+          can be useful for incorporating SIZE into a makefile.  In a makefile
+          the lines:
+
+          read1.f:..\input\read1.df
+                   echo ..\tests\itest.siz $@ > ech
+                   ..\exec\size < ech
+
+          will cause the file read1.f to be created from the source file
+          ..\input\read1.df using the symbol subtitutions in itest.siz.
+
+      J.  Optionally, a single file may be updated even though the file is not
+          referenced in the control file.  Follow the name of the control file
+          with a space, the full name of the source file (including directory and
+          extension), another space, and then the full name of the target file.
+          In a makefile, the lines:
+
+          read1.f:..\input\read1.df
+                   echo ..\tests\itest.siz ..\input\read1.df read1.f > ech
+                   ..\exec\size < ech
+
+          will cause the file read1.f to be created from the source file
+          ..\input\read1.df using the symbol subtitutions in itest.siz.
+
+      K.  All symbols including control words are case sensitive.  File names may
+          also be case sensitive depending on the operating system.
+
+III.  Sample control files
+,FIX
+      A.  Executive file.
+
+
+$      ipars.siz - Size Data Executive for all Machines and Models
+
+$  Keep this file as simple as possible.  Most size variable and file names
+$  should be set in include files.
+
+$  INCLUDE FILES MARKED WITH AN * DO NOT CURRENTLY EXIST
+
+Target_Directory
+../work/
+
+$ ################## Unix/Dos control (select one) ###################
+
+Replace_Symbols
+
+$ PCSLASH YES          $ Convert file names to PC format
+PCSLASH NO           $ Do not convert file names to PC format
+
+$ ############# Machine and message system (select one) ##############
+
+Include_File
+
+$../size/modular/ibmpc.siz  $ IBM PC with Microsoft compilers
+../size/modular/sp2.siz    $ IBM SP2 with MPI messages
+$../size/modular/lnx.siz    $ Linux
+$../size/modular/beo.siz    $ Linux with MPI messages
+$../size/modular/sgi.siz    $ SGI single processor                    *
+$../size/modular/t3e.siz    $ Cray T3E with MPI messages
+$../size/modular/rs6k.siz   $ IBM RS600
+$../size/modular/net.siz    $ Workstation network with MPI messages   *
+
+$ #################### Framework (select one) ########################
+
+Include_File
+
+$../size/modular/frame1.siz $ 30x105x100, 1 Processor, 20 Wells, 3 Blocks
+../size/modular/frame36.siz $ 40x200x200, 36 Processors, 40 Wells, 10 Blocks
+
+$ ################## Physical Model (select one) #####################
+
+$ Turn off all models then turn on one model in an include file
+
+Replace_Symbols
+
+HYDROI  C            $ Exclude hydrology-implicit model
+HYDROE  C            $ Exclude hydrology-impes model
+BLACKI  C            $ Exclude black-oil implicit
+BLACKP  C            $ Exclude black-oil impes
+COMP    C            $ Exclude compositional
+CHEM    C            $ Exclude chemical-flood
+MMODEL  C            $ Exclude multi model
+
+Include_File
+
+../size/modular/hydroi.siz   $ Hydrology Implicit Model
+$../size/modular/hydroe.siz   $ Hydrology Impes Model
+$../size/modular/blacki.siz   $ Black Oil Implicit Model           *
+$../size/modular/blackp.siz   $ Black Oil Impes Model              *
+$../size/modular/comp.siz     $ Compositional Model                *
+$../size/modular/chem.siz     $ Chemical Flood Model               *
+
+$ ######################## Graphics ##################################
+
+$ Turn off all graphics code then optionally turn on one or more
+$ capabilities in an include file(s)
+
+Replace_Symbols
+
+VISUAL   C              $ disable Tecplot output
+
+Include_File
+
+$../size/modular/visual.siz   $ TECPLOT visualization                 *
+
+$ ###################### Multi-block Capability ######################
+
+$ Turn off multi-block code then optionally turn on the capability
+$ in an include file(s)
+
+Replace_Symbols
+
+MORTAR   C             $ Exclude mortar code
+
+Include_File
+
+$../size/modular/mortar.siz   $ Multi-block mortar code
+
+$ ################## Linear solver (select one) ######################
+
+$ Turn off all linear solvers then turn on one in an include file
+
+Replace_Symbols
+
+TICAMA  C               $ Remove gmres/pcg linear solver
+LSOR    C               $ Remove line sor linear solver
+
+Include_File
+
+../size/modular/lsor.siz     $ Line sor linear solver
+$../size/modular/ticama.siz   $ Gmres linear solver
+$../size/modular/pcg.siz      $ PCG linear solver
+
+
+      B.  Implicit Hydrology Model Size Include File
+
+
+$ ############ Implicit Hydrology Model Include File ############
+
+Replace_Symbols
+
+HYDROI  ""           $ Include hydrology-implicit model code
+
+PERM3  ""            $ Include diagonal permeability tensor
+$ PERM3  C             $ Include full permeability tensor
+
+NUMCOF    7          $ Number of Jacobian coefficient blocks per equation
+NUMEQ     2          $ Number of Newtonian unknowns per grid element
+
+Source_Directory
+../hydro/
+Source_Files
+
+harydat.h
+baldatc.dh     .h
+hvisual.dh     .h
+hisdat.df      .f
+hiadat.df      .f
+hwdata.df      .f
+hivdat.df      .f
+htdata.df      .f
+hstep.df       .f
+hstdout.df     .f
+hquit.df       .f
+tran3.df       .f
+hwell.df       .f
+hrest.df       .f
+hvisual.df     .f

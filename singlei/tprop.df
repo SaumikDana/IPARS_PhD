@@ -1,0 +1,633 @@
+C  TPROP.F - auxiliary file for TSTEP.f
+
+C  ROUTINES IN THIS MODULE:
+
+C  SUBROUTINE TPROP     (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                       KEYOUT,NBLK,FLDEN,PRES,FLDENN,PRESN,COF,RESID,POR)
+C  SUBROUTINE TTRAN     (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                       KEYOUT,NBLK,TCOFX,TCOFY,TCOFZ,DEPTH,FLDEN,PRES,
+C                       COF,RESID)
+C  SUBROUTINE TUPPRES   (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                       KEYOUT,NBLK,DUNK,PRES)
+C  SUBROUTINE TMAXRESID (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2
+C                       KEYOUT,NBLK,RESID)
+C  SUBROUTINE TBUGOUT   (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                       KEYOUT,NBLK,POR,PRES,FLDEN,COF,RESID,TCOFX,TCOFY,TCOFZ)
+C  SUBROUTINE TVEL      (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+C                       KL2,KEYOUT,NBLK,TCOFX,TCOFY,TCOFZ,DEPTH,DEN,
+C                       PRES,VX,VY,VZ)
+
+C  CODE HISTORY:
+
+C  Bahareh Momken  3/16/99  code written for single phase flow, Hydrology
+C                           (IMPES) gprop.df is used as template.
+C  JOHN WHEELER   04/03/99  IMPLICIT SINGLE PHASE MODEL
+
+C*********************************************************************
+      SUBROUTINE TPROP (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &     KL2,KEYOUT,NBLK,FLDEN,PRES,FLDENN,PRESN,COF,RESID,POR)
+C*********************************************************************
+
+C  FORM ACCUMULATION TERMS
+
+C  FLDEN(I,J,K) = FLUID DENSITY AT TIME N+1, LB/CU-FT (OUTPUT, REAL*8)
+
+C  PRES(I,J,K) = FLUID PRESSURE AT TIME N+1, PSIA (INPUT, REAL*8)
+
+C  FLDENN(I,J,K) = FLUID DENSITY AT TIME N, LB/CU-FT (OUTPUT, REAL*8)
+
+C  PRESN(I,J,K) = FLUID PRESSURE AT TIME N, PSIA (OUTPUT, REAL*8)
+
+C  COF(I,J,K,n)= MATRIX COEFFICIENTS (REAL*4)
+C        COF(i,j,k,1) ==> DIAGONAL
+C        COF(i,j,k,2) ==> X-
+C        COF(i,j,k,3) ==> X+
+C        COF(i,j,k,4) ==> Y-
+C        COF(i,j,k,5) ==> Y+
+C        COF(i,j,k,6) ==> Z-
+C        COF(i,j,k,7) ==> Z+
+
+C  POR(I,J,K) = POR VOLUME, CU-FT (INPUT, REAL*4)
+
+C  RESID(I,J,K) = RESIDUALS (OUTPUT, REAL*8)
+C*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'tfluidsc.h'
+      INCLUDE 'tbaldat.h'
+
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,KL1,KL2,NBLK
+      INTEGER JL1V(KDIM),JL2V(KDIM),   KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  FLDEN(IDIM,JDIM,KDIM),   FLDENN(IDIM,JDIM,KDIM)
+      REAL*8  PRES(IDIM,JDIM,KDIM),    PRESN(IDIM,JDIM,KDIM)
+      REAL*8  RESID(IDIM,JDIM,KDIM)
+      REAL*4  COF(IDIM,JDIM,KDIM,7),   POR(IDIM,JDIM,KDIM)
+      REAL*8  WD,WAT
+      INTEGER I,J,K
+
+      DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+            DO I = IL1,IL2
+            IF (KEYOUT(I,J,K).EQ.1) THEN
+               WD = STFLDEN*EXP(FLCMP*PRES(I,J,K))
+               FLDEN(I,J,K) = WD
+               WAT = WD*POR(I,J,K)
+               IF (TPARABOLIC) THEN           ! yerlan
+                  COF(I,J,K,1) = 1.D0
+               ELSE
+                  COF(I,J,K,1) = FLCMP*WAT
+               ENDIF
+               IF ((NEWT == 1).OR.(NSTEP < 1)) THEN
+                  PRESN(I,J,K) = PRES(I,J,K)
+                  FLDENN(I,J,K) = WD
+               ENDIF
+               IF (TPARABOLIC) THEN           ! yerlan
+                  RESID(I,J,K) = PRESN(I,J,K)-PRES(I,J,K)
+               ELSE
+                  RESID(I,J,K) = POR(I,J,K)*FLDENN(I,J,K)-WAT
+               ENDIF
+               CURRENT = CURRENT+WAT
+            ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+
+      END
+
+C*********************************************************************
+      SUBROUTINE TTRAN (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &     KL2,KEYOUT,NBLK,TCOFX,TCOFY,TCOFZ,DEPTH,FLDEN,PRES,
+     &     COF,RESID)
+C*********************************************************************
+
+C  FORM TRANSPORT TERMS
+
+C  TCOFX(I,J,K) = X TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+C  TCOFY(I,J,K) = Y TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+C  TCOFZ(I,J,K) = Z TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+
+C  DEPTH(I,J,K) = ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  FLDEN(I,J,K) = FLUID DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  PRES(I,J,K) = FLUID PRESSURE, PSIA (INPUT, REAL*8)
+
+C  COF(I,J,K,n)= MATRIX COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+C        COF(i,j,k,1) ==> DIAGONAL
+C        COF(i,j,k,2) ==> X-
+C        COF(i,j,k,3) ==> X+
+C        COF(i,j,k,4) ==> Y-
+C        COF(i,j,k,5) ==> Y+
+C        COF(i,j,k,6) ==> Z-
+C        COF(i,j,k,7) ==> Z+
+
+C  RESID(I,J,K)= RESIDUALS (INPUT AND OUTPUT, REAL*8)
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'tfluidsc.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),   KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  TCOFX(IDIM,JDIM,KDIM),   TCOFY(IDIM,JDIM,KDIM),
+     &        TCOFZ(IDIM,JDIM,KDIM)
+      REAL*8  DEPTH(IDIM,JDIM,KDIM),   PRES(IDIM,JDIM,KDIM)
+      REAL*8  FLDEN(IDIM,JDIM,KDIM),   RESID(IDIM,JDIM,KDIM)
+      REAL*4  COF(IDIM,JDIM,KDIM,7)
+
+      REAL*4 DX, DY, DZ
+      REAL*8 RHO, DTVIS, DGX, DGY, DGZ, DUM
+
+cgp dbg
+      LOGICAL DBG
+      DATA DBG /.FALSE./
+
+      DTVIS=DELTIM/FLVIS
+
+C EDGES WITH NORMALS IN X-DIRECTION
+
+      IL2P=IL2+1
+      DO K=KL1,KL2
+       JL1=JL1V(K)
+       JL2=JL2V(K)
+       DO J=JL1,JL2
+        DO I=IL1,IL2P
+         IF(TCOFX(I,J,K).NE.0.D0) THEN
+
+            RHO = (FLDEN(I,J,K) + FLDEN(I-1,J,K))*.5D0
+            DUM = TCOFX(I,J,K)*DTVIS*RHO
+            DX = DUM
+            DGX = DUM*(PRES(I,J,K)-PRES(I-1,J,K)-GRAV*RHO*
+     &         (DEPTH(I,J,K)-DEPTH(I-1,J,K)))
+
+            IF (KEYOUT(I,J,K).EQ.1) THEN
+               COF(I,J,K,1) = COF(I,J,K,1) + DX
+               COF(I,J,K,2) = -DX
+               RESID(I,J,K) = RESID(I,J,K) - DGX
+            ENDIF
+            IF (KEYOUT(I-1,J,K).EQ.1) THEN
+               COF(I-1,J,K,1) = COF(I-1,J,K,1) + DX
+               COF(I-1,J,K,3) = -DX
+               RESID(I-1,J,K) = RESID(I-1,J,K) + DGX
+            ENDIF
+
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+C     EDGES WITH NORMALS IN Y-DIRECTION
+
+      DO K=KL1,KL2
+       JL1=JL1V(K)
+       JL2=JL2V(K)
+       DO J=JL1,JL2+1
+        DO I=IL1,IL2
+         IF(TCOFY(I,J,K).NE.0.D0) THEN
+
+            RHO = (FLDEN(I,J,K) + FLDEN(I,J-1,K))*.5D0
+            DUM = TCOFY(I,J,K)*DTVIS*RHO
+            DY = DUM
+            DGY = DUM*(PRES(I,J,K)-PRES(I,J-1,K)-GRAV*RHO*
+     &         (DEPTH(I,J,K)-DEPTH(I,J-1,K)))
+
+            IF (KEYOUT(I,J,K).EQ.1) THEN
+               COF(I,J,K,1)= COF(I,J,K,1) + DY
+               COF(I,J,K,4) = -DY
+               RESID(I,J,K)=RESID(I,J,K) - DGY
+            ENDIF
+            IF (KEYOUT(I,J-1,K).EQ.1) THEN
+               COF(I,J-1,K,1)= COF(I,J-1,K,1) + DY
+               COF(I,J-1,K,5) = -DY
+               RESID(I,J-1,K)=RESID(I,J-1,K) + DGY
+            ENDIF
+
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+C EDGES WITH NORMALS IN Z-DIRECTION
+
+      DO K=KL1,KL2+1
+       IF(K.EQ.KL1)THEN
+        JL1=JL1V(K)
+        JL2=JL2V(K)
+       ELSE IF(K.LT.KL2+1)THEN
+        JL1=MIN(JL1V(K-1),JL1V(K))
+        JL2=MAX(JL2V(K-1),JL2V(K))
+       ELSE
+        JL1=JL1V(KL2)
+        JL2=JL2V(KL2)
+       ENDIF
+       DO J=JL1,JL2
+        DO I=IL1,IL2
+         IF(TCOFZ(I,J,K).NE.0.D0) THEN
+
+            RHO= (FLDEN(I,J,K) + FLDEN(I,J,K-1))*.5D0
+            DUM = TCOFZ(I,J,K)*DTVIS*RHO
+            DZ = DUM
+            DGZ = DUM*(PRES(I,J,K)-PRES(I,J,K-1)-GRAV*RHO*
+     &         (DEPTH(I,J,K)-DEPTH(I,J,K-1)))
+
+            IF (KEYOUT(I,J,K).EQ.1) THEN
+               COF(I,J,K,1)= COF(I,J,K,1) + DZ
+               COF(I,J,K,6) = -DZ
+               RESID(I,J,K)=RESID(I,J,K) - DGZ
+            ENDIF
+            IF (KEYOUT(I,J,K-1).EQ.1) THEN
+               COF(I,J,K-1,1)= COF(I,J,K-1,1) + DZ
+               COF(I,J,K-1,7) = -DZ
+               RESID(I,J,K-1)=RESID(I,J,K-1) + DGZ
+            ENDIF
+
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+cgp dbg
+      IF (DBG) THEN
+        WRITE(0,*)
+        WRITE(0,'(2(A,I2),A)')'------------- NSTEP ',NSTEP,' NEWT',NEWT,
+     &                        ': TTRAN -------------'
+c        PAUSE
+        DO K = KL1,KL2
+        DO J = JL1V(K),JL2V(K)
+        DO I = IL1,IL2
+           IF (KEYOUT(I,J,K)==0) CYCLE
+           WRITE(0,'(A,3I3,3X,E23.15)')'I,J,K,RESID',I,J,K,RESID(I,J,K)
+           WRITE(0,*)'COF',COF(I,J,K,1:$NUMCOF)
+c           PAUSE
+        ENDDO
+        ENDDO
+        ENDDO
+        PAUSE
+      ENDIF
+cgp dbg
+
+
+      END
+C*********************************************************************
+      SUBROUTINE TUPPRES(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,
+     &              KL1,KL2,KEYOUT,NBLK,DUNK,PRES)
+C*********************************************************************
+
+C  Single phse flow model: update pressure
+
+C  DUNK(I,J,K) = LINEAR SOLUTION (INPUT, REAL*8)
+
+C  PRES(I,J,K) = FLUID PRESSURE, PSI (INPUT AND OUTPUT, REAL*8)
+C*********************************************************************
+      IMPLICIT NONE
+      INTEGER IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V(KDIM),JL2V(KDIM),
+     &        KL1,KL2,KEYOUT(IDIM,JDIM,KDIM),NBLK
+
+      REAL*8 PRES(IDIM,JDIM,KDIM)
+      REAL*8 DUNK(IDIM,JDIM,KDIM,1)
+      INTEGER I,J,K
+
+cgp dbg
+      INCLUDE 'control.h'
+      LOGICAL DBG
+      DATA DBG /.FALSE./
+  
+      IF (DBG) THEN
+        WRITE(0,*)
+        WRITE(0,'(2(A,I2),A)')'------------- NSTEP ',NSTEP,' NEWT',NEWT,
+     &                        ': TUPPRES -------------'
+c         PAUSE
+      ENDIF
+cgp dbg 
+
+      DO K = KL1,KL2
+       DO J = JL1V(K),JL2V(K)
+        DO I = IL1,IL2
+         IF(KEYOUT(I,J,K).EQ.1) THEN
+cgp dbg 
+            IF (DBG) THEN
+               WRITE(0,'(A,3I3,3(3X,A,E23.15))')'I,J,K',I,J,K,
+     &                 'PRES',PRES(I,J,K),'DUNK',DUNK(I,J,K,1),
+     &                 'PRES+',PRES(I,J,K)+DUNK(I,J,K,1)
+            ENDIF
+cgp dbg 
+            PRES(I,J,K) = PRES(I,J,K) + DUNK(I,J,K,1)
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+      IF (DBG) PAUSE
+ 
+      END
+
+C***********************************************************************
+      SUBROUTINE TMAXRESID (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &                 KL2,KEYOUT,NBLK,RESID)
+C*********************************************************************
+
+C  ROUTINE PICKS OUT LOCAL MAXIMUM RESIDUALS AND TOTALS RESIDUALS.
+C  THIS IS A WORK ROUTINE.
+
+C  RESID(I,J,K)= RESIDUALS (INPUT, REAL*8)
+
+C  NOTE:  RESULTS ARE PUT IN COMMON /TBALDAT/
+C***********************************************************************
+      INCLUDE 'tbaldat.h'
+
+      INTEGER  JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 RESID(IDIM,JDIM,KDIM),    R
+
+      DO 1 K=KL1,KL2
+      JL1=JL1V(K)
+      JL2=JL2V(K)
+      DO 1 J=JL1,JL2
+      DO 1 I=IL1,IL2
+      IF (KEYOUT(I,J,K).EQ.1) THEN
+         R=RESID(I,J,K)
+         RESIDT=RESIDT+R
+         IF (ABS(R).GT.RESIDM) THEN
+            IRM1=I
+            JRM1=J
+            KRM1=K
+            RMA1=R
+            RESIDM=ABS(R)
+         ENDIF
+      ENDIF
+    1 CONTINUE
+
+      END
+C*******************************************************************
+      SUBROUTINE TBUGOUT (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &           KEYOUT,NBLK,POR,PRES,FLDEN,COF,RESID,TCOFX,TCOFY,TCOFZ)
+C*********************************************************************
+
+C  ROUTINE OUTPUT DEBUG DATA.  THIS IS A WORK ROUTINE.
+
+C  POR(I,J,K)   = PORE VOLUME (INPUT, REAL*4)
+C  PRES(I,J,K)  = FLUID PRESSURE, PSI (INPUT, REAL*8)
+C  FLDEN(I,J,K) = FLUID DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  COF(I,J,K,N) = MATRIX COEFFICIENTS (INPUT, REAL*4)
+C  RESID(I,J,K) = RESIDUALS (INPUT, REAL*8)
+C  TCOFX(I,J,K) = TRANSMISSABILITY CONSTANT (INPUT, REAL*8)
+C  TCOFY(I,J,K)
+C  TCOFZ(I,J,K)
+
+C***********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'rock.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'tfluidsc.h'
+      INCLUDE 'tbaldat.h'
+
+      INTEGER  JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*4 COF(IDIM,JDIM,KDIM,7), POR(IDIM,JDIM,KDIM)
+      REAL*8 FLDEN(IDIM,JDIM,KDIM), PRES(IDIM,JDIM,KDIM)
+      REAL*8 RESID(IDIM,JDIM,KDIM)
+      REAL*8 TCOFX(IDIM,JDIM,KDIM), TCOFY(IDIM,JDIM,KDIM),
+     &       TCOFZ(IDIM,JDIM,KDIM)
+
+c------------------------------------------------------------
+
+      CALL OPENBUG()
+      IF (.NOT.BUGOPEN) RETURN
+
+      WRITE (NFBUG,1) TIM,DELTIM,CURRENT
+    1 FORMAT(/' DEBUG OUTPUT AT TIME =',F10.4,', DELTIM =',F10.5/
+     & ' TOTAL WATER =',G16.8)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+
+      WRITE(NFBUG,16) IL1,IL2,JL1V(KL2),JL2V(KL2),KL1,KL2,IOFF,JOFF,KOFF
+   16 FORMAT(' PROC 0: IL1',I4,', IL2',I4,', JL1(KL2)',I4,', JL2(KL2)',
+     & I4,', KL1',I4,', KL2',I4/' IOFF',I4,', JOFF',I4,', KOFF',I4)
+
+      IO=(IL1+IL2)/2
+
+      DO 10 LL=1,3
+      IF (LL.EQ.1) THEN
+         KO=KL1
+         JO=JL1V(KO)
+      ELSE
+         IF (LL.EQ.2) THEN
+            KO=(KL1+KL2)/2
+            IF (NUMPRC.EQ.1) THEN
+               JO=(JL1V(KO)+JL2V(KO))/2
+            ELSE
+               JO=JL2V(KO)
+            ENDIF
+         ELSE
+            KO=KL2
+            JO=JL2V(KO)
+         ENDIF
+      ENDIF
+      IF (KEYOUT(IO,JO,KO).NE.1) GO TO 10
+
+      WRITE (NFBUG,11) IO+IOFF,JO+JOFF,KO+KOFF
+   11 FORMAT(/' I LOCATION=',I5,', J LOCATION =',I5,', K LOCATION =',I5)
+
+      DO L=1,7
+
+      WRITE (NFBUG,3) L,COF(IO,JO,KO,L)
+    3  FORMAT (' COF(I,J,K,',I2,')',T22,G16.7)
+      ENDDO
+
+      WRITE (NFBUG,5) RESID(IO,JO,KO)
+    5 FORMAT (' RESID(I,J,K)',T22,G17.9)
+
+      WRITE (NFBUG,12) TCOFX(IO,JO,KO),TCOFX(IO+1,JO,KO)
+   12 FORMAT (' TCOFX(I,J,K)',T22,G17.9,', TCOFX(I+1,J,K)',G17.9)
+
+      WRITE (NFBUG,8) TCOFY(IO,JO,KO),TCOFY(IO,JO+1,KO)
+    8 FORMAT (' TCOFY(I,J,K)',T22,G17.9,', TCOFY(I,J+1,K)',G17.9)
+
+      WRITE (NFBUG,9) TCOFZ(IO,JO,KO),TCOFZ(IO,JO,KO+1)
+    9 FORMAT (' TCOFZ(I,J,K)',T22,G17.9,', TCOFZ(I,J,K+1)',G17.9)
+
+      WRITE (NFBUG,14) PRES(IO,JO,KO)
+   14 FORMAT (' PRES(I,J,K)',T22,G17.9)
+
+   10 CONTINUE
+
+      END
+
+C********************************************************************
+      SUBROUTINE TVEL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                KEYOUT,NBLK,TCOFX,TCOFY,TCOFZ,DEPTH,DEN,
+     &                PRES,VX,VY,VZ)
+C********************************************************************
+
+C  TCOFX(I,J,K) = X TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+C  TCOFY(I,J,K) = Y TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+C  TCOFZ(I,J,K) = Z TRANSMISSABILITY CONSTANT, CU-FT CP / PSI DAY
+C                 (INPUT, REAL*8)
+C  DEPTH(I,J,K) = ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+C  DEN(I,J,K) = FLUID DENSITY, LB/CU-FT (INPUT, REAL*8)
+C  PRES(I,J,K) = FLUID PRESSURE, PSI (INPUT, REAL*8)
+C
+C  VX(I,J,K) = X-DIRN VELOCITY (FLOW RATE), CU-FT/DAY
+C                   (OUTPUT, REAL*8)
+C  VY(I,J,K) = Y-DIRN VELOCITY (FLOW RATE), CU-FT/DAY
+C                   (OUTPUT, REAL*8)
+C  VZ(I,J,K) = Z-DIRN VELOCITY (FLOW RATE), CU-FT/DAY
+C                   (OUTPUT, REAL*8)
+C*********************************************************************
+      IMPLICIT NONE
+
+$POWER       include 'msjunk.h'
+
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'tfluidsc.h'
+
+      INTEGER I, J, K, IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IDIM, JDIM, KDIM, LDIM, NBLK
+      REAL*8 RHO
+      REAL*8 DPX, DPY, DPZ,DX,DY,DZ
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 TCOFX(IDIM,JDIM,KDIM),     TCOFY(IDIM,JDIM,KDIM),
+     &       TCOFZ(IDIM,JDIM,KDIM),     DEPTH(IDIM,JDIM,KDIM),
+     &       PRES(IDIM,JDIM,KDIM),      DEN(IDIM,JDIM,KDIM)
+
+      INTEGER IOFF,JOFF,KOFF,IERR
+      REAL*8 VX(IDIM,JDIM,KDIM), VY(IDIM,JDIM,KDIM),
+     &       VZ(IDIM,JDIM,KDIM)
+
+c ----------------------------------------------------------
+C COMPUTE THE X DIRECTION VELOCITIES (FLOW RATES, CU-FT/DAY)
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,IERR)
+      IF(IERR.NE.0) RETURN
+
+      DO K=KL1,KL2
+       JL1=JL1V(K)
+       JL2=JL2V(K)
+       DO J=JL1,JL2
+         DO I=IL1,IL2+1
+         IF(TCOFX(I,J,K).EQ.0.D0) THEN
+            VX(I,J,K) = 0.0
+         ELSE
+
+            DY=DYREC(J+JOFF,NBLK)
+            DZ=DZREC(K+KOFF,NBLK)
+
+            RHO = (DEN(I-1,J,K) + DEN(I,J,K))/2.0
+            DPX = PRES(I,J,K)-PRES(I-1,J,K)
+     &           - RHO*GRAV*(DEPTH(I,J,K)-DEPTH(I-1,J,K))
+
+            VX(I,J,K) = -TCOFX(I,J,K)*DPX*RHO/(FLVIS*DY*DZ)
+
+ccccccccccccc mpesz test for andra
+c       if(i.eq.3.and.j.eq.3)
+c     &     write(*,*) nblk,' tVELx ',i,j,k,vx(i,j,k),
+c     & vx(i,j,k)*dy*dz/rho
+ccccccccccccc mpesz test for andra
+
+c            if(i+ioff.ge.40.and.i+ioff.le.69.and.j.gt.90)
+c     &           write(*,*) i+ioff,j+joff,k+koff,vx(i,j,k),
+c     &           tcofx(i,j,k),rho,dy,dz
+c     &           pres(i,j,k),pres(i-1,j,k),
+c     &           depth(i,j,k),depth(i-1,j,k)
+c     &           dpx
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+C COMPUTE THE Y DIRECTION VELOCITIES (FLOW RATES, CU-FT/DAY)
+
+      DO K=KL1,KL2
+       JL1=JL1V(K)
+       JL2=JL2V(K)
+       DO J=JL1,JL2+1
+        DO I=IL1,IL2
+         IF(TCOFY(I,J,K).EQ.0.D0) THEN
+            VY(I,J,K) = 0.0
+         ELSE
+
+            DX=DXREC(I+IOFF,NBLK)
+            DZ=DZREC(K+KOFF,NBLK)
+
+            RHO = (DEN(I,J-1,K) + DEN(I,J,K))/2.0
+            DPY = PRES(I,J,K)-PRES(I,J-1,K)
+     &           - RHO*GRAV*(DEPTH(I,J,K)-DEPTH(I,J-1,K))
+            VY(I,J,K) = -TCOFY(I,J,K)*DPY*RHO/(FLVIS*DX*DZ)
+
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+C COMPUTE THE Z DIRN VELOCITIES (FLOW RATES, CU-FT/DAY)
+
+      DO K=KL1,KL2+1
+       IF(K.EQ.KL1)THEN
+        JL1=JL1V(K)
+        JL2=JL2V(K)
+       ELSE IF(K.LT.KL2+1)THEN
+        JL1=MIN(JL1V(K-1),JL1V(K))
+        JL2=MAX(JL2V(K-1),JL2V(K))
+       ELSE
+        JL1=JL1V(KL2)
+        JL2=JL2V(KL2)
+       ENDIF
+       DO J=JL1,JL2
+        DO I=IL1,IL2
+         IF(TCOFZ(I,J,K).EQ.0.D0) THEN
+            VZ(I,J,K) = 0.0
+         ELSE
+
+            DX=DXREC(I+IOFF,NBLK)
+            DY=DYREC(J+JOFF,NBLK)
+
+            RHO = (DEN(I,J,K-1) + DEN(I,J,K))/2.0
+            DPZ = PRES(I,J,K)-PRES(I,J,K-1)
+     &           - RHO*GRAV*(DEPTH(I,J,K)-DEPTH(I,J,K-1))
+            VZ(I,J,K) = -TCOFZ(I,J,K)*DPZ*RHO/(FLVIS*DY*DX)
+         ENDIF
+        ENDDO
+       ENDDO
+      ENDDO
+
+      END
+
+c ---------------------------------------------------------------
+      SUBROUTINE TVEL_EX()
+$POWER      INCLUDE 'msjunk.h'
+        INCLUDE 'blkary.h'
+        INCLUDE 'tarydat.h'
+
+      LOGICAL ONCEONLY
+      DATA ONCEONLY /.TRUE./
+      INTEGER IVEL(10)
+      DATA  IVEL /10*0/
+      EXTERNAL TVEL
+
+      IF(ONCEONLY) THEN
+         ONCEONLY = .FALSE.
+
+         IVEL(1) =9
+         IVEL(2) =N_TCOFX
+         IVEL(3) =N_TCOFY
+         IVEL(4) =N_TCOFZ
+         IVEL(5) =N_DEPTH
+         IVEL(6) =N_FLDEN
+         IVEL(7) =N_PRES
+         IVEL(8) =N_VX
+         IVEL(9) =N_VY
+         IVEL(10)=N_VZ
+
+      ENDIF
+
+      CALL CALLWORK(TVEL,IVEL)
+
+      END

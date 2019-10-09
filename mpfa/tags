@@ -1,0 +1,240 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.6	//
+1	impfa.df	/^    1 CONTINUE$/;"	l	subroutine:DOROCK2	file:
+1	impfa.df	/^    1 CONTINUE$/;"	l	subroutine:TRANC2	file:
+1	impfa.df	/^    1 CONTINUE$/;"	l	subroutine:WELLIJK2	file:
+1	impfa.df	/^    1 CONTINUE$/;"	l	subroutine:WELLIJK3	file:
+1	read3.df	/^    1 NAML=I$/;"	l	subroutine:GETVAL2	file:
+10	fcns.df	/^   10 continue$/;"	l	subroutine:QuadG27	file:
+10	fcns.df	/^ 10    FORMAT(I3, I6)$/;"	l	subroutine:PRINT1DI4	file:
+10	fcns.df	/^ 10    FORMAT(I3,E15.3)$/;"	l	subroutine:PRINT1D	file:
+10	mpfadual.df	/^ 10   CONTINUE$/;"	l	subroutine:DPropDebug6	file:
+100	buildmpfa.df	/^ 100  CONTINUE     $/;"	l	subroutine:COPYLTRAN	file:
+100	buildmpfa.df	/^ 100  CONTINUE$/;"	l	subroutine:CALCPERMINV	file:
+100	buildmpfa.df	/^ 100  CONTINUE$/;"	l	subroutine:CENTERJAC	file:
+100	buildmpfa.df	/^ 100  CONTINUE$/;"	l	subroutine:MAPTENSORQUAD	file:
+100	buildmpfa.df	/^ 100  CONTINUE$/;"	l	subroutine:MPFA_POR_REF	file:
+100	buildmpfa.df	/^ 100  CONTINUE$/;"	l	subroutine:MPFA_POR_VOL	file:
+100	buildmpfa.df	/^ 100  CONTINUE$/;"	l	subroutine:VELLOCALUPDATE	file:
+100	fcns.df	/^  100 continue$/;"	l	subroutine:CWCprint	file:
+100	fcns.df	/^  100 continue$/;"	l	subroutine:CWEPRINT	file:
+100	fcns.df	/^ 100  CONTINUE$/;"	l	subroutine:ScaMulMat	file:
+100	fcns.df	/^ 100  continue$/;"	l	function:Tri_AREA	file:
+100	fcns.df	/^ 100  continue$/;"	l	subroutine:JacMat	file:
+100	impfa.df	/^  100 continue$/;"	l	subroutine:getArea	file:
+100	impfa.df	/^ 100  CONTINUE$/;"	l	subroutine:calcFaces	file:
+100	impfa.df	/^ 100  continue$/;"	l	subroutine:updateFaces	file:
+100	impfa.df	/^ 100  enddo$/;"	l	subroutine:calcArea	file:
+100	impfa.df	/^ 100  enddo$/;"	l	subroutine:calcEVOL	file:
+100	mpfa_tran.df	/^ 100  CONTINUE$/;"	l	subroutine:STOREMATRIX	file:
+100	mpfadual.df	/^ 100    CONTINUE$/;"	l	subroutine:CALCMPFADUAL5	file:
+11	buildmpfa.df	/^ 11     CONTINUE$/;"	l	subroutine:CALCPERMINV	file:
+11	buildmpfa.df	/^ 11     CONTINUE$/;"	l	subroutine:MPFA_POR_VOL	file:
+11	buildmpfa.df	/^ 11   CONTINUE$/;"	l	subroutine:CALCFGRAV	file:
+11	impfa.df	/^ 11      continue$/;"	l	subroutine:calcArea	file:
+11	read3.df	/^   11 DO 35 I=1,NDMAX$/;"	l	subroutine:GETVAL2	file:
+110	mpfadual.df	/^ 110    FORMAT(A,5I5)$/;"	l	subroutine:CALCMPFADUAL5	file:
+12	buildmpfa.df	/^ 12     CONTINUE$/;"	l	subroutine:CALCPERMINV	file:
+13	read3.df	/^   13 E='INVALID ARRAY SYNTAX'$/;"	l	subroutine:GETVAL2	file:
+14	read3.df	/^   14 IF (A(L).EQ.RIGHT) THEN$/;"	l	subroutine:GETVAL2	file:
+15	read3.df	/^   15 IF (A(L).NE.BLANK.AND.A(L).NE.EQUAL) THEN$/;"	l	subroutine:GETVAL2	file:
+16	read3.df	/^   16 L=L+1$/;"	l	subroutine:GETVAL2	file:
+2	impfa.df	/^    2    CONTINUE$/;"	l	subroutine:DOROCK2	file:
+2	impfa.df	/^    2 CONTINUE$/;"	l	subroutine:TRANC2	file:
+2	impfa.df	/^    2 CONTINUE$/;"	l	subroutine:WELLIJK2	file:
+2	impfa.df	/^    2 CONTINUE$/;"	l	subroutine:WELLIJK3	file:
+2	read3.df	/^    2 L1=1$/;"	l	subroutine:GETVAL2	file:
+20	fcns.df	/^   20 continue$/;"	l	subroutine:QuadG27	file:
+20	read3.df	/^   20 NUMRET=NUMRET+1$/;"	l	subroutine:GETVAL2	file:
+200	buildmpfa.df	/^ 200  CONTINUE$/;"	l	subroutine:MAPTENSORQUAD	file:
+200	fcns.df	/^  200 continue$/;"	l	subroutine:CWCprint	file:
+200	fcns.df	/^  200 continue$/;"	l	subroutine:CWEPRINT	file:
+200	fcns.df	/^ 200  continue$/;"	l	subroutine:JacMat	file:
+200	impfa.df	/^ 200     CONTINUE$/;"	l	subroutine:calcFaces	file:
+200	impfa.df	/^ 200     continue$/;"	l	subroutine:updateFaces	file:
+200	impfa.df	/^ 200    continue$/;"	l	subroutine:calcVOLFACEdim	file:
+200	mpfadual.df	/^ 200    CONTINUE$/;"	l	subroutine:CALCMPFADUAL5	file:
+21	read3.df	/^   21 IF (NUMREP.EQ.0) LFILL=L$/;"	l	subroutine:GETVAL2	file:
+210	mpfadual.df	/^ 210    FORMAT(A,5I5)$/;"	l	subroutine:CALCMPFADUAL5	file:
+22	read3.df	/^   22 IF (LFILL.EQ.0) THEN$/;"	l	subroutine:GETVAL2	file:
+23	read3.df	/^   23 IF (NUMREP.GT.0) THEN$/;"	l	subroutine:GETVAL2	file:
+24	read3.df	/^   24 IF (NUMREP.EQ.0) LFILL=L$/;"	l	subroutine:GETVAL2	file:
+26	read3.df	/^   26 IF (NUMREP.GT.4) THEN$/;"	l	subroutine:GETVAL2	file:
+27	read3.df	/^   27 IF (SKIPIT) GO TO 20$/;"	l	subroutine:GETVAL2	file:
+28	read3.df	/^   28 IF (SKIPIT) GO TO 20$/;"	l	subroutine:GETVAL2	file:
+29	read3.df	/^   29    CONTINUE$/;"	l	subroutine:GETVAL2	file:
+3	impfa.df	/^    3       CONTINUE$/;"	l	subroutine:DOROCK2	file:
+3	impfa.df	/^    3 CONTINUE$/;"	l	subroutine:WELLIJK2	file:
+3	impfa.df	/^    3 CONTINUE$/;"	l	subroutine:WELLIJK3	file:
+3	impfa.df	/^    3 DUM1=DUM2$/;"	l	subroutine:TRANC2	file:
+3	read3.df	/^    3 CONTINUE$/;"	l	subroutine:GETVAL2	file:
+30	fcns.df	/^   30 continue$/;"	l	subroutine:QuadG27	file:
+30	read3.df	/^   30    E='RIGHT PARENTHESES FOR REPEAT FACTOR NOT FOUND'$/;"	l	subroutine:GETVAL2	file:
+300	buildmpfa.df	/^ 300  CONTINUE$/;"	l	subroutine:GETA	file:
+300	fcns.df	/^ 300  continue$/;"	l	subroutine:JacMat	file:
+31	read3.df	/^   31    CONTINUE$/;"	l	subroutine:GETVAL2	file:
+32	read3.df	/^   32    DO 33 I=1,5$/;"	l	subroutine:GETVAL2	file:
+33	read3.df	/^   33    CONTINUE$/;"	l	subroutine:GETVAL2	file:
+34	read3.df	/^   34 E='DATA SYNTAX ERROR'$/;"	l	subroutine:GETVAL2	file:
+35	read3.df	/^   35 CONTINUE$/;"	l	subroutine:GETVAL2	file:
+36	read3.df	/^   36 FORMAT(' ERROR 121, PROGRAM ERROR: TYPE ',A2,' FOR VARIABLE ',$/;"	l	subroutine:GETVAL2	file:
+38	read3.df	/^   38 IF (A(L).EQ.BLANK.OR.A(L).EQ.COMMA.OR.A(L).EQ.RIGHT) THEN$/;"	l	subroutine:GETVAL2	file:
+4	impfa.df	/^    4          FORMAT(' ERROR # 418, USER PROGRAM ERROR IN ROCKMOD')$/;"	l	subroutine:DOROCK2	file:
+4	impfa.df	/^    4 CONTINUE$/;"	l	subroutine:TRANC2	file:
+4	impfa.df	/^    4 CONTINUE$/;"	l	subroutine:WELLIJK2	file:
+4	impfa.df	/^    4 CONTINUE$/;"	l	subroutine:WELLIJK3	file:
+4	read3.df	/^    4    CONTINUE$/;"	l	subroutine:GETVAL2	file:
+40	fcns.df	/^   40 continue$/;"	l	subroutine:QuadG27	file:
+40	read3.df	/^   40 NN(3,I)=1$/;"	l	subroutine:GETVAL2	file:
+400	buildmpfa.df	/^ 400  CONTINUE$/;"	l	subroutine:GETB	file:
+41	read3.df	/^   41 E='INVALID SUBSCRIPT RANGE'$/;"	l	subroutine:GETVAL2	file:
+42	read3.df	/^ 42      CONTINUE$/;"	l	subroutine:GETVAL2	file:
+44	impfa.df	/^   44 CONTINUE$/;"	l	subroutine:WELLIJK3	file:
+45	read3.df	/^   45 IF (A(L).EQ.BLANK.OR.A(L).EQ.COMMA) THEN$/;"	l	subroutine:GETVAL2	file:
+5	impfa.df	/^    5 CONTINUE$/;"	l	subroutine:WELLIJK2	file:
+5	impfa.df	/^    5 CONTINUE$/;"	l	subroutine:WELLIJK3	file:
+5	impfa.df	/^    5 DUM1=DUM2$/;"	l	subroutine:TRANC2	file:
+5	read3.df	/^    5 DO 6 I=1,9$/;"	l	subroutine:GETVAL2	file:
+50	fcns.df	/^   50 continue$/;"	l	subroutine:BaTriLinG27	file:
+50	fcns.df	/^   50 continue$/;"	l	subroutine:QuadG27	file:
+50	impfa.df	/^ 50   continue$/;"	l	subroutine:calcArea	file:
+50	read3.df	/^   50 IF (I1.EQ.I2.OR.I1.EQ.I3.OR.I1.EQ.I4.OR.I2.EQ.I3.OR.I2.EQ.I4$/;"	l	subroutine:GETVAL2	file:
+6	impfa.df	/^    6 CONTINUE$/;"	l	subroutine:TRANC2	file:
+6	read3.df	/^    6 CONTINUE$/;"	l	subroutine:GETVAL2	file:
+7	impfa.df	/^    7 CONTINUE$/;"	l	subroutine:TRANC2	file:
+7	read3.df	/^    7 DO 40 I=1,4$/;"	l	subroutine:GETVAL2	file:
+8	impfa.df	/^    8 DUM1=DUM2$/;"	l	subroutine:TRANC2	file:
+90	read3.df	/^   90 IF (L-LV1.GT.65) THEN$/;"	l	subroutine:GETVAL2	file:
+91	read3.df	/^   91 M=M+1$/;"	l	subroutine:GETVAL2	file:
+92	read3.df	/^   92 CALL PUTERR(NER,E,A(NS),M,L-NS+1)$/;"	l	subroutine:GETVAL2	file:
+95	read3.df	/^   95 LQ=.TRUE.$/;"	l	subroutine:GETVAL2	file:
+96	read3.df	/^   96 CONTINUE$/;"	l	subroutine:GETVAL2	file:
+97	read3.df	/^   97 LQ=.TRUE.$/;"	l	subroutine:GETVAL2	file:
+98	read3.df	/^   98 NERR=NERR+1$/;"	l	subroutine:GETVAL2	file:
+99	fcns.df	/^   99 format(A20,2X,I4,2X,3(I4),2X,3(E12.3))$/;"	l	subroutine:CWCprint	file:
+99	mfarray.df	/^   99 RETURN$/;"	l	subroutine:MFARRAY	file:
+999	fcns.df	/^  999 format(A20,2X,I2,2X,3(I4),2X,27(E12.3))$/;"	l	subroutine:CWEPRINT	file:
+AddFace	impfa.df	/^      subroutine AddFace(/;"	s
+AddaxToby	fcns.df	/^      SUBROUTINE AddaxToby(/;"	s
+BCDIRICHLET	mpfaary.dh	/^      INTEGER BCNEUMANN,BCDIRICHLET,/;"	v
+BCNEUMANN	mpfaary.dh	/^      INTEGER BCNEUMANN,/;"	v
+BCNOFLOW	mpfaary.dh	/^      INTEGER BCNEUMANN,BCDIRICHLET,BCNOFLOW,/;"	v
+BCROBIN	mpfaary.dh	/^      INTEGER BCNEUMANN,BCDIRICHLET,BCNOFLOW,BCROBIN$/;"	v
+BUILDA	buildmpfa.df	/^      SUBROUTINE BUILDA(/;"	s
+BUILDB	buildmpfa.df	/^      SUBROUTINE BUILDB(/;"	s
+BUILDFGRAV	buildmpfa.df	/^      SUBROUTINE BUILDFGRAV(/;"	s
+BaTriLinG27	fcns.df	/^      subroutine BaTriLinG27(/;"	s
+BasisTrilin	fcns.df	/^      double precision function BasisTrilin(/;"	f
+CALCA	buildmpfa.df	/^      SUBROUTINE CALCA(/;"	s
+CALCAINVTRAN	impfa.df	/^      SUBROUTINE CALCAINVTRAN(/;"	s
+CALCFGRAV	buildmpfa.df	/^      SUBROUTINE CALCFGRAV(/;"	s
+CALCMPFADUAL5	mpfadual.df	/^      SUBROUTINE CALCMPFADUAL5(/;"	s
+CALCMPFADUAL6a	mpfadual.df	/^      SUBROUTINE CALCMPFADUAL6a(/;"	s
+CALCMPFADUAL6b	mpfadual.df	/^      SUBROUTINE CALCMPFADUAL6b(/;"	s
+CALCPERMINV	buildmpfa.df	/^      SUBROUTINE CALCPERMINV(/;"	s
+CALLWELLIJK3	impfa.df	/^      SUBROUTINE CALLWELLIJK3(/;"	s
+CENTERJAC	buildmpfa.df	/^      SUBROUTINE CENTERJAC(/;"	s
+COORD2PERM	buildmpfa.df	/^      SUBROUTINE COORD2PERM(/;"	s
+COPYARYR8	fcns.df	/^      SUBROUTINE COPYARYR8(/;"	s
+COPYLRHS	buildmpfa.df	/^      SUBROUTINE COPYLRHS(/;"	s
+COPYLTRAN	buildmpfa.df	/^      SUBROUTINE COPYLTRAN(/;"	s
+CWCprint	fcns.df	/^      subroutine CWCprint(/;"	s
+CWEPRINT	fcns.df	/^      subroutine CWEPRINT(/;"	s
+DEPTH3	impfa.df	/^      SUBROUTINE DEPTH3 /;"	s
+DNfromNeighbor	impfa.df	/^      subroutine DNfromNeighbor(/;"	s
+DNormalFaces	mpfadual.df	/^      SUBROUTINE DNormalFaces(/;"	s
+DOROCK2	impfa.df	/^      SUBROUTINE DOROCK2 /;"	s
+DO_INTF	mpfaary.dh	/^      LOGICAL DO_INTF$/;"	v
+DPropDebug6	mpfadual.df	/^      SUBROUTINE DPropDebug6(/;"	s
+DPropVTK	mpfadual.df	/^      SUBROUTINE DPropVTK(/;"	s
+DUALFACE	mpfaary.dh	/^      INTEGER IBCPRES,DUALFACE$/;"	v
+ELEIN	fcns.df	/^      logical function ELEIN(/;"	f
+ElementArea	impfa.df	/^      subroutine ElementArea(/;"	s
+FIXBC	mpfadual.df	/^      SUBROUTINE FIXBC(/;"	s
+GETA	buildmpfa.df	/^      SUBROUTINE GETA(/;"	s
+GETAINVTRAN	impfa.df	/^      SUBROUTINE GETAINVTRAN(/;"	s
+GETB	buildmpfa.df	/^      SUBROUTINE GETB(/;"	s
+GETCORNERLOCAL	buildmpfa.df	/^      SUBROUTINE GETCORNERLOCAL(/;"	s
+GETDOFINDEX	buildmpfa.df	/^      SUBROUTINE GETDOFINDEX(/;"	s
+GETFACECENTER	impfa.df	/^      SUBROUTINE GETFACECENTER(/;"	s
+GETFGRAV	buildmpfa.df	/^      SUBROUTINE GETFGRAV(/;"	s
+GETLOCALCOF	mpfa_tran.df	/^      SUBROUTINE GETLOCALCOF(/;"	s
+GETLOCALRES	mpfa_tran.df	/^      SUBROUTINE GETLOCALRES(/;"	s
+GETLOCALRHS	mpfa_tran.df	/^      SUBROUTINE GETLOCALRHS(/;"	s
+GETMATRHS	mpfa_tran.df	/^      SUBROUTINE GETMATRHS(/;"	s
+GETUPMOB	mpfa_tran.df	/^      SUBROUTINE GETUPMOB(/;"	s
+GETVAL2	read3.df	/^      SUBROUTINE GETVAL2 /;"	s
+GETVALS2	read3.df	/^      ENTRY GETVALS2 /;"	e	subroutine:GETVAL2
+GET_CLOSEST_PLANE	impfa.df	/^      SUBROUTINE GET_CLOSEST_PLANE(/;"	s
+GetCornerHexLF	mpfadual.df	/^      SUBROUTINE GetCornerHexLF(/;"	s
+IBCPRES	mpfaary.dh	/^      INTEGER IBCPRES,/;"	v
+INITARYI4	fcns.df	/^      SUBROUTINE INITARYI4(/;"	s
+INITARYR4	fcns.df	/^      SUBROUTINE INITARYR4(/;"	s
+INITARYR8	fcns.df	/^      SUBROUTINE INITARYR8(/;"	s
+INTERSECT_PLANE_LINE	impfa.df	/^      SUBROUTINE INTERSECT_PLANE_LINE(/;"	s
+JacMat	fcns.df	/^      subroutine JacMat(/;"	s
+MAPPING	fcns.df	/^      INTEGER FUNCTION MAPPING(/;"	f
+MAPTENSORQUAD	buildmpfa.df	/^      SUBROUTINE MAPTENSORQUAD(/;"	s
+MAP_TO_PLANE	impfa.df	/^      SUBROUTINE MAP_TO_PLANE(/;"	s
+MFARRAY	mfarray.df	/^      SUBROUTINE MFARRAY /;"	s
+MPFAARY	mpfaary.dh	6;"	c
+MPFABELSWNEW	mpfa_tran.df	/^      SUBROUTINE MPFABELSWNEW(/;"	s
+MPFA_COM2	mpfaary.dh	22;"	c
+MPFA_INIT	impfa.df	/^      SUBROUTINE MPFA_INIT(/;"	s
+MPFA_PERMINV	buildmpfa.df	/^      SUBROUTINE MPFA_PERMINV(/;"	s
+MPFA_POR_REF	buildmpfa.df	/^      SUBROUTINE MPFA_POR_REF(/;"	s
+MPFA_POR_VOL	buildmpfa.df	/^      SUBROUTINE MPFA_POR_VOL(/;"	s
+MPFA_SET_AINV_TRAN	impfa.df	/^      SUBROUTINE MPFA_SET_AINV_TRAN(/;"	s
+MatTranTo	fcns.df	/^      subroutine MatTranTo(/;"	s
+N_AINV	mpfaary.dh	/^     &       ,N_PERMINV,N_TRAN,N_AINV$/;"	v
+N_FAREA	mpfaary.dh	/^     &       ,N_KCR,N_VPROP,N_VDIM,N_FPROP,N_FDIM,N_FAREA$/;"	v
+N_FDIM	mpfaary.dh	/^     &       ,N_KCR,N_VPROP,N_VDIM,N_FPROP,N_FDIM,/;"	v
+N_FPROP	mpfaary.dh	/^     &       ,N_KCR,N_VPROP,N_VDIM,N_FPROP,/;"	v
+N_KCR	mpfaary.dh	/^     &       ,N_KCR,/;"	v
+N_MPFAQU	mpfaary.dh	/^      INTEGER N_MPFAQU,/;"	v
+N_PERMINV	mpfaary.dh	/^     &       ,N_PERMINV,/;"	v
+N_TRAN	mpfaary.dh	/^     &       ,N_PERMINV,N_TRAN,/;"	v
+N_VDIM	mpfaary.dh	/^     &       ,N_KCR,N_VPROP,N_VDIM,/;"	v
+N_VPROP	mpfaary.dh	/^     &       ,N_KCR,N_VPROP,/;"	v
+N_XYPERM	mpfaary.dh	/^      INTEGER N_MPFAQU,N_XYPERM,/;"	v
+N_XZPERM	mpfaary.dh	/^      INTEGER N_MPFAQU,N_XYPERM,N_YZPERM,N_XZPERM$/;"	v
+N_YZPERM	mpfaary.dh	/^      INTEGER N_MPFAQU,N_XYPERM,N_YZPERM,/;"	v
+PERM2COORD	buildmpfa.df	/^      SUBROUTINE PERM2COORD(/;"	s
+PRINT1D	fcns.df	/^      SUBROUTINE PRINT1D(/;"	s
+PRINT1DI4	fcns.df	/^      SUBROUTINE PRINT1DI4(/;"	s
+PRINT2D	fcns.df	/^      SUBROUTINE PRINT2D(/;"	s
+PRINT3D	fcns.df	/^      SUBROUTINE PRINT3D(/;"	s
+PRINTSYSARY	fcns.df	/^      SUBROUTINE PRINTSYSARY(/;"	s
+QuadG27	fcns.df	/^      subroutine QuadG27(/;"	s
+SET_MFMFE_BRICKS	impfa.df	/^      SUBROUTINE SET_MFMFE_BRICKS(/;"	s
+STOREMATRIX	mpfa_tran.df	/^      SUBROUTINE STOREMATRIX(/;"	s
+STORERHS	mpfa_tran.df	/^      SUBROUTINE STORERHS(/;"	s
+STOREVEL	buildmpfa.df	/^      SUBROUTINE STOREVEL(/;"	s
+ScaMulMat	fcns.df	/^      SUBROUTINE ScaMulMat(/;"	s
+TRANC2	impfa.df	/^      SUBROUTINE TRANC2 /;"	s
+Tri_AREA	fcns.df	/^      real*8 function Tri_AREA(/;"	f
+UNPACK_MPFAVOLNEW	mpfa_tran.df	/^      SUBROUTINE UNPACK_MPFAVOLNEW(/;"	s
+UPDATE_MPFA_FRAMEWORK	buildmpfa.df	/^      SUBROUTINE UPDATE_MPFA_FRAMEWORK /;"	s
+VELLOCALUPDATE	buildmpfa.df	/^      SUBROUTINE VELLOCALUPDATE(/;"	s
+VolH	fcns.df	/^      real*8 function VolH(/;"	f
+WELLIJK2	impfa.df	/^      SUBROUTINE WELLIJK2 /;"	s
+WELLIJK3	impfa.df	/^      SUBROUTINE WELLIJK3 /;"	s
+calcArea	impfa.df	/^      subroutine calcArea(/;"	s
+calcEVOL	impfa.df	/^      subroutine calcEVOL(/;"	s
+calcFaces	impfa.df	/^      subroutine calcFaces(/;"	s
+calcMPFAcrProp	impfa.df	/^      subroutine calcMPFAcrProp(/;"	s
+calcMPFAdual3	mpfadual.df	/^      subroutine calcMPFAdual3(/;"	s
+calcVOLFACEdim	impfa.df	/^      subroutine calcVOLFACEdim(/;"	s
+detMat	fcns.df	/^      subroutine detMat(/;"	s
+getArea	impfa.df	/^      subroutine getArea(/;"	s
+getCornerHex	buildmpfa.df	/^      SUBROUTINE getCornerHex(/;"	s
+getCornerPInv	buildmpfa.df	/^      SUBROUTINE getCornerPInv(/;"	s
+getEYE	fcns.df	/^      SUBROUTINE getEYE(/;"	s
+getFacePropVal	impfa.df	/^      subroutine getFacePropVal$/;"	s
+tetraVol	fcns.df	/^      real*8 function tetraVol(/;"	f
+updateFaces	impfa.df	/^      subroutine updateFaces(/;"	s
+wrM0	fcns.df	/^      subroutine wrM0(/;"	s

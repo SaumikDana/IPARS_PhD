@@ -1,0 +1,5 @@
+C Fortran common block for Trilinos Solver
+
+      INTEGER N_COLGIDS
+      COMMON /TRILINOS/N_COLGIDS
+

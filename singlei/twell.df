@@ -1,0 +1,598 @@
+C  TWELL.F - IMPLICIT SINGLE PHASE MODEL WELL ROUTINES
+
+C  ROUTINES IN THIS MODULE:
+
+C SUBROUTINE TWELL    (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,DEPTH,PRES,FLDEN,COF,RESID)
+C SUBROUTINE TWELSUMS (IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+C                     KEYOUT,NBLK,DEPTH,PRES,FLDEN)
+C SUBROUTINE TWDATA   (NERR,KINP)
+C SUBROUTINE CLEARWELLS ()
+C SUBROUTINE PARALLWELLS()
+C SUBROUTINE TWELLOUTPUT()
+C SUBROUTINE WBDSP (DOBHP,D,P,H,W4,W5,W6,Q)
+
+C  CODE HISTORY:
+
+C  M.PESZYNSKA,      3/8/99  INITIAL VERSION
+C  JOHN WHEELER     4/03/99  IMPLICIT SINGLE PHASE MODEL
+C  JOHN WHEELER     6/27/01  IMPLICIT RATE WELLS
+
+C*********************************************************************
+      SUBROUTINE TWELL(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,KL2,
+     &                 KEYOUT,NBLK,DEPTH,PRES,FLDEN,COF,RESID)
+C*********************************************************************
+ 
+C  ROUTINE EVALUATES WELL CONTRIBUTIONS TO COEFFICIENTS AND RESIDUALS.
+C  THIS IS A WORK ROUTINE.
+
+C  DEPTH(I,J,K) = GRID ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+
+C  PRES(I,J,K) = FLUID PRESSURE, PSI (INPUT, REAL*8)
+C  FLDEN(I,J,K) = FLUID DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C  COF(I,J,K,L) = MATRIX COEFFICIENTS (INPUT AND OUTPUT, REAL*4)
+C  RESID(I,J,K)= RESIDUALS (INPUT AND OUTPUT, REAL*8)
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'tfluidsc.h'
+      INCLUDE 'tbaldat.h'
+$TRCHEM      include 'trmodel.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),    KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8 DEPTH(IDIM,JDIM,KDIM),     PRES(IDIM,JDIM,KDIM),
+     &       FLDEN(IDIM,JDIM,KDIM),     RESID(IDIM,JDIM,KDIM)
+      REAL*4 COF(IDIM,JDIM,KDIM,$NUMCOF)
+
+      REAL*8 TE,PQ,DPQ,DUB1,DUB2,DUB3,WBDEN,PWB,DNF,BHP,CVF,CDT,DFP,
+     &   WHL,WV4,WV5,WV6,DTOB,DTOE,BETA,GAMA
+      LOGICAL LK,LOCK($MXWELL)
+      DATA LOCK/$MXWELL*.FALSE./
+
+cgp dbg
+      LOGICAL DBG
+      DATA DBG /.FALSE./
+
+C bag8 - CVF = sq-ft cp / md psi day
+      CVF = CONV_FACTOR
+
+      IF((NHISUSE == 0).AND.(NSTEP < 1)) GO TO 9
+
+      IF (LEVELE.AND.BUGKEY(1)) WRITE (NFBUG,*)'PROC',MYPRC,
+     & ' ENTERING SUBROUTINE TWELL, OLD TAG =',MSGTAG($TMODEL+1)
+
+C  EVALUATE WELL TERMS AT TIME N + 1
+
+      TE=TIM+DELTIM
+    9 IF((NHISUSE == 0).AND.(NSTEP < 1)) TE=TIM
+      CDT=CVF*DELTIM/FLVIS
+
+C  GET LOCAL TO GLOBAL INDEX OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  LOOP OVER THE WELLS
+
+      DO 101 IW=1,NUMWEL
+      IF (MODWEL(IW).NE.MODACT
+$TRCHEM     & .AND.MODACT.NE.FLOWMODEL
+     &   ) GO TO 101
+      LK = .TRUE.
+      WV4=WELVEC(4,IW)
+      WV5=WELVEC(5,IW)
+      WV6=WELVEC(6,IW)
+
+C  LOOP OVER THE WELL ELEMENTS IN WELL IW
+
+      DO 102 L=1,NUMELE(IW)
+      IF (LOCWEL(6,L,IW).EQ.MYPRC.AND.LOCWEL(1,L,IW).EQ.NBLK) THEN
+
+C  START CALCULATIONS MADE ONCE PER WELL
+
+         IF (LK) THEN
+            LK=.FALSE.
+        
+            CALL LOOKUP(NTABPQ(IW),TE,PQ,DPQ)
+            IF (PQ.EQ.0.D0) GO TO 101
+            WHL=.5D0*GRAV*(DEPTOP(IW)-DEPBOT(IW))
+
+            IF (KWELL(IW).LT.31) THEN
+               GO TO (101,1,2),KWELL(IW)+1
+            ELSE
+               GO TO (31,32),KWELL(IW)-30
+            ENDIF
+            GO TO 101
+               
+C  INJECTION WELL, PRESSURE SPECIFIED (TYPE 1)
+                 
+    1       BHP=PQ
+            WELBHP(IW)=PQ
+            IF (WELDEN(IW).LE.0.D0) WELDEN(IW)=WV4/WELVEC(1,IW)
+            CALL WBDSP(.FALSE.,WELDEN(IW),BHP,WHL,WV4,WV5,WV6,PQ)
+            WBDEN=WELDEN(IW)
+            DUB1=WV4*BHP+WV5*WBDEN-WV6
+            IF (NEWT.LT.4.OR.DUB1.LT.0.D0) QFLOC(IW)=DUB1
+            GO TO 103
+
+C  INJECTION WELL, MASS RATE SPECIFIED (TYPE 2)
+
+    2       QFLOC(IW)=PQ
+            IF (WELDEN(IW).LE.0.D0) THEN
+               WELDEN(IW)=WV4/WELVEC(1,IW)
+               WELBHP(IW)=(PQ-WV5*WELDEN(IW)+WV6)/WV4
+            ENDIF
+            CALL WBDSP(.TRUE.,WELDEN(IW),WELBHP(IW),WHL,WV4,WV5,WV6,PQ)
+            WBDEN=WELDEN(IW)
+            BHP=WELBHP(IW)
+
+            IF (NEWT.EQ.1) LOCK(IW)=.FALSE.
+            IF (LOCK(IW)) GO TO 221
+
+            DUB2=0.D0
+            DO 222 LL=1,NUMELE(IW)
+            I=LOCWEL(3,LL,IW)-IOFF
+            J=LOCWEL(4,LL,IW)-JOFF
+            K=LOCWEL(5,LL,IW)-KOFF
+            DFN=FLDEN(I,J,K)
+            PWB=BHP+WBDEN*GRAV*(ELEDEP(LL,IW)-DEPBOT(IW))
+            DFP=PWB-PRES(I,J,K)-GRAV*DFN*(ELEDEP(LL,IW)-DEPTH(I,J,K))
+            DUB3=CDT*ELECONS(LL,IW)*DFN*DFP
+            DUB2=DUB2+(DUB3-ELERATE(LL,IW))**2
+  222       ELERATE(LL,IW)=DUB3
+            DUB2=SQRT(DUB2/NUMELE(IW))
+            IF (DUB2.LT..02D0*PQ) LOCK(IW)=.TRUE.
+
+  221       QRESID(IW)=0.D0
+            DRESID(IW)=0.D0
+            DCOFN(1,IW)=-DELTIM*PQ*FLCMP/WBDEN
+            DCOFN(2,IW)=DELTIM*PQ*(1.D0/WBDEN-FLCMP*WHL)/WBDEN
+            QCOFN(1,IW)=-DELTIM*WV4
+            QCOFN(2,IW)=-DELTIM*WV5
+            GO TO 103
+               
+C  PRODUCTION WELL, PRESSURE SPECIFIED (TYPE 31)
+               
+   31       BHP=PQ
+            WELBHP(IW)=PQ
+            IF (WELDEN(IW).LE.0.D0) WELDEN(IW)=WV4/WELVEC(1,IW)
+            CALL WBDSP(.FALSE.,WELDEN(IW),WELBHP(IW),WHL,
+     &         WV4,WV5,WV6,-PQ)
+            WBDEN=WELDEN(IW)
+            DUB1=WV4*BHP+WV5*WBDEN-WV6
+            IF (NEWT.LT.4.OR.DUB1.GT.0.D0) QFLOC(IW)=DUB1
+            GO TO 103
+
+C  PRODUCTION WELLS, RATE SPECIFIED
+C  NOTE THAT THE RATE IS -PQ FOR ALL PRODUCTION RATES
+
+C  PRODUCTION, TOTAL MASS RATE SPECIFIED (TYPE 32)
+
+   32       KR=2
+            IF (WELDEN(IW).LE.0.D0) THEN
+               WELDEN(IW)=WV4/WELVEC(1,IW)
+               WELBHP(IW)=(WV6-WV5*WELDEN(IW)-PQ)/WV4
+            ENDIF
+            QFLOC(IW)=-PQ
+            GO TO 104
+
+C  GENERIC RATE SPECIFIED PRODUCTION WELL (TYPE 32)
+
+  104       CALL WBDSP(.TRUE.,WELDEN(IW),WELBHP(IW),WHL,WV4,WV5,WV6,-PQ)
+            WBDEN=WELDEN(IW)
+            BHP=WELBHP(IW)
+
+            IF (NEWT.EQ.1) LOCK(IW)=.FALSE.
+            IF (LOCK(IW)) GO TO 105
+
+            DUB2=0.D0
+            DO 124 LL=1,NUMELE(IW)
+            I=LOCWEL(3,LL,IW)-IOFF
+            J=LOCWEL(4,LL,IW)-JOFF
+            K=LOCWEL(5,LL,IW)-KOFF
+            DFN=FLDEN(I,J,K)
+            PWB=BHP+WBDEN*GRAV*(ELEDEP(LL,IW)-DEPBOT(IW))
+            DFP=PWB-PRES(I,J,K)-GRAV*DFN*(ELEDEP(LL,IW)-DEPTH(I,J,K))
+            DUB3=CDT*ELECONS(LL,IW)*DFN*DFP
+            DUB2=DUB2+(DUB3-ELERATE(LL,IW))**2
+  124       ELERATE(LL,IW)=DUB3
+            DUB2=SQRT(DUB2/NUMELE(IW))
+            IF (DUB2.LT..02D0*PQ) LOCK(IW)=.TRUE.
+
+  105       QRESID(IW)=0.D0
+            DRESID(IW)=0.D0
+            DCOFN(1,IW)=DELTIM*PQ*FLCMP/WBDEN
+            DCOFN(2,IW)=DELTIM*PQ*(FLCMP*WHL-1.D0/WBDEN)/WBDEN
+            QCOFN(1,IW)=-DELTIM*WV4
+            QCOFN(2,IW)=-DELTIM*WV5
+            GO TO 103
+
+C  END OF ONCE PER WELL CALCULATIONS
+
+  103       WELIPC(3,IW)=BHP
+
+         ENDIF
+
+C  SET LOCAL GRID INDEXES, TEST KEYOUT, AND SET SOME VARIABLES
+                 
+         I=LOCWEL(3,L,IW)-IOFF
+         J=LOCWEL(4,L,IW)-JOFF
+         K=LOCWEL(5,L,IW)-KOFF
+         IF (KEYOUT(I,J,K).LT.1) GO TO 102
+         DNF=FLDEN(I,J,K)
+         DTOB=GRAV*(ELEDEP(L,IW)-DEPBOT(IW))
+         DTOE=GRAV*(ELEDEP(L,IW)-DEPTH(I,J,K))
+         PWB=BHP+WBDEN*DTOB
+
+C  BRANCH ON WELL TYPE
+            
+         IF (KWELL(IW).LT.31) THEN
+            GO TO (101,201,202),KWELL(IW)+1
+         ELSE
+            GO TO (231,232),KWELL(IW)-30
+         ENDIF
+         GO TO 101
+           
+C  INJECTION WELL, PRESSURE SPECIFIED (TYPE 1)
+                                  
+  201    IF (QFLOC(IW).LE.0.D0) THEN
+cgp : warning
+           IF(L.EQ.1) WRITE(*,'(2(A,I2),A)')'Warning: Blk ',NBLK, 
+     &                     ' Inj Wel ',IW,' is shut-off'
+           GO TO 102
+         ENDIF
+         DFP=PWB-PRES(I,J,K)-DNF*DTOE
+         GAMA=CDT*ELECONS(L,IW)*DNF
+         BETA=GAMA*(FLCMP*(DFP-DNF*DTOE)-1.D0)
+         COF(I,J,K,1)=COF(I,J,K,1)-BETA
+         DUB2=GAMA*DFP
+         RESID(I,J,K)=RESID(I,J,K)+DUB2
+         WELIPC(1,IW)=WELIPC(1,IW)+DUB2
+$TRCHEM         VOLRATE(1,L,IW) = DUB2/DNF/DELTIM
+         GO TO 102
+
+C  INJECTION WELL, MASS RATE SPECIFIED (TYPE 2)
+
+  202    IF (QFLOC(IW).LE.0.D0) THEN
+cgp : warning
+           IF(L.EQ.1) WRITE(*,'(2(A,I2),A)')'Warning: Blk ',NBLK, 
+     &                     ' Inj Wel ',IW,' is shut-off'
+           GO TO 102
+         ENDIF
+         IF (LOCK(IW)) THEN
+            QCOFW(1,L,IW)=0.D0
+            VCOFQ(1,L,IW)=0.D0
+            VCOFD(1,L,IW)=0.D0
+$TRCHEM         VOLRATE(1,L,IW) = 0.0D0
+         ELSE
+            DFP=PWB-PRES(I,J,K)-DNF*DTOE
+            GAMA=CDT*ELECONS(L,IW)*DNF
+            BETA=GAMA*(FLCMP*(DFP-DNF*DTOE)-1.D0)
+            COF(I,J,K,1)=COF(I,J,K,1)-BETA
+            QCOFW(1,L,IW)=-BETA
+            VCOFQ(1,L,IW)=-GAMA
+            VCOFD(1,L,IW)=-GAMA*DTOB
+            ELERATE(L,IW)=GAMA*DFP
+$TRCHEM         VOLRATE(1,L,IW) = GAMA*DFP/DNF/DELTIM
+         ENDIF
+         DCOFW(1,L,IW)=0.D0
+         RESID(I,J,K)=RESID(I,J,K)+ELERATE(L,IW)
+         WELIPC(1,IW)=WELIPC(1,IW)+ELERATE(L,IW)
+         GO TO 102
+
+C  PRODUCTION WELL, BHP SPECIFIED (TYPE 31)
+
+  231    IF (QFLOC(IW).GE.0.D0) THEN
+cgp : warning
+           IF(L.EQ.1) WRITE(*,'(2(A,I2),A)')'Warning: Blk ',NBLK, 
+     &                     ' Prod Wel ',IW,' is shut-off'
+           GO TO 102
+         ENDIF
+         DFP=PWB-PRES(I,J,K)-DNF*DTOE
+         GAMA=CDT*ELECONS(L,IW)*DNF
+         BETA=GAMA*(FLCMP*(DFP-DNF*DTOE)-1.D0)
+         COF(I,J,K,1)=COF(I,J,K,1)-BETA
+         DUB2=GAMA*DFP
+         RESID(I,J,K)=RESID(I,J,K)+DUB2
+         WELIPC(2,IW)=WELIPC(2,IW)-DUB2
+$TRCHEM         VOLRATE(1,L,IW) = DUB2/DNF/DELTIM
+         GO TO 102
+
+C  PRODUCTION WELL, RATE SPECIFIED  (TYPE 32)
+
+  232    IF (QFLOC(IW).GE.0.D0) THEN
+cgp : warning
+           IF(L.EQ.1) WRITE(*,'(2(A,I2),A)')'Warning: Blk ',NBLK,
+     &                     ' Prod Wel ',IW,' is shut-off'
+           GO TO 102
+         ENDIF
+         IF (LOCK(IW)) THEN
+            QCOFW(1,L,IW)=0.D0
+            VCOFQ(1,L,IW)=0.D0
+            VCOFD(1,L,IW)=0.D0
+$TRCHEM         VOLRATE(1,L,IW) = 0.D0
+         ELSE
+            DFP=PWB-PRES(I,J,K)-DNF*DTOE
+            GAMA=CDT*ELECONS(L,IW)*DNF
+            BETA=GAMA*(FLCMP*(DFP-DNF*DTOE)-1.D0)
+            COF(I,J,K,1)=COF(I,J,K,1)-BETA
+            QCOFW(1,L,IW)=-BETA
+            VCOFQ(1,L,IW)=-GAMA
+            VCOFD(1,L,IW)=-GAMA*DTOB
+            ELERATE(L,IW)=GAMA*DFP
+$TRCHEM         VOLRATE(1,L,IW) = GAMA*DFP/DNF/DELTIM
+         ENDIF
+         DCOFW(1,L,IW)=0.D0
+         RESID(I,J,K)=RESID(I,J,K)+ELERATE(L,IW)
+         WELIPC(2,IW)=WELIPC(2,IW)-ELERATE(L,IW)
+         GO TO 102
+
+      ENDIF
+         
+  102 CONTINUE
+      IF((NHISUSE == 0).AND.(NSTEP < 1)) GO TO 101
+
+      IF (BUGKEY(8).AND.LEVELC) WRITE (NFBUG,106) NEWT,IW,BHP,WBDEN
+  106 FORMAT(' NEWT',I3,', WELL',I4,', BHP',F10.3,', WBDEN',F10.4)
+  101 CONTINUE
+
+cgp dbg
+      IF (DBG) THEN
+        WRITE(0,*)
+        WRITE(0,'(2(A,I2),A)')'------------- NSTEP ',NSTEP,' NEWT',NEWT,
+     &                        ': TWELL -------------'
+c        PAUSE
+        DO K = KL1,KL2
+        DO J = JL1V(K),JL2V(K)
+        DO I = IL1,IL2
+           IF (KEYOUT(I,J,K)==0) CYCLE
+           WRITE(0,'(A,3I3,3X,E23.15)')'I,J,K,RESID',I,J,K,RESID(I,J,K)
+           WRITE(0,*)'COF',COF(I,J,K,1:$NUMCOF)
+c           PAUSE
+        ENDDO
+        ENDDO
+        ENDDO
+        PAUSE
+      ENDIF
+cgp dbg
+
+      END
+C*********************************************************************
+      SUBROUTINE TWELSUMS(IDIM,JDIM,KDIM,LDIM,IL1,IL2,JL1V,JL2V,KL1,
+     &     KL2,KEYOUT,NBLK,DEPTH,PRES,FLDEN)
+C*********************************************************************
+ 
+C  ROUTINE EVALUATES SUMS REQUIRED FOR WELLBORE CALCULATIONS.
+
+C  DEPTH(I,J,K) = GRID ELEMENT CENTER DEPTH, FT (INPUT, REAL*8)
+C  PRES(I,J,K) = PRESSURE, PSI (INPUT, REAL*8)
+C  FLDEN(I,J,K) = DENSITY, LB/CU-FT (INPUT, REAL*8)
+
+C*********************************************************************
+$POWER      INCLUDE 'msjunk.h'
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'layout.h'
+
+      INCLUDE 'tfluidsc.h'
+      INCLUDE 'tbaldat.h'
+
+      INTEGER JL1V(KDIM),JL2V(KDIM),     KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  DEPTH(IDIM,JDIM,KDIM),     PRES(IDIM,JDIM,KDIM),
+     &        FLDEN(IDIM,JDIM,KDIM)
+
+      REAL*8 FAC,DEN,DD,DDG,P,CVF,CU
+
+C bag8 - CVF = sq-ft cp / md psi day
+      CVF = CONV_FACTOR
+
+      CU=CVF/FLVIS
+
+C  GET LOCAL TO GLOBAL INDEX OFFSETS
+
+      CALL BLKOFF(NBLK,IOFF,JOFF,KOFF,MERR)
+
+C  LOOP OVER THE WELLS FORMING SUMS
+
+      DO 1 IW=1,NUMWEL
+      IF (MODWEL(IW).NE.MODACT
+$TRCHEM     & .AND. MODACT.NE.FLOWMODEL
+     &   ) GO TO 1
+      DO 2 L=1,NUMELE(IW)
+      IF (LOCWEL(6,L,IW).EQ.MYPRC.AND.LOCWEL(1,L,IW).EQ.NBLK) THEN
+         I=LOCWEL(3,L,IW)-IOFF
+         J=LOCWEL(4,L,IW)-JOFF
+         K=LOCWEL(5,L,IW)-KOFF
+         IF (KEYOUT(I,J,K).GT.0) THEN
+            DD=GRAV*(ELEDEP(L,IW)-DEPBOT(IW))
+            DDG=GRAV*(ELEDEP(L,IW)-DEPTH(I,J,K))
+
+            FAC=CU*ELECONS(L,IW)
+            DEN=FLDEN(I,J,K)
+            P=FAC*(PRES(I,J,K)+DEN*DDG)
+            WELVEC(1,IW)=WELVEC(1,IW)+FAC
+            WELVEC(2,IW)=WELVEC(2,IW)+FAC*DD
+            WELVEC(3,IW)=WELVEC(3,IW)+P
+            WELVEC(4,IW)=WELVEC(4,IW)+FAC*DEN
+            WELVEC(5,IW)=WELVEC(5,IW)+FAC*DD*DEN
+            WELVEC(6,IW)=WELVEC(6,IW)+P*DEN
+         ENDIF
+      ENDIF
+    2 CONTINUE
+    1 CONTINUE
+
+      END
+C*********************************************************************
+      SUBROUTINE TWDATA (NERR,KINP)
+C*********************************************************************
+
+C  Inputs single phase flow model well data (both initial and transient)
+
+C  NERR = Error number stepped by 1 on error (input & output, INTEGER)
+
+C  KINP = Input type
+C       = 1 ==> initial data
+C       = 2 ==> transient data
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+
+      NERR=NERR
+
+      RETURN
+      END
+C*********************************************************************
+      SUBROUTINE CLEARWELLS ()
+C*********************************************************************
+      INCLUDE 'wells.h'
+      INCLUDE 'tbaldat.h'
+
+      DO N=1,NUMWEL
+         DO IV=1,6
+            WELVEC(IV,N)=0.D0
+         ENDDO
+         DO IV=1,3
+            WELIPC(IV,N)=0.D0
+         ENDDO
+      ENDDO
+
+      RETURN
+      END
+c---------------------------------------------------------
+      SUBROUTINE PARALLWELLS()
+c---------------------------------------------------------
+      INCLUDE 'wells.h'
+
+      INCLUDE 'tbaldat.h'
+
+$MANY      CALL TIMON(23)
+$MANY      DO IW=1,NUMWEL
+$MANY      IF (MODWEL(IW).EQ.MODACT
+$MANY$TRCHEM     &    .OR. MODACT.EQ.FLOWMODEL
+$MANY     &   ) CALL WELSUM(IW,6,WELVEC(1,IW))
+$MANY      ENDDO
+$MANY      CALL TIMOFF(23)
+
+      END
+c---------------------------------------------------------
+      SUBROUTINE TWELLOUTPUT()
+c---------------------------------------------------------
+C  UPDATE WELL DATA AND BALANCES AT END OF TIME STEP
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+      INCLUDE 'unitsex.h'
+
+      INCLUDE 'tbaldat.h'
+c----------------------------------------------------------
+c get all the data about fluid produced/injected
+c in all the wells from all the processors
+
+$MANY      CALL TIMON(23)
+$MANY      DO 101 N=1,NUMWEL
+$MANY         IF (MODWEL(N).EQ.MODACT
+$MANY$TRCHEM     &    .OR. MODACT.EQ.FLOWMODEL
+$MANY     &      ) CALL WELSUM(N,3,WELIPC(1,N))
+$MANY  101 CONTINUE
+$MANY      CALL WELGET(3,WELIPC)
+$MANY      CALL TIMOFF(23)
+
+c compute the total fluid injected and produced over this time step
+
+      IF (MYPRC.EQ.0) THEN
+         WELIS=0.D0
+
+         DO 102 N=1,NUMWEL
+         IF (MODWEL(N).NE.MODACT
+$TRCHEM     & .AND. MODACT.NE.FLOWMODEL
+     &      ) GO TO 1
+            
+            WELI(N)=WELI(N)+WELIPC(1,N)
+            WELP(N)=WELP(N)+WELIPC(2,N)
+            IF (KWELL(N).LT.31) THEN
+               GO TO (102,1,2),KWELL(N)+1
+            ELSE
+               GO TO (31,2),KWELL(N)-30
+            ENDIF
+            GO TO 102
+
+    1       CALL WELLOUT (N,1,WELIPC(1,N)*CVMWELL/DELTIM)
+            GO TO 103
+
+    2       CALL WELLOUT (N,7,WELIPC(3,N)*CVMPRES)
+            GO TO 103
+
+   31       CALL WELLOUT (N,3,WELIPC(2,N)*CVMWELL/DELTIM)
+            GO TO 103
+
+  103       WELIS=WELIS+WELIPC(1,N)-WELIPC(2,N)
+
+  102    CONTINUE
+         IF((NHISUSE == 0).AND.(NSTEP < 1)) RETURN
+
+         IF (BUGKEY(7)) THEN
+         DO 142 N=1,NUMWEL
+         IF (MODWEL(N).EQ.MODACT
+$TRCHEM     & .OR. MODACT.EQ.FLOWMODEL
+     &      ) WRITE (NFBUG,143) N,WELI(N),WELP(N)
+  142    CONTINUE
+  143    FORMAT(' WELL',I4,' QFLI=',G12.5,' QFLP=',G12.5)
+
+         ENDIF
+      ENDIF
+
+      END
+C*********************************************************************
+      SUBROUTINE WBDSP (DOBHP,D,P,H,W4,W5,W6,Q)
+C*********************************************************************
+
+C  Computes wellbore density and optionally bottom hole pressure when
+C  there is a single phase in the wellbore
+
+C  DOBHP = TRUE  ==> Calculate BHP (input, LOGICAL)
+C        = FALSE ==> BHP constant
+
+C  D = Wellbore density (input and output, REAL*8)
+
+C  P = Bottom-hole pressure (input and output, REAL*8)
+
+C  H = Gravity factor (input, REAL*8)
+
+C  W4,W5,W6 = Well sums (input, REAL*8) (DOBHP=TRUE)
+
+C  Q = Flow rate for rate specified wells (input, REAL*8) (DOBHP=TRUE)
+
+C*********************************************************************
+      INCLUDE 'control.h'
+      INCLUDE 'wells.h'
+
+      INCLUDE 'tfluidsc.h'
+
+      LOGICAL DOBHP
+      REAL*8 D,P,H,DUB1,DUB2,DUB3,FF,DFF,DN,W4,W5,W6,Q
+
+      IF (DOBHP) THEN
+         DUB2=(Q+W6)/W4
+         DUB3=H-W5/W4
+      ELSE
+         DUB2=P
+         DUB3=H
+      ENDIF
+
+      DO 1 II=1,10
+      DN=STFLDEN*EXP(FLCMP*(DUB2+DUB3*D))
+      FF=D-DN
+      DFF=1.D0-FLCMP*DN*DUB3
+      DUB1=FF/DFF
+      IF (DUB1.GT.3.D0) DUB1=3.D0
+      IF (DUB1.LT.-3.D0) DUB1=-3.D0
+      D=D-DUB1
+      IF (ABS(DUB1).LT.1.D-6*D) GO TO 2
+    1 CONTINUE
+    2 IF (DOBHP) P=(Q-W5*D+W6)/W4
+
+      END

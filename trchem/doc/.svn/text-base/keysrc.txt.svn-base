@@ -1,0 +1,70 @@
+$ Keywords, source code additions/changes/corrections in TRCHEM 
+$ in IPARSv3.1 (Dual approximation and EVMFEM are words used 
+$ interchangeably in what follows)
+
+$ Keywords:
+---------------
+
+Most same as in IPARSv2.1 except any reference to mortar. 
+All references to mortar here in IPARSv3.1 are currently 
+inconsequential since there is no mortar source and $MORTAR 
+is always the fortran comment "C"
+
+$ New files:
+---------------
+
+trdual.df     - Treatment of diffusion-dispersion and advection 
+                for each species when using non-matching multi-
+                block grids (somewhat analogous to the tdual.df 
+                for implicit single-phase flow model)
+
+$ Subroutines (and file in which definition appears)
+---------------
+
+TRDUALS       - Loads buffers for advection contribution for the 
+                dual approximation block interfaces (trdual.df)
+
+TRLODBUF      - Callwork subroutine called by TRDUALS (trdual.df)
+
+TRDUALR       - Receives buffers for advection contributions for 
+                the dual approximation block interfaces (trdual.df)
+
+TRRCVBUF      - Callwork subroutine called by TRDUALR (trdual.df)
+
+TRDUALJR      - Computes Jacobial and residual contributions for 
+                the dual approximation block interface for the 
+                diffusion-dispersion component of the transport 
+                problem (trdual.df)
+
+TRJRCAL       - Callwork subroutine called by TRDUALJR (trdual.df)
+
+TRDCSLP       - Subroutine to compute element slopes for advection 
+                of component concentration (or any other scalar 
+                variable) for use in the higher-order Godunov (HOG) 
+                scheme flux reconstruction (trdual.df)
+
+TRDCSLPW      - Callwork subroutine called by TRDCSLP (trdual.df)
+
+TRDADVECT     - Subroutine that actually performs advection across 
+                fault block interfaces (trdual.df)
+
+TRDADVW       - Callwork subroutine called by TRDADVECT (trdual.df)
+
+DUALDDTR      - Subroutine that allows for varying diffusion tensor 
+                with concentration (or with phase fluxes in case of
+                dispersion) (trdual.df)
+
+IFDDTRAN      - Subroutine computes interface transmissiblity for 
+                diffusion-dispersion, called by DUALDDTR (trdual.df)
+
+IFDDTRANW     - Callwork subroutine called by IFDDTRAN (trdual.df)
+
+IFGES8v2      - Subroutine to load and interface buffer from a REAL*8 
+                grid element array (trdual.df) 
+
+IFTOBUF8v2    - Callwork subroutine called by IFGES8v2 (trdual.df)
+
+Note: The treatment of HOG for advection is exactly similar to that  
+in IPARSv2.1 except there is no reference to mortars. All the 
+implementation is within trdual.df and calls to many of the above 
+subroutines emanate from trstep.df

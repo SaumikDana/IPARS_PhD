@@ -1,0 +1,189 @@
+// update.c - Parallel Memory Management Routines in C
+
+// HISTORY:
+
+// JOHN WHEELER        8/1/95   ORIGINAL BETA CODE
+// SUNIL G THOMAS    --/--/--   MODS FOR 32-64 BIT CONVERSION
+
+#include "memory.h"
+
+// ROUTINE DECLARATIONS
+
+FORTSUB $UPPERupdate$USAN (PINT4 arynum, PINT4 ktmp);
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+FORTSUB $UPPERupdate$USAN (PINT4 arynum, PINT4 ktmp)
+{
+// *******************************************************************
+
+// Updates the communication layer for 1 array.  Must be called only 
+// from executive routines.
+
+// arynum = Array number (input).
+
+// ktmp   = Template number (input).
+
+// *******************************************************************
+int na,nb,nb1,nb2;
+int nbp; 
+int one; 
+extern FORTSUB $CALLUPr4update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $CALLUPr8update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $CALLUPi2update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $CALLUPi4update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $CALLUPl2update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $CALLUPl4update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $CALLUPnoupdate$USAN(PINT4 bn,PINT4 iv1,PINT4 iv2);
+
+na = *arynum;
+one = 1;
+
+for (nb = 0; nb < numblks; nb++)
+   {
+   if (((*modact) == 0L) || ((*modact) == modblk[nb]) || 
+       ((*modact) == fmodblk[nb]))
+      {
+      nbp = nb + 1;
+      if (myelem[nb] > 0)
+         {
+         switch(aryfrm[na])
+            {
+            case 1:
+               $CALLUPr4update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),
+                  &(dimext[na]),&one,&(dimext[na]),&nbp,ktmp,aryadd[nb][na]);
+               break;
+
+            case 2:
+               $CALLUPr8update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),
+                  &(dimext[na]),&one,&(dimext[na]),&nbp,ktmp,aryadd[nb][na]);
+               break;
+
+            case 3:
+               $CALLUPi2update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),
+                  &(dimext[na]),&one,&(dimext[na]),&nbp,ktmp,aryadd[nb][na]);
+               break;
+
+            case 4:
+//             Trigger special processing for keyout update
+               if (na == 0) one = 0;
+               $CALLUPi4update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),
+                  &(dimext[na]),&one,&(dimext[na]),&nbp,ktmp,aryadd[nb][na]);
+               break;
+
+            case 5:
+               $CALLUPl2update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),
+                  &(dimext[na]),&one,&(dimext[na]),&nbp,ktmp,aryadd[nb][na]);
+               break;
+
+            case 6:
+               $CALLUPl4update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),
+                  &(dimext[na]),&one,&(dimext[na]),&nbp,ktmp,aryadd[nb][na]);
+               break;
+
+            default:
+               return;
+            }
+         }
+      else
+         $CALLUPnoupdate$USAN (&nbp,&one,&(dimext[na]));
+      }
+   }
+return;
+}
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+FORTSUB $UPPERupdater$USAN (PINT4 arynum, PINT4 iv1, PINT4 iv2, PINT4 ktmp)
+{
+// *******************************************************************
+
+// Updates the communication layer for 1 array.  Must be called from an
+// executive routine.  All fault blocks are updated.
+
+// arynum = Array number (input).
+
+// iv1,iv2 = Range of the fourth index to be updated (input).
+
+// ktmp   = Template number (input).
+
+// *******************************************************************
+int na,nb,nb1,nb2;
+int nbp;
+extern FORTSUB $UPPERr4update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $UPPERr8update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $UPPERi2update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $UPPERi4update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $UPPERl2update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $UPPERl4update$USAN(PINT4 id,PINT4 jd,PINT4 kd,PINT4 ld,PINT4 iv1,
+                        PINT4 iv2,PINT4 bn,PINT4 kt,PADD an);
+extern FORTSUB $UPPERnoupdate$USAN(PINT4 bn,PINT4 iv1,PINT4 iv2);
+na = *arynum;
+if ((na < 0) || (na >= numarys)) return;
+
+if (nbcw >= 0)
+   {
+   nb1 = nbcw;
+   nb2 = nbcw + 1;
+   }
+else
+   {
+   nb1 = 0;
+   nb2 = numblks;
+   }
+
+for (nb = nb1; nb < nb2; nb++)
+   {
+   nbp = nb + 1;
+   if (myelem[nb] > 0)
+      {
+      switch(aryfrm[na])
+         {
+         case 1:
+            $UPPERr4update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&(dimext[na]),
+               iv1,iv2,&nbp,ktmp,aryadd[nb][na]);
+            break;
+
+         case 2:
+            $UPPERr8update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&(dimext[na]),
+               iv1,iv2,&nbp,ktmp,aryadd[nb][na]);
+            break;
+
+         case 3:
+            $UPPERi2update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&(dimext[na]),
+               iv1,iv2,&nbp,ktmp,aryadd[nb][na]);
+            break;
+
+         case 4:
+            $UPPERi4update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&(dimext[na]),
+               iv1,iv2,&nbp,ktmp,aryadd[nb][na]);
+            break;
+
+         case 5:
+            $UPPERl2update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&(dimext[na]),
+               iv1,iv2,&nbp,ktmp,aryadd[nb][na]);
+            break;
+
+         case 6:
+            $UPPERl4update$USAN (&(idim[nb]),&(jdim[nb]),&(kdim[nb]),&(dimext[na]),
+               iv1,iv2,&nbp,ktmp,aryadd[nb][na]);
+            break;
+
+         default:
+            return;
+         }
+      }
+  else
+      $UPPERnoupdate$USAN (&nbp,iv1,iv2);
+   }
+return;
+}

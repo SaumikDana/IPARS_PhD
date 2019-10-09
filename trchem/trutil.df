@@ -1,0 +1,504 @@
+
+C
+C  SHUYU, 9/2000
+C
+C    SUBROUTINE PASTE_SIS 
+C=======================================================================
+C     INPUT:  
+C           1) STARTSTRING: CHARACTER STRING
+C           2) NUMBER:      INTEGER
+C           3) ENDSTRING:   CHARACTER STRING
+C     OUTPUT:
+C              OUTSTRING:   CHARACTER STRING
+C     INPUT/OUTPUT:
+C              NERR:        ERROR NUMBER
+C
+C     EXAMPLE: 
+C       CALL PASTE_SIS(OUT, 'TEACHER', 44, 'STUDENT', KE) 
+C         AFTER RETURN, OUT = 'TEACHER44STUDENT'
+C
+C     IF YOU DON'T WANT STARTSTRING OR ENDSTRING, JUST USE ''
+C     IN THE ENTRY.
+
+      SUBROUTINE PASTE_SIS (OUTSTRING, STARTSTRING, 
+     &         NUMBER, ENDSTRING, NERR)
+      IMPLICIT NONE
+      CHARACTER*(*) OUTSTRING, STARTSTRING, ENDSTRING
+      INTEGER NUMBER, NERR
+
+      INTEGER MAXDIGIT
+      PARAMETER (MAXDIGIT = 10)
+      CHARACTER NUMSTRING(MAXDIGIT), DATADIGITS(10)
+      INTEGER LENSTARTSTRING, LENENDSTRING, LENNUMSTRING
+      INTEGER I,J, NDIGIT(MAXDIGIT), NTEMP
+      
+      DATA DATADIGITS /'0','1','2','3','4','5','6','7','8','9'/
+
+
+C     INITIALIZE 
+      OUTSTRING = " "
+      NTEMP = NUMBER
+
+C     GET NDIGIT
+      DO I = 1, MAXDIGIT
+         NDIGIT(I) = NTEMP - NTEMP/10*10
+         NTEMP = NTEMP/10
+         IF (NTEMP.EQ.0) THEN
+            LENNUMSTRING = I
+            GOTO 1
+         ENDIF
+      ENDDO
+ 1    CONTINUE
+
+C     GET NUMSTRING
+      DO I = 1, LENNUMSTRING
+         DO J = 1, 10
+            IF (NDIGIT(LENNUMSTRING - I+1).EQ.(J-1))
+     &           NUMSTRING(I) = DATADIGITS(J)
+         ENDDO
+      ENDDO
+
+C     CHECK ERROR
+      LENSTARTSTRING = LEN(STARTSTRING)
+      LENENDSTRING = LEN(ENDSTRING)
+      IF(LEN(OUTSTRING).LT.
+     &	(LENSTARTSTRING+LENENDSTRING+LENNUMSTRING)) THEN
+         NERR = NERR+1
+         RETURN
+      ENDIF
+
+C     GET OUTSTRING
+      OUTSTRING(1:LENSTARTSTRING) = STARTSTRING(1:LENSTARTSTRING)
+      DO I = 1, LENNUMSTRING
+         OUTSTRING(LENSTARTSTRING+I:LENSTARTSTRING+I) = NUMSTRING(I) 
+      ENDDO
+      OUTSTRING(LENSTARTSTRING+LENNUMSTRING+1: 
+     &            LENSTARTSTRING+LENNUMSTRING+LENENDSTRING) =
+     &         ENDSTRING(1:LENENDSTRING)
+
+      RETURN
+
+      END
+
+C=======================================================================
+
+C    SUBROUTINE MERGE_SS
+C=======================================================================
+C    TO MERGE TWO STRINGS TOGETHER.
+C    NOTICE:  THE END MARD OF STRINGS IS ASSUMED TO BE EMPTY SPACE ` '.
+C      
+C     INPUT:
+C           1) STARTSTRING: CHARACTER STRING
+C           2) ENDSTRING:   CHARACTER STRING
+C     OUTPUT:
+C              OUTSTRING:   CHARACTER STRING
+C     INPUT/OUTPUT:
+C              NERR:        ERROR NUMBER
+C
+C     EXAMPLE:
+C       CALL MERGE_SS(OUT, 'OXYGEN ', '[LBM/CU-FT] ', KE)
+C         AFTER RETURN, OUT = 'OXYGEN[LBM/CU-FT] '
+C
+
+      SUBROUTINE MERGE_SS (OUTSTRING, STARTSTRING,
+     &         ENDSTRING, NERR)
+
+      CHARACTER*(*) OUTSTRING, STARTSTRING, ENDSTRING
+      INTEGER NERR
+
+      INTEGER LENSTARTSTRING, LENENDSTRING
+      INTEGER I1,I2
+
+      OUTSTRING=''
+      I1=INDEX(STARTSTRING,' ')-1
+      I2=INDEX(ENDSTRING,' ')-1
+      OUTSTRING(1:I1+I2+1)=STARTSTRING(1:I1)//ENDSTRING(1:I2)//' '
+
+      RETURN
+
+      END
+
+
+C=======================================================================
+
+C ----------------- AUXUALLARY  ECHO SUBROUTINE -----------------------
+
+      SUBROUTINE ECHOINTARRAYD1(TITLE, ARRAY, SIZE, NFILE)
+      IMPLICIT NONE
+      INTEGER I, SIZE, NFILE
+      INTEGER ARRAY(SIZE) 
+      CHARACTER*(*) TITLE
+      WRITE(NFILE,*)
+      WRITE(NFILE,*) " --------------- ", TITLE, " ------------------"
+      WRITE(NFILE,*) (ARRAY(I), I=1, SIZE)
+      RETURN
+      END
+
+      SUBROUTINE ECHOR8ARRAYD1(TITLE, ARRAY, SIZE, NFILE) 
+      IMPLICIT NONE
+      INTEGER I, SIZE, NFILE
+      REAL*8 ARRAY(SIZE) 
+      CHARACTER*(*) TITLE
+      WRITE(NFILE,*)
+      WRITE(NFILE,*) " --------------- ", TITLE, " ------------------"
+      WRITE(NFILE,*) (ARRAY(I), I=1, SIZE)
+      RETURN
+      END
+
+      SUBROUTINE ECHOR8ARRAYD2(TITLE, ARRAY, SIZE1, SIZE2, NFILE) 
+      IMPLICIT NONE
+      INTEGER I,J, SIZE1, SIZE2, NFILE
+      REAL*8 ARRAY(SIZE1, SIZE2) 
+      CHARACTER*(*) TITLE
+      WRITE(NFILE,*)
+      WRITE(NFILE,*) " --------------- ", TITLE, " ------------------"
+C      WRITE(NFILE,*) ((ARRAY(I,J), I=1, SIZE1), J=1, SIZE2)
+      DO J=1, SIZE2
+         WRITE(NFILE,*) " ARRAY(*,", J, ")="
+         WRITE(NFILE,*) (ARRAY(I,J), I=1, SIZE1)
+      ENDDO
+      RETURN
+      END
+
+      SUBROUTINE ECHOSTRINGARRAYD1(TITLE, ARRAY, SIZE, NFILE)
+      IMPLICIT NONE
+      INTEGER I, SIZE, NFILE
+      CHARACTER*(*) ARRAY(SIZE)
+      CHARACTER*(*) TITLE
+      WRITE(NFILE,*)
+      WRITE(NFILE,*) " --------------- ", TITLE, " ------------------"
+      DO I=1, SIZE
+         WRITE(NFILE,*) "ARRAY(",I,") = ", ARRAY(I)
+      ENDDO
+      RETURN
+      END
+
+C=======================================================================
+C    ECHO ALL THE CHEMICAL PARAMETERS AND VARIABLES FOR DEBUG PURPOSE
+
+      SUBROUTINE ECHOCHEMPARAMETERS(MOLES,
+     &     INITGUESS,NEWMOLES,ODEALGTYPE,RATES,AVGRATE,
+     &     REFRATE,EPSCONC,T0,DTTRANS,NTREACT,SWITCHENABLED,PIMULTI,
+     &     PIPURE,NRQ,NRK,NPRODUCTS,NPHASE,NS,NC,PHASEIDENTITY,
+     &     REACTIONTYPE,REACTIONTYPESAVE,NIPSIPARM,FORMULAMATRIX,V,
+     &     MU,RATECONST,RATEPOW,HALFSATCONST,COMPCHARGE,NIPSRPARM,
+     &     RWK,DIMRWK,IWK,DIMIWK,IDEBUGEQ,IDEBUG,DEBUGUNIT,
+     &     NTTAKEN,PEAKITER,CUMITER,IERROR,NIPSCPARM)
+
+      IMPLICIT NONE
+      INTEGER NPRODUCTS, NC, NS, PIMULTI, PIPURE, DIMRWK, DIMIWK
+C      PARAMETER (NPRODUCTS=3,  NC=4, NS=7, PIMULTI=3, PIPURE=1)
+C      PARAMETER (DIMRWK=1000, DIMIWK=1000)
+      REAL*8 MOLES(NS)
+      REAL*8 INITGUESS(NS)
+      REAL*8 NEWMOLES(NS)
+      INTEGER ODEALGTYPE
+      REAL*8 RATES(NPRODUCTS,4)
+      REAL*8 AVGRATE(NPRODUCTS)
+      REAL*8 REFRATE(NPRODUCTS)
+      REAL*8 EPSCONC
+      REAL*8 T0
+      REAL*8 DTTRANS
+      INTEGER NTREACT
+      LOGICAL SWITCHENABLED
+C      INTEGER PIMULTI_0
+C      INTEGER PIPURE_0
+      INTEGER NRQ
+      INTEGER NRK
+C      INTEGER NPRODUCTS_0
+      INTEGER NPHASE(PIMULTI+PIPURE)
+C      INTEGER NS_0
+C      INTEGER NC_0
+      INTEGER PHASEIDENTITY(NS)
+      INTEGER REACTIONTYPE(NPRODUCTS)
+      INTEGER REACTIONTYPESAVE(NPRODUCTS)
+      INTEGER NIPSIPARM(9)
+      REAL*8 FORMULAMATRIX(NC,NS)
+      REAL*8 V(NS,NPRODUCTS)
+      REAL*8 MU(NS)
+      REAL*8 RATECONST(NPRODUCTS,2)
+      REAL*8 RATEPOW(NPRODUCTS,NC)
+      REAL*8 HALFSATCONST(NC,NPRODUCTS)
+      REAL*8 COMPCHARGE(NC)
+      REAL*8 NIPSRPARM(6)
+      REAL*8 RWK(DIMRWK)
+C      INTEGER DIMRWK_0
+      INTEGER IWK(DIMIWK)
+C      INTEGER DIMIWK_0
+      INTEGER IDEBUGEQ
+      INTEGER IDEBUG
+      INTEGER DEBUGUNIT
+      INTEGER NTTAKEN
+      INTEGER PEAKITER
+      INTEGER CUMITER
+      INTEGER IERROR
+      CHARACTER*15 NIPSCPARM(11)
+
+C----------------------------------
+C     DECLARE OUTPUT FILE FOR ECHO CHEM INFO
+      INTEGER NF
+
+C     SET NF JUST BE THE SAME DEBUG OUTFILE USED BY CHEM ROUTINES
+      NF = DEBUGUNIT
+
+C---------------- START ECHO OUT STUFF
+
+C     WRITE(*,*) "=========== ENTER ECHOCHEMPARAMETERS ==========="
+
+      WRITE(NF,*) "==============================================="
+      WRITE(NF,*)
+      WRITE(NF,*) "            ECHO OF CHEM DATA                  "
+      WRITE(NF,*)
+      WRITE(NF,*) "==============================================="
+
+      CALL ECHOR8ARRAYD1("MOLES(NS)", MOLES, NS,NF)
+      CALL ECHOR8ARRAYD1("INITGUESS(NS)",INITGUESS,NS,NF)
+      CALL ECHOR8ARRAYD1("NEWMOLES(NS)",NEWMOLES,NS,NF)
+      WRITE(NF,*) " ODEALGTYPE = ", ODEALGTYPE
+      CALL ECHOR8ARRAYD2("RATES(NPRODUCTS,4)",RATES,NPRODUCTS,4,NF)
+      CALL ECHOR8ARRAYD1("AVGRATE(NPRODUCTS)",AVGRATE,NPRODUCTS,NF)
+      CALL ECHOR8ARRAYD1("REFRATE(NPRODUCTS)",REFRATE,NPRODUCTS,NF)
+      WRITE(NF,*) " EPSCONC = ", EPSCONC
+      WRITE(NF,*) " T0 = ", T0
+      WRITE(NF,*) " DTTRANS = ", DTTRANS
+      WRITE(NF,*) " NTREACT = ", NTREACT
+      WRITE(NF,*) " SWITCHENABLED = ", SWITCHENABLED
+      WRITE(NF,*) " PIMULTI = ", PIMULTI
+      WRITE(NF,*) " PIPURE = ", PIPURE
+      WRITE(NF,*) " NRQ = ", NRQ
+      WRITE(NF,*) " NRK = ", NRK
+      WRITE(NF,*) " NPRODUCTS = ", NPRODUCTS
+      CALL ECHOINTARRAYD1("NPHASE(PIMULTI+PIPURE)", NPHASE, 
+     &                    (PIMULTI+PIPURE) ,NF)
+      WRITE(NF,*) " NS = ", NS
+      WRITE(NF,*) " NC = ", NC
+      CALL ECHOINTARRAYD1("PHASEIDENTITY(NS)",PHASEIDENTITY,NS,NF)
+      CALL ECHOINTARRAYD1("REACTIONTYPE(NPRODUCTS)",REACTIONTYPE,
+     &                     NPRODUCTS,NF)
+      CALL ECHOINTARRAYD1("REACTIONTYPESAVE(NPRODUCTS)",
+     &                     REACTIONTYPESAVE, NPRODUCTS,NF)
+      CALL ECHOINTARRAYD1("NIPSIPARM(9)",NIPSIPARM,9,NF)
+      CALL ECHOR8ARRAYD2("FORMULAMATRIX(NC,NS)",FORMULAMATRIX,NC,NS,NF)
+      CALL ECHOR8ARRAYD2("V(NS,NPRODUCTS)", V,NS,NPRODUCTS,NF)
+      CALL ECHOR8ARRAYD1("MU(NS)", MU,NS,NF)
+      CALL ECHOR8ARRAYD2("RATECONST(NPRODUCTS,2)",RATECONST,
+     &                   NPRODUCTS,2,NF)
+      CALL ECHOR8ARRAYD2("RATEPOW(NC, NPRODUCTS)",RATEPOW,NC,
+     &                   NPRODUCTS,NF)
+      CALL ECHOR8ARRAYD2("HALFSATCONST(NC,NPRODUCTS)",
+     &                    HALFSATCONST,NC,NPRODUCTS,NF)
+      CALL ECHOR8ARRAYD1("COMPCHARGE(NC)", COMPCHARGE,NC,NF)
+      CALL ECHOR8ARRAYD1("NIPSRPARM(6)", NIPSRPARM,6,NF)
+      CALL ECHOR8ARRAYD1("RWK(DIMRWK)", RWK,DIMRWK,NF)
+      WRITE(NF,*) " DIMRWK = ", DIMRWK
+      CALL ECHOINTARRAYD1("IWK(DIMIWK)", IWK,DIMIWK,NF)
+      WRITE(NF,*) " DIMIWK = ", DIMIWK
+      WRITE(NF,*) " IDEBUGEQ = ", IDEBUGEQ
+      WRITE(NF,*) " IDEBUG = ", IDEBUG
+      WRITE(NF,*) " DEBUGUNIT = ", DEBUGUNIT
+      WRITE(NF,*) " NTTAKEN = ", NTTAKEN
+      WRITE(NF,*) " PEAKITER = ", PEAKITER
+      WRITE(NF,*) " CUMITER = ", CUMITER
+      WRITE(NF,*) " IERROR = ", IERROR
+      CALL ECHOSTRINGARRAYD1("NIPSCPARM(NS+PIMULTI+PIPURE)", 
+     &                   NIPSCPARM, NS+PIMULTI+PIPURE ,NF)
+      WRITE(NF,*) "==============================================="
+      WRITE(NF,*) "           END OF CHEM DATA ECHO               "
+      WRITE(NF,*) "==============================================="
+
+C     WRITE(*,*) "=========== END OF ECHOCHEMPARAMETERS =========="
+
+      RETURN
+      END
+
+C=======================================================================
+      SUBROUTINE TRCOMPBAL(NALPHA,FLAG)
+C=======================================================================
+C COMPUTES TOTAL MASS (?) OF SPECIES NALPHA USING PORE VOLUME /CAPACITY
+C FROM PREVIOUS TIME STEP (PHISN, AT FLAG=0) OR FROM CURRENT TIME STEP
+C (PHIS, AT FLAG=1).
+C THE TOTAL MASS VALUE IS COMPUTED IN CBAL_NEW(NALPHA)
+C=======================================================================
+      IMPLICIT NONE
+
+      INCLUDE 'trmodel.h'
+      INCLUDE 'trarydat.h'
+
+      INTEGER NALPHA, NERR,FLAG
+
+C SETUP FOR CALLWORK ROUTINE
+
+      INTEGER IADV(4)
+      EXTERNAL TRCOMPBALW
+C -----------------------------------------------------
+      IADV (1) = 3
+      IADV (2) = N_CONCARR (NALPHA)
+      IADV (3) = N_PHISN
+      IADV (4) = N_PHIS
+
+      IF(FLAG.EQ.OLD) THEN
+         CFAC = 0.0D0
+      ELSEIF(FLAG.EQ.NEW) THEN
+         CFAC = 1.0D0
+      ELSEIF(FLAG.EQ.MID) THEN
+         CFAC = 0.5D0
+      ELSE
+         STOP 'ERROR IN TRCOMPBAL: UNSUPPORTED INTERPOLATION FLAG!! '
+      ENDIF
+
+      CALPHA = NALPHA
+
+      CALL CALLWORK(TRCOMPBALW,IADV)
+
+      END
+
+C **************************************************************
+      SUBROUTINE TRCOMPBALW(IDIM,JDIM,KDIM,LDIM,
+     &     IL1,IL2,JL1V,JL2V,KL1,KL2,KEYOUT,NBLK,
+     &     CONC,PHISN,PHIS)
+C **************************************************************
+C CONC - CONCENTRATION OF SPECIES
+C PHIS - CAPACITY
+C **************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'layout.h'
+      INCLUDE 'trmodel.h'
+      INCLUDE 'trarydat.h'
+
+      INTEGER IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IDIM, JDIM, KDIM, LDIM, NBLK
+      
+      INTEGER JL1V(KDIM),JL2V(KDIM),   KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  CONC(IDIM,JDIM,KDIM), PHIS(IDIM,JDIM,KDIM),
+     &        PHISN(IDIM,JDIM,KDIM)
+
+      REAL*8 SUMC,TEMP
+
+      INTEGER I, J, K
+C ----------------------------------
+
+      SUMC = 0.0D0
+      TEMP = 0.0D0
+      DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+            DO I = IL1,IL2
+               IF (KEYOUT(I,J,K).EQ.1) THEN
+                  TEMP = PHISN(I,J,K) + CFAC*(PHIS(I,J,K)-PHISN(I,J,K))
+                  SUMC = SUMC + CONC(I,J,K)*TEMP
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+
+C UPDATE OVER ALL FAULTBLOCKS 
+
+      CBAL_NEW(CALPHA) = CBAL_NEW(CALPHA) + SUMC
+
+      END
+
+
+
+C=======================================================================
+      SUBROUTINE TRCOMPBAL_ROCK(NALPHA, FLAG)
+C=======================================================================
+C COMPUTES TOTAL MASS (IN LBMOL) OF SPECIES NALPHA  IN 
+C EACH ROCK SUBDOMAIN , WHICH WILL BE STORED IN CBAL_ROCK(NROCK,NALPHA)
+C USING PORE VOLUME /CAPACITY FROM PREVIOUS TIME STEP (PHISN, AT FLAG=0)
+C OR FROM CURRENT TIME STEP (PHIS, AT FLAG=1).
+C=======================================================================
+      IMPLICIT NONE
+
+      INCLUDE 'trmodel.h'
+      INCLUDE 'trarydat.h'
+      INCLUDE 'blkary.h'
+
+      INTEGER NALPHA, NERR,FLAG
+
+C SETUP FOR CALLWORK ROUTINE
+
+      INTEGER IADV(4)
+      EXTERNAL TRCOMPBAL_ROCK_W
+C -----------------------------------------------------
+      IADV (1) = 3
+      IADV (2) = N_CONCARR (NALPHA)
+
+      IF(FLAG.EQ.OLD) IADV (3) = N_PHISN
+      IF(FLAG.EQ.NEW) IADV (3) = N_PHIS
+
+      IADV (4) = N_ROCK
+
+      CALPHA = NALPHA
+
+      CALL CALLWORK(TRCOMPBAL_ROCK_W,IADV)
+
+      END
+
+
+
+C **************************************************************
+      SUBROUTINE TRCOMPBAL_ROCK_W(IDIM,JDIM,KDIM,LDIM,
+     &     IL1,IL2,JL1V,JL2V,KL1,KL2,KEYOUT,NBLK,
+     &     CONC,PHIS, ROCK )
+C **************************************************************
+C CONC - CONCENTRATION OF SPECIES
+C PHIS - CAPACITY
+C **************************************************************
+      IMPLICIT NONE
+      INCLUDE 'control.h'
+      INCLUDE 'trmodel.h'
+
+      INTEGER IL1, IL2, JL1, JL2, KL1, KL2
+      INTEGER IDIM, JDIM, KDIM, LDIM, NBLK
+      
+      INTEGER JL1V(KDIM),JL2V(KDIM),   KEYOUT(IDIM,JDIM,KDIM)
+      REAL*8  
+     &     CONC(IDIM,JDIM,KDIM), PHIS(IDIM,JDIM,KDIM)
+
+      INTEGER ROCK(IDIM,JDIM,KDIM)
+
+      REAL*8 SUMC($MXROCKTYPE)
+
+      INTEGER I, J, K, NR
+C ----------------------------------
+
+      DO NR = 1, NROCKTYPE
+      SUMC(NR) = 0.D0
+      DO K = KL1,KL2
+         DO J = JL1V(K),JL2V(K)
+            DO I = IL1,IL2
+               IF (KEYOUT(I,J,K).EQ.1) THEN
+
+C    DBG CHECK  -- TO TURN OFF AFTER DBG DONE
+               IF ((ROCK(I,J,K).GT.NROCKTYPE).
+     &             OR.(ROCK(I,J,K).LT.1))  THEN
+                  WRITE(*,*)  " ERROR:  ROCK_TYPE OUT OF RANGE"
+                  WRITE(*,*)  "   ROCK(",I,",",J,",",K,")=",
+     &                         ROCK(I,J,K)
+               ENDIF
+
+
+                  IF ( ROCK(I,J,K).EQ.NR )
+     &               SUMC(NR) = SUMC(NR) + CONC(I,J,K)*PHIS(I,J,K)
+
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+      ENDDO
+
+C UPDATE OVER ALL FAULTBLOCKS 
+
+      DO NR = 1, NROCKTYPE
+         CBAL_ROCK(NR, CALPHA) = CBAL_ROCK(NR, CALPHA) + SUMC(NR)
+      ENDDO
+
+      END
+
+
+
+
+
+
+
+

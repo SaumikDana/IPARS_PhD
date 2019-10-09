@@ -1,0 +1,179 @@
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/repos/csm/!svn/ver/625/IPARSv3.1/porohex
+END
+estdout.df
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/estdout.df
+END
+eidata.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/eidata.df
+END
+utility0.f90
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/584/IPARSv3.1/porohex/utility0.f90
+END
+crack_profile_setup.f90
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/repos/csm/!svn/ver/380/IPARSv3.1/porohex/crack_profile_setup.f90
+END
+main.f90
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/380/IPARSv3.1/porohex/main.f90
+END
+hexa_NB0.f90
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/repos/csm/!svn/ver/380/IPARSv3.1/porohex/hexa_NB0.f90
+END
+model_module0.f90
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/repos/csm/!svn/ver/444/IPARSv3.1/porohex/model_module0.f90
+END
+earydat.dh
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/earydat.dh
+END
+esetup3d.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/380/IPARSv3.1/porohex/esetup3d.df
+END
+eprojections.df
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/622/IPARSv3.1/porohex/eprojections.df
+END
+ebdary.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/464/IPARSv3.1/porohex/ebdary.df
+END
+gstiff0.f90
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/607/IPARSv3.1/porohex/gstiff0.f90
+END
+emodel.dh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/emodel.dh
+END
+evisual.df
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/evisual.df
+END
+ebdary.dh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/380/IPARSv3.1/porohex/ebdary.dh
+END
+bc0.f90
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/repos/csm/!svn/ver/607/IPARSv3.1/porohex/bc0.f90
+END
+evisual.dh
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/587/IPARSv3.1/porohex/evisual.dh
+END
+eivdat.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/eivdat.df
+END
+dmat_ep.f90
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/476/IPARSv3.1/porohex/dmat_ep.f90
+END
+master-big0.f90
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/master-big0.f90
+END
+estep.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/estep.df
+END
+ebdarym.dc
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/380/IPARSv3.1/porohex/ebdarym.dc
+END
+ecompute.df
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/ecompute.df
+END
+erest.df
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/erest.df
+END
+earray.df
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/earray.df
+END
+post_prcss0.f90
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/repos/csm/!svn/ver/607/IPARSv3.1/porohex/post_prcss0.f90
+END
+elastic.df
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/repos/csm/!svn/ver/625/IPARSv3.1/porohex/elastic.df
+END
+pre_prcss0.f90
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/repos/csm/!svn/ver/621/IPARSv3.1/porohex/pre_prcss0.f90
+END
+load_vector0.f90
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/repos/csm/!svn/ver/380/IPARSv3.1/porohex/load_vector0.f90
+END

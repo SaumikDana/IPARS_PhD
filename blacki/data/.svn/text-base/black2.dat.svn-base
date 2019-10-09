@@ -1,0 +1,229 @@
+TITLE(2)="BLACK OIL MODEL TEST 2, 3 PHASES"
+
+DESCRIPTION()=
+"LENGTH (FT) : 400"
+"WIDTH (FT) : 400"
+"THICKNESS (FT) : 20"
+"GRID BLOCKS : 10X20X20   4000 GRID ELEMENTS"
+"DATE : 9/29/99"
+
+BLOCKMODEL(1)="BLACK_OIL_IMPLICIT"
+
+TIMEEND = 40.
+
+$ TECPLOT="BLACK2"    TECBASE="BASE1.LAY"
+
+CVTOL= 2.E-6
+
+$ I/O OPTIONS
+
+OUTLEVEL = 2  SPLINEOUT  GEOMOUT  PROCOUT
+WELLOUTKEY = 3   WELLFILE = "BLACK2.WEL"
+
+$ FAULT BLOCK AND MESH DATA
+
+DOWN() = 1 0 0
+NX(1) = 10  NY(1) = 20  NZ(1) = 20
+DX() = 2.   DY() = 20.  DZ() = 20.
+
+$ INITIAL CONDITIONS
+
+DINIT = 1.0
+PWINIT = 495.2225  SWINIT = .22  SGINIT=0.2  
+
+$ POROSITY
+
+POROSITY1() = .2
+
+$ PERMEABILITIES
+
+XPERM1() = 20  XPERM1(8,,) = 5
+YPERM1() = 200
+
+$ FLUID PROPERTIES
+
+STDENO = 56.033  STDENW = 62.3430  BOMODEL = 2  MODREL(1) = 4
+
+KOSW(1) Block        $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Plot
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .8
+  Derivative  0 At .8
+  Constraint  1 At  0
+  Nodes  .2  .58
+  Data  0.  1. , .1  .67 , .2  .46 , .4  .2 , .6  .055 , .7  .015 , .8  0
+EndBlock
+
+KWSW(1) Block        $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPE 1
+  Plot
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .15
+  Derivative  0 At .15
+  Constraint  1 At   1
+  Nodes  .55  .7  .75
+  Data  .15  0 , .3  .035 , .4  .085 , .6  .28 , .8  .776 , .9  .93,1  1
+EndBlock
+
+KOSG(1) Block        $ OIL RELATIVE PERMEABILITY VS Sg - ROCK TYPE 1
+  Plot
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .8
+  Derivative  0 At .8
+  Constraint  1 At  0
+  Nodes  .2  .58
+  Data  0.  1. , .1  .67 , .2  .46 , .4  .2 , .6  .055 , .7  .015 , .8  0
+EndBlock
+
+KGSG(1) Block        $ GAS RELATIVE PERMEABILITY VS Sg - ROCK TYPE 1
+  Plot
+  Interpolation Spline2
+  Extrapolation Constant
+  Constraint  0 At .15
+  Derivative  0 At .15
+  Constraint  1 At   1
+  Nodes  .55  .7  .75
+  Data  .15  0 , .3  .035 , .4  .085 , .6  .28 , .8  .776 , .9  .93, 1  1
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Plot
+  Interpolation Spline3
+  Extrapolation Same
+  Nodes  .25  .4  .7  .9
+  Pole   .12
+  Data
+  .16   9. , .2   6.12 , .225 4.86 , .25  4.22 , .275 3.78 , .325 3.2
+  .375 2.74 , .45  2.28 , .55  1.94 , .65  1.74 , .75  1.61 , .85  1.54
+  .925 1.44 , .95  1.37 , .975 1.14 , 1.0  .7
+EndBlock
+
+PCGO(1) Block        $ GAS-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Plot
+  Interpolation Spline3
+  Extrapolation Same
+  Nodes  .25  .4  .7  .9
+  Pole   .12
+  Data
+  .16   9. , .2   6.12 , .225 4.86 , .25  4.22 , .275 3.78 , .325 3.2
+  .375 2.74 , .45  2.28 , .55  1.94 , .65  1.74 , .75  1.61 , .85  1.54
+  .925 1.44 , .95  1.37 , .975 1.14 , 1.0  .7
+EndBlock
+
+BSO Block  $Formation volume factor for saturated oil
+  $ P[psi] and Bso[bbl/stbo]
+  Plot
+  Interpolation Linear
+  Extrapolation Same
+  Data
+  14.7  1.000,  400  1.012,  800 1.0255, 1200 1.038, 1600 1.051, 2000 1.063
+  2400  1.075, 2800  1.087, 3200 1.0985, 3600  1.11, 4000  1.12
+EndBlock
+  
+BOD Block $Formation volume factor for dead oil
+  $ P[psi] and Bdo[bbl/stbo],   co = .4E-4
+  Plot
+  Interpolation Linear
+  Extrapolation Same
+  Data
+  14.7      1.000,          500.00   0.9807751775,  1000.00   0.9613545537
+  1500.00   0.9423184395,  2000.00   0.9236593246,  2500.00   0.9053696394
+  3000.00   0.8874421120,  3500.00   0.8698695898,  4000.00   0.8526449800
+EndBlock
+
+RBW Block $Reciprocal water formation volume factor
+  $ P[psi] and RBw[stbw/bbl],   cw = 0.33D-5
+  Plot
+  Interpolation Linear
+  Extrapolation Same
+  Data 
+  14.7   1.0,        500.  1.001603,  1000.  1.003257
+  1500.  1.004914,  2000.  1.006573,  2500.  1.008235
+  3000.  1.009900,  3500.  1.01157,   4000.  1.01324
+EndBlock
+
+BG Block  $Gas formation volume factor
+  $ P[psi] and Bg[bbl/mscf]
+  Plot
+  Interpolation Spline3
+  Extrapolation Same
+  Pole   0.
+  Data 
+  14.7  160.17,   400  5.88,   800  2.94,  1200  1.96,  1600  1.48,  2000  1.18
+  2400    0.98,  2800  0.84,  3200  0.73,  3600  0.66,  4000  0.59
+EndBlock
+
+RSO Block $Gas Solubility Factor
+  $ P[psi] and Rso[mscf/stbo]
+  Plot
+  Interpolation Linear
+  Extrapolation Same  
+  Data
+  14.7  0.0,      400  0.1651,   800  0.3352,  1200  0.4997,  1600  0.6648
+  2000  0.8282,  2400  0.9848,  2800  1.1297,  3200  1.2700,  3600  1.3902
+  4000  1.500,   4400  1.612
+EndBlock
+
+PSAT Block         $ SATURATION PRESSURE - SPE #9
+  $ P[psi] and Rso[mscf/stbo]
+  Interpolation  Linear
+  Extrapolation Same
+  Reverse        $ x and y will be reversed in the data block
+  Data   
+  14.7  0.0,      400  0.1651,   800  0.3352,  1200  0.4997,  1600  0.6648
+  2000  0.8282,  2400  0.9848,  2800  1.1297,  3200  1.2700,  3600  1.3902
+  4000  1.500,   4400  1.612
+EndBlock
+
+$ WELL DATA
+
+NUMWELL=2
+
+WELLNAME(1) = "FIRST WELL"
+KINDWELL(1) = 1
+WELLTOP(1 TO 3,1,1) = 0 2*10.
+WELLBOTTOM(1 TO 3,1,1) = 15 2*10.
+WELLPQ(1) Block
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  510.
+EndBlock
+
+WELLNAME(2) = "SECOND WELL"
+KINDWELL(2) = 31
+WELLTOP(1 TO 3,1,2) = 0 390 390
+WELLBOTTOM(1 TO 3,1,2) = 20 390 390
+WELLPQ(2) Block
+  Plot
+  Interpolation Linear
+  Extrapolation Constant
+  Data  0.  480.  30.  350.
+EndBlock
+
+EndInitial
+
+$ TRANSIENT DATA INPUT BLOCKS
+
+BeginTime    0.
+DELTIM = .1  DTIMMUL = 1.2  DTIMMAX = 2.  TIMOUT = 40.  DTIMOUT = 60.
+  TIMRES = 40.
+EndTime
+
+BeginTime    40.
+TIMOUT = 100.  DTIMMAX = 3.
+FORMAT = TRUE  TIMRES = 365.25  DTIMRES = 730.5
+EndTime
+
+BeginTime    100.
+DTIMMAX = 6.  TIMOUT = 365.25   DTIMOUT = 365.25
+EndTime
+
+BeginTime    200.
+DTIMMAX = 10.
+EndTime
+
+BeginTime    365.25
+DTIMMAX = 15.  FORMAT = FALSE
+EndTime

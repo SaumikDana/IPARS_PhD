@@ -1,0 +1,889 @@
+$------------------------------------------------------------------------$
+TITLE(1)="CRANFIELD fine open BC rate"
+TITLE(2)="Scenario 3 1blk"
+DESCRIPTION()=
+"GRID BLOCKS : 1x20x20 (down, lateral, lateral) = 400 GRID ELEMENTS"
+$------------------------------------------------------------------------$
+
+TIMEEND = 1460.0
+$TIMEEND = 3650.0
+$TIMEEND = 100.1
+$TIMEEND = .11
+$------------------------------------------------------------------------$
+$ I/O AND SOLVER OPTIONS
+$------------------------------------------------------------------------$
+$ I/O OPTIONS
+$ DEBUGS  
+$ DEBUGM
+$ OUTLEVEL = 2
+$ BUGKEY(6)
+$ BUGKEY(10)
+
+$ NEWTON OPTIONS
+MAXNEWT = 100
+MAXFLITS = 100
+
+$ BCGS LINEAR SOLVER OPTIONS
+$PRECOND = 3
+$MGLEV = 0
+$MAXMGIT = 1
+$LINTOL = 1.0E-05
+$MISCLINTOL = 1.0E-16
+
+$ GMRES LINEAR SOLVER OPTIONS
+$LSOL_TOL = 1.0E-06
+$LSOL_ITMAX = 5000
+$GMRES_PREC = 16  $ AMG with LSOR.
+$N_GS_STEP = 5
+
+$ FOAM OPTIONS
+AQPHSWTCH = TRUE
+OUT_TRACER = TRUE
+FOAMMOD =  TRUE $FALSE 
+FOAMTYPE = 1
+CSTAR = 1.5E-4
+SWSTAR = 0.264
+EPSILON = 0.015
+RREF = 8400.0  $ default 18500.0
+VELREF = 1      $ reference gas velocity in ft/day
+SHRTN = 0.8     $1: newton fluid, no shearthinning
+
+$------------------------------------------------------------------------$
+$ PRINTOUTS
+$------------------------------------------------------------------------$
+ $OUT_MOLDW = TRUE
+ $OUT_MOLD = TRUE
+ $OUT_VISCW = TRUE
+ $OUT_VISC = TRUE
+ $OUT_CO2LEAK = TRUE
+ $OUT_CO2MOL = TRUE
+ OUT_CO2DIST = TRUE
+ OUT_TEMPR= TRUE
+ XDARCYFLUX = TRUE
+ OUT_MASSD = TRUE
+ OUT_OMOLF = TRUE
+ OUT_VISC  = TRUE
+
+$------------------------------------------------------------------------$
+$ FAULT BLOCK AND MESH DATA
+$------------------------------------------------------------------------$
+BLOCKMODEL(1 )="COMPOSITIONAL_MODEL"
+
+$FACEBLOCKS(,1) = 1 2
+$FACEXYZ(,1) = 0. 0. 0., 0. 0. 0.
+
+BLOCKNAME(1) = "BLOCK1"
+DOWN(,1) = 1 0 0
+NX(1) = 1  NY(1) =  20   NZ(1) = 20
+DX(,1) = 10.0
+DY(,1) =40.0  
+DZ(,1) =40.0  
+
+$ Set the top corner of the reservoir
+XYZ111(,1) = 9901. 0. 0.
+
+$DEPTHMOD Block
+$  EXTERNAL NBLK,X,Y,Z,DEP
+$  DEP=DEP+0.002*(Z-125.0)*(Z-125.0)
+$EndBlock
+$DEPTHG1(,,)= 1000 1100 1200 1300 1400 1500 1600 1700 1800 1900 
+$DEPTHG1(,1,1 TO 10 )= 4093 4094 4095 4096 4097 4098 4099 4099 4099 4096 
+$Include depth188x176x22.dat
+$Include depth100.dat
+
+$ keyout elements
+ $KEYOUT1(1 , ,) = 0
+ $KEYOUT1(22 , ,) = 0
+
+$------------------------------------------------------------------------$
+$ RESERVOIR DATA
+$------------------------------------------------------------------------$
+$ POROSITY
+CR1() = 5.E-6
+POROSITY1(,,) = .25
+
+$Include poro188x176x22.dat
+$Include poro_100.dat
+
+$ PERMEABILITIES
+XPERM1(,,) = 100. 
+YPERM1(,,) = 100. 
+ZPERM1(,,) = 100. 
+
+$YPERM1(1,,) = 0.00001 
+$YPERM1(22,,) = 0.00001 
+
+$Include permx100.dat
+$Include permy100.dat
+$Include permz100.dat
+$Include permx188x176x22.dat
+$Include permy188x176x22.dat
+$Include permz188x176x22.dat
+$YPERM1(1 ,,) = 1.54E-7
+$YPERM1(22,,) = 1.54E-7
+$XPERM1(2,,) = 1E-7
+$ZPERM1(2,,) = 1E-7
+
+ PERMOUT
+   VIS_SCL = 4
+   VIS_FNAME = "CRANf_K"
+   VISFLAG = 7
+   VIS_SCL_NAMES(1) = "TCOFX"
+   VIS_SCL_NAMES(2) = "TCOFY"
+   VIS_SCL_NAMES(3) = "DEPTHG"
+   VIS_SCL_NAMES(4) = "PORO"
+   $VIS_SCL_NAMES(4) = "POROSITY"
+
+$------------------------------------------------------------------------$
+$ COMPONENT PROPERTIES
+$------------------------------------------------------------------------$
+$ WATER PROPERTIES
+WATERP = 0.0
+WATFVF = 1.0
+WATVIS = .7
+WATCMP = 3.3E-6
+STDENW = 62.4
+
+OILDEN = 3.467
+
+$ COMP NAMES
+NHCOMP = 3
+COMP(1) = "CO2"  COMP(2) = "BRINE" COMP(3) = "TRACER"
+LTCOMP = 1
+ICINPH(,1) = 1 0 0 0
+ICINPH(,2) = 0 1 1 1
+ICINPH(,3) = 0 1 0 0
+
+$ No diffusion
+XMOL_DIFF(,,) = 0.0
+$XMOL_DIFF(,2,2 TO 3) = 0.5580
+
+$$ COMPNT. CRIT. PROPERTIES
+
+$ CRITICAL TEMPERATURES
+TCRIT(1 TO 3) = 547.5600  1120.2300 1120.
+
+$ CRITICAL PRESSURES
+PCRIT(1 TO 3) = 1070.3785  3540.8836 3540.
+
+$ CRITICAL VOLUMES
+ZCRIT(1 TO 3) = 0.30234  0.22983 0.22983
+
+$ ACENTRIC FACTORS
+ACENT(1 TO 3) = 0.2240   0.2440 0.2440
+
+$ MOL WEIGHTS
+MOLWT(1 TO 3) = 44.0100  18.0125 18.
+
+$ PARACHOR
+PARACHOR(1 TO 3) = 49.00  52.00 52.0
+
+$ VOLUMETRIC SHIFT
+VSHIFT(1 TO 3) = -0.19   0.0650  0.0650
+
+$ ISOBARIC SPECIFIC HEATS
+HCCP(1 TO 3) = 14.8915  17.8176 17.8176 $ for CO2, take mean of liq. & gas sp. heats.
+
+$ BINARY INTERACTION COEFFICIENTS
+$BINACT(1,2) = -0.0602
+$BINACT(2,1) = -0.0602
+BINACT(1,2) = -0.009 
+BINACT(2,1) = -0.009 
+BINACT(1,3) = 0.0
+BINACT(2,3) = 0.0
+BINACT(3,1) = 0.0
+BINACT(3,2) = 0.0
+
+$------------------------------------------------------------------------$
+$THERMAL OPIONS
+$------------------------------------------------------------------------$
+$XTHERMAL = TRUE
+$$N_THERM_STEPS = 2
+$$$XNOTHERMCOND = TRUE
+$XTHERMSOLVE = TRUE
+$XTHLINSOL = 2
+$$$XTHLINSOL = 1
+$$$XNOFLXLMTR = TRUE
+$XFLXLMTRTYPE = 3
+$$$XFLXLMTR = 1.0
+$XFLXLMTR = 0.75
+
+$ PHASE THERMAL CONDUCTIVITIES
+PHTCOND(1,1 TO 3) = 48.5343
+PHTCOND(2,1 TO 3) = 8.1714 
+PHTCOND(3,1 TO 3) = 10.8856
+PHTCOND(4,1 TO 3) = 0.2203
+
+$ ROCK ISOCHORIC SPECIFIC HEAT CAPACITY
+ROCKCV = 0.17913
+TINJ( ) = 60.0
+
+$------------------------------------------------------------------------$
+$ ROCK FLUID PROP
+$------------------------------------------------------------------------$
+$ ROCK TYPE
+NXROCKS = 2
+$ROCK1(1 ,,) = 1
+ROCK1(1 ,,) = 2
+MODREL(1 TO 2) = 2
+
+$XJLFUNPC = TRUE
+$ HYSTERESIS OPTIONS
+$HYSTERESIS = TRUE
+$AQPHSWTCH = TRUE
+
+$IFTSATRES = TRUE     $ SGRES BASED ON IFT EFFECT
+$IFTRLPRM  = TRUE     $ IFT RELATIVE PERMEABILITY
+
+$ HYSTERESIS PARAMETERS
+ ENTRYPRES(1) = 160.
+ SWRES(1) = 0.0
+ SORES(1) = 0.4  
+ SGRES(1) = 0.05 
+$ LAMBDA(1) = -0.75
+ LAMBDA(1) = 1.7
+ LAMBDAW(1) = 4.2
+ LAMBDANW(1) = 2.6
+ KRW0(1) = 0.6
+ KRNW0(1) = 0.4
+ REFPERM(1) =0.000000154
+ REFPORO(1) =00.25
+
+ ENTRYPRES(2) = 0.2
+ SWRES(2) = 0.0
+ SORES(2) = 0.3
+ SGRES(2) = 0.05 
+ LAMBDA(2) = 2.222
+ LAMBDAW(2) = 4.2
+ LAMBDANW(2) = 2.6
+ KRW0(2) = 0.6 
+ KRNW0(2) = 0.8
+ REFPERM(2) =100.0
+ REFPORO(2) =00.25
+
+
+KOSW(1) Block      $ OIL RELATIVE PERMEABILITY VS Sw - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation Constant
+
+Data    0.2       1.0       
+        0.2899    0.6769   
+        0.3778    0.4153   
+        0.4667    0.2178   
+        0.5556    0.0835   
+        0.6444    0.0123   
+        0.7000    0.0   
+        0.7333    0.0   
+        0.8222    0.0   
+        0.9111    0.0   
+        1.0       0.0   
+EndBlock
+
+KWSW(1) Block     $ WATER RELATIVE PERMEABILITY VS Sw - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data   
+1       0.2500
+0.9     0.1640
+0.8     0.1024
+0.7     0.0600
+0.6     0.0324
+0.5     0.0156
+0.4     0.0064
+0.3     0.0020
+0.2     0.0004
+0.1     0.0000
+0       0.0000
+EndBlock
+
+KOSG(1) Block     $ OIL RELATIVE PERMEABILITY VS Sg - ROCK TYPES 1 seal
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    
+0    1.0
+0.05    0.4
+0.075    0.32697307
+0.1    0.26466206
+0.125    0.211914486
+0.15    0.16765219
+0.175    0.13087008
+0.2    0.100634826
+0.225    0.076083502
+0.25    0.05642218
+0.275    0.040924455
+0.3    0.028929912
+0.325    0.019842513
+0.35    0.013128901
+0.375    0.008316602
+0.4    0.00499212
+0.425    0.002798895
+0.45    0.001435105
+0.475    0.000651276
+0.5    0.00024764
+0.525    7.11902E-05
+0.55    1.22845E-05
+0.575    6.0939E-07
+0.6    0.0
+1.000   0.000
+
+$0.000   1.0000
+$0.05   0.9198208722
+$0.1    0.8412241145
+$0.15   0.7642877993
+$0.2    0.6891000746
+$0.25   0.6157614012
+$0.3    0.544387534
+$0.35   0.4751135908
+$0.4    0.408099771
+$0.5    0.2816729928
+$0.6    0.167345732
+$0.7     0.0692720728
+$0.8     0.0006984373
+$0.803   0
+$0.9    0
+$1.000   0.000
+EndBlock
+
+KGSG(1) Block      $ GAS RELATIVE PERMEABILITY VS Sg - ROCK TYPES 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data  
+0    0
+0.025    0
+0.05    0
+0.075    8.50107E-05
+0.1    0.000659165
+0.125    0.00215483
+0.15    0.00494402
+0.175    0.009340216
+0.2    0.015600294
+0.225    0.023926572
+0.25    0.034468993
+0.275    0.047327469
+0.3    0.062554412
+0.325    0.080157487
+0.35    0.100102647
+0.375    0.122317499
+0.4    0.146695105
+0.425    0.173098346
+0.45    0.201365054
+0.475    0.231314225
+0.5    0.262753875
+0.525    0.295491588
+0.55    0.32935006
+0.575    0.364194069
+0.6    0.4
+1.0     0.4
+$0.000   0.0000
+$0.001   0.0001904912
+$0.05   0.0046904912
+$0.1    0.0152394508
+$0.15    0.0303615862
+$0.2    0.0495131218
+$0.25   0.0723547974
+$0.3    0.0986450847
+$0.35   0.1281991048
+$0.4   0.1608686075
+$0.5   0.2350814304
+$0.6   0.3204988259
+$0.7    0.4165201203
+$0.8    0.5226636477
+$0.803   0.526
+$0.9   0.526
+$1.000   0.526
+EndBlock
+
+PCOW(1) Block        $ WATER-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    0.2       45.0       
+        0.2899    19.03   
+        0.3778    10.07   
+        0.4667     4.90   
+        0.5556     1.80   
+        0.6444     0.50  
+        0.7000     0.05   
+        0.7333     0.01   
+        0.8222     0.0   
+        0.9111     0.0   
+        1.0        0.0   
+EndBlock
+
+PCGO(1) Block        $ GAS-OIL CAPILLARY PRESSURE - ROCK TYPE 1
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data  
+0.4    3.54836E+12
+0.425    1256.227906
+0.45    791.3739909
+0.475    603.9313857
+0.5    498.5343747
+0.525    429.6239005
+0.55    380.4529328
+0.575    343.2967905
+0.6    314.0569764
+0.625    290.3399272
+0.65    270.6460979
+0.675    253.9841683
+0.7    239.6703293
+0.725    227.2163269
+0.75    216.2634264
+0.775    206.5416286
+0.8    197.8434977
+0.825    190.0068052
+0.85    182.9026929
+0.875    176.4274008
+0.9    170.4963579
+0.925    165.0398829
+0.95    160
+0.975    160
+1.0   160
+
+$0.197   69.2880208251
+$0.2     68.145629807
+$0.3     43.6252194585
+$0.4     31.7910604195
+$0.5    24.8716157848
+$0.6    20.3518845089
+$0.65    18.6365840626
+$0.7    17.1776267142
+$0.75    15.9222198103
+$0.8     14.8310541037
+$0.85    13.8742714309
+$0.9     13.0287948121
+$0.95    12.2765133119
+$1       11.60301904
+EndBlock
+
+KOSG(2) Block     $ OIL RELATIVE PERMEABILITY VS Sg - ROCK TYPES 2
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    
+0    0.65
+0.025    0.65
+0.05    0.65
+0.075    0.53988324
+0.1    0.444377892
+0.125    0.362132434
+0.15    0.291860638
+0.175    0.232341597
+0.2    0.182419767
+0.225    0.141005001
+0.25    0.107072585
+0.275    0.079663286
+0.3    0.057883391
+0.325    0.040904762
+0.35    0.02796488
+0.375    0.018366908
+0.4    0.011479749
+0.425    0.006738121
+0.45    0.003642625
+0.475    0.001759841
+0.5    0.000722425
+0.525    0.000229232
+0.55    4.54625E-05
+0.575    2.86097E-06
+0.6    7.78253E-63
+1.0     0
+EndBlock
+
+KGSG(2) Block     $ OIL RELATIVE PERMEABILITY VS Sg - ROCK TYPES 2
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data    
+0    0
+0.025    0
+0.05    0
+0.075    0.000146154
+0.1    0.001142304
+0.125    0.003764362
+0.15    0.008707363
+0.175    0.016585386
+0.2    0.02793148
+0.225    0.043197575
+0.25    0.062754383
+0.275    0.086891299
+0.3    0.115816272
+0.325    0.149655678
+0.35    0.188454157
+0.375    0.232174438
+0.4    0.280697117
+0.425    0.333820394
+0.45    0.391259742
+0.475    0.452647472
+0.5    0.51753213
+0.525    0.585377606
+0.55    0.655561639
+0.575    0.727372771
+0.6    0.8
+1.0     0.8
+
+EndBlock
+
+PCGO(2) Block        $ GAS-OIL CAPILLARY PRESSURE - ROCK TYPE 2 aqu
+  Interpolation Linear
+  Extrapolation  Constant
+
+Data  
+
+0.4    100
+0.425    0.923837696
+0.45    0.655497333
+0.475    0.536286715
+0.5    0.465099828
+0.525    0.416457727
+0.55    0.380515444
+0.575    0.352557788
+0.6    0.33000569
+0.625    0.311313818
+0.65    0.295492304
+0.675    0.281873823
+0.7    0.269989912
+0.725    0.259500724
+0.75    0.250152912
+0.775    0.241753229
+0.8    0.234151356
+0.825    0.227228368
+0.85    0.220888775
+0.875    0.2150549
+0.9    0.209662821
+0.925    0.204659388
+0.95    0.2
+0.975    0.2
+1.0    0.2
+EndBlock
+
+$------------------------------------------------------------------------$
+$ WELLS
+$------------------------------------------------------------------------$
+Include wellh_cranfield.dat
+
+$ WELL OUTPUT
+ 
+WELLOUTKEY = 2  WELLFILE = "CRAN.WEL"  WELLFCUM = "CRANHET3.CUM"
+$WELLOUTKEY = 0  WELLFILE = "TEST_H_I.WEL"  WELLFCUM = "TEST_H_I.CUM"
+ 
+$ WELL OUTPUT FLAGS
+ $WOUTFLG(1 TO 37) = FALSE
+ 
+$ NON-AQUEOUS COMPONENT WELL OUTPUT FLAGS
+ $WELXOUT(1,1 TO 37)
+ $WXELOUT(1,2) = 7
+
+   $ INJECTION COMPOSITION
+  $COMPINJ(,1) = 0.0  0.5  0.48 0.02
+  $INJCOMP() = 1
+
+   $ SEPARATOR ASSIGNMENT FOR WELLS
+   IWSEP() = 1
+
+$------------------------------------------------------------------------$
+$ INITIAL CONDITIONS
+$------------------------------------------------------------------------$
+$ SURFACE CONDITIONS 
+TSURF = 60.0  PSURF = 14.7
+
+$ INITIAL TEMPERATURES
+$TEMPR1() = 110.
+TEMPR1() = 257.
+
+$PORPRES1() = 14.7      $ ref. porepres for Rock Cr, default EQ PRES
+SWINIT1() = 0.00
+$PRES1(1,,) = 4636.975
+PRES1(1 ,,) = 4653.575
+CONC1(,,,1) = 0.0
+CONC1(,,,2) = 1.0
+CONC1(,,,3) = 0.0
+REFPRES = 2   $ DEFAULT 2 
+SALIN = 100000.0
+TWL = 10.0         $ parameter for water gas trapping number
+TGL = 20.0
+
+$ SEPARATORS
+PSEP(,1) = 14.7
+TSEP(,1) = 60.
+
+$ SEPARATOR ASSIGNMENT FOR IN-PLACE CALCULATIONS
+SEPSURF = 1
+
+$------------------------------------------------------------------------$
+EndInitial
+$------------------------------------------------------------------------$
+$ TRANSIENT DATA INPUT BLOCKS
+$------------------------------------------------------------------------$
+
+BeginTime    0.0
+   DELTIM = 1.0
+   DTIMMUL = 1.1 
+   TIMOUT = 0.1
+   DTIMMIN = .0001
+   DTIMMAX = 0.5
+   DTIMOUT = 10.
+   DSMAX =  .2
+
+
+   $ SGT testing visualization
+   VISOUT = .10
+$  DVISOUT = 100.
+   DVISOUT = 10.
+   VIS_SCL = 7
+   VIS_SCL_NAMES(1) = "PRES"
+$   VIS_SCL_NAMES(2) = "PCWO"
+   VIS_SCL_NAMES(2) = "PCGO"
+$   VIS_SCL_NAMES(3) = "SWAT"
+   VIS_SCL_NAMES(3) = "SOIL"
+   VIS_SCL_NAMES(4) = "SGAS"
+   VIS_SCL_NAMES(5) = "CO2"
+   VIS_SCL_NAMES(6) = "TRACER"
+$   VIS_SCL_NAMES(6) = "DEPTHG"
+   VIS_SCL_NAMES(7) = "SGT"
+$   VIS_SCL_NAMES(8) = "YPERM"
+$   VIS_SCL_NAMES(9) = "TCOFZ"
+   VIS_FNAME = "CRAN100t"
+   VISFLAG = 7
+
+$DATE 1990 01  01
+$  CO2 Injection
+   KINDWELL(1) = 0
+   KINDWELL(2) = 0
+EndTime
+
+BeginTime   0.1
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+   INJCOMP() = 1
+   WELLPQ(1) Block
+   Data  0.    1879.25
+EndBlock
+
+$  Production well
+   KINDWELL(2) = 31
+EndTime
+
+BeginTime  50.0
+   DTIMMAX = 1.00
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   200
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+
+BeginTime  250.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   400
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+   
+BeginTime  450.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   600
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  650.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   800
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  850.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   1000
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  1050.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   1200.0
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  1250.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   1400
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  1450.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime  1600
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  1650.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   1800
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  1850.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   2000
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  2050.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   2200.0
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  2250.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   2400
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  2450.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime  2600
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  2650.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   2800
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  2850.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   3000
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  3050.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   3200.0
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  3250.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+BeginTime   3400
+$  Water Injection  "CFU 31F-01_INJ  " $  *INJECTOR 1
+   KINDWELL(1) = 10
+   COMPINJ(,1) = 0.0  0.0  0.9  .1
+EndTime
+
+BeginTime  3450.0
+$  Gas Injection "CFU 31F-01_INJ " *INJECTOR 1
+   KINDWELL(1) = 4
+   COMPINJ(,1) = 0.0  1.0  0.0  0.0
+EndTime
+
+
+
+
+
+
+

@@ -1,0 +1,387 @@
+----------------------------------------------
+file: MModel,txt
+initial version: 	M. Peszynska, 9/18/98
+last update:		M. Peszynska, 9/23/98
+-----------------------------------------------
+
+This file describes the Multiple Model (MModel) implementation in
+IPARS.  MModel = Multi Model = different IPARS physical models in
+different fault-blocks.
+
+The current draft applies to Multiple Numerics (same primary variables
+but different numerical techniques), specifically, to the two phase
+models HYDROI  and HYDROE (fully implicit and IMPES,
+respectively). Later the implementaiton will be extended to include
+Multiple Physics (for example, HYDROI  and BLACK).
+
+Multi Model is implemented as a new physical model, using available
+framework routines with as little modificationd to the framework and
+physical models as possible. The keyword for the new model is MMODEL.
+The model has been tested on Linux single processor and SP2 single
+processor, with code compiled for parallel execution. The expanded
+framework routines have been tested for HYDRO, HYDROE, BLACK on Linux,
+Beowulf, and SP2, see separate chart.
+
+Right now Multi Model has been "hard coded" to use only the two
+models: HYDROI  (H) and HYDROE (G).  
+
+Contents:
+=========
+
+I. 	Memory management and callwork calls
+
+II. 	CALLS to model specific executive routines and how to build 
+	the executable.
+
+III. 	Input 
+
+IV. 	Communication: MPI calls
+
+	A. UPDATE calls
+	B. global reduce type calls in SUMIT etc. which determine
+		global (over fault blocks and processors) values
+		of some processors
+
+V. 	Multi Block implementation
+
+VI. 	Handling of model independent elements of the code like well
+routines.
+
+VII. 	The standard output and/or visualization.
+
+VIII. 	Problems
+
+-------------------------------------------------------
+I. MEMORY MANAGEMENT
+
+IA. CONTROL PARAMETERS / VARIABLES:
+===================================
+The file control.h contains the vector 
+
+	INTEGER BLKMODEL ($MAXNBLK) 
+
+whose copy is available to the C code (as a global variable in memory.h)
+as well as the variable (with a copy in C code) 
+
+	CURRENT_MODEL. 
+
+The vector BLKMODEL specifies which model is active in which faultblock.  It
+is set by a call to
+
+	idata.f/SETBLKS() 
+
+which (for Multi Model) tries to read the block - model assignment
+form the data file (see data file /data/mmodel.dat).
+
+In this example,
+
+	BLKMODEL (1) = HYDROI 
+	BLKMODEL (2) = HYDROE 
+	BLKMODEL (3) = HYDROI 
+
+(the definitions of constants HYDRO, HYDROE etc. are available in the file
+mmodel/mmodel.h
+
+	ALL    = 0	
+	HYDROI  = 5
+	HYDROE = 6
+	... etc.
+)
+
+which correspond to the statements in the input file
+
+BLOCKMODEL(1) = "HYDROLOGY_IMPLICIT"
+BLOCKMODEL(2) = "HYDROLOGY_IMPES"
+BLOCKMODEL(3) = "HYDROLOGY_IMPLICIT"
+
+For other physical models the routine SETBLKS() sets BLKMODEL() to the
+flag of the given model. For example, in black oil code, BLKMODEL(*) =
+BLACK.
+
+
+The variable
+
+	CURRENT_MODEL 
+
+indicates the physical model for which the code should be currently
+executed. The variable (and its C code copy) should me modified only
+by a call to the routine
+
+	idata.f/SETMODEL()
+
+It should NEVER me modified directly by a user.
+
+If CURRENT_MODEL = ALL, this means that framework code is being
+executed. CURRENT_MODEL = HYDROI means that the code should be
+executed / makes sense only in fault blocks for which the BLKMODEL
+(nblk) = HYDRO.
+
+IB. MEMORY MANAGEMENT:
+======================
+
+The grid element arrays allocated in IPARS are either allocated by the
+framework routines or by physical model routines.  If we look at the
+grid arrays allocated for different physical models, they can have:
+
+1. Identical name, type and use: example, POIL. COIL.	
+
+2. Different name but similar use, example VEL (HYDRO) and VELVWX, VELWY, 
+... in HYDROE.
+
+3. Identical name, but different type or use, example VEL (HYDRO), 
+	VEL (BLACK).
+
+4. Different name, no equivalent in the other model, example LAMBAT (HYDROE).
+
+In order to handle these differences, the memory management therefore
+allocate each of the grid arrays only in the relevant fault
+blocks. Relevant means ALL faultblocks for framework grid arrays. For
+physical model grid arrays relevant blocks are only faultblocks where
+BLKMODEL (nblk) = CURRENT_MODEL. The MMARRAY routine schematically
+works as follows in the current setup.
+
+      SUBROUTINE MARRAY (NERR)
+
+      INCLUDE 'control.h'
+      INCLUDE 'mmodel.h'		
+
+      CALL setmodel(HYDRO)
+      CALL HARRAY (NERR)	c .... calls alcgea
+	
+      CALL setmodel(HYDROE)
+      CALL GARRAY (NERR)        c .... calls alcgea
+		
+      END
+
+The routine ALCGEA when called from HARRAY will allocate the current
+grid array only for blocks where BLKMODEL(nblk) agrees with
+CURRENT_MODEL (=HYDRO). In the blocks where BLKMODEL(nblk) !=
+CURRENT_MODEL, the pointer to the grid array is set to NULL.  Note:
+the grid array numbers for physical models are stored in separate
+common blocks in separate files harydat.h, garydat.h.
+
+In addition, an extra vector 
+
+	arymodel[] 
+
+is maintained in the C code. The value 
+
+	arymodel [N_POIL] 
+
+indicates for which model the current grid array N_POIL was
+allocated. Note: the names of the variables can repeat for different
+physical models. Therefore, when looking for the grid array number for
+a variable with a specific name, one must verify whether it was
+allocated for the desired physical model or not. A new routine
+
+	meminfo.c/get_arynum()
+
+returns the grid array number for the variable allocated for the model
+equal to CURRENT_MODEL. Example : N_POIL for HYDROI may be 12, N_POIL
+for HYDROE may be 35.
+
+
+IC. CALLWORK LOGIC
+==================
+
+When CALLWORK() routine is called for a given routine, then this
+routine will be executed only over these blocks for which the
+BLKMODEL(nblk) agrees with the current model in
+CURRENT_MODEL. Exception is when the CURRENT_MODEL is equal ALL, then
+the CALLWORK() will execute computations in all faultblocks.
+
+In addition, the CALLWORK() routine performs a check for each grid
+array (to prevent from passing null pointers) to verify if it has been
+allocated for a given model or not.
+
+----------------------------------------------------------------------
+II. CALLS to model specific executive routines and how to build 
+the executable.
+
+The calls to model specific routines will call routines
+M{routine_name}, For example, MWDATA is now implemented as follows:
+
+      SUBROUTINE MWDATA (NERR)
+
+      INCLUDE 'control.h'
+      INCLUDE 'mmodel.h'
+	
+      CALL setmodel(HYDRO)
+      CALL HWDATA (NERR)
+	
+      CALL setmodel(HYDROE)
+      CALL GWDATA (NERR)
+		
+      END	
+
+This all works fine provided that the model specific variables are
+kept in common blocks separately from each other and that the routines
+are written in a modular way. For example, it is unacceptable to have
+the same /FLUIDSC/ coomon block be used both in HYDROI and in HYDROE,
+see below in section Problems. The names of the include files and of
+the common blocks should be specific to a physical model.
+
+In the current implementation, the executable for Multi Model has to 
+link all of the objects included in
+
+	mod_mm 		# Multi Model objects
+	mod_hg		# HYDROI objects
+	mod_he		# HYDROE objects
+
+In the next step, the sequence above should me made generic and
+include all models that may be defined in any of the physical models
+in different faultblocks. Then the executable should be built with all
+of the physical model routines ?? or dynamically only with the models
+that are needed.
+
+Another issue is the preprocessing (size'ing). In the current
+implementation, the source files for these objects are obtained by
+preprocessing them with macros from file
+	
+	{machine}_mm.siz	# {machine} = lnx, sp2
+
+This may create a problem in future, see Problems below.
+
+-------------------------------------------------------- 
+
+III. Input issues.
+
+Input file in principle does not change. The specific elements to
+include/modify are:
+
+type of model: 			MULTI_MODEL
+model specific scalars: 	POINIT etc. see Problems below.
+				CVTOL etc. See Problems below.
+
+It has been decided that each model will input its own separate
+scalars, for example HYDROI will input scalar H_POINIT. In order to not
+spoil the data files which have worked so far, both conventions are
+possible. That is, if the data fiule is written for
+HYDROLOGY_IMPLICIT, then the user can specify POINIT by either writing
+
+	POINIT = 500
+
+or
+
+	H_POINIT = 500.
+
+However, if the user wants to run MULTI_MODEL, then POINIT should be
+specified in a unique way for each model by writing, for example
+
+	H_POINIT = 500
+	G_POINIT = 505
+
+Otherwise, the routines specific for HYDROI and HYDROE will attempt to
+"steal" the data from one another and the error (or misunderstanding)
+will occur.
+
+---------------------------------------------------------
+
+IV. MPI calls: not implemented yet.
+
+Note: the code currently works on SP2 one processor, when compiled for
+multiple processors. Until MPI issues below have been resolved, the
+code will crash when executed in parallel because UPDATE will try to
+use null pointers for some variables in some faultblocks.
+
+
+IV A. Calls to routine UPDATE : some code realizing update calls will
+have to be restructured. This may be the technically most difficult
+part to change and to test.
+
+IV B. Calls to global reduce type operations: they rely locally on
+callwork routines for providing values per fault block. There may be
+some delicate tuning necessary here.
+
+---------------------------------------------------------------
+V. Multi Block: not implemented yet.
+
+The major change is that we need to identify the primary variables and
+flux variables that will get used as well as model specific MultiBlock
+computation routines for every block. See sections VI and I. II for
+what logic needs to be implemented.
+
+Currently the code works without Multi Block i.e. assuming the no-flow
+boundary on each of the faultblocks.
+
+---------------------------------------------------------------
+VI. Handling of model independent elements of the code like well
+routines and of step / solver routines.
+
+The issues involved turned out to be easier than originally
+anticipated. If the code is written in a modular way, then the data
+structures (like RESIDT) for physical models use only input from
+callwork routines which automatically provide correct input.
+
+Some well output had to be modified, see below in VII.
+
+The code works right now, executing HSTEP routines (calling GMRES) and
+GSTEP (calling PCG solver) and completing the computations
+succesfully. See below on what output can be expected. 
+
+---------------------------------------------------------------
+VII. Visualization and standard output.
+
+The standard output has not changed much. Some small comments have
+been added to the otput file in places where parameters are repoirted
+on to identify which physical model they belong to. In particular, the
+report on well routines otputs first the well information foqr the
+wells in the blocks for HYDROI model, then for the wells for HYDROE.
+
+Vsualization: the routines now assume that the same visualization
+input data applies to all physical models. The grid array numbers for
+these are extracted separately for each model. When the output is
+made, then the appropraite values for a given model are output on
+relevant faultblocks, or dummy values 0.0 are used if the variable is
+not found.
+
+For example, POIL is output for all faultblocks and it corresponds to
+grid array # 12 in HYDROI and # 35 in HYDROE. Another example: VEL_OIL
+corresponds to the VEL grid array number in HYDROI and VELOX, VELOY,
+VELOZ for HYDROE. LAMBAT has dummy values in HYDROI blocks and grid
+array 40 in blocks HYDROE. The messages describing dummy assignments
+can be found in the output file.
+
+(*) This logic can be expanded later to include separate handling of
+visualization for different models. This would allow for different
+names in the output file for different models. For example, one could
+have PGAS and DUMMY for the same variable in BLACK and HYDRO,
+respectively. Or, the dummy variable would not be printed for HYDRO.
+
+-----------------------------------------------------------------
+
+VIII. Problems:
+
+* For Multiple Numerics: HYDROI uses fluidsc.h with COMMON
+	block /FLUIDS/ , HYDROE used the same one but copied from 
+	hydroe/ directory. This means that we should input the parameters
+	like POINIT from this include file only ONCE. This solution is fine 
+	as long as we do not go to multiple physical models
+	where the properties may be different and common blocks
+	have to be kept separately. 
+
+	Right now the solution is: HYDROE uses gfluidsc to store
+	G_POINIT and HYDROI uses fluidsc to input H_POINIT, for example.
+	
+	Another issue : CVTO< parameter (baldatc.h, gbaldatc.h). This 
+	parameter should be available as a different number for both models
+	so it should have a different name in the input file.
+
+* Preprocessing:
+	Several parameters set in size files for physical models
+	differ. Most notably, NUMEQ is = 2(HYDRO), =1 (HYDROE).	
+	In the current implementation this difference (HYDROI + HYDROE) it
+	is not critical to preprocess model specific files separately 
+	(the only price we pay is the waste of memory in HYDROE using
+	NUMEQ =2) but in general makefiles should use different 
+
+		RUNSIZE  
+
+	when creating executables. I did not yet find an elegant way
+	to resolve it. Elegant = not messing up with the existing
+	size / make files.
+
+------------------------------------------------------------------
+
+
+

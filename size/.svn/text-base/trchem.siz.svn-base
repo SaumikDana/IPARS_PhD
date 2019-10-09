@@ -1,0 +1,33 @@
+$ ############ Transport-Chemistry Multi Model Include File ############
+
+Replace_Symbols
+
+TRCHEM  ""           $ Include transport chemistry code
+XREAC  C             $ Include compositional components in chemical reactions
+
+PERM3  ""            $ Include diagonal permeability tensor
+
+$NUMTRCOF  19          $ Number of Jacobian coefficient blocks per equation
+NUMTRCOF  7          $ Number of Jacobian coefficient blocks per equation
+
+$$$$ the parameter NUMEQ is really obsolete for single,hydroi,hydroe,blacki
+$$$$ it is kept in place for future use with the compositional model
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+MXNSPEC =  20        $ (MAX) number of chemical species present
+MXFHIS = MXHISD    $ save number of history well points for flow
+MXHISD = MXHISD + MXNSPEC   $ increase # of well pts by # species
+MXTAB =  MXTAB * ( 1 + MXNSPEC ) $ increase number of tables by # species
+NBCVARS = NBCVARS + 1
+
+MXPHAST    3         $ (MAX) number of flowing phases  present
+
+DIMRWK    1000      $  REAL WORK SPACE SIZE
+DIMIWK    1000      $  INTEGER WORK SPACE SIZE
+MXROCKTYPE  20      $  (MAX) NUMBER OF ROCK TYPES
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$ Part that can be modified
+
+$$$$$$$$$$$$$$$$$$$$$$ end of trchem.siz
+

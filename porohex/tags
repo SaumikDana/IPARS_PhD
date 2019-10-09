@@ -1,0 +1,996 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.6	//
+$	tags	/^SKEMPTON	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,FINERR,                   &      $\/;"	v$/;"	v
+$UPPERealcbea$USAN	ebdarym.dc	/^FORTSUB $UPPERealcbea$USAN (PCHAR varynam, PINT4 kind, PINT4 ndim4, $/;"	f
+1	ebdary.df	/^    1 NAML=I$/;"	l	subroutine:EGETVAL	file:
+1	ebdary.df	/^   1  CONTINUE $/;"	l	subroutine:EPRES_WRK_BE	file:
+1	ebdary.df	/^   1  CONTINUE$/;"	l	subroutine:EBDARY_FACES	file:
+1	ebdary.df	/^   1  CONTINUE$/;"	l	subroutine:EDISP_FACES	file:
+1	ebdary.df	/^   1  CONTINUE$/;"	l	subroutine:EPRES_BE_WRK	file:
+1	ebdary.df	/^   1  NBP = 4*JDIM*KDIM$/;"	l	subroutine:EDISP_WRK_BE	file:
+1	ebdary.df	/^   1  NBP = JDIM*KDIM$/;"	l	subroutine:EBDARY_WRK_BE	file:
+1	ebdary.df	/^   1  NBP = JDIM*KDIM$/;"	l	subroutine:EFACE_WRK_BE	file:
+1	ebdary.df	/^   1  NBP = JDIM*KDIM$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+1	ecompute.df	/^   1          CONTINUE$/;"	l	subroutine:PEPORE_VOL	file:
+1	eidata.df	/^   1           CONTINUE$/;"	l	subroutine:EPROP	file:
+1	eidata.df	/^   1  CONTINUE$/;"	l	subroutine:EISDAT	file:
+1	elastic.df	/^    1 CONTINUE$/;"	l	subroutine:WELLSDP	file:
+1	elastic.df	/^   1              CONTINUE$/;"	l	subroutine:EFFEC_MEAN_STRESS	file:
+1	elastic.df	/^   1           CONTINUE$/;"	l	subroutine:EAVERAGE_DISP	file:
+1	evisual.df	/^ 1    CONTINUE$/;"	l	subroutine:EVIS_OUTPUT	file:
+1	evisual.df	/^ 1    CONTINUE$/;"	l	subroutine:EVIS_TRANSL	file:
+10	elastic.df	/^   10 CONTINUE$/;"	l	subroutine:EcalcGELEI	file:
+10	elastic.df	/^   10 FORMAT(\/'ERROR:NOT SETUP FOR 1D, 2D EFFECTIVE MEAN STRESS$/;"	l	subroutine:EFFEC_MEAN_STRESS	file:
+10	elastic.df	/^ 10   FORMAT(\/,'ERROR: MORE THAN 4 FRACFACE SHARING NODE('$/;"	l	subroutine:ESETUP_FNODE_TYPE	file:
+10	estdout.df	/^  10  FORMAT(\/'ERROR: NOT SETUP FOR POROELASTIC 1D OR 2D SYSTEM')$/;"	l	subroutine:ESTDOUTA	file:
+10	post_prcss0.f90	/^10 format(3a)$/;"	l	subroutine:frac_tecplot	file:
+10	pre_prcss0.f90	/^10 m=m\/2$/;"	l	subroutine:isort	file:
+100	earray.df	/^  100 RETURN$/;"	l	subroutine:EFRAC_ARRAY	file:
+100	elastic.df	/^ 100           CONTINUE$/;"	l	subroutine:EUNFOLDFG	file:
+100	elastic.df	/^ 100  CONTINUE$/;"	l	subroutine:POR_VOL	file:
+100	master-big0.f90	/^100 continue$/;"	l	subroutine:module_elasticity2	file:
+100	pre_prcss0.f90	/^100  CONTINUE$/;"	l	subroutine:PRE_PRCSS2	file:
+101	post_prcss0.f90	/^101 continue$/;"	l	subroutine:frac_tecplot	file:
+11	ebdary.df	/^   11 DO 35 I=1,NDMAX$/;"	l	subroutine:EGETVAL	file:
+11	ebdary.df	/^  11             CONTINUE$/;"	l	subroutine:EBDARY_BE_WRK	file:
+11	ebdary.df	/^  11             CONTINUE$/;"	l	subroutine:EBDARY_WRK_BE	file:
+11	ebdary.df	/^  11             CONTINUE$/;"	l	subroutine:EDISP_BE_WRK	file:
+11	ebdary.df	/^  11             CONTINUE$/;"	l	subroutine:EDISP_WRK_BE	file:
+11	ebdary.df	/^  11             CONTINUE$/;"	l	subroutine:EFACE_BE_WRK	file:
+11	ebdary.df	/^  11             CONTINUE$/;"	l	subroutine:EFACE_WRK_BE	file:
+11	ebdary.df	/^  11             CONTINUE$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+11	ebdary.df	/^  11             CONTINUE$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+11	ebdary.df	/^  11           CONTINUE$/;"	l	subroutine:EPRES_BE_WRK	file:
+11	ebdary.df	/^  11          CONTINUE$/;"	l	subroutine:EPRES_WRK_BE	file:
+11	erest.df	/^   11       FORMAT(6I9)$/;"	l	subroutine:ERGEAOUT	file:
+11	post_prcss0.f90	/^11 format(a)$/;"	l	subroutine:frac_tecplot	file:
+12	ebdary.df	/^  12             CONTINUE$/;"	l	subroutine:EBDARY_BE_WRK	file:
+12	ebdary.df	/^  12             CONTINUE$/;"	l	subroutine:EBDARY_WRK_BE	file:
+12	ebdary.df	/^  12             CONTINUE$/;"	l	subroutine:EDISP_BE_WRK	file:
+12	ebdary.df	/^  12             CONTINUE$/;"	l	subroutine:EDISP_WRK_BE	file:
+12	ebdary.df	/^  12             CONTINUE$/;"	l	subroutine:EFACE_BE_WRK	file:
+12	ebdary.df	/^  12             CONTINUE$/;"	l	subroutine:EFACE_WRK_BE	file:
+12	ebdary.df	/^  12             CONTINUE$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+12	ebdary.df	/^  12             CONTINUE$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+12	ebdary.df	/^  12           CONTINUE$/;"	l	subroutine:EPRES_BE_WRK	file:
+12	ebdary.df	/^  12          CONTINUE$/;"	l	subroutine:EPRES_WRK_BE	file:
+12	erest.df	/^   12       FORMAT(A$MXANAM)$/;"	l	subroutine:ERGEAOUT	file:
+12	post_prcss0.f90	/^12 format(a,i)$/;"	l	subroutine:frac_tecplot	file:
+13	ebdary.df	/^   13 E='INVALID ARRAY SYNTAX'$/;"	l	subroutine:EGETVAL	file:
+13	ebdary.df	/^  13             CONTINUE$/;"	l	subroutine:EBDARY_BE_WRK	file:
+13	ebdary.df	/^  13             CONTINUE$/;"	l	subroutine:EBDARY_WRK_BE	file:
+13	ebdary.df	/^  13             CONTINUE$/;"	l	subroutine:EDISP_BE_WRK	file:
+13	ebdary.df	/^  13             CONTINUE$/;"	l	subroutine:EDISP_WRK_BE	file:
+13	ebdary.df	/^  13             CONTINUE$/;"	l	subroutine:EFACE_BE_WRK	file:
+13	ebdary.df	/^  13             CONTINUE$/;"	l	subroutine:EFACE_WRK_BE	file:
+13	ebdary.df	/^  13             CONTINUE$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+13	ebdary.df	/^  13             CONTINUE$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+13	ebdary.df	/^  13          CONTINUE$/;"	l	subroutine:EPRES_BE_WRK	file:
+13	ebdary.df	/^  13          CONTINUE$/;"	l	subroutine:EPRES_WRK_BE	file:
+13	ebdary.df	/^  13  FORMAT(\/2X,'NBLK   SIDE     DIRECTION X     $/;"	l	subroutine:EBDARY	file:
+13	erest.df	/^   13 WRITE (NFOUT,14)$/;"	l	subroutine:ERGEAOUT	file:
+13	post_prcss0.f90	/^13 format(1p,4e15.6)$/;"	l	subroutine:frac_tecplot	file:
+14	ebdary.df	/^   14 IF (A(L).EQ.RIGHT) THEN$/;"	l	subroutine:EGETVAL	file:
+14	ebdary.df	/^  14             CONTINUE$/;"	l	subroutine:EBDARY_BE_WRK	file:
+14	ebdary.df	/^  14             CONTINUE$/;"	l	subroutine:EBDARY_WRK_BE	file:
+14	ebdary.df	/^  14             CONTINUE$/;"	l	subroutine:EDISP_BE_WRK	file:
+14	ebdary.df	/^  14             CONTINUE$/;"	l	subroutine:EDISP_WRK_BE	file:
+14	ebdary.df	/^  14             CONTINUE$/;"	l	subroutine:EFACE_BE_WRK	file:
+14	ebdary.df	/^  14             CONTINUE$/;"	l	subroutine:EFACE_WRK_BE	file:
+14	ebdary.df	/^  14             CONTINUE$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+14	ebdary.df	/^  14             CONTINUE$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+14	ebdary.df	/^  14          CONTINUE$/;"	l	subroutine:EPRES_BE_WRK	file:
+14	ebdary.df	/^  14          CONTINUE$/;"	l	subroutine:EPRES_WRK_BE	file:
+14	ebdary.df	/^  14  FORMAT(2X,I3,5X,A4,4X,A,4X,A,4X,A)$/;"	l	subroutine:EBDARY	file:
+14	erest.df	/^   14 FORMAT (\/' ERROR # 434; INVALID ARRAY NUMBER IN RGEAOUT()')$/;"	l	subroutine:ERGEAOUT	file:
+14	post_prcss0.f90	/^14 format(4i)$/;"	l	subroutine:frac_tecplot	file:
+15	ebdary.df	/^   15 IF (A(L).NE.BLANK.AND.A(L).NE.EQUAL) THEN$/;"	l	subroutine:EGETVAL	file:
+15	ebdary.df	/^  15             CONTINUE$/;"	l	subroutine:EBDARY_BE_WRK	file:
+15	ebdary.df	/^  15             CONTINUE$/;"	l	subroutine:EBDARY_WRK_BE	file:
+15	ebdary.df	/^  15             CONTINUE$/;"	l	subroutine:EDISP_BE_WRK	file:
+15	ebdary.df	/^  15             CONTINUE$/;"	l	subroutine:EDISP_WRK_BE	file:
+15	ebdary.df	/^  15             CONTINUE$/;"	l	subroutine:EFACE_BE_WRK	file:
+15	ebdary.df	/^  15             CONTINUE$/;"	l	subroutine:EFACE_WRK_BE	file:
+15	ebdary.df	/^  15             CONTINUE$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+15	ebdary.df	/^  15             CONTINUE$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+15	ebdary.df	/^  15          CONTINUE$/;"	l	subroutine:EPRES_BE_WRK	file:
+15	ebdary.df	/^  15          CONTINUE$/;"	l	subroutine:EPRES_WRK_BE	file:
+15	erest.df	/^   15       FORMAT(6I8)$/;"	l	subroutine:ERGEAOUT	file:
+15	post_prcss0.f90	/^15 format(1p,a,e15.6)$/;"	l	subroutine:frac_tecplot	file:
+16	ebdary.df	/^   16 L=L+1$/;"	l	subroutine:EGETVAL	file:
+16	ebdary.df	/^  16             CONTINUE$/;"	l	subroutine:EBDARY_BE_WRK	file:
+16	ebdary.df	/^  16             CONTINUE$/;"	l	subroutine:EBDARY_WRK_BE	file:
+16	ebdary.df	/^  16             CONTINUE$/;"	l	subroutine:EDISP_BE_WRK	file:
+16	ebdary.df	/^  16             CONTINUE$/;"	l	subroutine:EDISP_WRK_BE	file:
+16	ebdary.df	/^  16             CONTINUE$/;"	l	subroutine:EFACE_BE_WRK	file:
+16	ebdary.df	/^  16             CONTINUE$/;"	l	subroutine:EFACE_WRK_BE	file:
+16	ebdary.df	/^  16             CONTINUE$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+16	ebdary.df	/^  16             CONTINUE$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+16	ebdary.df	/^  16          CONTINUE$/;"	l	subroutine:EPRES_BE_WRK	file:
+16	ebdary.df	/^  16          CONTINUE$/;"	l	subroutine:EPRES_WRK_BE	file:
+16	post_prcss0.f90	/^16 format(6i)$/;"	l	subroutine:frac_tecplot	file:
+18	elastic.df	/^   18    ELECONS(K,I)=ELELEN(K,I)*ELEPERM(K,I)*ELEGEOM(K,I)$/;"	l	subroutine:SDPWELL	file:
+2	ebdary.df	/^    2 L1=1$/;"	l	subroutine:EGETVAL	file:
+2	ebdary.df	/^   2  CONTINUE $/;"	l	subroutine:EPRES_WRK_BE	file:
+2	ebdary.df	/^   2  CONTINUE$/;"	l	subroutine:EBDARY_FACES	file:
+2	ebdary.df	/^   2  CONTINUE$/;"	l	subroutine:EDISP_FACES	file:
+2	ebdary.df	/^   2  CONTINUE$/;"	l	subroutine:EPRES_BE_WRK	file:
+2	ebdary.df	/^   2  J=L$/;"	l	subroutine:ESETVNAM	file:
+2	ebdary.df	/^   2  NBP = 4*JDIM*KDIM          $/;"	l	subroutine:EDISP_BE_WRK	file:
+2	ebdary.df	/^   2  NBP = 4*JDIM*KDIM$/;"	l	subroutine:EDISP_WRK_BE	file:
+2	ebdary.df	/^   2  NBP = JDIM*KDIM          $/;"	l	subroutine:EBDARY_BE_WRK	file:
+2	ebdary.df	/^   2  NBP = JDIM*KDIM          $/;"	l	subroutine:EFACE_BE_WRK	file:
+2	ebdary.df	/^   2  NBP = JDIM*KDIM          $/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+2	ebdary.df	/^   2  NBP = JDIM*KDIM$/;"	l	subroutine:EBDARY_WRK_BE	file:
+2	ebdary.df	/^   2  NBP = JDIM*KDIM$/;"	l	subroutine:EFACE_WRK_BE	file:
+2	ebdary.df	/^   2  NBP = JDIM*KDIM$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+2	ebdary.df	/^   2  NUMRGA=0$/;"	l	subroutine:EBDARY_BE	file:
+2	ebdary.df	/^   2  NUMRGA=0$/;"	l	subroutine:EBDARY_DP	file:
+2	eidata.df	/^  2            CONTINUE$/;"	l	subroutine:EPROP	file:
+2	elastic.df	/^    2 CONTINUE$/;"	l	subroutine:WELLSDP	file:
+2	eprojections.df	/^    2          CONTINUE$/;"	l	subroutine:GETPROJECTORS	file:
+2	erest.df	/^    2 CONTINUE$/;"	l	subroutine:ERSR8	file:
+20	ebdary.df	/^   20 NUMRET=NUMRET+1$/;"	l	subroutine:EGETVAL	file:
+20	ebdary.df	/^  20  CONTINUE$/;"	l	subroutine:EBDARY_BE_WRK	file:
+20	ebdary.df	/^  20  CONTINUE$/;"	l	subroutine:EBDARY_WRK_BE	file:
+20	ebdary.df	/^  20  CONTINUE$/;"	l	subroutine:EDISP_BE_WRK	file:
+20	ebdary.df	/^  20  CONTINUE$/;"	l	subroutine:EDISP_WRK_BE	file:
+20	ebdary.df	/^  20  CONTINUE$/;"	l	subroutine:EFACE_BE_WRK	file:
+20	ebdary.df	/^  20  CONTINUE$/;"	l	subroutine:EFACE_WRK_BE	file:
+20	ebdary.df	/^  20  CONTINUE$/;"	l	subroutine:EPRES_BE_WRK	file:
+20	ebdary.df	/^  20  CONTINUE$/;"	l	subroutine:EPRES_WRK_BE	file:
+20	ebdary.df	/^  20  CONTINUE$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+20	ebdary.df	/^  20  CONTINUE$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+20	pre_prcss0.f90	/^20 i=j$/;"	l	subroutine:isort	file:
+200	pre_prcss0.f90	/^200 CONTINUE$/;"	l	subroutine:PRE_PRCSS2	file:
+21	ebdary.df	/^   21 IF (NUMREP.EQ.0) LFILL=L$/;"	l	subroutine:EGETVAL	file:
+22	ebdary.df	/^   22 IF (LFILL.EQ.0) THEN$/;"	l	subroutine:EGETVAL	file:
+23	ebdary.df	/^   23 IF (NUMREP.GT.0) THEN$/;"	l	subroutine:EGETVAL	file:
+24	ebdary.df	/^   24 IF (NUMREP.EQ.0) LFILL=L$/;"	l	subroutine:EGETVAL	file:
+26	ebdary.df	/^   26 IF (NUMREP.GT.4) THEN$/;"	l	subroutine:EGETVAL	file:
+27	ebdary.df	/^   27 IF (SKIPIT) GO TO 20$/;"	l	subroutine:EGETVAL	file:
+28	ebdary.df	/^   28 IF (SKIPIT) GO TO 20$/;"	l	subroutine:EGETVAL	file:
+29	ebdary.df	/^   29    CONTINUE$/;"	l	subroutine:EGETVAL	file:
+3	ebdary.df	/^    3 CONTINUE$/;"	l	subroutine:EGETVAL	file:
+3	ebdary.df	/^   3  CONTINUE $/;"	l	subroutine:EPRES_BE_WRK	file:
+3	ebdary.df	/^   3  CONTINUE $/;"	l	subroutine:EPRES_WRK_BE	file:
+3	ebdary.df	/^   3  CONTINUE$/;"	l	subroutine:EBDARY_FACES	file:
+3	ebdary.df	/^   3  CONTINUE$/;"	l	subroutine:EDISP_FACES	file:
+3	ebdary.df	/^   3  NBP = 4*IDIM*KDIM$/;"	l	subroutine:EDISP_BE_WRK	file:
+3	ebdary.df	/^   3  NBP = 4*IDIM*KDIM$/;"	l	subroutine:EDISP_WRK_BE	file:
+3	ebdary.df	/^   3  NBP = IDIM*KDIM$/;"	l	subroutine:EBDARY_BE_WRK	file:
+3	ebdary.df	/^   3  NBP = IDIM*KDIM$/;"	l	subroutine:EBDARY_WRK_BE	file:
+3	ebdary.df	/^   3  NBP = IDIM*KDIM$/;"	l	subroutine:EFACE_BE_WRK	file:
+3	ebdary.df	/^   3  NBP = IDIM*KDIM$/;"	l	subroutine:EFACE_WRK_BE	file:
+3	ebdary.df	/^   3  NBP = IDIM*KDIM$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+3	ebdary.df	/^   3  NBP = IDIM*KDIM$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+3	elastic.df	/^    3 CONTINUE$/;"	l	subroutine:SDPWELL	file:
+3	elastic.df	/^    3 CONTINUE$/;"	l	subroutine:WELLSDP	file:
+3	erest.df	/^    3    RBUFR8(N)=ARY(I,J,K,I4UTIL)$/;"	l	subroutine:ERSR8	file:
+30	ebdary.df	/^   30    E='RIGHT PARENTHESES FOR REPEAT FACTOR NOT FOUND'$/;"	l	subroutine:EGETVAL	file:
+30	pre_prcss0.f90	/^30 l=i+m$/;"	l	subroutine:isort	file:
+30	utility0.f90	/^30 format(i10,5x,F15.8,5x,F15.8,5x,F15.8)$/;"	l	subroutine:well_geometry	file:
+31	ebdary.df	/^   31    CONTINUE$/;"	l	subroutine:EGETVAL	file:
+32	ebdary.df	/^   32    DO 33 I=1,5$/;"	l	subroutine:EGETVAL	file:
+33	ebdary.df	/^   33    CONTINUE$/;"	l	subroutine:EGETVAL	file:
+34	ebdary.df	/^   34 E='DATA SYNTAX ERROR'$/;"	l	subroutine:EGETVAL	file:
+35	ebdary.df	/^   35 CONTINUE$/;"	l	subroutine:EGETVAL	file:
+36	ebdary.df	/^   36 FORMAT(' ERROR 121, PROGRAM ERROR: TYPE ',A2,' FOR VARIABLE ',$/;"	l	subroutine:EGETVAL	file:
+38	ebdary.df	/^   38 IF (A(L).EQ.BLANK.OR.A(L).EQ.COMMA.OR.A(L).EQ.RIGHT) THEN$/;"	l	subroutine:EGETVAL	file:
+4	ebdary.df	/^    4    CONTINUE$/;"	l	subroutine:EGETVAL	file:
+4	ebdary.df	/^   4  CALL BLKDIM(NBLKA,IDIMG,JDIMG,KDIMG,KERR)$/;"	l	subroutine:EBDARY_BEWI4	file:
+4	ebdary.df	/^   4  CALL BLKDIM(NBLKA,IDIMG,JDIMG,KDIMG,KERR)$/;"	l	subroutine:EBDARY_BEWR8	file:
+4	ebdary.df	/^   4  CALL BLKDIM(NBLKA,IDIMG,JDIMG,KDIMG,KERR)$/;"	l	subroutine:EBDARY_DPWI4	file:
+4	ebdary.df	/^   4  CALL BLKDIM(NBLKA,IDIMG,JDIMG,KDIMG,KERR)$/;"	l	subroutine:EBDARY_DPWR8	file:
+4	ebdary.df	/^   4  CONTINUE $/;"	l	subroutine:EPRES_BE_WRK	file:
+4	ebdary.df	/^   4  CONTINUE $/;"	l	subroutine:EPRES_WRK_BE	file:
+4	ebdary.df	/^   4  CONTINUE$/;"	l	subroutine:EBDARY_FACES	file:
+4	ebdary.df	/^   4  CONTINUE$/;"	l	subroutine:EDISP_FACES	file:
+4	ebdary.df	/^   4  CONTINUE$/;"	l	subroutine:ESETVNAM	file:
+4	ebdary.df	/^   4  NBP = 4*IDIM*KDIM$/;"	l	subroutine:EDISP_BE_WRK	file:
+4	ebdary.df	/^   4  NBP = 4*IDIM*KDIM$/;"	l	subroutine:EDISP_WRK_BE	file:
+4	ebdary.df	/^   4  NBP = IDIM*KDIM$/;"	l	subroutine:EBDARY_BE_WRK	file:
+4	ebdary.df	/^   4  NBP = IDIM*KDIM$/;"	l	subroutine:EBDARY_WRK_BE	file:
+4	ebdary.df	/^   4  NBP = IDIM*KDIM$/;"	l	subroutine:EFACE_BE_WRK	file:
+4	ebdary.df	/^   4  NBP = IDIM*KDIM$/;"	l	subroutine:EFACE_WRK_BE	file:
+4	ebdary.df	/^   4  NBP = IDIM*KDIM$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+4	ebdary.df	/^   4  NBP = IDIM*KDIM$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+4	elastic.df	/^    4 CONTINUE$/;"	l	subroutine:WELLSDP	file:
+4	erest.df	/^    4          FORMAT(6I8)$/;"	l	subroutine:ERSR8	file:
+40	ebdary.df	/^   40 NN(3,I)=1$/;"	l	subroutine:EGETVAL	file:
+40	pre_prcss0.f90	/^40 j=j+1$/;"	l	subroutine:isort	file:
+40	utility0.f90	/^40 format(i10,5x,i5,5x,i5)$/;"	l	subroutine:well_geometry	file:
+41	ebdary.df	/^   41 E='INVALID SUBSCRIPT RANGE'$/;"	l	subroutine:EGETVAL	file:
+42	ebdary.df	/^ 42      CONTINUE$/;"	l	subroutine:EGETVAL	file:
+44	elastic.df	/^   44 CONTINUE$/;"	l	subroutine:WELLSDP	file:
+45	ebdary.df	/^   45 IF (A(L).EQ.BLANK.OR.A(L).EQ.COMMA) THEN$/;"	l	subroutine:EGETVAL	file:
+46	eidata.df	/^  46  FORMAT(\/'ERROR: INVALID MODULUS VALUE SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+48	eidata.df	/^  48  FORMAT(\/'ERROR: INVALID POISSON RATIO SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+5	ebdary.df	/^    5 DO 6 I=1,9$/;"	l	subroutine:EGETVAL	file:
+5	ebdary.df	/^   5  CONTINUE $/;"	l	subroutine:EPRES_BE_WRK	file:
+5	ebdary.df	/^   5  CONTINUE $/;"	l	subroutine:EPRES_WRK_BE	file:
+5	ebdary.df	/^   5  CONTINUE$/;"	l	subroutine:EBDARY_FACES	file:
+5	ebdary.df	/^   5  CONTINUE$/;"	l	subroutine:EDISP_FACES	file:
+5	ebdary.df	/^   5  NBP = 4*IDIM*JDIM$/;"	l	subroutine:EDISP_BE_WRK	file:
+5	ebdary.df	/^   5  NBP = 4*IDIM*JDIM$/;"	l	subroutine:EDISP_WRK_BE	file:
+5	ebdary.df	/^   5  NBP = IDIM*JDIM$/;"	l	subroutine:EBDARY_BE_WRK	file:
+5	ebdary.df	/^   5  NBP = IDIM*JDIM$/;"	l	subroutine:EBDARY_WRK_BE	file:
+5	ebdary.df	/^   5  NBP = IDIM*JDIM$/;"	l	subroutine:EFACE_BE_WRK	file:
+5	ebdary.df	/^   5  NBP = IDIM*JDIM$/;"	l	subroutine:EFACE_WRK_BE	file:
+5	ebdary.df	/^   5  NBP = IDIM*JDIM$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+5	ebdary.df	/^   5  NBP = IDIM*JDIM$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+5	eidata.df	/^   5  FORMAT('     DISPLACEMENT',T59,'[in.]'\/$/;"	l	subroutine:EISDAT	file:
+5	elastic.df	/^    5 CONTINUE$/;"	l	subroutine:WELLSDP	file:
+5	elastic.df	/^    5 continue$/;"	l	subroutine:EcalcLELEI_LSIZE	file:
+5	erest.df	/^    5          FORMAT(5G23.16)$/;"	l	subroutine:ERSR8	file:
+50	ebdary.df	/^   50 IF (I1.EQ.I2.OR.I1.EQ.I3.OR.I1.EQ.I4.OR.I2.EQ.I3.OR.I2.EQ.I4$/;"	l	subroutine:EGETVAL	file:
+50	eidata.df	/^  50  FORMAT(\/'ERROR: INVALID BIOTA VALUE SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+50	eidata.df	/^  50  FORMAT(\/'ERROR: TRANSIENT BOUNDARY CONDITION INPUT ERROR')$/;"	l	subroutine:ETDATA	file:
+50	master-big0.f90	/^50  continue$/;"	l	subroutine:module_elasticity2	file:
+50	pre_prcss0.f90	/^50 continue$/;"	l	subroutine:PRE_PRCSS2	file:
+50	utility0.f90	/^50 format(i8,5x,8i8)$/;"	l	subroutine:well_geometry	file:
+500	elastic.df	/^ 500  CONTINUE$/;"	l	subroutine:HYPRE_POROHEX	file:
+51	eivdat.df	/^  51  FORMAT(\/'ERR51: POROELASTIC OPTION NOT SETUP FOR 1D OR 2D CASE')$/;"	l	subroutine:EIVDAT	file:
+52	eidata.df	/^  52  FORMAT(\/'ERROR: INVALID BIOTM VALUE SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+52	eivdat.df	/^  52  FORMAT(\/'ERROR: POROELASTIC OPTION ONLY SETUP FOR BLACKI MODEL')$/;"	l	subroutine:EIVDAT	file:
+54	eidata.df	/^  54  FORMAT(\/'ERROR: INVALID ROCK DENSITY VALUE SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+54	eivdat.df	/^  54  FORMAT(\/'ERROR: ELASTIC LINEAR SOLVER')$/;"	l	subroutine:EIVDAT	file:
+55	eidata.df	/^  55  FORMAT(\/'ERROR: BOUNDARY CONDITION INPUT ERROR')$/;"	l	subroutine:EIADAT	file:
+56	eidata.df	/^  56     FORMAT(\/'ERROR: INVALID PLASTIC MODEL SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+57	eidata.df	/^  57     FORMAT(\/'ERROR: INVALID ROCK YIELD STRENGTH SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+58	eidata.df	/^  58     FORMAT(\/'ERROR: INVALID ROCK YIELD FUNCTION SLOPE SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+59	eidata.df	/^  59     FORMAT(\/'ERROR: INVALID ROCK FLOW FUNCTION SLOPE SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+6	ebdary.df	/^    6 CONTINUE$/;"	l	subroutine:EGETVAL	file:
+6	ebdary.df	/^   6  CONTINUE $/;"	l	subroutine:EPRES_BE_WRK	file:
+6	ebdary.df	/^   6  CONTINUE $/;"	l	subroutine:EPRES_WRK_BE	file:
+6	ebdary.df	/^   6  CONTINUE$/;"	l	subroutine:EBDARY_FACES	file:
+6	ebdary.df	/^   6  CONTINUE$/;"	l	subroutine:EDISP_FACES	file:
+6	ebdary.df	/^   6  NBP = 4*IDIM*JDIM$/;"	l	subroutine:EDISP_BE_WRK	file:
+6	ebdary.df	/^   6  NBP = 4*IDIM*JDIM$/;"	l	subroutine:EDISP_WRK_BE	file:
+6	ebdary.df	/^   6  NBP = IDIM*JDIM$/;"	l	subroutine:EBDARY_BE_WRK	file:
+6	ebdary.df	/^   6  NBP = IDIM*JDIM$/;"	l	subroutine:EBDARY_WRK_BE	file:
+6	ebdary.df	/^   6  NBP = IDIM*JDIM$/;"	l	subroutine:EFACE_BE_WRK	file:
+6	ebdary.df	/^   6  NBP = IDIM*JDIM$/;"	l	subroutine:EFACE_WRK_BE	file:
+6	ebdary.df	/^   6  NBP = IDIM*JDIM$/;"	l	subroutine:ETYPEBD_BE_WRK	file:
+6	ebdary.df	/^   6  NBP = IDIM*JDIM$/;"	l	subroutine:ETYPEBD_WRK_BE	file:
+6	eidata.df	/^  6   FORMAT(\/'ERROR: DISPOUT_C CAN NOT BE USED TOGETHER WITH DISPOUT_T$/;"	l	subroutine:EISDAT	file:
+60	eidata.df	/^  60     FORMAT(\/'ERROR: INVALID ROCK HARDENING MODEL SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+60	utility0.f90	/^60 format(i8,5x,i8,5x,F15.8)$/;"	l	subroutine:well_geometry	file:
+600	elastic.df	/^ 600  IF (NNTIM.EQ.2) THEN$/;"	l	subroutine:HYPRE_POROHEX	file:
+61	eidata.df	/^  61     FORMAT(\/'ERROR: INVALID ROCK HARDENING COEFFICIENT SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+62	eidata.df	/^  62     FORMAT(\/'ERROR: INVALID ROCK HARDENING COEFFICIENT SPECIFIED')$/;"	l	subroutine:EIADAT	file:
+66	estep.df	/^  66  MC_SKIPPED = 1$/;"	l	subroutine:EITER	file:
+666	elastic.df	/^  666   continue$/;"	l	subroutine:HYPRE_POROHEX	file:
+67	estep.df	/^  67  CONTINUE$/;"	l	subroutine:EITER	file:
+7	ebdary.df	/^    7 DO 40 I=1,4$/;"	l	subroutine:EGETVAL	file:
+7	eidata.df	/^  7   FORMAT(\/'ERROR: DISPOUT_T CAN NOT BE USED TOGETHER WITH DISPOUT_C$/;"	l	subroutine:EISDAT	file:
+70	utility0.f90	/^70 format(i8,5x,i8,5x,F15.8)$/;"	l	subroutine:well_geometry	file:
+8	eidata.df	/^  8   FORMAT(\/'ERROR: DISPOUT_B CAN NOT BE USED TOGETHER WITH DISPOUT_C$/;"	l	subroutine:EISDAT	file:
+9	eidata.df	/^  9   FORMAT(\/' ELASTIC PROPERTIES OUT  (PROPOUT)',T60,A10$/;"	l	subroutine:EISDAT	file:
+90	ebdary.df	/^   90 IF (L-LV1.GT.65) THEN$/;"	l	subroutine:EGETVAL	file:
+91	ebdary.df	/^   91 M=M+1$/;"	l	subroutine:EGETVAL	file:
+92	ebdary.df	/^   92 CALL PUTERR(NER,E,A(NS),M,L-NS+1)$/;"	l	subroutine:EGETVAL	file:
+95	ebdary.df	/^   95 LQ=.TRUE.$/;"	l	subroutine:EGETVAL	file:
+96	ebdary.df	/^   96 CONTINUE$/;"	l	subroutine:EGETVAL	file:
+97	ebdary.df	/^   97 LQ=.TRUE.$/;"	l	subroutine:EGETVAL	file:
+98	ebdary.df	/^   98 NERR=NERR+1$/;"	l	subroutine:EGETVAL	file:
+99	earray.df	/^   99 WRITE(0,*) 'ERROR IN EFRAC_ARRAY,KERR=',KERR$/;"	l	subroutine:EFRAC_ARRAY	file:
+99	earray.df	/^   99 WRITE(0,*) 'Errors in EARRAY'$/;"	l	subroutine:EARRAY	file:
+999	pre_prcss0.f90	/^999 return$/;"	l	subroutine:isort	file:
+ACTIVE_NODE	model_module0.f90	/^INTEGER, ALLOCATABLE:: NODE_ST_GDOF(:),ACTIVE_NODE(/;"	v	module:system
+ACTIVE_NODE_LID	model_module0.f90	/^                       LID_2IJK(:,:),ACTIVE_NODE_LID(/;"	v	module:system
+ADD_ROCK_DEN	elastic.df	/^      SUBROUTINE ADD_ROCK_DEN(/;"	s
+APPROXIMANT_NEWTON	eprojections.df	/^      SUBROUTINE APPROXIMANT_NEWTON(/;"	s
+BC_STEP	bc0.f90	/^SUBROUTINE BC_STEP(/;"	s
+BDARYIJK	ebdary.dh	/^      INTEGER  N_TRACBD(6),ITYPE_BOUNDARY(6,3,$MXBLKS),$/;"	v
+BODYFORCE_INPUT	emodel.dh	/^      LOGICAL  PROPOUT,STRSOUT,STRNOUT,ESTRSOUT,BODYFORCE_INPUT,/;"	v
+BODYFORCE_INPUT	tags	/^BODYFORCE_INPUT	emodel.dh	\/^      LOGICAL  PROPOUT,STRSOUT,STRNOUT,ESTRSOUT,BODYFORCE_INPUT,\/;"	v$/;"	v
+BULKDEN_1PH	elastic.df	/^      SUBROUTINE BULKDEN_1PH(/;"	s
+BULKDEN_2PH	elastic.df	/^      SUBROUTINE BULKDEN_2PH(/;"	s
+CHANGE_MECH_BC	pre_prcss0.f90	/^SUBROUTINE CHANGE_MECH_BC(/;"	s
+COEFB	emodel.dh	/^      REAL*8  COEFB,/;"	v
+COEFM	emodel.dh	/^      REAL*8  COEFB,COEFM,/;"	v
+COEFM	tags	/^COEFM	emodel.dh	\/^      REAL*8  COEFB,COEFM,\/;"	v$/;"	v
+COEFN	emodel.dh	/^      REAL*8  COEFB,COEFM,COEFN$/;"	v
+COORD2DISP	elastic.df	/^      SUBROUTINE COORD2DISP(/;"	s
+COUPLE_FLAG	emodel.dh	/^      LOGICAL COUPLE_FLAG,/;"	v
+CPYINITPORE	elastic.df	/^      SUBROUTINE CPYINITPORE(/;"	s
+CPYPERMTOR8	elastic.df	/^      SUBROUTINE CPYPERMTOR8(/;"	s
+CR_TYPE	emodel.dh	/^     &        MODEL_EP,EP_SOLVER_FLAG,NLOADSTEPS,CR_TYPE$/;"	v
+CR_TYPE$	tags	/^CR_TYPE	emodel.dh	\/^     &        MODEL_EP,EP_SOLVER_FLAG,NLOADSTEPS,CR_TYPE$\/;"	v$/;"	v
+DISP2COORD	elastic.df	/^      SUBROUTINE DISP2COORD(/;"	s
+DISPOUT	emodel.dh	/^      INTEGER  PEFLOW,NERRC,DISPOUT,/;"	v
+DISPOUT	tags	/^DISPOUT	emodel.dh	\/^      INTEGER  PEFLOW,NERRC,DISPOUT,\/;"	v$/;"	v
+DISP_BC_RESIDUE	model_module0.f90	/^REAL(KIND=DOUBLE), ALLOCATABLE:: DISP_BC_RESIDUE(/;"	v	module:system
+DP_FACE	ebdary.dh	/^      LOGICAL  IBD_FACE(6,$MXBLKS), DP_FACE(/;"	v
+EARRAY	earray.df	/^      SUBROUTINE EARRAY /;"	s
+EAVERAGE_DISP	elastic.df	/^      SUBROUTINE EAVERAGE_DISP(/;"	s
+EBDARY	ebdary.df	/^      SUBROUTINE EBDARY(/;"	s
+EBDARY_BE	ebdary.df	/^      SUBROUTINE EBDARY_BE(/;"	s
+EBDARY_BEWI4	ebdary.df	/^      SUBROUTINE EBDARY_BEWI4(/;"	s
+EBDARY_BEWR8	ebdary.df	/^      SUBROUTINE EBDARY_BEWR8(/;"	s
+EBDARY_BE_WRK	ebdary.df	/^      SUBROUTINE EBDARY_BE_WRK(/;"	s
+EBDARY_DP	ebdary.df	/^      SUBROUTINE EBDARY_DP(/;"	s
+EBDARY_DPWI4	ebdary.df	/^      SUBROUTINE EBDARY_DPWI4(/;"	s
+EBDARY_DPWR8	ebdary.df	/^      SUBROUTINE EBDARY_DPWR8(/;"	s
+EBDARY_FACES	ebdary.df	/^      SUBROUTINE EBDARY_FACES(/;"	s
+EBDARY_UPDATE	ebdary.df	/^      SUBROUTINE EBDARY_UPDATE(/;"	s
+EBDARY_WRK_BE	ebdary.df	/^      SUBROUTINE EBDARY_WRK_BE(/;"	s
+EBDY	ebdary.dh	11;"	c
+EBUILDKEYCP	elastic.df	/^      SUBROUTINE EBUILDKEYCP(/;"	s
+EBUILDKEYCPW	elastic.df	/^      SUBROUTINE EBUILDKEYCPW(/;"	s
+ECOMPACTFG	elastic.df	/^      SUBROUTINE ECOMPACTFG(/;"	s
+ECOMPACTI4	elastic.df	/^      SUBROUTINE ECOMPACTI4(/;"	s
+ECOMPACTR8	elastic.df	/^      SUBROUTINE ECOMPACTR8(/;"	s
+ECOMPACT_GELEI	elastic.df	/^      SUBROUTINE ECOMPACT_GELEI(/;"	s
+ECONTRL	emodel.dh	15;"	c
+ECUTTIME	estep.df	/^      SUBROUTINE ECUTTIME(/;"	s
+EDGEBOUNDS	eprojections.df	/^      SUBROUTINE EDGEBOUNDS(/;"	s
+EDISP_BE_WRK	ebdary.df	/^      SUBROUTINE EDISP_BE_WRK(/;"	s
+EDISP_FACES	ebdary.df	/^      SUBROUTINE EDISP_FACES(/;"	s
+EDISP_WRK_BE	ebdary.df	/^      SUBROUTINE EDISP_WRK_BE(/;"	s
+EFACE_BE_WRK	ebdary.df	/^      SUBROUTINE EFACE_BE_WRK(/;"	s
+EFACE_WRK_BE	ebdary.df	/^      SUBROUTINE EFACE_WRK_BE(/;"	s
+EFFEC_MEAN_STRESS	elastic.df	/^      SUBROUTINE EFFEC_MEAN_STRESS(/;"	s
+EFRAC_AFFINE	elastic.df	/^      SUBROUTINE EFRAC_AFFINE(/;"	s
+EFRAC_ARRAY	earray.df	/^      SUBROUTINE EFRAC_ARRAY(/;"	s
+EGEA	earydat.dh	38;"	c
+EGETVAL	ebdary.df	/^      SUBROUTINE EGETVAL /;"	s
+EGETVALS	ebdary.df	/^      ENTRY EGETVALS /;"	e	subroutine:EGETVAL
+EGET_GELEI_LSIZE	elastic.df	/^      SUBROUTINE EGET_GELEI_LSIZE(/;"	s
+EIADAT	eidata.df	/^      SUBROUTINE EIADAT(/;"	s
+EINIT	eivdat.df	/^      SUBROUTINE EINIT(/;"	s
+EISDAT	eidata.df	/^      SUBROUTINE EISDAT(/;"	s
+EITER	estep.df	/^      SUBROUTINE EITER /;"	s
+EIVDAT	eivdat.df	/^      SUBROUTINE EIVDAT(/;"	s
+ELE_NR_TOL	model_module0.f90	/^   real(kind=double) ELE_NR_TOL /;"	v	module:control
+ELM_MAX_ITER	model_module0.f90	/^   integer ELM_MAX_ITER /;"	v	module:control
+EMASS_1NC	ecompute.df	/^      SUBROUTINE EMASS_1NC(/;"	s
+EMASS_2NC	ecompute.df	/^      SUBROUTINE EMASS_2NC(/;"	s
+EMODEL	emodel.dh	40;"	c
+ENODE_UPDATE	elastic.df	/^      SUBROUTINE ENODE_UPDATE(/;"	s
+EPRES_BE_WRK	ebdary.df	/^      SUBROUTINE EPRES_BE_WRK(/;"	s
+EPRES_WRK_BE	ebdary.df	/^      SUBROUTINE EPRES_WRK_BE(/;"	s
+EPROCOUTPUT	elastic.df	/^      SUBROUTINE EPROCOUTPUT(/;"	s
+EPROP	eidata.df	/^      SUBROUTINE EPROP(/;"	s
+EPROP_DEFAULT	eidata.df	/^      SUBROUTINE EPROP_DEFAULT(/;"	s
+EPRTBDDISP	elastic.df	/^      SUBROUTINE EPRTBDDISP(/;"	s
+EPRTBDDISPW	elastic.df	/^      SUBROUTINE EPRTBDDISPW(/;"	s
+EPRTDISP	elastic.df	/^      SUBROUTINE EPRTDISP(/;"	s
+EPRTPRES	elastic.df	/^      SUBROUTINE EPRTPRES(/;"	s
+EPSOLVER	emodel.dh	35;"	c
+EPSXX	emodel.dh	/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,/;"	v
+EPSXX	tags	/^EPSYY	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,\/;"	v$/;"	v
+EPSXX	tags	/^SKEMPTON	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,FINERR,                   &      $\/;"	v$/;"	v
+EPSYY	emodel.dh	/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,/;"	v
+EPSYY	tags	/^EPSYY	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,\/;"	v$/;"	v
+EPSYY	tags	/^SKEMPTON	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,FINERR,                   &      $\/;"	v$/;"	v
+EP_CUTBACK_FLAG	emodel.dh	/^      INTEGER EP_CUTBACK_FLAG,/;"	v
+EP_SOLVER_FLAG	emodel.dh	/^     &        MODEL_EP,EP_SOLVER_FLAG,/;"	v
+EP_SOLVER_FLAG	tags	/^CR_TYPE	emodel.dh	\/^     &        MODEL_EP,EP_SOLVER_FLAG,NLOADSTEPS,CR_TYPE$\/;"	v$/;"	v
+EP_SOLVER_FLAG	tags	/^EP_SOLVER_FLAG	emodel.dh	\/^     &        MODEL_EP,EP_SOLVER_FLAG,\/;"	v$/;"	v
+EP_TOL	emodel.dh	/^      REAL*8  EP_TOL,/;"	v
+EQUIT	erest.df	/^      SUBROUTINE EQUIT /;"	s
+ERESTI	erest.df	/^      SUBROUTINE ERESTI(/;"	s
+ERESTO	erest.df	/^      SUBROUTINE ERESTO /;"	s
+ERGEAOUT	erest.df	/^      SUBROUTINE ERGEAOUT /;"	s
+ERSR8	erest.df	/^      SUBROUTINE ERSR8 /;"	s
+ESAVE	estep.df	/^      SUBROUTINE ESAVE(/;"	s
+ESETARYI4N	ecompute.df	/^      SUBROUTINE ESETARYI4N(/;"	s
+ESETARYR8N	ecompute.df	/^      SUBROUTINE ESETARYR8N(/;"	s
+ESETUP_CRAC_IBC	elastic.df	/^      SUBROUTINE ESETUP_CRAC_IBC(/;"	s
+ESETUP_ELEM_NODE	esetup3d.df	/^      SUBROUTINE ESETUP_ELEM_NODE(/;"	s
+ESETUP_FNODE_TYPE	elastic.df	/^      SUBROUTINE ESETUP_FNODE_TYPE(/;"	s
+ESETUP_FRAC_PROFILE	elastic.df	/^      SUBROUTINE ESETUP_FRAC_PROFILE(/;"	s
+ESETUP_KEYOUT	esetup3d.df	/^      SUBROUTINE ESETUP_KEYOUT(/;"	s
+ESETUP_OFNODE	elastic.df	/^      SUBROUTINE ESETUP_OFNODE(/;"	s
+ESETUP_POROHEX	estep.df	/^      SUBROUTINE ESETUP_POROHEX(/;"	s
+ESETUP_POROHEXW	estep.df	/^      SUBROUTINE ESETUP_POROHEXW(/;"	s
+ESETVNAM	ebdary.df	/^      SUBROUTINE ESETVNAM(/;"	s
+ESTDOUTA	estdout.df	/^      SUBROUTINE ESTDOUTA /;"	s
+ESTDOUTS	estdout.df	/^      SUBROUTINE ESTDOUTS /;"	s
+ESTEP1	estep.df	/^      SUBROUTINE ESTEP1 /;"	s
+ESTEP2	estep.df	/^      SUBROUTINE ESTEP2 /;"	s
+ESTEP3	estep.df	/^      SUBROUTINE ESTEP3 /;"	s
+ESTRSOUT	emodel.dh	/^      LOGICAL  PROPOUT,STRSOUT,STRNOUT,ESTRSOUT,/;"	v
+ESTRSOUT	tags	/^BODYFORCE_INPUT	emodel.dh	\/^      LOGICAL  PROPOUT,STRSOUT,STRNOUT,ESTRSOUT,BODYFORCE_INPUT,\/;"	v$/;"	v
+ETDATA	eidata.df	/^      SUBROUTINE ETDATA(/;"	s
+ETYPEBD_BE_WRK	ebdary.df	/^      SUBROUTINE ETYPEBD_BE_WRK(/;"	s
+ETYPEBD_WRK_BE	ebdary.df	/^      SUBROUTINE ETYPEBD_WRK_BE(/;"	s
+EUNFOLDFG	elastic.df	/^      SUBROUTINE EUNFOLDFG(/;"	s
+EUNFOLDI4	elastic.df	/^      SUBROUTINE EUNFOLDI4(/;"	s
+EUNFOLDR8	elastic.df	/^      SUBROUTINE EUNFOLDR8(/;"	s
+EUNFOLD_GELEI	elastic.df	/^      SUBROUTINE EUNFOLD_GELEI(/;"	s
+EUPDATECR	ecompute.df	/^      SUBROUTINE EUPDATECR(/;"	s
+EVIS_INIT	evisual.df	/^      SUBROUTINE EVIS_INIT /;"	s
+EVIS_OUTPUT	evisual.df	/^      SUBROUTINE EVIS_OUTPUT /;"	s
+EVIS_TRANSL	evisual.df	/^      SUBROUTINE EVIS_TRANSL(/;"	s
+EcalcGELEI	elastic.df	/^      SUBROUTINE EcalcGELEI(/;"	s
+EcalcLELEI_LSIZE	elastic.df	/^      SUBROUTINE EcalcLELEI_LSIZE(/;"	s
+FACEBOUNDS	eprojections.df	/^      SUBROUTINE FACEBOUNDS(/;"	s
+FACEINFO	eprojections.df	/^      SUBROUTINE FACEINFO /;"	s
+FINDCURVATURE	eprojections.df	/^      SUBROUTINE FINDCURVATURE(/;"	s
+FINDTANGENT	eprojections.df	/^      SUBROUTINE FINDTANGENT(/;"	s
+FINERR	emodel.dh	/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,FINERR,/;"	v
+FINERR	tags	/^SKEMPTON	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,FINERR,                   &      $\/;"	v$/;"	v
+FLOWTOMECHANICS	eprojections.df	/^      SUBROUTINE FLOWTOMECHANICS /;"	s
+FLOWTOMECHANICSNONMATCHING	eprojections.df	/^      SUBROUTINE FLOWTOMECHANICSNONMATCHING /;"	s
+FLOW_ERR_MB1	ecompute.df	/^      SUBROUTINE FLOW_ERR_MB1(/;"	s
+FLOW_ERR_MB2	ecompute.df	/^      SUBROUTINE FLOW_ERR_MB2(/;"	s
+FORMSURFACE_HEX	eprojections.df	/^      SUBROUTINE FORMSURFACE_HEX(/;"	s
+GELEI_UPDATE	elastic.df	/^      SUBROUTINE GELEI_UPDATE(/;"	s
+GETFLAG	eprojections.df	/^      SUBROUTINE GETFLAG(/;"	s
+GETJAC	eprojections.df	/^      SUBROUTINE GETJAC(/;"	s
+GETMATRIX	eprojections.df	/^      SUBROUTINE GETMATRIX(/;"	s
+GETNUMELE	eprojections.df	/^      SUBROUTINE GETNUMELE(/;"	s
+GETPOINT	eprojections.df	/^      SUBROUTINE GETPOINT(/;"	s
+GETPOREVOLUME	elastic.df	/^      SUBROUTINE GETPOREVOLUME(/;"	s
+GETPOROSITY	elastic.df	/^      SUBROUTINE GETPOROSITY(/;"	s
+GETPROJECTORS	eprojections.df	/^      SUBROUTINE GETPROJECTORS /;"	s
+GETRHS	eprojections.df	/^      SUBROUTINE GETRHS(/;"	s
+GETRHS_NEWTON	eprojections.df	/^      SUBROUTINE GETRHS_NEWTON(/;"	s
+GETUPDATEDVAR1	elastic.df	/^      SUBROUTINE GETUPDATEDVAR1(/;"	s
+GETUPDATEDVAR2	elastic.df	/^      SUBROUTINE GETUPDATEDVAR2(/;"	s
+GETX	eprojections.df	/^      SUBROUTINE GETX /;"	s
+GRAVITY_FLAG	emodel.dh	/^      LOGICAL COUPLE_FLAG,GRAVITY_FLAG,/;"	v
+GRAVITY_FLAG	tags	/^INITIAL_FLAG	emodel.dh	\/^      LOGICAL COUPLE_FLAG,GRAVITY_FLAG,INITIAL_FLAG$\/;"	v$/;"	v
+HYPRE_POROHEX	elastic.df	/^      SUBROUTINE HYPRE_POROHEX(/;"	s
+HYPRE_ROWS	model_module0.f90	/^INTEGER, ALLOCATABLE:: NODE_ST_GDOF(:),ACTIVE_NODE(:),HYPRE_ROWS(/;"	v	module:system
+IBD_DIR	ebdary.dh	/^     &         N_TRACFACE(6),N_PRESFACE(6),$/;"	v
+IBD_FACE	ebdary.dh	/^      LOGICAL  IBD_FACE(/;"	v
+IBD_TYPE	ebdary.dh	/^     &         IBD_DIR,IBD_TYPE,/;"	v
+IFACE	ebdary.dh	/^     &         IBD_DIR,IBD_TYPE,IFACE$/;"	v
+INFLAG	eprojections.df	/^      INTEGER, ALLOCATABLE :: VAL1(:),VAL3(:),SKIP(:),INFLAG(/;"	v	module:eprojmod
+INITIAL_FLAG	emodel.dh	/^      LOGICAL COUPLE_FLAG,GRAVITY_FLAG,INITIAL_FLAG$/;"	v
+INITIAL_FLAG$	tags	/^INITIAL_FLAG	emodel.dh	\/^      LOGICAL COUPLE_FLAG,GRAVITY_FLAG,INITIAL_FLAG$\/;"	v$/;"	v
+INOROUT	eprojections.df	/^      SUBROUTINE INOROUT /;"	s
+INTERSECTION	eprojections.df	/^      SUBROUTINE INTERSECTION(/;"	s
+IPARS_NSCL	evisual.dh	/^      INTEGER IPARS_NSCL$/;"	v
+IPARS_face_node	model_module0.f90	/^integer IPARS_face_node(/;"	v	module:system
+IPARS_face_order	model_module0.f90	/^integer gmsh_order(8),IPARS_order(8),IPARS_face_order(/;"	v	module:system
+IPARS_face_transfer_to_elastic_solver	post_prcss0.f90	/^subroutine IPARS_face_transfer_to_elastic_solver$/;"	s
+IPARS_node_on_face	post_prcss0.f90	/^subroutine IPARS_node_on_face$/;"	s
+IPARS_order	model_module0.f90	/^integer gmsh_order(8),IPARS_order(/;"	v	module:system
+IPARS_transfer_to_elastic_solver	post_prcss0.f90	/^subroutine IPARS_transfer_to_elastic_solver$/;"	s
+ITYPE_BOUNDARY	ebdary.dh	/^      INTEGER  N_TRACBD(6),ITYPE_BOUNDARY(/;"	v
+J2_deriv	utility0.f90	/^subroutine J2_deriv(/;"	s
+L2_norm	utility0.f90	/^subroutine L2_norm(/;"	s
+L2_norm_leve_1	utility0.f90	/^subroutine L2_norm_leve_1(/;"	s
+L2_norm_leve_u	utility0.f90	/^subroutine L2_norm_leve_u(/;"	s
+LID_2IJK	model_module0.f90	/^INTEGER, ALLOCATABLE:: NODE_ST_GDOF(:),ACTIVE_NODE(:),HYPRE_ROWS(:),OFNODE_GNUM_TMP(:),&$/;"	v	module:system
+L_2_delta_u	model_module0.f90	/^real(kind=double) L_2_u,L_2_delta_u,/;"	v	module:model_type
+L_2_u	model_module0.f90	/^real(kind=double) L_2_u,/;"	v	module:model_type
+L_dof_st	model_module0.f90	/^integer e_id_1,e_id_2,node_dof_L,node_dof_R,R_dof_st,L_dof_st$/;"	v	module:model_type
+MANDEL	emodel.dh	47;"	c
+MANDEL_BC	ecompute.df	/^      SUBROUTINE MANDEL_BC(/;"	s
+MANDEL_CAL_A	ecompute.df	/^      SUBROUTINE MANDEL_CAL_A(/;"	s
+MANDEL_E	emodel.dh	/^     &       SKEMPTON,MANDEL_FORCE,MANDEL_NUU,MANDEL_NU,MANDEL_E,/;"	v
+MANDEL_E	tags	/^MANDEL_E	emodel.dh	\/^     &       SKEMPTON,MANDEL_FORCE,MANDEL_NUU,MANDEL_NU,MANDEL_E,\/;"	v$/;"	v
+MANDEL_ERR	ecompute.df	/^      SUBROUTINE MANDEL_ERR(/;"	s
+MANDEL_FORCE	emodel.dh	/^     &       SKEMPTON,MANDEL_FORCE,/;"	v
+MANDEL_FORCE	tags	/^MANDEL_E	emodel.dh	\/^     &       SKEMPTON,MANDEL_FORCE,MANDEL_NUU,MANDEL_NU,MANDEL_E,\/;"	v$/;"	v
+MANDEL_FORCE	tags	/^MANDEL_NUU	emodel.dh	\/^     &       SKEMPTON,MANDEL_FORCE,MANDEL_NUU,\/;"	v$/;"	v
+MANDEL_MU	emodel.dh	/^     &       MANDEL_PERM,MANDEL_XSIZE,MANDEL_YSIZE,MANDEL_MU$/;"	v
+MANDEL_MU$	tags	/^MANDEL_MU	emodel.dh	\/^     &       MANDEL_PERM,MANDEL_XSIZE,MANDEL_YSIZE,MANDEL_MU$\/;"	v$/;"	v
+MANDEL_NU	emodel.dh	/^     &       SKEMPTON,MANDEL_FORCE,MANDEL_NUU/;"	v
+MANDEL_NU	tags	/^MANDEL_E	emodel.dh	\/^     &       SKEMPTON,MANDEL_FORCE,MANDEL_NUU,MANDEL_NU,MANDEL_E,\/;"	v$/;"	v
+MANDEL_NUU	emodel.dh	/^     &       SKEMPTON,MANDEL_FORCE,MANDEL_NUU,/;"	v
+MANDEL_NUU	tags	/^MANDEL_E	emodel.dh	\/^     &       SKEMPTON,MANDEL_FORCE,MANDEL_NUU,MANDEL_NU,MANDEL_E,\/;"	v$/;"	v
+MANDEL_NUU	tags	/^MANDEL_NUU	emodel.dh	\/^     &       SKEMPTON,MANDEL_FORCE,MANDEL_NUU,\/;"	v$/;"	v
+MANDEL_PERM	emodel.dh	/^     &       SKEMPTON,MANDEL_FORCE,MANDEL_NUU,MANDEL_NU,MANDEL_E,              &$/;"	v
+MANDEL_PRINT	ecompute.df	/^      SUBROUTINE MANDEL_PRINT(/;"	s
+MANDEL_SOLN	ecompute.df	/^      SUBROUTINE MANDEL_SOLN(/;"	s
+MANDEL_XSIZE	emodel.dh	/^     &       MANDEL_PERM,MANDEL_XSIZE,/;"	v
+MANDEL_XSIZE	tags	/^MANDEL_MU	emodel.dh	\/^     &       MANDEL_PERM,MANDEL_XSIZE,MANDEL_YSIZE,MANDEL_MU$\/;"	v$/;"	v
+MANDEL_XSIZE	tags	/^MANDEL_XSIZE	emodel.dh	\/^     &       MANDEL_PERM,MANDEL_XSIZE,\/;"	v$/;"	v
+MANDEL_YSIZE	emodel.dh	/^     &       MANDEL_PERM,MANDEL_XSIZE,MANDEL_YSIZE,/;"	v
+MANDEL_YSIZE	tags	/^MANDEL_MU	emodel.dh	\/^     &       MANDEL_PERM,MANDEL_XSIZE,MANDEL_YSIZE,MANDEL_MU$\/;"	v$/;"	v
+MATINV	utility0.f90	/^      SUBROUTINE MATINV /;"	s
+MAT_MAX_ITER	model_module0.f90	/^   integer MAT_MAX_ITER /;"	v	module:control
+MAT_NR_TOL	model_module0.f90	/^   real(kind=double) MAT_NR_TOL$/;"	v	module:control
+MAT_TOL	emodel.dh	/^      REAL*8  EP_TOL,MAT_TOL$/;"	v
+MAT_TOL$	tags	/^MAT_TOL	emodel.dh	\/^      REAL*8  EP_TOL,MAT_TOL$\/;"	v$/;"	v
+MAX_ITERATION_GL	emodel.dh	/^      INTEGER EP_CUTBACK_FLAG, MAX_ITERATION_GL,/;"	v
+MAX_ITERATION_GL	tags	/^MAX_ITERATION_LOC	emodel.dh	\/^      INTEGER EP_CUTBACK_FLAG, MAX_ITERATION_GL, MAX_ITERATION_LOC,\/;"	v$/;"	v
+MAX_ITERATION_LOC	emodel.dh	/^      INTEGER EP_CUTBACK_FLAG, MAX_ITERATION_GL, MAX_ITERATION_LOC,/;"	v
+MAX_ITERATION_LOC	tags	/^MAX_ITERATION_LOC	emodel.dh	\/^      INTEGER EP_CUTBACK_FLAG, MAX_ITERATION_GL, MAX_ITERATION_LOC,\/;"	v$/;"	v
+MECHANICSTOFLOW	eprojections.df	/^      SUBROUTINE MECHANICSTOFLOW /;"	s
+MECHANICSTOFLOWNONMATCHING	eprojections.df	/^      SUBROUTINE MECHANICSTOFLOWNONMATCHING /;"	s
+MECH_BC_NCASE	emodel.dh	/^      INTEGER  PEFLOW,NERRC,DISPOUT,MECH_BC_NCASE$/;"	v
+MODEL_EP	emodel.dh	/^      INTEGER EP_CUTBACK_FLAG, MAX_ITERATION_GL, MAX_ITERATION_LOC,            &$/;"	v
+MODULE_POST_PRCSS	master-big0.f90	/^SUBROUTINE MODULE_POST_PRCSS(/;"	s
+MXINTBIG	eprojections.df	/^      INTEGER :: MXINTBIG /;"	v	module:eprojmod
+MXINTPOINT	eprojections.df	/^      INTEGER :: MXINTPOINT /;"	v	module:eprojmod
+MXINTSMALL	eprojections.df	/^      INTEGER :: MXINTSMALL /;"	v	module:eprojmod
+NERRC	emodel.dh	/^      INTEGER  PEFLOW,NERRC,/;"	v
+NERRC	tags	/^DISPOUT	emodel.dh	\/^      INTEGER  PEFLOW,NERRC,DISPOUT,\/;"	v$/;"	v
+NEWTON	eprojections.df	/^      SUBROUTINE NEWTON(/;"	s
+NFLOWELE	eprojections.df	/^      INTEGER :: NMECHELE,NFLOWELE$/;"	v	module:eprojmod
+NLOADSTEPS	emodel.dh	/^     &        MODEL_EP,EP_SOLVER_FLAG,NLOADSTEPS,/;"	v
+NLOADSTEPS	tags	/^CR_TYPE	emodel.dh	\/^     &        MODEL_EP,EP_SOLVER_FLAG,NLOADSTEPS,CR_TYPE$\/;"	v$/;"	v
+NMECHELE	eprojections.df	/^      INTEGER :: NMECHELE,/;"	v	module:eprojmod
+NODE_ST_GDOF	model_module0.f90	/^INTEGER, ALLOCATABLE:: NODE_ST_GDOF(/;"	v	module:system
+NO_ELASTIC_NEWTON	emodel.dh	/^     &         PSTRNOUT,PSTATEOUT,NO_ELASTIC_NEWTON$/;"	v
+NO_LU	model_module0.f90	/^integer bandL,load_only,NO_LU,/;"	v	module:system
+NR_NUMBER	model_module0.f90	/^integer bandL,load_only,NO_LU,NR_NUMBER,/;"	v	module:system
+N_BIOTA	earydat.dh	/^      INTEGER  N_MODUL,             N_POISS,          N_BIOTA,/;"	v
+N_BIOTM	earydat.dh	/^      INTEGER  N_MODUL,             N_POISS,          N_BIOTA,                 &$/;"	v
+N_BULK_DEN	earydat.dh	/^     &         N_DISP_COMP,         N_BULK_DEN,/;"	v
+N_CRAC_IBC	earydat.dh	/^     &         N_STR_RESID,          N_CRAC_IBC,/;"	v
+N_DISPBD	ebdary.dh	/^     &         BDARYIJK(2,3,$MXBLKS),N_DISPBD(/;"	v
+N_DISP_COMP	earydat.dh	/^     &         N_EDISPN,            N_VSTRAIN_INIT,   N_STRAIN,                &$/;"	v
+N_ECON	earydat.dh	/^     &         N_PRESS,             N_PRESSN,         N_ECON(/;"	v
+N_ECR	earydat.dh	/^     &         N_EPV_FLOW,                                                     &$/;"	v
+N_EDISP	earydat.dh	/^     &         N_BIOTM,             N_ROCKD,          N_EDISP,/;"	v
+N_EDISPN	earydat.dh	/^     &         N_BIOTM,             N_ROCKD,          N_EDISP,                 &$/;"	v
+N_EFLDEN	earydat.dh	/^     &         N_ESAT(3),           N_EFLDEN,/;"	v
+N_ELEM_LID	earydat.dh	/^     &         N_PORO_NEIGHBOR,                                                &$/;"	v
+N_EMASS	earydat.dh	/^     &         N_EPVN,              N_STRESS,         N_STRESSN,               &$/;"	v
+N_EMSTRESS	earydat.dh	/^     &         N_XPERM_REF,         N_YPERM_REF,      N_ZPERM_REF,             &$/;"	v
+N_EMSTRESS_REF	earydat.dh	/^     &         N_EMSTRESS,          N_EMSTRESS_REF,/;"	v
+N_EPMD	earydat.dh	/^     &         N_PRESS,             N_PRESSN,         N_ECON(3),               &$/;"	v
+N_EPV	earydat.dh	/^     &         N_ESAT(3),           N_EFLDEN,          N_EPV,/;"	v
+N_EPVN	earydat.dh	/^     &         N_ESAT(3),           N_EFLDEN,          N_EPV,                  &$/;"	v
+N_EPV_FLOW	earydat.dh	/^     &         N_KEYOUT_CR,         N_PREF,           N_VSTRAIN,               &$/;"	v
+N_ESAT	earydat.dh	/^     &         N_EPMD,                                                         &$/;"	v
+N_FLOW_ALPHA	earydat.dh	/^     &         N_YIELD_ALPHA,       N_FLOW_ALPHA,/;"	v
+N_FNODE_TYPE	earydat.dh	/^     &         N_ELEM_LID,          N_NODE_LID,       N_FNODE_TYPE,/;"	v
+N_HARDEN_C1	earydat.dh	/^     &         N_HARDEN_MODEL,      N_HARDEN_C1,/;"	v
+N_HARDEN_C2	earydat.dh	/^     &         N_HARDEN_MODEL,      N_HARDEN_C1,                               &$/;"	v
+N_HARDEN_MODEL	earydat.dh	/^     &         N_YIELD_ALPHA,       N_FLOW_ALPHA,                              &$/;"	v
+N_KEYCR_ELE	earydat.dh	/^     &         N_UPDATE_I4,         N_KEYCR_ELE,/;"	v
+N_KEYOUT_CR	earydat.dh	/^     &         N_EMASS(3),                                                     &$/;"	v
+N_MODUL	earydat.dh	/^      INTEGER  N_MODUL,/;"	v
+N_NODE_LID	earydat.dh	/^     &         N_ELEM_LID,          N_NODE_LID,/;"	v
+N_NODE_WIDTH	earydat.dh	/^     &         N_OFNODE_GNUM,       N_NODE_WIDTH,/;"	v
+N_OFNODE_AFFINE	earydat.dh	/^     &         N_ELEM_LID,          N_NODE_LID,       N_FNODE_TYPE,            &$/;"	v
+N_OFNODE_DISP	earydat.dh	/^     &         N_OFNODE_AFFINE,     N_OFNODE_KEYOUT,  N_OFNODE_LID,            &$/;"	v
+N_OFNODE_GID	earydat.dh	/^     &         N_OFNODE_DISP,       N_OFNODE_L2GID,   N_OFNODE_GID,/;"	v
+N_OFNODE_GNUM	earydat.dh	/^     &         N_OFNODE_DISP,       N_OFNODE_L2GID,   N_OFNODE_GID,            &$/;"	v
+N_OFNODE_KEYOUT	earydat.dh	/^     &         N_OFNODE_AFFINE,     N_OFNODE_KEYOUT,/;"	v
+N_OFNODE_L2GID	earydat.dh	/^     &         N_OFNODE_DISP,       N_OFNODE_L2GID,/;"	v
+N_OFNODE_LID	earydat.dh	/^     &         N_OFNODE_AFFINE,     N_OFNODE_KEYOUT,  N_OFNODE_LID,/;"	v
+N_PASSO	earydat.dh	/^     &         N_PSTATE,            N_PSTATEN,                                 &$/;"	v
+N_POISS	earydat.dh	/^      INTEGER  N_MODUL,             N_POISS,/;"	v
+N_POROHEX_GELEI	earydat.dh	/^     &         N_OFNODE_GNUM,       N_NODE_WIDTH,     N_PROCN,                 &$/;"	v
+N_PORO_NEIGHBOR	earydat.dh	/^     &         N_STR_RESID,          N_CRAC_IBC,                               &$/;"	v
+N_PREF	earydat.dh	/^     &         N_KEYOUT_CR,         N_PREF,/;"	v
+N_PRESFACE	ebdary.dh	/^     &         N_TRACFACE(6),N_PRESFACE(/;"	v
+N_PRESS	earydat.dh	/^     &         N_STRESS_INIT(6),                                               &$/;"	v
+N_PRESSN	earydat.dh	/^     &         N_PRESS,             N_PRESSN,/;"	v
+N_PRESSVAL	earydat.dh	/^     &         N_VSTRAIN_NM1,       N_TDISP,          N_PRESSVAL$/;"	v
+N_PROCN	earydat.dh	/^     &         N_OFNODE_GNUM,       N_NODE_WIDTH,     N_PROCN,/;"	v
+N_PSTATE	earydat.dh	/^     &         N_PSTRAIN,	    N_PSTRAINN,                                &$/;"	v
+N_PSTATEN	earydat.dh	/^     &         N_PSTATE,            N_PSTATEN,/;"	v
+N_PSTRAIN	earydat.dh	/^     &         N_POROHEX_GELEI,                                                &$/;"	v
+N_PSTRAINN	earydat.dh	/^     &         N_PSTRAIN,	    N_PSTRAINN,/;"	v
+N_ROCKD	earydat.dh	/^     &         N_BIOTM,             N_ROCKD,/;"	v
+N_STRAIN	earydat.dh	/^     &         N_EDISPN,            N_VSTRAIN_INIT,   N_STRAIN,/;"	v
+N_STRAINN	earydat.dh	/^     &         N_DISP_COMP,         N_BULK_DEN,       N_STRAINN,/;"	v
+N_STRESS	earydat.dh	/^     &         N_EPVN,              N_STRESS,/;"	v
+N_STRESSN	earydat.dh	/^     &         N_EPVN,              N_STRESS,         N_STRESSN,/;"	v
+N_STRESS_INIT	earydat.dh	/^     &         N_DISP_COMP,         N_BULK_DEN,       N_STRAINN,               &$/;"	v
+N_STR_RESID	earydat.dh	/^     &         N_UPDATE_I4,         N_KEYCR_ELE,                               &$/;"	v
+N_TDISP	earydat.dh	/^     &         N_VSTRAIN_NM1,       N_TDISP,/;"	v
+N_TRACBD	ebdary.dh	/^      INTEGER  N_TRACBD(/;"	v
+N_TRACFACE	ebdary.dh	/^     &         BDARYIJK(2,3,$MXBLKS),N_DISPBD(6),N_TYPEBD(6),$/;"	v
+N_TYPEBD	ebdary.dh	/^     &         BDARYIJK(2,3,$MXBLKS),N_DISPBD(6),N_TYPEBD(/;"	v
+N_UPDATE_FG	earydat.dh	/^     &         N_UPDATE_R8,      N_UPDATE_FG,/;"	v
+N_UPDATE_I4	earydat.dh	/^     &         N_UPDATE_R8,      N_UPDATE_FG,                                  &$/;"	v
+N_UPDATE_R8	earydat.dh	/^     &         N_ECR,                                                          &$/;"	v
+N_VSTRAIN	earydat.dh	/^     &         N_KEYOUT_CR,         N_PREF,           N_VSTRAIN,/;"	v
+N_VSTRAIN_INIT	earydat.dh	/^     &         N_EDISPN,            N_VSTRAIN_INIT,/;"	v
+N_VSTRAIN_NM1	earydat.dh	/^     &         N_XPERM_R8,          N_YPERM_R8,       N_ZPERM_R8,              &$/;"	v
+N_XPERM_R8	earydat.dh	/^     &         N_EMSTRESS,          N_EMSTRESS_REF,                            &$/;"	v
+N_XPERM_REF	earydat.dh	/^     &         N_HARDEN_C2,                                                    & $/;"	v
+N_YIELD_ALPHA	earydat.dh	/^     &         N_PASSO,             N_YIELD_SIG0,                              &$/;"	v
+N_YIELD_SIG0	earydat.dh	/^     &         N_PASSO,             N_YIELD_SIG0,/;"	v
+N_YPERM_R8	earydat.dh	/^     &         N_XPERM_R8,          N_YPERM_R8,/;"	v
+N_YPERM_REF	earydat.dh	/^     &         N_XPERM_REF,         N_YPERM_REF,/;"	v
+N_ZPERM_R8	earydat.dh	/^     &         N_XPERM_R8,          N_YPERM_R8,       N_ZPERM_R8,/;"	v
+N_ZPERM_REF	earydat.dh	/^     &         N_XPERM_REF,         N_YPERM_REF,      N_ZPERM_REF,/;"	v
+N_matx_L	model_module0.f90	/^real(kind=double), allocatable:: N_matx_L(/;"	v	module:model_type
+N_matx_R	model_module0.f90	/^real(kind=double), allocatable:: N_matx_L(:,:),N_matx_R(/;"	v	module:model_type
+OFNODE_DISP_TMP	model_module0.f90	/^REAL(KIND=DOUBLE), ALLOCATABLE:: DISP_BC_RESIDUE(:),OFNODE_DISP_TMP(/;"	v	module:system
+OFNODE_GNUM_TMP	model_module0.f90	/^INTEGER, ALLOCATABLE:: NODE_ST_GDOF(:),ACTIVE_NODE(:),HYPRE_ROWS(:),OFNODE_GNUM_TMP(/;"	v	module:system
+PARDISO_POROHEX	gstiff0.f90	/^subroutine PARDISO_POROHEX(/;"	s
+PEFLOW	emodel.dh	/^      INTEGER  PEFLOW,/;"	v
+PEHYPRE	elastic.df	1685;"	c	subroutine:HYPRE_POROHEX
+PEPORE_VOL	ecompute.df	/^      SUBROUTINE PEPORE_VOL(/;"	s
+PEPVTOL	emodel.dh	/^      REAL*8   PEPVTOL$/;"	v
+PEPV_ERR	ecompute.df	/^      SUBROUTINE PEPV_ERR(/;"	s
+PEPV_ERR_MB	ecompute.df	/^      SUBROUTINE PEPV_ERR_MB(/;"	s
+PESETARYR8N	ecompute.df	/^      SUBROUTINE PESETARYR8N(/;"	s
+PE_PERM	elastic.df	/^      SUBROUTINE PE_PERM(/;"	s
+PE_UPPERM	elastic.df	/^      SUBROUTINE PE_UPPERM(/;"	s
+PLOT_PERM_CHANGE	emodel.dh	/^      LOGICAL  SDPM,PLOT_PERM_CHANGE$/;"	v
+POINT	eprojections.df	/^      REAL*8, ALLOCATABLE :: VOL1(:,:),VOL2(:,:),POINT(/;"	v	module:eprojmod
+POROHEX	emodel.dh	26;"	c
+POROHEX_COPY_EDISP	elastic.df	/^      SUBROUTINE POROHEX_COPY_EDISP(/;"	s
+POROHEX_POST_PRCSS	estep.df	/^      SUBROUTINE POROHEX_POST_PRCSS(/;"	s
+POROHEX_POST_PRCSSW	estep.df	/^      SUBROUTINE POROHEX_POST_PRCSSW(/;"	s
+POR_VOL	elastic.df	/^      SUBROUTINE POR_VOL(/;"	s
+PRESVAL	emodel.dh	/^      REAL*8 PRESVAL,/;"	v
+PRES_LOAD_FBC	model_module0.f90	/^REAL(KIND=DOUBLE),ALLOCATABLE:: TRAC_BC(:,:),TRAC_FBC(:,:),PRES_LOAD_FBC(/;"	v	module:system
+PRE_PRCSS2	pre_prcss0.f90	/^SUBROUTINE PRE_PRCSS2(/;"	s
+PROJECTION_OPERATORS	eprojections.df	/^      SUBROUTINE PROJECTION_OPERATORS(/;"	s
+PROPOUT	emodel.dh	/^      LOGICAL  PROPOUT,/;"	v
+PSTATEOUT	emodel.dh	/^     &         PSTRNOUT,PSTATEOUT,/;"	v
+PSTATEOUT	tags	/^PSTATEOUT	emodel.dh	\/^     &         PSTRNOUT,PSTATEOUT,\/;"	v$/;"	v
+PSTRNOUT	emodel.dh	/^      LOGICAL  PROPOUT,STRSOUT,STRNOUT,ESTRSOUT,BODYFORCE_INPUT,               &$/;"	v
+PT	eprojections.df	/^      REAL*8 PT(/;"	v
+PTNEW	eprojections.df	/^      REAL*8 PT(3),PTNEW(/;"	v
+R_dof_st	model_module0.f90	/^integer e_id_1,e_id_2,node_dof_L,node_dof_R,R_dof_st,/;"	v	module:model_type
+SCALE_1NC	ecompute.df	/^      SUBROUTINE SCALE_1NC(/;"	s
+SCALE_2NC	ecompute.df	/^      SUBROUTINE SCALE_2NC(/;"	s
+SDPM	emodel.dh	/^      LOGICAL  SDPM,/;"	v
+SDPWELL	elastic.df	/^      SUBROUTINE SDPWELL(/;"	s
+SETARYI4N	ecompute.df	/^      SUBROUTINE SETARYI4N /;"	s
+SKEMPTON	emodel.dh	/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,FINERR,                   &      $/;"	v
+SKIP	eprojections.df	/^      INTEGER, ALLOCATABLE :: VAL1(:),VAL3(:),SKIP(/;"	v	module:eprojmod
+STEP	eprojections.df	/^      REAL*8 PT(3),PTNEW(3),STEP$/;"	v
+STRNOUT	emodel.dh	/^      LOGICAL  PROPOUT,STRSOUT,STRNOUT,/;"	v
+STRNOUT	tags	/^BODYFORCE_INPUT	emodel.dh	\/^      LOGICAL  PROPOUT,STRSOUT,STRNOUT,ESTRSOUT,BODYFORCE_INPUT,\/;"	v$/;"	v
+STRNOUT	tags	/^STRNOUT	emodel.dh	\/^      LOGICAL  PROPOUT,STRSOUT,STRNOUT,\/;"	v$/;"	v
+STRSOUT	emodel.dh	/^      LOGICAL  PROPOUT,STRSOUT,/;"	v
+STRSOUT	tags	/^BODYFORCE_INPUT	emodel.dh	\/^      LOGICAL  PROPOUT,STRSOUT,STRNOUT,ESTRSOUT,BODYFORCE_INPUT,\/;"	v$/;"	v
+STRSOUT	tags	/^STRNOUT	emodel.dh	\/^      LOGICAL  PROPOUT,STRSOUT,STRNOUT,\/;"	v$/;"	v
+STRSSYY	emodel.dh	/^      REAL*8 PRESVAL,STRSSYY,/;"	v
+STRSSYY	tags	/^EPSYY	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,\/;"	v$/;"	v
+STRSSYY	tags	/^SKEMPTON	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,FINERR,                   &      $\/;"	v$/;"	v
+STRSSYY	tags	/^STRSSYY	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,\/;"	v$/;"	v
+STRSSYY	tags	/^UYVAL	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,\/;"	v$/;"	v
+TANGENT	eprojections.df	/^      REAL*8 TANGENT(/;"	v
+TOLY	model_module0.f90	/^   real(kind=double), parameter :: TOLY /;"	v	module:control
+TOTAL_CRACKED_FACE	emodel.dh	/^      INTEGER TOTAL_CRACKED_FACE$/;"	v
+TOTAL_CRAC_FACE	model_module0.f90	/^        TOTAL_PRES_LOAD_BC,TOTAL_PRES_LOAD_FBC,&$/;"	v	module:system
+TOTAL_DISP_BC	model_module0.f90	/^INTEGER TOTAL_DISP_BC,/;"	v	module:system
+TOTAL_DISP_FBC	model_module0.f90	/^INTEGER TOTAL_DISP_BC, TOTAL_DISP_FBC,/;"	v	module:system
+TOTAL_FACE_LOAD_BC	model_module0.f90	/^        TOTAL_TRAC_BC, TOTAL_TRAC_FBC,&$/;"	v	module:system
+TOTAL_NR_NUMBER	model_module0.f90	/^integer ele_tl,node_tl,dof_tl,number_node_out,TOTAL_NR_NUMBER$/;"	v	module:system
+TOTAL_PRES_LOAD_BC	model_module0.f90	/^        TOTAL_FACE_LOAD_BC,&$/;"	v	module:system
+TOTAL_PRES_LOAD_FBC	model_module0.f90	/^        TOTAL_PRES_LOAD_BC,TOTAL_PRES_LOAD_FBC,/;"	v	module:system
+TOTAL_TRAC_BC	model_module0.f90	/^INTEGER TOTAL_DISP_BC, TOTAL_DISP_FBC,&$/;"	v	module:system
+TOTAL_TRAC_FBC	model_module0.f90	/^        TOTAL_TRAC_BC, TOTAL_TRAC_FBC,/;"	v	module:system
+TRAC_BC	model_module0.f90	/^REAL(KIND=DOUBLE),ALLOCATABLE:: TRAC_BC(/;"	v	module:system
+TRAC_FBC	model_module0.f90	/^REAL(KIND=DOUBLE),ALLOCATABLE:: TRAC_BC(:,:),TRAC_FBC(/;"	v	module:system
+TYPESDP	emodel.dh	/^      INTEGER*4  TYPESDP$/;"	v
+UXVAL	emodel.dh	/^      REAL*8 PRESVAL,STRSSYY,UXVAL,/;"	v
+UXVAL	tags	/^EPSYY	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,\/;"	v$/;"	v
+UXVAL	tags	/^SKEMPTON	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,FINERR,                   &      $\/;"	v$/;"	v
+UXVAL	tags	/^UYVAL	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,\/;"	v$/;"	v
+UYVAL	emodel.dh	/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,/;"	v
+UYVAL	tags	/^EPSYY	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,\/;"	v$/;"	v
+UYVAL	tags	/^SKEMPTON	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,EPSXX,EPSYY,FINERR,                   &      $\/;"	v$/;"	v
+UYVAL	tags	/^UYVAL	emodel.dh	\/^      REAL*8 PRESVAL,STRSSYY,UXVAL,UYVAL,\/;"	v$/;"	v
+VAL1	eprojections.df	/^      INTEGER, ALLOCATABLE :: VAL1(/;"	v	module:eprojmod
+VAL2	eprojections.df	/^      INTEGER, ALLOCATABLE :: VAL2(/;"	v	module:eprojmod
+VAL3	eprojections.df	/^      INTEGER, ALLOCATABLE :: VAL1(:),VAL3(/;"	v	module:eprojmod
+VAL4	eprojections.df	/^      INTEGER, ALLOCATABLE :: VAL2(:,:),VAL4(/;"	v	module:eprojmod
+VOL1	eprojections.df	/^      REAL*8, ALLOCATABLE :: VOL1(/;"	v	module:eprojmod
+VOL2	eprojections.df	/^      REAL*8, ALLOCATABLE :: VOL1(:,:),VOL2(/;"	v	module:eprojmod
+WELLSDP	elastic.df	/^      SUBROUTINE WELLSDP /;"	s
+affine	model_module0.f90	/^    integer affine(/;"	k	type:node_obj
+assoc_model	model_module0.f90	/^    integer assoc_model /;"	k	type:material
+average_delta_u	utility0.f90	/^subroutine  average_delta_u$/;"	s
+average_residue	utility0.f90	/^subroutine  average_residue$/;"	s
+b_dof	model_module0.f90	/^integer node_dof,b_dof,/;"	v	module:model_type
+b_dof_L	model_module0.f90	/^integer ele_node,ele_dof_1,ele_dof_2,ngauss_face,b_dof_L,/;"	v	module:model_type
+b_dof_R	model_module0.f90	/^integer ele_node,ele_dof_1,ele_dof_2,ngauss_face,b_dof_L,b_dof_R$/;"	v	module:model_type
+b_face	model_module0.f90	/^type (bnd_face), allocatable :: b_face(/;"	v	module:system
+b_face_load	hexa_NB0.f90	/^subroutine b_face_load(/;"	s
+bandL	model_module0.f90	/^integer bandL,/;"	v	module:system
+bc	bc0.f90	/^subroutine bc(/;"	s
+bc_flux	model_module0.f90	/^real(kind=double) wght_8(8),face_wght_4(4),flux,flux_fld,p0,bc_flux$/;"	v	module:model_type
+beta_zero	model_module0.f90	/^integer tl_0_dch,dirnode,beta_zero,/;"	v	module:system
+bmatx_L	model_module0.f90	/^real(kind=double), allocatable:: bmatx_L(/;"	v	module:model_type
+bmatx_R	model_module0.f90	/^real(kind=double), allocatable:: bmatx_L(:,:),bmatx_R(/;"	v	module:model_type
+bnd_face	model_module0.f90	/^type bnd_face$/;"	t	module:boundary_face
+boundary_face	model_module0.f90	/^module boundary_face$/;"	m
+byte	model_module0.f90	/^   integer, parameter :: byte /;"	v	module:truth
+center	model_module0.f90	/^    real(kind=double) center(/;"	k	type:element
+cg_node	model_module0.f90	/^integer, allocatable:: node_out(:),cg_node(/;"	v	module:system
+cg_tl_node	model_module0.f90	/^integer prpty_grp_sld,tl_load_point,cg_tl_node,/;"	v	module:system
+cnode_p	model_module0.f90	/^integer, allocatable:: zero_dch(:),node_st_dof(:),indx(:),dirbcnode(:),pnode_cn(:),cnode_p(/;"	v	module:system
+control	model_module0.f90	/^module control /;"	m
+coord	model_module0.f90	/^real(kind=double), allocatable:: coord(/;"	v	module:system
+coord_n	model_module0.f90	/^real(kind=double), allocatable:: coord(:,:),coord_n(/;"	v	module:system
+cpu_commu	model_module0.f90	/^type cpu_commu$/;"	t	module:my_cpu_commu
+cpu_id_to_recv	model_module0.f90	/^    integer, pointer :: cpu_id_to_recv(/;"	k	type:cpu_commu
+cpu_id_to_send	model_module0.f90	/^    integer, pointer :: cpu_id_to_send(/;"	k	type:cpu_commu
+crack_profile_setup	crack_profile_setup.f90	/^subroutine crack_profile_setup(/;"	s
+cut	model_module0.f90	/^integer bandL,load_only,NO_LU,NR_NUMBER,cut,/;"	v	module:system
+cut_back_flag	model_module0.f90	/^   integer cut_back_flag$/;"	v	module:control
+deltaT	model_module0.f90	/^real load_scale,load_factor,deltaT,/;"	v	module:system
+delta_load	model_module0.f90	/^real(kind=double), allocatable:: delta_load(/;"	v	module:system
+delta_load_naut	model_module0.f90	/^real(kind=double), allocatable:: load_cnst(:),delta_load_naut(/;"	v	module:system
+delta_load_save	model_module0.f90	/^real(kind=double), allocatable:: delta_load(:),delta_load_save(/;"	v	module:system
+delta_p	model_module0.f90	/^real(kind=double) gauss_coord_8(8,3),gauss_coord_27(27,3),delta_p$/;"	v	module:model_type
+delta_u	model_module0.f90	/^real(kind=double), allocatable:: u_n(:),u(:),delta_u(/;"	v	module:system
+dirbcnode	model_module0.f90	/^integer, allocatable:: zero_dch(:),node_st_dof(:),indx(:),dirbcnode(/;"	v	module:system
+dirnode	model_module0.f90	/^integer tl_0_dch,dirnode,/;"	v	module:system
+dis_bc_node	main.f90	/^real(kind=double) dis_bc_node(/;"	v	program:main
+dof	model_module0.f90	/^    integer dof$/;"	k	type:node_obj
+dof_dt	model_module0.f90	/^integer ele_node_L,ele_node_R,ele_dof_L,ele_dof_R,dof_dt$/;"	v	module:model_type
+dof_st	model_module0.f90	/^integer node_dof,b_dof,ele_dof,sc,ngauss,strss_dof,dof_st$/;"	v	module:model_type
+dof_tl	model_module0.f90	/^integer ele_tl,node_tl,dof_tl,/;"	v	module:system
+double	model_module0.f90	/^   integer, parameter :: double /;"	v	module:truth
+drucker_itm	model_module0.f90	/^integer plastic_model,drucker_itm /;"	v	module:system
+e_id_1	model_module0.f90	/^integer e_id_1,/;"	v	module:model_type
+e_id_2	model_module0.f90	/^integer e_id_1,e_id_2,/;"	v	module:model_type
+ele_L	model_module0.f90	/^integer ele_node_1,ele_node_2,ele_node_3,ele_node_4,ele_L,/;"	v	module:model_type
+ele_R	model_module0.f90	/^integer ele_node_1,ele_node_2,ele_node_3,ele_node_4,ele_L,ele_R$/;"	v	module:model_type
+ele_dof	model_module0.f90	/^integer node_dof,b_dof,ele_dof,/;"	v	module:model_type
+ele_dof_1	model_module0.f90	/^integer ele_node,ele_dof_1,/;"	v	module:model_type
+ele_dof_2	model_module0.f90	/^integer ele_node,ele_dof_1,ele_dof_2,/;"	v	module:model_type
+ele_dof_3	model_module0.f90	/^integer model,ele_type,ele_dof_3,/;"	v	module:model_type
+ele_dof_4	model_module0.f90	/^integer model,ele_type,ele_dof_3,ele_dof_4,/;"	v	module:model_type
+ele_dof_L	model_module0.f90	/^integer ele_node_L,ele_node_R,ele_dof_L,/;"	v	module:model_type
+ele_dof_R	model_module0.f90	/^integer ele_node_L,ele_node_R,ele_dof_L,ele_dof_R,/;"	v	module:model_type
+ele_node	model_module0.f90	/^integer ele_node,/;"	v	module:model_type
+ele_node_1	model_module0.f90	/^integer ele_node_1,/;"	v	module:model_type
+ele_node_2	model_module0.f90	/^integer ele_node_1,ele_node_2,/;"	v	module:model_type
+ele_node_3	model_module0.f90	/^integer ele_node_1,ele_node_2,ele_node_3,/;"	v	module:model_type
+ele_node_4	model_module0.f90	/^integer ele_node_1,ele_node_2,ele_node_3,ele_node_4,/;"	v	module:model_type
+ele_node_L	model_module0.f90	/^integer ele_node_L,/;"	v	module:model_type
+ele_node_R	model_module0.f90	/^integer ele_node_L,ele_node_R,/;"	v	module:model_type
+ele_stiff_ep	gstiff0.f90	/^subroutine ele_stiff_ep(/;"	s
+ele_strct	model_module0.f90	/^module ele_strct$/;"	m
+ele_tl	model_module0.f90	/^integer ele_tl,/;"	v	module:system
+ele_total	main.f90	/^integer ele_total /;"	v	program:main
+ele_type	model_module0.f90	/^    integer ele_type$/;"	k	type:element
+ele_type	model_module0.f90	/^integer model,ele_type,/;"	v	module:model_type
+elem_shared_face	crack_profile_setup.f90	/^subroutine elem_shared_face(/;"	s
+element	model_module0.f90	/^    integer element$/;"	k	type:bnd_face
+element	model_module0.f90	/^type element$/;"	t	module:ele_strct
+elm_gnode_id	main.f90	/^integer elm_gnode_id(/;"	v	program:main
+elm_mat_id	main.f90	/^integer elm_mat_id(/;"	v	program:main
+elm_pore_pressure	main.f90	/^real(kind=double) elm_pore_pressure(/;"	v	program:main
+elm_pore_pressure0	main.f90	/^real(kind=double) elm_pore_pressure0(/;"	v	program:main
+elm_stress0	main.f90	/^real(kind=double) elm_stress0(/;"	v	program:main
+elm_vstrain	main.f90	/^real(kind=double) elm_vstrain(/;"	v	program:main
+eprojmod	eprojections.df	/^      MODULE eprojmod$/;"	m
+eqv_strain	utility0.f90	/^subroutine eqv_strain(/;"	s
+eqv_svect	utility0.f90	/^subroutine eqv_svect(/;"	s
+error_control	model_module0.f90	/^   real(kind=double), parameter :: error_control /;"	v	module:control
+face_NB_mat	hexa_NB0.f90	/^subroutine face_NB_mat(/;"	s
+face_gauss	hexa_NB0.f90	/^subroutine face_gauss(/;"	s
+face_normal	hexa_NB0.f90	/^subroutine face_normal(/;"	s
+face_wght_4	model_module0.f90	/^real(kind=double) wght_8(8),face_wght_4(/;"	v	module:model_type
+face_wght_9	model_module0.f90	/^real(kind=double) wght_27(27),face_wght_9(/;"	v	module:model_type
+fem_parallel	master-big0.f90	/^subroutine fem_parallel(/;"	s
+fem_update_ghost_node_solution	master-big0.f90	/^subroutine fem_update_ghost_node_solution(/;"	s
+first_time_step	model_module0.f90	/^integer model,ele_type,ele_dof_3,ele_dof_4,first_time_step$/;"	v	module:model_type
+flag_cpl	model_module0.f90	/^integer flag_cpl,/;"	v	module:system
+flag_gravity	model_module0.f90	/^integer flag_cpl,flag_gravity,/;"	v	module:system
+flag_initial	model_module0.f90	/^integer flag_cpl,flag_gravity,flag_initial,/;"	v	module:system
+flag_solve	model_module0.f90	/^integer flag_cpl,flag_gravity,flag_initial,flag_solve,/;"	v	module:system
+fld_tmp_prp_itm	model_module0.f90	/^integer fld_tmp_prp_itm$/;"	v	module:system
+flow_para	model_module0.f90	/^    real(kind=double), pointer :: flow_para(/;"	k	type:material
+flow_prp_itm	model_module0.f90	/^    integer flow_prp_itm$/;"	k	type:material
+flux	model_module0.f90	/^real(kind=double) wght_8(8),face_wght_4(4),flux,/;"	v	module:model_type
+flux_fld	model_module0.f90	/^real(kind=double) wght_8(8),face_wght_4(4),flux,flux_fld,/;"	v	module:model_type
+flux_sld	model_module0.f90	/^real(kind=double) wght_27(27),face_wght_9(9),flux_sld,/;"	v	module:model_type
+flux_tmp	model_module0.f90	/^real(kind=double) wght_27(27),face_wght_9(9),flux_sld,flux_tmp$/;"	v	module:model_type
+force_bc_node	main.f90	/^real(kind=double) force_bc_node(/;"	v	program:main
+format	tags	/^!_TAG_FILE_FORMAT	2	\/extended format; --format=1 will not append ;" to lines\/$/;"	v
+frac_elem_connect	model_module0.f90	/^integer, allocatable:: frac_elem_connect(/;"	v	module:system
+frac_interior_node_affine	model_module0.f90	/^integer, allocatable:: frac_interior_node_affine(/;"	v	module:system
+frac_interior_node_id	model_module0.f90	/^integer, allocatable:: frac_elem_connect(:,:),frac_node_global_id(:),frac_interior_node_id(/;"	v	module:system
+frac_node_coord	model_module0.f90	/^real(kind=double), allocatable:: frac_node_coord(/;"	v	module:system
+frac_node_global_id	model_module0.f90	/^integer, allocatable:: frac_elem_connect(:,:),frac_node_global_id(/;"	v	module:system
+frac_node_width	model_module0.f90	/^real(kind=double), allocatable:: frac_node_coord(:,:),frac_node_width(/;"	v	module:system
+frac_tecplot	post_prcss0.f90	/^subroutine frac_tecplot(/;"	s
+free_memory	master-big0.f90	/^subroutine free_memory$/;"	s
+g_stiff	gstiff0.f90	/^subroutine g_stiff(/;"	s
+gauss_coord_27	model_module0.f90	/^real(kind=double) gauss_coord_8(8,3),gauss_coord_27(/;"	v	module:model_type
+gauss_coord_8	model_module0.f90	/^real(kind=double) gauss_coord_8(/;"	v	module:model_type
+get_gstiff_index	pre_prcss0.f90	/^subroutine get_gstiff_index$/;"	s
+get_strain	utility0.f90	/^subroutine  get_strain(/;"	s
+get_stress	utility0.f90	/^subroutine  get_stress(/;"	s
+get_vstrain_at_element_centor	utility0.f90	/^subroutine  get_vstrain_at_element_centor$/;"	s
+gmsh_order	model_module0.f90	/^integer gmsh_order(/;"	v	module:system
+gpt_estrn	model_module0.f90	/^    real(kind=double), pointer :: gpt_estrn(/;"	k	type:element
+gpt_estrn_t	model_module0.f90	/^    real(kind=double), pointer :: gpt_estrn_t(/;"	k	type:element
+gpt_pstrn	model_module0.f90	/^    real(kind=double), pointer :: gpt_pstrn(/;"	k	type:element
+gpt_pstrn_t	model_module0.f90	/^    real(kind=double), pointer :: gpt_pstrn_t(/;"	k	type:element
+gpt_strn	model_module0.f90	/^    real(kind=double), pointer :: gpt_strn(/;"	k	type:element
+gpt_strn_t	model_module0.f90	/^    real(kind=double), pointer :: gpt_strn_t(/;"	k	type:element
+gpt_strss	model_module0.f90	/^    real(kind=double), pointer :: gpt_strss(/;"	k	type:element
+gpt_strss_t	model_module0.f90	/^    real(kind=double), pointer :: gpt_strss_t(/;"	k	type:element
+gpt_vstate	model_module0.f90	/^    real(kind=double), pointer :: gpt_vstate(/;"	k	type:element
+gpt_vstate_t	model_module0.f90	/^    real(kind=double), pointer :: gpt_vstate_t(/;"	k	type:element
+gpt_yield	model_module0.f90	/^    integer, pointer :: gpt_yield(/;"	k	type:element
+gravity	main.f90	/^real(kind=double) gravity(/;"	v	program:main
+gravity_flag	main.f90	/^integer gravity_flag /;"	v	program:main
+gravity_vector	model_module0.f90	/^real(kind=double) gravity_vector(/;"	v	module:system
+gstiff	model_module0.f90	/^real(kind=double), allocatable:: gstiff(/;"	v	module:system
+gstiff_col_index	model_module0.f90	/^integer, allocatable:: node_out(:),cg_node(:,:),gstiff_row_index(:),gstiff_col_index(/;"	v	module:system
+gstiff_row_index	model_module0.f90	/^integer, allocatable:: node_out(:),cg_node(:,:),gstiff_row_index(/;"	v	module:system
+gstiff_save	model_module0.f90	/^real(kind=double), allocatable:: gstiff(:),residue(:),gstiff_save(/;"	v	module:system
+half_d	model_module0.f90	/^   real(kind=double), parameter :: half_d /;"	v	module:truth
+harden_id	model_module0.f90	/^    integer harden_id$/;"	k	type:material
+hexa	model_module0.f90	/^type (element), allocatable :: hexa(/;"	v	module:model_type
+hexa_bmat	hexa_NB0.f90	/^subroutine hexa_bmat(/;"	s
+hexa_face_node	model_module0.f90	/^integer hexa_face_node(/;"	v	module:system
+hexa_node_on_face	post_prcss0.f90	/^subroutine hexa_node_on_face$/;"	s
+hexanb0	hexa_NB0.f90	/^subroutine  hexanb0(/;"	s
+i	main.f90	/^in/;"	v	program:main
+icpl_flag	main.f90	/^integer icpl_flag,/;"	v	program:main
+indx	model_module0.f90	/^integer, allocatable:: zero_dch(:),node_st_dof(:),indx(/;"	v	module:system
+initial_flag	main.f90	/^integer initial_flag /;"	v	program:main
+initial_pore_pressure	model_module0.f90	/^    real(kind=double) initial_pore_pressure$/;"	k	type:element
+initial_stress	model_module0.f90	/^    real(kind=double) initial_stress(/;"	k	type:element
+int_face_tl	model_module0.f90	/^integer int_face_tl,/;"	v	module:system
+internal_force	model_module0.f90	/^real(kind=double), allocatable:: delta_load(:),delta_load_save(:),internal_force(/;"	v	module:system
+internal_force_save	model_module0.f90	/^real(kind=double), allocatable:: delta_load(:),delta_load_save(:),internal_force(:),internal_force_save(/;"	v	module:system
+inverse	utility0.f90	/^ subroutine inverse(/;"	s
+iso_harden	model_module0.f90	/^    real(kind=double), pointer :: iso_harden(/;"	k	type:material
+iso_prp_itm	model_module0.f90	/^    integer iso_prp_itm$/;"	k	type:material
+isort	pre_prcss0.f90	/^subroutine isort(/;"	s
+jacob3d	hexa_NB0.f90	/^subroutine jacob3d(/;"	s
+jacob_face	hexa_NB0.f90	/^subroutine jacob_face(/;"	s
+jtime	model_module0.f90	/^integer jtime,/;"	v	module:model_type
+kin_harden	model_module0.f90	/^    real(kind=double), pointer :: kin_harden(/;"	k	type:material
+kin_prp_itm	model_module0.f90	/^    integer kin_prp_itm$/;"	k	type:material
+linear	model_module0.f90	/^integer int_face_tl,linear,/;"	v	module:system
+load	load_vector0.f90	/^subroutine load$/;"	s
+load_cnst	model_module0.f90	/^real(kind=double), allocatable:: load_cnst(/;"	v	module:system
+load_factor	model_module0.f90	/^real load_scale,load_factor,/;"	v	module:system
+load_factor_old	model_module0.f90	/^real load_scale,load_factor,deltaT,time_past,scale_point,load_factor_old$/;"	v	module:system
+load_only	model_module0.f90	/^integer bandL,load_only,/;"	v	module:system
+load_scale	model_module0.f90	/^real load_scale,/;"	v	module:system
+load_scaling	model_module0.f90	/^real(kind=double) load_scaling$/;"	v	module:system
+load_step	model_module0.f90	/^integer bandL,load_only,NO_LU,NR_NUMBER,cut,nload,load_step$/;"	v	module:system
+load_tl_zero	model_module0.f90	/^real(kind=double), allocatable:: load_tl_zero(/;"	v	module:system
+main	main.f90	/^program main$/;"	p
+mapping_gij_to_compressed_index	pre_prcss0.f90	/^subroutine mapping_gij_to_compressed_index(/;"	s
+master_node	utility0.f90	/^subroutine  master_node$/;"	s
+mat_L	model_module0.f90	/^real(kind=double), allocatable:: mat_L(/;"	v	module:model_type
+mat_R	model_module0.f90	/^real(kind=double), allocatable:: mat_L(:,:),mat_R(/;"	v	module:model_type
+mat_config	model_module0.f90	/^module mat_config /;"	m
+mat_core_solver	dmat_ep.f90	/^subroutine mat_core_solver(/;"	s
+mat_cstiff	dmat_ep.f90	/^subroutine mat_cstiff(/;"	s
+mat_flow	dmat_ep.f90	/^subroutine mat_flow(/;"	s
+mat_grp_prop	main.f90	/^real(kind=double) mat_grp_prop(/;"	v	program:main
+mat_grp_tl	model_module0.f90	/^integer mat_grp_tl /;"	v	module:system
+mat_grp_total	main.f90	/^integer mat_grp_total /;"	v	program:main
+mat_harden	dmat_ep.f90	/^subroutine mat_harden(/;"	s
+mat_no	model_module0.f90	/^    integer mat_no$/;"	k	type:element
+mat_nprop	main.f90	/^integer mat_nprop /;"	v	program:main
+mat_nprop_max	model_module0.f90	/^integer tl_0_dch,dirnode,beta_zero,tl_non_zeros,mat_nprop_max$/;"	v	module:system
+mat_prpty	model_module0.f90	/^type (material), allocatable :: mat_prpty(/;"	v	module:system
+mat_solver	dmat_ep.f90	/^      subroutine mat_solver(/;"	s
+mat_solver_elastic	dmat_ep.f90	/^subroutine mat_solver_elastic(/;"	s
+mat_stiff_load	dmat_ep.f90	/^subroutine mat_stiff_load(/;"	s
+mat_update	dmat_ep.f90	/^subroutine mat_update(/;"	s
+mat_yield	dmat_ep.f90	/^subroutine mat_yield(/;"	s
+material	model_module0.f90	/^type material /;"	t	module:mat_config
+max_char	model_module0.f90	/^   integer, parameter :: max_char /;"	v	module:truth
+max_iter	model_module0.f90	/^   integer, parameter :: max_iter /;"	v	module:control
+model	model_module0.f90	/^integer model,/;"	v	module:model_type
+model_id	model_module0.f90	/^    integer model_id$/;"	k	type:material
+model_type	model_module0.f90	/^module model_type$/;"	m
+module_elasticity2	master-big0.f90	/^subroutine module_elasticity2(/;"	s
+mstep	model_module0.f90	/^integer int_face_tl,linear,ynelem,mstep,/;"	v	module:system
+my_cpu	model_module0.f90	/^type (cpu_commu) my_cpu$/;"	v	module:system
+my_cpu_commu	model_module0.f90	/^module my_cpu_commu$/;"	m
+nb_elem_id	model_module0.f90	/^    integer nb_elem_id(/;"	k	type:node_obj
+nb_node_id	model_module0.f90	/^    integer nb_node_id(/;"	k	type:node_obj
+ncase	main.f90	/^integer solve_flag,ncase$/;"	v	program:main
+ncpus_to_recv	model_module0.f90	/^    integer ncpus_to_recv$/;"	k	type:cpu_commu
+ncpus_to_send	model_module0.f90	/^    integer ncpus_to_send$/;"	k	type:cpu_commu
+ngauss	model_module0.f90	/^    integer ngauss$/;"	k	type:element
+ngauss	model_module0.f90	/^integer node_dof,b_dof,ele_dof,sc,ngauss,/;"	v	module:model_type
+ngauss_face	model_module0.f90	/^integer ele_node,ele_dof_1,ele_dof_2,ngauss_face,/;"	v	module:model_type
+nload	model_module0.f90	/^integer bandL,load_only,NO_LU,NR_NUMBER,cut,nload,/;"	v	module:system
+no_iteration	model_module0.f90	/^integer jtime,no_iteration$/;"	v	module:model_type
+node	model_module0.f90	/^    integer, pointer :: node(/;"	k	type:element
+node_coord	main.f90	/^real(kind=double) node_coord(/;"	v	program:main
+node_displacement	main.f90	/^real(kind=double) node_displacement(/;"	v	program:main
+node_dof	model_module0.f90	/^integer node_dof,/;"	v	module:model_type
+node_dof_L	model_module0.f90	/^integer e_id_1,e_id_2,node_dof_L,/;"	v	module:model_type
+node_dof_R	model_module0.f90	/^integer e_id_1,e_id_2,node_dof_L,node_dof_R,/;"	v	module:model_type
+node_lid_to_recv	model_module0.f90	/^    integer, pointer :: node_lid_to_recv(/;"	k	type:cpu_commu
+node_lid_to_send	model_module0.f90	/^    integer, pointer :: node_lid_to_send(/;"	k	type:cpu_commu
+node_nb	model_module0.f90	/^type (node_obj), allocatable :: node_nb(/;"	v	module:system
+node_obj	model_module0.f90	/^type node_obj$/;"	t	module:sys_node
+node_on_boundary_surface	crack_profile_setup.f90	/^subroutine node_on_boundary_surface(/;"	s
+node_out	model_module0.f90	/^integer, allocatable:: node_out(/;"	v	module:system
+node_share_coord	utility0.f90	/^subroutine node_share_coord /;"	s
+node_st_dof	model_module0.f90	/^    integer, pointer :: node_st_dof(/;"	k	type:element
+node_st_dof	model_module0.f90	/^integer, allocatable:: zero_dch(:),node_st_dof(/;"	v	module:system
+node_strain	main.f90	/^real(kind=double) node_strain(/;"	v	program:main
+node_stress	main.f90	/^real(kind=double) node_stress(/;"	v	program:main
+node_tl	model_module0.f90	/^integer ele_tl,node_tl,/;"	v	module:system
+node_tl_to_recv	model_module0.f90	/^    integer, pointer :: node_tl_to_recv(/;"	k	type:cpu_commu
+node_tl_to_send	model_module0.f90	/^    integer, pointer :: node_tl_to_send(/;"	k	type:cpu_commu
+node_total	main.f90	/^integer node_total /;"	v	program:main
+ntime	model_module0.f90	/^integer ntime /;"	v	module:system
+number_node_out	model_module0.f90	/^integer ele_tl,node_tl,dof_tl,number_node_out,/;"	v	module:system
+one	model_module0.f90	/^   integer, parameter :: one /;"	v	module:truth
+one_d	model_module0.f90	/^   real(kind=double), parameter :: one_d /;"	v	module:truth
+orien	model_module0.f90	/^    integer orien$/;"	k	type:bnd_face
+p0	model_module0.f90	/^real(kind=double) wght_8(8),face_wght_4(4),flux,flux_fld,p0,/;"	v	module:model_type
+plastic_model	model_module0.f90	/^integer plastic_model,/;"	v	module:system
+pnode	model_module0.f90	/^integer prpty_grp_sld,tl_load_point,cg_tl_node,pnode$/;"	v	module:system
+pnode_cn	model_module0.f90	/^integer, allocatable:: zero_dch(:),node_st_dof(:),indx(:),dirbcnode(:),pnode_cn(/;"	v	module:system
+point_coord	utility0.f90	/^subroutine point_coord(/;"	s
+pore_pressure	model_module0.f90	/^    real(kind=double) pore_pressure$/;"	k	type:element
+post_prcss2	post_prcss0.f90	/^subroutine post_prcss2(/;"	s
+pressure	model_module0.f90	/^    integer pressure$/;"	k	type:bnd_face
+pressure_bc_face	main.f90	/^real(kind=double) pressure_bc_face(/;"	v	program:main
+pressure_value	model_module0.f90	/^    real(kind=double) pressure_value$/;"	k	type:bnd_face
+projection	utility0.f90	/^subroutine projection(/;"	s
+prpty_grp_sld	model_module0.f90	/^integer prpty_grp_sld,/;"	v	module:system
+prpty_sld	model_module0.f90	/^    real(kind=double), pointer :: prpty_sld(/;"	k	type:material
+residue	model_module0.f90	/^real(kind=double), allocatable:: gstiff(:),residue(/;"	v	module:system
+rhs_at_n	main.f90	/^real(kind=double) rhs_at_n(/;"	v	program:main
+rtol	model_module0.f90	/^   real(kind=double), parameter :: rtol /;"	v	module:control
+sc	model_module0.f90	/^integer node_dof,b_dof,ele_dof,sc,/;"	v	module:model_type
+scale_point	model_module0.f90	/^real load_scale,load_factor,deltaT,time_past,scale_point,/;"	v	module:system
+setup_gip	pre_prcss0.f90	/^subroutine setup_gip$/;"	s
+shap_g	hexa_NB0.f90	/^subroutine shap_g(/;"	s
+single	model_module0.f90	/^   integer, parameter :: single /;"	v	module:truth
+sld_fld_tmp	model_module0.f90	/^integer int_face_tl,linear,ynelem,mstep,sld_fld_tmp$/;"	v	module:system
+sld_prp_itm	model_module0.f90	/^    integer sld_prp_itm$/;"	k	type:material
+solve_flag	main.f90	/^integer solve_flag,/;"	v	program:main
+sstol	model_module0.f90	/^   real(kind=double), parameter :: sstol /;"	v	module:control
+stress_invariants	utility0.f90	/^subroutine stress_invariants(/;"	s
+stress_prediction	dmat_ep.f90	/^subroutine stress_prediction(/;"	s
+strss_dof	model_module0.f90	/^integer node_dof,b_dof,ele_dof,sc,ngauss,strss_dof,/;"	v	module:model_type
+sys_node	model_module0.f90	/^module sys_node$/;"	m
+system	model_module0.f90	/^module system$/;"	m
+tecexists	model_module0.f90	/^logical :: tecexists /;"	v	module:system
+three	model_module0.f90	/^   integer, parameter :: three /;"	v	module:truth
+three_d	model_module0.f90	/^   real(kind=double), parameter :: three_d /;"	v	module:truth
+time_current	model_module0.f90	/^real(kind=double) L_2_u,L_2_delta_u,time_current$/;"	v	module:model_type
+time_past	model_module0.f90	/^real load_scale,load_factor,deltaT,time_past,/;"	v	module:system
+tiny_u	model_module0.f90	/^real(kind=double), allocatable:: u_n(:),u(:),delta_u(:),tiny_u(/;"	v	module:system
+tl_0_dch	model_module0.f90	/^integer tl_0_dch,/;"	v	module:system
+tl_crack_bdface	model_module0.f90	/^integer tl_cracked_face,tl_crack_bdface,/;"	v	module:system
+tl_cracked_face	model_module0.f90	/^integer tl_cracked_face,/;"	v	module:system
+tl_load	model_module0.f90	/^real(kind=double), allocatable:: load_cnst(:),delta_load_naut(:),tl_load(/;"	v	module:system
+tl_load_point	model_module0.f90	/^integer prpty_grp_sld,tl_load_point,/;"	v	module:system
+tl_nb_elem	model_module0.f90	/^    integer tl_nb_elem /;"	k	type:node_obj
+tl_nb_node	model_module0.f90	/^    integer tl_nb_node /;"	k	type:node_obj
+tl_node	model_module0.f90	/^    integer tl_node$/;"	k	type:element
+tl_non_zeros	model_module0.f90	/^integer tl_0_dch,dirnode,beta_zero,tl_non_zeros,/;"	v	module:system
+tl_pressured_face	model_module0.f90	/^integer flag_cpl,flag_gravity,flag_initial,flag_solve,tl_pressured_face,/;"	v	module:system
+tl_traction_face	model_module0.f90	/^integer flag_cpl,flag_gravity,flag_initial,flag_solve,tl_pressured_face,tl_traction_face$/;"	v	module:system
+total_0_dch	main.f90	/^integer total_0_dch /;"	v	program:main
+total_frac_elem	model_module0.f90	/^integer tl_cracked_face,tl_crack_bdface,total_frac_node,total_frac_elem$/;"	v	module:system
+total_frac_interior_node	model_module0.f90	/^integer total_node_ipars,total_frac_interior_node$/;"	v	module:system
+total_frac_node	model_module0.f90	/^integer tl_cracked_face,tl_crack_bdface,total_frac_node,/;"	v	module:system
+total_load_point	main.f90	/^integer total_load_point /;"	v	program:main
+total_node_ipars	model_module0.f90	/^integer total_node_ipars,/;"	v	module:system
+total_pressured_face	main.f90	/^integer total_pressured_face$/;"	v	program:main
+total_traction_face	main.f90	/^integer total_traction_face$/;"	v	program:main
+traction	model_module0.f90	/^    real(kind=double) traction(/;"	k	type:bnd_face
+traction_bc_face	main.f90	/^real(kind=double) traction_bc_face(/;"	v	program:main
+truth	model_module0.f90	/^module truth /;"	m
+two	model_module0.f90	/^   integer, parameter :: two /;"	v	module:truth
+two_d	model_module0.f90	/^   real(kind=double), parameter :: two_d /;"	v	module:truth
+u	model_module0.f90	/^real(kind=doub/;"	v	module:system
+u_0	model_module0.f90	/^real(kind=double), allocatable:: u_n(:),u(:),delta_u(:),tiny_u(:),u_0(/;"	v	module:system
+u_n	model_module0.f90	/^real(kind=double), allocatable:: u_n(/;"	v	module:system
+update_1	utility0.f90	/^subroutine update_1$/;"	s
+update_2	utility0.f90	/^subroutine update_2$/;"	s
+update_width	elastic.df	/^      SUBROUTINE update_width(/;"	s
+updating_after_coupled_field_converge	utility0.f90	/^subroutine updating_after_coupled_field_converge$/;"	s
+vstrain	model_module0.f90	/^    real(kind=double) vstrain$/;"	k	type:element
+well_geometry	utility0.f90	/^subroutine  well_geometry(/;"	s
+wght_27	model_module0.f90	/^real(kind=double) wght_27(/;"	v	module:model_type
+wght_8	model_module0.f90	/^real(kind=double) wght_8(/;"	v	module:model_type
+yield_para	model_module0.f90	/^    real(kind=double), pointer :: yield_para(/;"	k	type:material
+yield_prp_itm	model_module0.f90	/^    integer yield_prp_itm$/;"	k	type:material
+ynelem	model_module0.f90	/^integer int_face_tl,linear,ynelem,/;"	v	module:system
+ytol	model_module0.f90	/^   real(kind=double), parameter :: ytol /;"	v	module:control
+zero	model_module0.f90	/^   integer, parameter :: zero /;"	v	module:truth
+zero_d	model_module0.f90	/^   real(kind=double), parameter :: zero_d /;"	v	module:truth
+zero_dch	model_module0.f90	/^integer, allocatable:: zero_dch(/;"	v	module:system
+zero_value	model_module0.f90	/^real(kind=double), allocatable:: load_tl_zero(:),zero_value(/;"	v	module:system

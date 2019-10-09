@@ -1,0 +1,242 @@
+#! /bin/csh
+#
+# MTECCOA
+#
+# usage: 
+#    mteccoa visinf
+# or    
+#    mteccoa
+# In the latter case, visinf is set to "Vis.inf"
+#
+# C - shell utility to combine IPARS zone output for Tecplot in one
+# file for ALL processors, and for ALL faultblocks, creates TEC*.mcr
+# macro files.
+# This shell utility works only for files in Unix format, see below.
+# use MTECPC for files in PC format
+# 
+# This shell invokes TECCO, see the script for details.
+#
+# It uses the following information files
+# ========================================
+# visinf	- main file, contains the number of processors, 
+#	rootname, visflag, style
+# ... in the comments below we assume that rootname =TEC
+# TEC_blks.proc - contains the list of fault blocks for each processor
+# TEC_info.proc - contaisn the list of recently created time steps
+#  
+# it will invoke utility tecco looking for the DATA files in the format
+# =====================================================================
+# TEC.faultblock.processor.visflag.tstep (if style =1, Unix)
+# or 
+# TEC.faultblock.processor.visflag.tstep (if style =2, PC)
+#
+#
+# MPeszynskax, 4/20/98, updated 9/26/98, Linux updates 1/9/98
+#
+###############################################################
+#
+### process command line arguments to 
+#  process Vis.inf or file from command line to set the main parameters
+set number = 0
+set minwrd = 14
+#
+foreach arg ($*)	
+	@ number ++
+#
+#	echo 'argument number '$number' is '$arg
+#
+	switch ($number) 
+	case 1:
+		set visinf = $arg
+		breaksw
+	endsw
+end			
+#		
+# echo 'number of arguments is ' $number
+#
+if ( $number == 0 ) then
+    set visinf = "Vis.inf"
+endif
+
+echo "<-- MTECOOA will process the file <$visinf>."
+ 
+if ( ! (-e $visinf ) ) then
+        echo "File $visinf does not exist."
+        goto endshell
+endif
+
+set rootname   = `awk ' NR == 1 { print $3; } ' $visinf `
+set nprocessor = `awk ' NR == 2 { print $3; } ' $visinf `
+set style      = `awk ' NR == 3 { print $3; } ' $visinf `
+set visflag    = `awk ' NR == 4 { print $3; } ' $visinf `
+
+#echo "<-- MTECCOA found : root=$rootname, nprocs=$nprocessor, sty=$style, flag=$visflag"
+
+if ( $style != 1) then
+	echo "Use MTECPC shell instead. The style is incompatible."
+	goto endshell
+else
+	echo "Processing files with root=$rootname, for $nprocessor procs, sty=$style, flag=$visflag ."
+endif
+## set file names 
+set infoname = "${rootname}_info"
+set blkname  = "${rootname}_blks"
+#
+#### initialize 
+set zonelist = ()
+set number = 0
+set nsteps = 0
+set flist=()
+#
+##### process the files
+#
+set procnum = 0		
+set nsets = 0
+while ( $procnum < $nprocessor )	
+  #
+  ##### get the list of blocks on the current processor
+  #
+  set blkfile = "$blkname.$procnum"
+  rm -f zonedum
+  awk ' { \
+	printf("%s ", $NF);  \
+  }' $blkfile > zonedum
+  set blklist = `cat zonedum`
+
+  echo "list of blocks for processor $procnum is $blklist"
+
+  ######################## process all the blocks for the given processor
+  foreach fblock ($blklist)
+	#
+	##### get the list of zones from the INFO file
+	#
+	set infofile = "$infoname.$fblock.$procnum"
+	####################### get all the time steps
+	rm -f zonedum
+	awk -F. ' NR > 2{ \
+	printf("%s ", $NF);  \
+	}' $infofile > zonedum
+	set zonelist = `cat zonedum`
+	set csteps = 0
+	foreach zone ($zonelist)
+		@ csteps ++	
+	end	
+#	echo "for proc $procnum counted $csteps $nsteps"
+	if ( $procnum == 0 ) then
+		set nsteps = $csteps
+	else
+		if ( $nsteps != $csteps )  then
+		 echo "Warning: different number of time steps for $procnum"
+		 goto endshell
+		endif
+		set nsteps = $csteps
+	endif
+#
+# call tecco (and Preplot)
+#
+        set filnam = "${rootname}.${fblock}.${procnum}"
+        set filnam = "${filnam}.${visflag}.${zone}"
+        echo "Checking no of words in file ${filnam}"
+        wc -w ${filnam} > nwdum
+        set nwords = `awk ' { print $1 } ' nwdum `
+        if( $nwords <= $minwrd) then
+           continue
+        endif
+
+# bag8 3/19/10 - broke echo into multiple lines to prevent
+#                CSH buffer overflow (Word too long).
+	echo "Calling tecco with:"
+        echo rootname=$rootname
+        echo fblock=$fblock
+        echo procnum=$procnum
+        echo visflag=$visflag
+        echo zonelist=$zonelist
+	./tecco $rootname $fblock $procnum $visflag $zonelist
+#
+	set tecco_stat = $status
+	if ( $tecco_stat != 0) then
+	    goto endshell
+	endif
+#
+# create the list of input files to be used by sed 
+#
+# bag8 - changed mydir to macrofilepath
+	set flist = ($flist \
+	"|macrofilepath|/$rootname.$fblock.$procnum.$visflag.plt")
+#	echo "current flist= $flist"
+
+	@ nsets++
+  end # foreach loop for nfblocks
+  echo "-----------------------------"	
+  @ procnum++	
+end # loop for nprocessor
+
+#
+#### reset the TECload, TECanim, TECfirst macros 
+#### 
+echo "Resetting MCR (Tecplot macro) files:" 
+echo "Files dum,fdum,tmp and all ${rootname}*.mcr will be destroyed. Proceed ? (y/n)"
+#set reply = $<
+set reply = "y"
+if ( $reply != "y" ) then
+	goto endshell
+endif
+# remove potential time step macros
+rm -f ${rootname}*.mcr
+#
+## create the sed script dum that applies to all src files 
+#
+rm -f dum
+echo "4 s/=/=  $nsets/" > dum
+echo "5 s/=/=  $nsteps/"  >> dum
+#
+## loop over the macro files: insert the current values of nprocessor, nsteps
+#
+foreach mfile(load first anim)
+	echo "$rootname$mfile.mcr.. "
+	rm -f $rootname$mfile.mcr 	
+	sed -f dum TEC$mfile.src > $rootname$mfile.mcr
+	echo "..has been created OK."
+end
+#
+############ special treatment of TECload.mcr: append filenames
+#
+rm -f fdum		
+echo '8 a\' > fdum
+echo "'"`pwd`"'" >> fdum
+echo '9 a\' >> fdum
+rm -f tmp
+mv ${rootname}load.mcr tmp
+echo '"'"$flist"'"' >> fdum
+sed -f fdum tmp > ${rootname}load.mcr
+#
+############  special treatment of TECfirst.mcr: mark the time step
+# create the macro files for all zones
+# 
+set step = 0
+echo "Time step macros:"
+foreach zone ($zonelist)
+	@ step ++
+	@ sstep = $step + 1
+	rm -f dum
+	echo "8 s/=/=  $sstep/" > dum
+	rm -f tmp
+	cp ${rootname}first.mcr tmp
+	sed -f dum tmp > $rootname$zone.mcr
+	echo "$rootname$zone.mcr created OK."
+end	
+@ sstep = 2
+rm -f dum
+echo "8 s/=/=  $sstep/" > dum
+rm -f tmp
+mv ${rootname}first.mcr tmp
+sed -f dum tmp > ${rootname}first.mcr
+#### 
+rm -f dum fdum tmp
+##############
+echo "<-- MTECCOA ended OK."
+exit 0
+### we are here if error occured or user interrupted the macro
+endshell:
+echo "<-- MTECCOA interrupted."
+set status = 15
