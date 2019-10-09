@@ -3,7 +3,9 @@
 
 The algorithm I developed has separate finite element grids for flow and poromechanics. That algorithm is built on top of the existing algorithm that solves flow and poromechanics sequentially on the same grid. Since the code is heavily parallelized using MPI, and since it is possible to have MPI processes not occupying flow elements, we design a separate MPI subcommunicator for flow.
 
-All code chunks I have worked on can be found by "grep -irn "saumik" ./" or "grep -irn "SAUMIK" ./"
+All code chunks I have worked on can be found by "grep -irn "saumik" ./"
+
+---------------------------------- Comments on code contributions from Saumik -----------------------------------
 
 --------- /comp_mfmfe is the folder pertaining to compositional flow model with multipoint flux mixed finite element method
 
