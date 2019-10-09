@@ -14,3 +14,7 @@ xiadat.df gets the input for the extra parameters introduced
 xstep.df tells the compiler to use the flag mbporoe to identify the two grid problem and proceed accordingly
 
 xvisual.df calls the visualization part of the code framework to generate fields in the eventual vtk file
+
+---------- /drive is the folder with the driver code ipars.df
+
+ipars.df has the call to the flag mbporoe that ensures separate element index numbering for flow and poromechanics model
