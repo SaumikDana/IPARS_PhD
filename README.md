@@ -31,4 +31,8 @@ idata.df has declaration of flags pertinent to various types of problems we want
 
 ---------- /memman is the folder pertaining to memory allocation and division of elements among MPI processes 
 
+divide.df invokes the METIS library to divide elements among processes as an option
+
+memman1.dc invokes a routine which help in visualization in the two-grid framework
+
 
