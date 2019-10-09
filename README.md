@@ -45,5 +45,15 @@ added tetgen.h and tetgen.cpp for calls to TETGEN delaunay triangulation library
 
 file eprojections.df has all the code with regards to computation of grid-to-grid projection operators
 
+added functionality using sdpm flag in earray.df
+
+added flag mbporoe in eidata.df and eivdat.df wherever necessary
+
+routine eiter in estep.df calls routines written in memman2.dc for grid-to-grid transfers
+
+added flag mbporoe in evisual.df wherever necessary
+
+changes to bc0.f90 and post_prcss0.f90 for error indicators 
+
 
 
