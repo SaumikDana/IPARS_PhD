@@ -40,3 +40,10 @@ memman2.dc invokes three routines which work to create grid-to-grid projection o
 added metis.dc for METIS partitioning
 
 added tetgen.h and tetgen.cpp for calls to TETGEN delaunay triangulation library
+
+---------- /porohex is the folder pertaining to poromechanics model
+
+file eprojections.df has all the code with regards to computation of grid-to-grid projection operators
+
+
+
