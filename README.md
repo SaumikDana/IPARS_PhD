@@ -57,3 +57,7 @@ changes to bc0.f90 and post_prcss0.f90 for error indicators
 
 ---------- /singlei_mfmfe is the folder pertaining to single phase flow model
 
+added flag mbporoe in tisdat.df, tprop.df, tstep.df and tvisual.df wherever necessary
+
+tarray.df has all memory allocation for extra parameters introduced for the two grid framework 
+
