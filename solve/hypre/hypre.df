@@ -1,3 +1,27 @@
+/*
+The Generalized Minimal Residual (GMRES) method is an iterative method for solving linear systems, 
+particularly large, sparse systems that arise in many scientific and engineering applications. 
+GMRES belongs to the class of Krylov subspace methods, 
+which means that it constructs a sequence of approximations to the solution by solving the system on an increasing sequence of Krylov subspaces.
+
+The Algebraic Multi-grid (AMG) method is a powerful preconditioning technique 
+that can be used with GMRES to accelerate convergence. 
+The idea is to use AMG as a black-box preconditioner to reduce the condition number of the system matrix 
+and to make it easier to solve iteratively. 
+The AMG method builds a hierarchy of coarser and coarser approximations to the problem, 
+which can be used to construct an efficient preconditioner.
+
+In this code snippet, GMRES with AMG preconditioner is implemented using the HYPRE library. 
+The code sets up the GMRES solver with the desired parameters (k_dim, lsol_itmax, lsol_tol, etc.), 
+creates an instance of the BoomerAMG preconditioner, sets its parameters (coarsen_type, relax_type, max_levels, etc.), 
+and attaches it to the GMRES solver. The preconditioner is then used to solve the system iteratively, 
+and the final solution and number of iterations are returned.
+
+It is worth noting that the HYPRE library provides other solvers and preconditioners besides GMRES and AMG, 
+such as BiCGSTAB, CG, ILU, and more. 
+The choice of solver and preconditioner depends on the problem at hand and the characteristics of the system matrix.
+*/
+
 C  HYPRE.F - HYPRE INTERFACE 
 C
 C  ROUTINES IN THIS MODULE:
