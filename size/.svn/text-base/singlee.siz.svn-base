@@ -1,9 +1,0 @@
-$ ############ Implicit Single Phase Model Include File ############
-
-Replace_Symbols
-
-SINGLEE ""           $ Include single phase explicit model code
-
-NUMCOF    7          $ Number of Jacobian coefficient blocks per equation
-SNUMEQ    1          $ Number of Newtonian unknowns per grid element
-NEWTEQS   1          $ Number of Newtonian unknowns per grid element
