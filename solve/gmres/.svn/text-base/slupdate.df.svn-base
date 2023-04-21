@@ -1,8 +1,0 @@
-c---->
-      SUBROUTINE SLUPDATE( NUMARY, IV1, IV2, KTMP )
-      INTEGER NUMARY, IV1, IV2, KTMP
-$MANY      call UPDATER( NUMARY, IV1, IV2, KTMP )
-      return
-      end
-c---->
-
