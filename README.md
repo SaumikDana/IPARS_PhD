@@ -1,14 +1,16 @@
+# *IPARS*
+
 The IPARS (Integrated Parallel Accurate Reservoir Simulator) is a new generation framework for petroleum reservoir simulation developed as part of the ACTI project. It serves as a test-bed for multiphase flow models, numerical discretizations, solvers, and upscaling.
 
 Here are some more details about IPARS:
 
-General Geometry on IPARS:
+## *General Geometry on IPARS*:
 
 - Dipping Reservoir
 - Multiblock
 - Small Angle Approximation
 
-Current Features:
+## *Features*:
 
 - Portability between different platforms including PC under DOS/Windows or Linux and PC clusters, RS6K and SP2, SGI, Cray T3E, etc.
 - Memory management for multiple fault blocks, multiblock nonmatching grids, and general geometry.
@@ -23,7 +25,7 @@ Current Features:
 - Multiblock formulation using mortar spaces and implemented with MACE
 - Multimodel formulation allowing for multinumerics and multiphysics
 
-Recent Accomplishments:
+## *Accomplishments*:
 
 - Running Mega-size problems with the two-phase and black oil models on PC-clusters. The parallel scaling of the code is very good.
 - Achieved multiphysics; coupling in which IPARS models: black oil, two-phase, and single-phase models are coupled across the interface. In the earlier phase of this work, they completed multinumerics coupling.
