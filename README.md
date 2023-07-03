@@ -4,9 +4,9 @@ Here are some more details about IPARS:
 
 General Geometry on IPARS:
 
-    Dipping Reservoir
-    Multiblock
-    Small Angle Approximation
+    - Dipping Reservoir
+    - Multiblock
+    - Small Angle Approximation
 
 Current Features:
 
