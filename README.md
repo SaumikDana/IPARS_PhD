@@ -1,36 +1,91 @@
-# *IPARS*
-
-The IPARS (Integrated Parallel Accurate Reservoir Simulator) is a new generation framework for petroleum reservoir simulation developed as part of the ACTI project. It serves as a test-bed for multiphase flow models, numerical discretizations, solvers, and upscaling.
-
-Here are some more details about IPARS:
-
-## *General Geometry on IPARS*:
-
-- Dipping Reservoir
-- Multiblock
-- Small Angle Approximation
-
-## *Features*:
-
-- Portability between different platforms including PC under DOS/Windows or Linux and PC clusters, RS6K and SP2, SGI, Cray T3E, etc.
-- Memory management for multiple fault blocks, multiblock nonmatching grids, and general geometry.
-- Multiple processors (ghost region updates and global reduce operations)
-- Time step control
-- Error management, CPU timing system
-- Keyword input
-- Visualization output for scalar and vector variables, data tables, etc.
-- A suite of linear solvers
-- Well management tools for different types of injection and production wells
-- Multiple physical models including two-phase (oil/water) implicit, two-phase (oil/water) sequential (Fast Accurate), black oil (three-phase, three-component), two-phase (air/water) implicit, single-phase (slightly compressible) explicit, single-phase (slightly compressible) implicit, EOS compositional (in review phase, also see EOS page), and much more (some still in development phase)
-- Multiblock formulation using mortar spaces and implemented with MACE
-- Multimodel formulation allowing for multinumerics and multiphysics
-
-## *Accomplishments*:
-
-- Running Mega-size problems with the two-phase and black oil models on PC-clusters. The parallel scaling of the code is very good.
-- Achieved multiphysics; coupling in which IPARS models: black oil, two-phase, and single-phase models are coupled across the interface. In the earlier phase of this work, they completed multinumerics coupling.
-- IPARS black oil model was successfully used in the projects:
-    Coupling of multiphase flow with geomechanics, in collaboration with Sandia National Labs, see Coupled Geomechanical Deformation and Reservoir Simulation, or here.
-    Coupling of multiphase flow with single-well injectivity modeling.
-- Advances in parallel procedures for multiphase flow include preconditioned GMRES with variable multistage preconditioners (Uzawa, and IMPES family). These schemes have been tested in the IPARS framework for two and three-phase fully-implicit models, and are the foundation of the excellent parallel scalability of IPARS. Collaboration with Philippe Quandalle (IFP) and Yuri Vassilevski (Russian Academy of Sciences) was crucial to achieving the current level of performance.
-- Collaboration with ICES (Institute for Computational Engineering and Sciences) at UT has raised interesting possibilities for applying recent computer science advances, such as coupling the low-level dynamic mesh data structures of the DAGH (Distributed Adaptive Grid Hierarchy) package with the domain knowledge framework embodied in IPARS, and using “space-filling curves” for ordering the grid elements upon the processors.
+```
+IPARS_PhD/
+├── blacki/                       # Black-Oil Model.
+│   ├── .svn/                     # Subversion control metadata.
+│   └── data/                     # Data files, possibly input or test data.
+│       ├── .svn/
+│       └── single_block/         # Data related to a 'single block' scenario or model.
+│           ├── .svn/
+│           ├── test1/            # Test or example data set 1.
+│           │   └── .svn/
+│           └── test2/            # Test or example data set 2.
+│               └── .svn/
+├── blocks/                       # Could contain scripts or code for block-based operations or models.
+│   └── dual/                     # Specific type or method of block handling.
+├── comp/                         # Compositional Flow Model.
+│   ├── .svn/
+│   ├── Benchmark/                # Benchmarking tests or data for performance evaluation.
+│   │   ├── 1D_diff/              # 1D diffusion (or similar) benchmark.
+│   │   │   └── .svn/
+│   │   ├── 2D_diff_corrected/    # Corrected 2D diffusion benchmark.
+│   │   │   └── .svn/
+│   │   ├── 3D_grav/              # 3D gravity-related benchmark.
+│   │   │   └── .svn/
+│   │   └── ... (more benchmarks)
+│   └── doc/                      # Documentation for this component.
+│       └── .svn/
+├── comp_mfmfe/                   # Compositional Flow Model with Multi Point Flux Mixed finite element implementation.
+│   ├── Benchmark/                # Benchmarks specific to this module.
+│   │   ├── 1D_diff/              # 1D diffusion benchmark.
+│   │   │   └── .svn/
+│   │   ├── 2D_brick_diff/        # 2D diffusion with a 'brick' model or scenario.
+│   │   │   └── .svn/
+│   │   └── ... (more benchmarks)
+├── dealii/                       # May contain components related to the deal.II library (a C++ library for solving PDEs).
+│   └── .svn/
+├── doc/                          # General documentation for the entire project.
+│   ├── .svn/
+│   └── user/                     # User-specific documentation.
+│       └── .svn/
+├── hydroi/                       # 2phase flow model.
+│   └── .svn/
+├── hydroi_mfmfe/                 # 2phase flow model with MFMFE.
+│   ├── .svn/
+│   └── data/                     # Data for hydrological simulations or tests.
+│       ├── Frio/                 # Data related to the 'Frio' scenario or model.
+│       │   └── .svn/
+│       └── Test_bric/            # Test data for a scenario named 'bric'.
+│           └── .svn/
+├── hydroia/                      # Another hydrological module or component.
+│   ├── .svn/
+│   └── data/                     # Data related to this module.
+│       └── test_brick_mpfa/      # Test data for a 'brick' model with MPFA (Multipoint Flux Approximation).
+│           └── .svn/
+├── java/                         # Java code or scripts, possibly for utilities or interfacing.
+│   └── .svn/
+├── output/                       # Directory for output files from simulations, computations, or runs.
+│   ├── print/                    # Printable output or logs.
+│   │   └── .svn/
+│   ├── restart/                  # Files to restart simulations or computations from a certain state.
+│   │   └── .svn/
+│   └── tecplot/                  # Output files specifically for Tecplot visualization.
+│       └── .svn/
+├── poroe/                        # Related to poroelasticity or similar computational models.
+│   ├── .svn/
+│   └── pesolve/                  # Solver or scripts for poroelasticity problems.
+│       └── .svn/
+├── porohex/                      # Variant or specific implementation related to 'poroe'.
+│   ├── data/                     # Data for poroelasticity simulations or models.
+│   │   ├── ben_singlephase1/     # Data set for a single-phase scenario.
+│   │   │   └── .svn/
+│   │   ├── bradley_1ph/          # Data for a Bradley 1-phase model or scenario.
+│   │   │   └── .svn/
+│   │   └── ... (more data)
+│   └── .svn/
+├── scripts/                      # Utility scripts for setup, execution, or other tasks.
+│   └── .svn/
+├── solve/                        # Solvers and algorithms for computational problems.
+│   ├── .svn/
+│   ├── bcgs/                     # Biconjugate gradient stabilized solver.
+│   ├── gmres/                    # Generalized minimal residual solver.
+│   ├── hypre/                    # Hypre solver (scalable linear solvers and multigrid methods).
+│   └── ... (more solvers)
+├── visual/                       # Visualization tools, scripts, and sources.
+│   ├── PV3/                      # ParaView version 3 files or scripts.
+│   │   └── .svn/
+│   ├── scripts/                  # Scripts for visualization purposes.
+│   │   └── .svn/
+│   └── tecplot/                  # Tecplot-specific visualization files or scripts.
+│       └── .svn/
+└── README.md                     # Markdown file with an overview and instructions for the repository.
+```
