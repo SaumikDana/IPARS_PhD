@@ -100,4 +100,37 @@ IPARS_PhD
     ├── poroel_el_m3as
 ```
 
+## Algorithmic Pseudocode
+
+```
+initialize simulation parameters
+
+for each timestep in simulation:
+|   initialize timestep parameters
+|   
+|   // Flow calculations
+|   repeat:
+|   |   perform flow calculations
+|   |   if flow calculations have converged:
+|   |   |   break flow calculation loop
+|   |   
+|   |   update flow-related variables and parameters for next iteration
+|   
+|   until flow convergence criteria are met or maximum flow iterations reached
+|
+|   // Mechanics calculations
+|   repeat:
+|   |   perform mechanics calculations
+|   |   if mechanics calculations have converged:
+|   |   |   break mechanics calculation loop
+|   |   
+|   |   update mechanics-related variables and parameters for next iteration
+|   
+|   until mechanics convergence criteria are met or maximum mechanics iterations reached
+|
+|   update simulation state for next timestep
+```
+
+# Output
+
 <img width="1128" alt="Screen Shot 2023-12-29 at 8 52 16 PM" src="https://github.com/SaumikDana/IPARS_PhD/assets/9474631/63c9147b-8b4d-4850-b8ec-32a8110184fe">
