@@ -1,3 +1,5 @@
+## Directory Structure
+
 ```
 IPARS_PhD
 │
@@ -131,6 +133,6 @@ for each timestep in simulation:
 |   update simulation state for next timestep
 ```
 
-# Output
+## Output
 
 <img width="1128" alt="Screen Shot 2023-12-29 at 8 52 16 PM" src="https://github.com/SaumikDana/IPARS_PhD/assets/9474631/63c9147b-8b4d-4850-b8ec-32a8110184fe">
